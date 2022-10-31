@@ -7,7 +7,6 @@
 #include "debug.h"
 #include "memory.h"
 #include "object.h"
-#include "stdlib/stdlib.h"
 
 // Global vm
 VM vm;
