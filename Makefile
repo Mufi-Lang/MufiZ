@@ -7,6 +7,6 @@ release:
 	$(PY) util/debug_prod.py release 
 	make build 
 build: 
-	$(CC) compiler/*.c -o mufi
+	$(CC) compiler/*.c -Werror -Wall -std=c99 -o mufi
 clean: 
 	rm mufi 
