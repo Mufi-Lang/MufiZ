@@ -2,13 +2,13 @@
 #define mufi_pre_h
 
 //> Major version of mufi
-#define MAJOR 0
+#define MAJOR 1
 //> Minor version of mufi
-#define MINOR 1
+#define MINOR 0
 //> Patch version of mufi
 #define PATCH 0
 //> Codename of release
-#define CODENAME "Baloo"
+#define CODENAME "Zula"
 //> Declares the version
 #define VERSION() (printf("Version %d.%d.%d (%s Release)\n", MAJOR, MINOR, PATCH, CODENAME))
 

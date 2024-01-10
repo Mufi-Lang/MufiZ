@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
-#include "object.h"
-#include "value.h"
-#include "memory.h"
+#include "../include/object.h"
+#include "../include/value.h"
+#include "../include/memory.h"
 
 // Creates a new empty array
 void initValueArray(ValueArray* array){

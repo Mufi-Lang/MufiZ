@@ -1,8 +1,9 @@
 #include <stdlib.h>
 
-#include "chunk.h"
-#include "memory.h"
-#include "vm.h"
+#include "../include/chunk.h"
+#include "../include/memory.h"
+#include "../include/value.h"
+#include "../include/vm.h"
 // Creates a new empty chunk
 void initChunk(Chunk* chunk){
     // When initializing, everything starts at 0

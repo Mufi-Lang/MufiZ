@@ -1,12 +1,14 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
-#include "common.h"
-#include "compiler.h"
-#include "vm.h"
-#include "debug.h"
-#include "memory.h"
-#include "object.h"
+#include<time.h>
+#include "../include/common.h"
+#include "../include/compiler.h"
+#include "../include/vm.h"
+#include "../include/debug.h"
+#include "../include/memory.h"
+#include "../include/object.h"
+#include "../include/value.h"
 
 // Global vm
 VM vm;
@@ -41,7 +43,12 @@ static void runtimeError(const char* format, ...) {
 
     resetStack();
 }
-static void defineNative(const char* name, NativeFn function) {
+
+Value zero(int argCount, Value *args){
+    return INT_VAL(0);
+}
+
+void defineNative(const char* name, NativeFn function) {
     push(OBJ_VAL(copyString(name, (int)strlen(name))));
     push(OBJ_VAL(newNative(function)));
     tableSet(&vm.globals, AS_STRING(vm.stack[0]), vm.stack[1]);
@@ -64,8 +71,6 @@ void initVM(){
 
     vm.initString = NULL;
     vm.initString = copyString("init", 4);
-
-    // define natives here 
 }
 
 // Frees the virtual machine

@@ -55,5 +55,7 @@ InterpretResult interpret(const char* source);
 void push(Value value);
 //> Pops a value off the stack
 Value pop();
+//> Defines a native function
+void defineNative(const char* name, NativeFn function);
 
 #endif

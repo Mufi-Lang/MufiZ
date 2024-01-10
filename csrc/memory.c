@@ -1,11 +1,11 @@
 #include <stdlib.h>
-#include "memory.h"
-#include "vm.h"
-#include "compiler.h"
+#include "../include/memory.h"
+#include "../include/vm.h"
+#include "../include/compiler.h"
 
 #ifdef DEBUG_LOG_GC
 #include <stdio.h>
-#include "debug.h"
+#include "../include/debug.h"
 #endif
 
 #define GC_HEAP_GROW_FACTOR 2

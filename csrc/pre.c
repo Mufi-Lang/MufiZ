@@ -1,11 +1,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <regex.h>
-#include "pre.h"
-#include "common.h"
-#include "chunk.h"
-#include "debug.h"
-#include "vm.h"
+#include "../include/pre.h"
+#include "../include/common.h"
+#include "../include/chunk.h"
+#include "../include/debug.h"
+#include "../include/vm.h"
 //> Mufi read-eval-print-loop function
 
 void repl(){
