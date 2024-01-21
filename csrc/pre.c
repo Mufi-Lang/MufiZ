@@ -45,7 +45,6 @@ char* readFile(const char* path){
     return buffer;
 }
 
-
 //> Runs the source code of a file
 void runFile(const char* path){
     char* source = readFile(path);
