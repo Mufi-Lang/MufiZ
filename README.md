@@ -19,5 +19,10 @@ $ zig build run -- <path> # to run script
 
 ## Goal 
 
-- [X] Replace `pre` with Zig so we can perform repl/file reads with guaranteed memory safety. 
+- [X] Replace `pre` with Zig so we can perform `repl/scripts` with guaranteed memory safety. 
     - Such cases as avoiding buffer overflow
+- [ ] Optional standard library (ability to be ran with `nostd`)
+- [ ] Standard Libary with following: 
+  - [ ] Write/Read file in cwd 
+  - [ ] Type Conversions
+  - [ ] Run process commands 

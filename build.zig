@@ -21,7 +21,6 @@ pub fn build(b: *std.Build) !void {
         "csrc/debug.c", 
         "csrc/memory.c", 
         "csrc/object.c", 
-//        "csrc/pre.c", 
         "csrc/scanner.c", 
         "csrc/table.c", 
        "csrc/vm.c", 
@@ -29,9 +28,13 @@ pub fn build(b: *std.Build) !void {
         }, 
 &.{ 
         "-Wall", 
-       // "-Werror", 
         "-std=c11" 
     });
+
+    const options = b.addOptions();
+    const nostd = b.option(bool, "nostd", "Run Mufi without Standard Library") orelse false;
+    options.addOption(bool, "nostd", nostd);
+    exe.addOptions("build_opts", options);
 
     // zig fmt: on
     b.installArtifact(exe);

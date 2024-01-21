@@ -1,6 +1,7 @@
 const std = @import("std");
+const nostd = @import("build_opts").nostd;
 const stdlib = @import("stdlib.zig");
-//const Conv = @import("conv.zig").Conv; //broken
+const conv = @import("conv.zig");
 const vm = @cImport(@cInclude("vm.h"));
 const value = @cImport(@cInclude("value.h"));
 const Value = value.Value;
@@ -12,24 +13,15 @@ const MINOR: u8 = 0;
 const PATCH: u8 = 0;
 const CODENAME: []const u8 = "Zula";
 
-// TODO: Move to conv.zig
-fn int_val(i: i32) Value {
-    return Value{ .type = VAL_INT, .as = .{ .num_int = i } };
-}
-// TODO: Move to conv.zig
-fn as_int(v: Value) i32 {
-    return v.as.num_int;
-}
-
 // Create an add function for integers
 // TODO: Move to stdlib.zig
 fn addi(argc: c_int, args: [*c]Value) callconv(.C) Value {
     if (argc != 2) {
-        return int_val(0);
+        return conv.int_val(0);
     } else {
-        const a = as_int(args[0]);
-        const b = as_int(args[1]);
-        return int_val(a + b);
+        const a = conv.as_int(args[0]);
+        const b = conv.as_int(args[1]);
+        return conv.int_val(a + b);
     }
 }
 
@@ -50,16 +42,22 @@ pub fn runFile(path: []u8, allocator: std.mem.Allocator) !void {
     if (result == vm.INTERPRET_RUNTIME_ERROR) std.os.exit(70);
 }
 
-pub inline fn version() void {
-    std.debug.print("Version {d}.{d}.{d} ({s} Release)\n", .{ MAJOR, MINOR, PATCH, CODENAME });
-}
+const vopt = if (nostd) struct {
+    pub inline fn version() void {
+        std.debug.print("Version {d}.{d}.{d} ({s} Release [nostd])\n", .{ MAJOR, MINOR, PATCH, CODENAME });
+    }
+} else struct {
+    pub inline fn version() void {
+        std.debug.print("Version {d}.{d}.{d} ({s} Release)\n", .{ MAJOR, MINOR, PATCH, CODENAME });
+    }
+};
 
-/// Zig version of `repl` from `csrc/pre.c 10:21` 
-/// Currently uses depreceated `readUntilDelimiterOrEof` 
+/// Zig version of `repl` from `csrc/pre.c 10:21`
+/// Currently uses depreceated `readUntilDelimiterOrEof`
 /// `streamUntilDelimeter` causes issue due to const pointer
 pub fn repl() !void {
     var buffer: [1024]u8 = undefined;
-    version();
+    vopt.version();
     while (true) {
         std.debug.print("(mufi) >> ", .{});
         var input = try stdin.readUntilDelimiterOrEof(&buffer, '\n') orelse break;
@@ -77,10 +75,12 @@ pub fn main() !void {
         if (check == .leak) @panic("memory leak!");
     }
     const allocator = gpa.allocator();
-    var natives = stdlib.NativeFunctions.init(allocator);
-    defer natives.deinit();
-    try natives.append("addi", &addi);
-    natives.define();
+    if (!nostd) {
+        var natives = stdlib.NativeFunctions.init(allocator);
+        defer natives.deinit();
+        try natives.append("addi", &addi);
+        natives.define();
+    }
 
     var args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, args);
@@ -89,7 +89,7 @@ pub fn main() !void {
         try repl();
     } else if (args.len == 2) {
         if (std.mem.eql(u8, args[1], "version")) {
-            version();
+            vopt.version();
         } else {
             try runFile(args[1], allocator);
         }
