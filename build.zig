@@ -32,11 +32,6 @@ pub fn build(b: *std.Build) !void {
        // "-Werror", 
         "-std=c11" 
     });
-    const options = b.addOptions();
-    const release = b.option(bool, "release", "Compiler in release mode") orelse false;
-    options.addOption(bool, "release", release);
-    exe.addOptions("config", options);
-
 
     // zig fmt: on
     b.installArtifact(exe);
