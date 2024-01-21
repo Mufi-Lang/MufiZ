@@ -15,3 +15,9 @@ $ zig build run # for repl
 $ zig build run -- version # for version 
 $ zig build run -- <path> # to run script 
 ```
+
+
+## Goal 
+
+- [X] Replace `pre` with Zig so we can perform repl/file reads with guaranteed memory safety. 
+    - Such cases as avoiding buffer overflow
