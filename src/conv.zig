@@ -1,12 +1,15 @@
 const value = @cImport(@cInclude("value.h"));
+const object = @cImport(@cInclude("object.h"));
 const Value = value.Value;
-const Obj = value.Obj;
-
+const Obj = object.Obj;
+const ObjType = object.ObjType;
+const ObjString = object.ObjString;
 const VAL_INT = value.VAL_INT;
 const VAL_BOOL = value.VAL_BOOL;
 const VAL_DOUBLE = value.VAL_DOUBLE;
 const VAL_NIL = value.VAL_NIL;
 const VAL_OBJ = value.VAL_OBJ;
+const OBJ_STRING = object.OBJ_STRING;
 
 pub fn is_bool(val: Value) bool {
     return val.type == VAL_BOOL;
@@ -62,4 +65,17 @@ pub fn double_val(f: f64) Value {
 
 pub fn obj_val(o: ?*Obj) Value {
     return .{ .type = VAL_OBJ, .as = .{ .obj = o } };
+}
+
+inline fn is_obj_type(val: Value, ty: ObjType) bool {
+    return is_obj(val) and as_obj(val).?.type == ty;
+}
+
+pub fn as_string(val: Value) ?*ObjString {
+    return @ptrCast(as_obj(val));
+}
+
+pub fn as_cstring(val: Value) [*c]u8 {
+    const ptr = as_string(val);
+    return ptr.?.chars;
 }

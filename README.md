@@ -21,7 +21,8 @@ $ zig build run -- <path> # to run script
 
 - [X] Replace `pre` with Zig so we can perform `repl/scripts` with guaranteed memory safety. 
     - Such cases as avoiding buffer overflow
-- [ ] Optional standard library (ability to be ran with `nostd`)
+- [X] Optional standard library (ability to be ran with `nostd`)
+  - Use the option: `-Dnostd`
 - [ ] Standard Libary with following: 
   - [ ] Write/Read file in cwd 
   - [ ] Type Conversions

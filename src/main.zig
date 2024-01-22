@@ -6,8 +6,7 @@ const vm = @cImport(@cInclude("vm.h"));
 const value = @cImport(@cInclude("value.h"));
 const Value = value.Value;
 const VAL_INT = value.VAL_INT;
-const stdin = std.io.getStdIn().reader();
-
+const builtin = @import("builtin");
 const MAJOR: u8 = 1;
 const MINOR: u8 = 0;
 const PATCH: u8 = 0;
@@ -56,6 +55,7 @@ const vopt = if (nostd) struct {
 /// Currently uses depreceated `readUntilDelimiterOrEof`
 /// `streamUntilDelimeter` causes issue due to const pointer
 pub fn repl() !void {
+    const stdin = std.io.getStdIn().reader();
     var buffer: [1024]u8 = undefined;
     vopt.version();
     while (true) {
@@ -65,6 +65,9 @@ pub fn repl() !void {
         buffer = undefined;
     }
 }
+
+/// Because Windows has error with `getStdIn().reader()`
+pub const pre = if (builtin.os.tag == .windows) @cImport(@cInclude("pre.h")) else {};
 
 pub fn main() !void {
     vm.initVM();
@@ -79,6 +82,9 @@ pub fn main() !void {
         var natives = stdlib.NativeFunctions.init(allocator);
         defer natives.deinit();
         try natives.append("addi", &addi);
+        try natives.append("i2d", &stdlib.i2d);
+        try natives.append("d2i", &stdlib.d2i);
+        try natives.append("str2i", &stdlib.str2i);
         natives.define();
     }
 
@@ -86,12 +92,20 @@ pub fn main() !void {
     defer std.process.argsFree(allocator, args);
 
     if (args.len == 1) {
-        try repl();
+        if (builtin.os.tag == .windows) {
+            pre.repl();
+        } else {
+            try repl();
+        }
     } else if (args.len == 2) {
         if (std.mem.eql(u8, args[1], "version")) {
             vopt.version();
         } else {
-            try runFile(args[1], allocator);
+            if (builtin.os.tag == .windows) {
+                pre.runFile(args[1]);
+            } else {
+                try runFile(args[1], allocator);
+            }
         }
     } else {
         std.debug.print("Usage: mufi <path>\n", .{});

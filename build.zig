@@ -1,5 +1,5 @@
 const std = @import("std");
-
+const builtin = @import("builtin");
 pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
@@ -10,10 +10,8 @@ pub fn build(b: *std.Build) !void {
         .target = target,
         .optimize = optimize,
     });
-
     exe.linkLibC();
     exe.addIncludePath(.{ .path = "include" });
-
     // zig fmt: off
     exe.addCSourceFiles(&.{ 
         "csrc/chunk.c", 
@@ -30,6 +28,10 @@ pub fn build(b: *std.Build) !void {
         "-Wall", 
         "-std=c11" 
     });
+
+    if(builtin.os.tag == .windows){
+        exe.addCSourceFile(.{.file = .{.path = "csrc/pre.c"}, .flags = &.{"-Wall", "-std=c11"}});
+    }
 
     const options = b.addOptions();
     const nostd = b.option(bool, "nostd", "Run Mufi without Standard Library") orelse false;
