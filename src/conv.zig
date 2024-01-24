@@ -32,7 +32,7 @@ pub fn is_obj(val: Value) bool {
 }
 
 pub fn as_obj(val: Value) ?*Obj {
-    return val.as.obj;
+    return @ptrCast(@alignCast(val.as.obj));
 }
 
 pub fn as_bool(val: Value) bool {

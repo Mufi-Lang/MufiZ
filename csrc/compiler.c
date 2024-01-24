@@ -11,8 +11,8 @@
 #endif
 
 typedef struct {
-    Token current;
-    Token previous;
+    struct Token current;
+    struct Token previous;
     bool hadError;
     bool panicMode;
 } Parser;
@@ -40,7 +40,7 @@ typedef struct {
 } ParseRule;
 
 typedef struct {
-    Token name;
+    struct Token name;
     int depth;
     bool isCaptured;
 } Local;
@@ -80,7 +80,7 @@ static Chunk* currentChunk() {
     return &current->function->chunk;
 }
 
-static void errorAt(Token* token, const char* message) {
+static void errorAt(struct Token* token, const char* message) {
     if (parser.panicMode) return;
     parser.panicMode = true;
     fprintf(stderr, "[line %d] Error", token->line);
@@ -113,7 +113,7 @@ static void advance() {
         errorAtCurrent(parser.current.start);
     }
 }
-static void consume(TokenType type, const char* message) {
+static void consume(enum TokenType type, const char* message) {
     if (parser.current.type == type) {
         advance();
         return;
@@ -121,10 +121,10 @@ static void consume(TokenType type, const char* message) {
 
     errorAtCurrent(message);
 }
-static bool check(TokenType type) {
+static bool check(enum TokenType type) {
     return parser.current.type == type;
 }
-static bool match(TokenType type) {
+static bool match(enum TokenType type) {
     if (!check(type)) return false;
     advance();
     return true;
@@ -244,18 +244,18 @@ static void endScope() {
 static void expression();
 static void statement();
 static void declaration();
-static ParseRule* getRule(TokenType type);
+static ParseRule* getRule(enum TokenType type);
 static void parsePrecedence(Precedence precedence);
 
-static uint8_t identifierConstant(Token* name) {
+static uint8_t identifierConstant(struct Token* name) {
     return makeConstant(OBJ_VAL(copyString(name->start,
                                            name->length)));
 }
-static bool identifiersEqual(Token* a, Token* b) {
+static bool identifiersEqual(struct Token* a, struct Token* b) {
     if (a->length != b->length) return false;
     return memcmp(a->start, b->start, a->length) == 0;
 }
-static int resolveLocal(Compiler* compiler, Token* name) {
+static int resolveLocal(Compiler* compiler, struct Token* name) {
     for (int i = compiler->localCount - 1; i >= 0; i--) {
         Local* local = &compiler->locals[i];
         if (identifiersEqual(name, &local->name)) {
@@ -289,7 +289,7 @@ static int addUpvalue(Compiler* compiler, uint8_t index, bool isLocal){
     return compiler->function->upvalueCount++;
 }
 
-static int resolveUpvalue(Compiler* compiler, Token* name){
+static int resolveUpvalue(Compiler* compiler, struct Token* name){
     if(compiler->enclosing == NULL) return -1;
 
     int local = resolveLocal(compiler->enclosing, name);
@@ -306,7 +306,7 @@ static int resolveUpvalue(Compiler* compiler, Token* name){
     return -1;
 }
 
-static void addLocal(Token name) {
+static void addLocal(struct Token name) {
     if (current->localCount == UINT8_COUNT) {
         error("Too many local variables in function.");
         return;
@@ -320,7 +320,7 @@ static void addLocal(Token name) {
 static void declareVariable() {
     if (current->scopeDepth == 0) return;
 
-    Token* name = &parser.previous;
+    struct Token* name = &parser.previous;
     for (int i = current->localCount - 1; i >= 0; i--) {
         Local* local = &current->locals[i];
         if (local->depth != -1 && local->depth < current->scopeDepth) {
@@ -378,7 +378,7 @@ static void and_(bool canAssign) {
     patchJump(endJump);
 }
 static void binary(bool canAssign) {
-    TokenType operatorType = parser.previous.type;
+    enum TokenType operatorType = parser.previous.type;
     ParseRule* rule = getRule(operatorType);
     parsePrecedence((Precedence)(rule->precedence + 1));
 
@@ -455,7 +455,7 @@ static void string(bool canAssign) {
     emitConstant(OBJ_VAL(copyString(parser.previous.start + 1,
                                     parser.previous.length - 2)));
 }
-static void namedVariable(Token name, bool canAssign) {
+static void namedVariable(struct Token name, bool canAssign) {
     uint8_t getOp, setOp;
     int arg = resolveLocal(current, &name);
     if (arg != -1) {
@@ -481,8 +481,8 @@ static void variable(bool canAssign) {
     namedVariable(parser.previous, canAssign);
 }
 
-static Token syntheticToken(const char* text){
-    Token token;
+static struct Token syntheticToken(const char* text){
+    struct Token token;
     token.start = text;
     token.length = (int) strlen(text);
     return token;
@@ -519,7 +519,7 @@ static void self_(bool canAssign){
 }
 
 static void unary(bool canAssign) {
-    TokenType operatorType = parser.previous.type;
+    enum TokenType operatorType = parser.previous.type;
 
     // Compile the operand.
     parsePrecedence(PREC_UNARY);
@@ -597,7 +597,7 @@ static void parsePrecedence(Precedence precedence) {
         error("Invalid assignment target.");
     }
 }
-static ParseRule* getRule(TokenType type) {
+static ParseRule* getRule(enum TokenType type) {
     return &rules[type];
 }
 static void expression() {
@@ -654,7 +654,7 @@ static void method(){
 
 static void classDeclaration(){
     consume(TOKEN_IDENTIFIER, "Expect class name.");
-    Token className = parser.previous;
+    struct Token className = parser.previous;
     uint8_t nameConstant = identifierConstant(&parser.previous);
     declareVariable();
 

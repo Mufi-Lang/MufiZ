@@ -2,15 +2,26 @@ const std = @import("std");
 const builtin = @import("builtin");
 pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
-    const optimize = b.standardOptimizeOption(.{});
 
     const exe = b.addExecutable(.{
         .name = "MufiZ",
         .root_source_file = .{ .path = "src/main.zig" },
         .target = target,
-        .optimize = optimize,
+        .optimize = .ReleaseSafe,
     });
+
+    const lib_scanner = b.addSharedLibrary(.{
+        .name = "libMufiZ_scanner",
+        .root_source_file = .{ .path = "src/scanner.zig" },
+        .target = target,
+        .optimize = .ReleaseSafe,
+    });
+
+    lib_scanner.linkLibC();
+
     exe.linkLibC();
+    exe.linkLibrary(lib_scanner);
+
     exe.addIncludePath(.{ .path = "include" });
     // zig fmt: off
     exe.addCSourceFiles(&.{ 

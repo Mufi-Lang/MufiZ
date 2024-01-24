@@ -54,9 +54,11 @@ pub fn d2i(argc: c_int, args: [*c]Value) callconv(.C) Value {
 }
 
 // String to Integer
-// pub fn str2i(argc: c_int, args: [*c]Value) callconv(.C) Value {
-//     if (argc > 1 or !conv.is_obj(args[0])) return conv.nil_val();
-//     const str = conv.as_cstring(args[0]);
-//     const int = std.fmt.parseInt(i32, str, 10);
-//     return conv.int_val(int);
-// }
+// Currently results in segmentation fault
+pub fn str2i(argc: c_int, args: [*c]Value) callconv(.C) Value {
+    if (argc > 1 or !conv.is_obj(args[0])) return conv.nil_val();
+    const str = conv.as_cstring(args[0]);
+    const zstr: *[]u8 = @ptrCast(@alignCast(str));
+    const int = std.fmt.parseInt(i32, zstr.*, 10) catch 0;
+    return conv.int_val(int);
+}

@@ -84,7 +84,7 @@ pub fn main() !void {
         try natives.append("addi", &addi);
         try natives.append("i2d", &stdlib.i2d);
         try natives.append("d2i", &stdlib.d2i);
-        //try natives.append("str2i", &stdlib.str2i);
+        try natives.append("str2i", &stdlib.str2i);
         natives.define();
     }
 
