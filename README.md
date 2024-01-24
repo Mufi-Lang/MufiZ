@@ -16,6 +16,9 @@ $ zig build run -- version # for version
 $ zig build run -- <path> # to run script 
 ```
 
+---
+
+> Windows still uses `pre.c` to run Mufi-Lang as there is current issues with Zig's `std.io.getStdin().reader()`. 
 
 ## Goal 
 
@@ -27,3 +30,20 @@ $ zig build run -- <path> # to run script
   - [ ] Write/Read file in cwd 
   - [ ] Type Conversions
   - [ ] Run process commands 
+
+---
+
+## Ziggified 
+- **Scanner**
+  - The scanner which is responsible for tokenizing a string is now completely written in Zig, and exported to C. 
+  - Is built as a shared library `libMufiZ_scanner` and linked before the C files. 
+  - The reason this was moved first, as its the least dependent part of the compiler, so there is not 
+  too much breakage when moving it (only had to care about `compiler.c`). 
+  - Any function that would interfere with another function, was prefixed with `__scanner__`
+    - Might consider prefixing all functions of scanner with this. 
+
+---
+
+<p align="center">
+  <img src="MufiZ_build.png" alt="MufiZ Build Steps"/>
+</p>

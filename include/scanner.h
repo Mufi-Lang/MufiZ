@@ -1,7 +1,6 @@
 #ifndef mufi_scanner_h
 #define mufi_scanner_h
-
-typedef enum {
+enum TokenType{
     // Single character tokens
     TOKEN_LEFT_PAREN, TOKEN_RIGHT_PAREN, TOKEN_LEFT_BRACE, TOKEN_RIGHT_BRACE,
     TOKEN_COMMA, TOKEN_DOT, TOKEN_MINUS, TOKEN_PLUS, TOKEN_SEMICOLON, TOKEN_SLASH, TOKEN_STAR,
@@ -16,18 +15,37 @@ typedef enum {
     TOKEN_RETURN, TOKEN_SELF, TOKEN_SUPER, TOKEN_TRUE, TOKEN_VAR, TOKEN_WHILE,
     //Misc
     TOKEN_ERROR, TOKEN_EOF
-}TokenType;
+};
 
+struct Token {
+    enum TokenType type; 
+    const char* start; 
+    int length; 
+    int line; 
+};
 
-typedef struct {
-    TokenType type; // Type of the token
-    const char* start; // Start of the token
-    int length; // Length of the lexeme
-    int line; // Line it occurs in
-}Token;
+struct Scanner{
+    const char* start;
+    const char* current;
+    int line;
+};
 
-
-void initScanner(const char* source);
-Token scanToken();
-
+extern void initScanner(const char* source);
+extern struct Token scanToken();
+extern bool isAtEnd();
+extern bool isAlpha(char c);
+extern bool isDigit(char c);
+extern bool isDigit(char c);
+extern char __scanner__advance();
+extern char peek();
+extern char peekNext();
+extern bool __scanner__match(char expected);
+extern struct Token makeToken(enum TokenType type_);
+extern struct Token errorToken(const char* message);
+extern void skipWhitespace();
+extern enum TokenType checkKeyword(int start, int length, const char* rest, enum TokenType type_);
+extern enum TokenType identifierType();
+extern struct Token identifier();
+extern struct Token __scanner__number();
+extern struct Token __scanner__string();
 #endif
