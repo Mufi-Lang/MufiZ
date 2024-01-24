@@ -1,6 +1,7 @@
 const std = @import("std");
-const memcmp = @cImport(@cInclude("string.h")).memcmp;
-const strlen = @cImport(@cInclude("string.h")).strlen;
+const string_h = @cImport(@cInclude("string.h"));
+const memcmp = string_h.memcmp;  // need to find replacement
+const strlen = string_h.strlen; // need to find replacement 
 pub const TokenType = enum(c_int) {
     // Single character tokens
     TOKEN_LEFT_PAREN = 0,
@@ -86,7 +87,7 @@ pub export fn isAtEnd() callconv(.C) bool {
     return scanner.current.* == '\x00';
 }
 
-pub export fn advance() callconv(.C) u8 {
+pub export fn __scanner__advance() callconv(.C) u8 {
     const char = scanner.current[0];
     scanner.current += 1;
     return char;
@@ -100,7 +101,7 @@ pub export fn peekNext() callconv(.C) u8 {
     if (isAtEnd()) return 0;
     return scanner.current[1];
 }
-
+/// TODO: need to simply without converting so much
 pub export fn makeToken(type_: TokenType) callconv(.C) Token {
     return .{
         .type = type_,
@@ -109,7 +110,7 @@ pub export fn makeToken(type_: TokenType) callconv(.C) Token {
         .line = scanner.line,
     };
 }
-
+/// TODO: need to simply without converting so much
 pub export fn errorToken(message: [*c]u8) callconv(.C) Token {
     return .{
         .type = TokenType.TOKEN_ERROR,
@@ -123,14 +124,14 @@ pub export fn skipWhitespace() callconv(.C) void {
     while (true) {
         const c = peek();
         switch (c) {
-            ' ', '\r', '\t' => _ = advance(),
+            ' ', '\r', '\t' => _ = __scanner__advance(),
             '\n' => {
                 scanner.line += 1;
-                _ = advance();
+                _ = __scanner__advance();
             },
             '/' => {
                 if (peekNext() == '/') {
-                    while (peek() != '\n' and !isAtEnd()) _ = advance();
+                    while (peek() != '\n' and !isAtEnd()) _ = __scanner__advance();
                 } else {
                     return;
                 }
@@ -139,7 +140,7 @@ pub export fn skipWhitespace() callconv(.C) void {
         }
     }
 }
-
+/// TODO: need to simply without converting so much
 pub export fn checkKeyword(arg_start: c_int, arg_length: c_int, arg_rest: [*c]const u8, arg_type: TokenType) callconv(.C) TokenType {
     var start = arg_start;
     var length = arg_length;
@@ -150,5 +151,106 @@ pub export fn checkKeyword(arg_start: c_int, arg_length: c_int, arg_rest: [*c]co
     }
     return .TOKEN_IDENTIFIER;
 }
+/// TODO: need to simply without converting so much
+pub export fn __scanner__match(arg_expected: u8) callconv(.C) bool {
+    var expected = arg_expected;
+    if (isAtEnd()) return @as(c_int, 0) != 0;
+    if (@as(c_int, @bitCast(@as(c_uint, scanner.current.*))) != @as(c_int, @bitCast(@as(c_uint, expected)))) return @as(c_int, 0) != 0;
+    scanner.current += 1;
+    return @as(c_int, 1) != 0;
+}
 
-//pub export fn scanToken() Token {}
+pub export fn identifierType() callconv(.C) TokenType {
+    switch (scanner.start[0]) {
+        'a' => return checkKeyword(1, 2, @ptrCast("nd"), .TOKEN_AND),
+        'c' => return checkKeyword(1, 4, @ptrCast("lass"), .TOKEN_CLASS),
+        'e' => return checkKeyword(1, 3, @ptrCast("lse"), .TOKEN_ELSE),
+        'f' => {
+            if (@intFromPtr(scanner.current) - @intFromPtr(scanner.start) > 1) {
+                switch (scanner.start[1]) {
+                    'a' => return checkKeyword(2, 3, @ptrCast("lse"), .TOKEN_FALSE),
+                    'o' => return checkKeyword(2, 1, @ptrCast("r"), .TOKEN_FOR),
+                    'u' => return checkKeyword(2, 1, @ptrCast("n"), .TOKEN_FUN),
+                    else => {},
+                }
+            }
+        },
+        'i' => return checkKeyword(1, 1, @ptrCast("f"), .TOKEN_IF),
+        'l' => return checkKeyword(1, 2, @ptrCast("et"), .TOKEN_LET),
+        'n' => return checkKeyword(1, 2, @ptrCast("il"), .TOKEN_NIL),
+        'p' => return checkKeyword(1, 4, @ptrCast("rint"), .TOKEN_PRINT),
+        else => {},
+    }
+    return .TOKEN_IDENTIFIER;
+}
+pub export fn identifier() callconv(.C) Token {
+    while ((@as(c_int, @intFromBool(isAlpha(peek()))) != 0) or (@as(c_int, @intFromBool(isDigit(peek()))) != 0)) {
+        _ = __scanner__advance();
+    }
+    return makeToken(identifierType());
+}
+/// TODO: need to simply without converting so much
+pub export fn __scanner__number() callconv(.C) Token {
+    while (isDigit(peek())) {
+        _ = __scanner__advance();
+    }
+    if ((@as(c_int, @bitCast(@as(c_uint, peek()))) == @as(c_int, '.')) and (@as(c_int, @intFromBool(isDigit(peekNext()))) != 0)) {
+        _ = __scanner__advance();
+        while (isDigit(peek())) {
+            _ = __scanner__advance();
+        }
+        return makeToken(.TOKEN_DOUBLE);
+    }
+    return makeToken(.TOKEN_INT);
+}
+/// TODO: need to simply without converting so much
+pub export fn __scanner__string() callconv(.C) Token {
+    while ((@as(c_int, @bitCast(@as(c_uint, peek()))) != @as(c_int, '"')) and !isAtEnd()) {
+        if (@as(c_int, @bitCast(@as(c_uint, peek()))) == @as(c_int, '\n')) {
+            scanner.line += 1;
+        }
+        _ = __scanner__advance();
+    }
+    if (isAtEnd()) return errorToken(@ptrCast(@constCast("Unterminated string.")));
+    _ = __scanner__advance();
+    return makeToken(.TOKEN_STRING);
+}
+
+pub export fn scanToken() Token {
+    skipWhitespace();
+    scanner.start = scanner.current;
+    if (isAtEnd()) return makeToken(.TOKEN_EOF);
+    const c = __scanner__advance();
+
+    if (isAlpha(c)) return identifier();
+    if (isDigit(c)) return __scanner__number();
+
+    switch (c) {
+        '(' => return makeToken(.TOKEN_LEFT_PAREN),
+        ')' => return makeToken(.TOKEN_RIGHT_PAREN),
+        '{' => return makeToken(.TOKEN_LEFT_BRACE),
+        '}' => return makeToken(.TOKEN_RIGHT_BRACE),
+        ';' => return makeToken(.TOKEN_SEMICOLON),
+        ',' => return makeToken(.TOKEN_COMMA),
+        '.' => return makeToken(.TOKEN_DOT),
+        '-' => return makeToken(.TOKEN_MINUS),
+        '+' => return makeToken(.TOKEN_PLUS),
+        '/' => return makeToken(.TOKEN_SLASH),
+        '*' => return makeToken(.TOKEN_STAR),
+        '!' => {
+            if (__scanner__match('=')) return makeToken(.TOKEN_BANG_EQUAL) else return makeToken(.TOKEN_BANG);
+        },
+        '=' => {
+            if (__scanner__match('=')) return makeToken(.TOKEN_EQUAL_EQUAL) else return makeToken(.TOKEN_EQUAL);
+        },
+        '<' => {
+            if (__scanner__match('=')) return makeToken(.TOKEN_LESS_EQUAL) else return makeToken(.TOKEN_LESS);
+        },
+        '>' => {
+            if (__scanner__match('=')) return makeToken(.TOKEN_GREATER_EQUAL) else return makeToken(.TOKEN_GREATER);
+        },
+        '"' => return __scanner__string(),
+        else => {},
+    }
+    return errorToken(@ptrCast(@constCast("Unexpected Character.")));
+}

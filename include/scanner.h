@@ -30,19 +30,22 @@ struct Scanner{
     int line;
 };
 
-extern struct Scanner scanner;
 extern void initScanner(const char* source);
-struct Token scanToken();
+extern struct Token scanToken();
 extern bool isAtEnd();
 extern bool isAlpha(char c);
 extern bool isDigit(char c);
 extern bool isDigit(char c);
-extern char advance();
+extern char __scanner__advance();
 extern char peek();
 extern char peekNext();
-extern bool match(char expected);
+extern bool __scanner__match(char expected);
 extern struct Token makeToken(enum TokenType type_);
 extern struct Token errorToken(const char* message);
 extern void skipWhitespace();
 extern enum TokenType checkKeyword(int start, int length, const char* rest, enum TokenType type_);
+extern enum TokenType identifierType();
+extern struct Token identifier();
+extern struct Token __scanner__number();
+extern struct Token __scanner__string();
 #endif

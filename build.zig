@@ -30,7 +30,6 @@ pub fn build(b: *std.Build) !void {
         "csrc/debug.c", 
         "csrc/memory.c", 
         "csrc/object.c", 
-        "csrc/scanner.c", 
         "csrc/table.c", 
        "csrc/vm.c", 
         "csrc/value.c" 
