@@ -14,7 +14,7 @@ pub fn build(b: *std.Build) !void {
         .name = "libMufiZ_scanner",
         .root_source_file = .{ .path = "src/scanner.zig" },
         .target = target,
-        .optimize = .ReleaseSafe,
+        .optimize = .ReleaseFast,
     });
 
     lib_scanner.linkLibC();
