@@ -2,9 +2,9 @@
 #define mufi_pre_h
 
 //> Major version of mufi
-#define MAJOR 1
+#define MAJOR 0
 //> Minor version of mufi
-#define MINOR 0
+#define MINOR 2
 //> Patch version of mufi
 #define PATCH 0
 //> Codename of release

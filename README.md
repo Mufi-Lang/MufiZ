@@ -44,6 +44,4 @@ $ zig build run -- <path> # to run script
 
 ---
 
-<p align="center">
-  <img src="MufiZ_build.png" alt="MufiZ Build Steps"/>
-</p>
+
