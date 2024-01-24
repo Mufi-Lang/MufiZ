@@ -7,8 +7,8 @@ const value = @cImport(@cInclude("value.h"));
 const Value = value.Value;
 const VAL_INT = value.VAL_INT;
 const builtin = @import("builtin");
-const MAJOR: u8 = 1;
-const MINOR: u8 = 0;
+const MAJOR: u8 = 0;
+const MINOR: u8 = 2;
 const PATCH: u8 = 0;
 const CODENAME: []const u8 = "Zula";
 
