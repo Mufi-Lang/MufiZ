@@ -179,6 +179,19 @@ pub export fn identifierType() callconv(.C) TokenType {
         'l' => return checkKeyword(1, 2, @ptrCast("et"), .TOKEN_LET),
         'n' => return checkKeyword(1, 2, @ptrCast("il"), .TOKEN_NIL),
         'p' => return checkKeyword(1, 4, @ptrCast("rint"), .TOKEN_PRINT),
+        'r' => return checkKeyword(1, 5, @ptrCast("eturn"), .TOKEN_RETURN), 
+        's' => {
+            if(@intFromPtr(scanner.current) - @intFromPtr(scanner.start) > 1){
+                switch (scanner.start[1]) {
+                    'e' => return checkKeyword(2, 2, @ptrCast("lf"), .TOKEN_SELF), 
+                    'u' => return checkKeyword(2, 3, @ptrCast("per"), .TOKEN_SUPER),
+                    else => {}
+                }
+            }
+        },
+        't' => return checkKeyword(1, 3, @ptrCast("rue"), .TOKEN_TRUE), 
+        'v' => return checkKeyword(1, 2, @ptrCast("ar"), .TOKEN_VAR), 
+        'w' => return checkKeyword(1, 4, @ptrCast("hile"), .TOKEN_WHILE), 
         else => {},
     }
     return .TOKEN_IDENTIFIER;
