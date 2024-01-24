@@ -36,7 +36,7 @@ $ zig build run -- <path> # to run script
 ## Ziggified 
 - **Scanner**
   - The scanner which is responsible for tokenizing a string is now completely written in Zig, and exported to C. 
-  - Is built as a shared library `libMufiZ_scanner` and linked before the C files. 
+  - Is built as a shared library `libmufiz_scanner` and linked before the C files. 
   - The reason this was moved first, as its the least dependent part of the compiler, so there is not 
   too much breakage when moving it (only had to care about `compiler.c`). 
   - Any function that would interfere with another function, was prefixed with `__scanner__`

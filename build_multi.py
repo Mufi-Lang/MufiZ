@@ -13,13 +13,13 @@ def rename_file(old_name, new_name):
         print(f"An error occurred: {e}")
 
 
-bin = "zig-out/bin/MufiZ"
+bin = "zig-out/bin/mufiz"
 targets = [
     "aarch64-macos", 
+    "x86_64-macos", 
     "aarch64-linux", 
     "x86_64-linux-gnu", 
     "x86_64-linux-musl", 
-#    "x86_64-windows-msvc", 
 ]
 
 
