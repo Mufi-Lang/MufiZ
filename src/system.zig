@@ -19,17 +19,16 @@ pub const vopt = if (nostd) struct {
 };
 
 /// Zig version of `repl` from `csrc/pre.c 10:21`
-/// Currently uses depreceated `readUntilDelimiterOrEof`
-/// `streamUntilDelimeter` causes issue due to const pointer
 pub fn repl() !void {
-    const stdin = std.io.getStdIn().reader();
     var buffer: [1024]u8 = undefined;
+    var streamer = std.io.FixedBufferStream([]u8){ .buffer = &buffer, .pos = 0 };
     vopt.version();
     while (true) {
         std.debug.print("(mufi) >> ", .{});
-        var input = try stdin.readUntilDelimiterOrEof(&buffer, '\n') orelse break;
+        try std.io.getStdIn().reader().streamUntilDelimiter(streamer.writer(), '\n', 1024);
+        var input = streamer.getWritten();
         _ = vm.interpret(conv.cstr(input));
-        buffer = undefined;
+        streamer.reset();
     }
 }
 
