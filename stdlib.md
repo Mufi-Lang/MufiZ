@@ -2,14 +2,14 @@
 
 ## Math
 
-- [ ] `log2` (double)
-- [ ] `log10` (double)
-- [ ] `sin` (double)
-- [ ] `cos` (double)
-- [ ] `tan` (double)
-- [ ] `asin` (double)
-- [ ] `acos` (double)
-- [ ] `atan` (double)
+- [X] `log2` (double)
+- [X] `log10` (double)
+- [X] `sin` (double)
+- [X] `cos` (double)
+- [X] `tan` (double)
+- [X] `asin` (double)
+- [X] `acos` (double)
+- [X] `atan` (double)
 - [ ] `pow` (double or integer)
 - [ ] `sqrt` (double)
 - [ ] `abs` (double or integer)

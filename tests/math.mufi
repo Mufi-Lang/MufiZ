@@ -1,0 +1,27 @@
+// tests the math functions 
+var l2 = 8.0;
+var l10 = 1000.0;
+
+if(log2(l2) == 3.0){
+    print("log2 works");
+} else {
+    print("log2 failed");
+}
+
+if(log10(l10) == 3.0){
+    print("log10 works");
+} else {
+    print("log10 failed");
+}
+
+var sin_exp = 0.0;
+var cos_exp = -(1);
+var tan_exp = 1.0;
+
+var a_exp = 0.0;
+
+if((sin(0) == sin_exp) and (asin(0) == a_exp)){
+    print("sin and asin works");
+} else {
+    print("sin and asin failed");
+}

@@ -451,7 +451,7 @@ static InterpretResult run(){
                 push(BOOL_VAL(isFalsey(pop())));
                 break;
             case OP_NEGATE:
-                if (!IS_INT(peek(0)) || !IS_DOUBLE(peek(0))) {
+                if (!IS_INT(peek(0)) && !IS_DOUBLE(peek(0))) {
                     runtimeError("Operand must be a number (int/double).");
                     return INTERPRET_RUNTIME_ERROR;
                 }

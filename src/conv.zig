@@ -4,12 +4,12 @@ const Value = value.Value;
 const Obj = object.Obj;
 const ObjType = object.ObjType;
 const ObjString = object.ObjString;
-const VAL_INT = value.VAL_INT;
-const VAL_BOOL = value.VAL_BOOL;
-const VAL_DOUBLE = value.VAL_DOUBLE;
-const VAL_NIL = value.VAL_NIL;
-const VAL_OBJ = value.VAL_OBJ;
-const OBJ_STRING = object.OBJ_STRING;
+pub const VAL_INT = value.VAL_INT;
+pub const VAL_BOOL = value.VAL_BOOL;
+pub const VAL_DOUBLE = value.VAL_DOUBLE;
+pub const VAL_NIL = value.VAL_NIL;
+pub const VAL_OBJ = value.VAL_OBJ;
+pub const OBJ_STRING = object.OBJ_STRING;
 
 pub fn what_is(val: Value) []const u8 {
     switch (val.type) {
@@ -20,6 +20,29 @@ pub fn what_is(val: Value) []const u8 {
         VAL_OBJ => return "Object",
         else => return "Unknown",
     }
+}
+
+/// Checks if the given range has the correct type 
+pub fn type_check(n: usize, values: [*c]Value, val_type: i32) bool {
+    var check_fn = switch (val_type) {
+        VAL_INT => &is_int,
+        VAL_DOUBLE => &is_double,
+        VAL_BOOL => &is_bool,
+        VAL_NIL => &is_nil,
+        VAL_OBJ => &is_obj,
+        else => return false,
+    };
+    for (0..n) |i| {
+        if (check_fn(values[i])) continue else return false;
+    }
+    return true;
+}
+
+/// Converts a Zig string to a C Null-Terminated string
+pub fn cstr(s: []u8) [*c]u8 {
+    var ptr: [*c]u8 = @ptrCast(s.ptr);
+    ptr[s.len] = '\x00';
+    return ptr;
 }
 
 pub fn is_bool(val: Value) bool {

@@ -5,7 +5,7 @@ const conv = @import("conv.zig");
 
 pub const math = @import("stdlib/math.zig");
 
-const NativeFn = *const fn (c_int, [*c]Value) callconv(.C) Value;
+pub const NativeFn = *const fn (c_int, [*c]Value) callconv(.C) Value;
 
 pub const NativeFunctions = struct {
     map: std.StringArrayHashMap(NativeFn),
@@ -24,6 +24,18 @@ pub const NativeFunctions = struct {
         try self.map.put(name, func);
     }
 
+    pub fn addMath(self: *Self) !void {
+        try self.append("log2", &math.log2);
+        try self.append("log10", &math.log10);
+        try self.append("pi", &math.pi);
+        try self.append("sin", &math.sin);
+        try self.append("cos", &math.cos);
+        try self.append("tan", &math.tan);
+        try self.append("asin", &math.asin);
+        try self.append("acos", &math.acos);
+        try self.append("atan", &math.atan);
+    }
+
     pub fn names(self: Self) []const []const u8 {
         return self.map.keys();
     }
@@ -37,9 +49,17 @@ pub const NativeFunctions = struct {
     }
 };
 
-pub fn stdlib_error(message: []const u8, val: Value) Value {
+const Got = union(enum) {
+    value_type: []const u8,
+    argn: i32,
+};
+
+pub fn stdlib_error(message: []const u8, got: Got) Value {
     std.log.err("{s}", .{message});
-    std.log.err("Got: {s}", .{conv.what_is(val)});
+    switch (got) {
+        .value_type => |v| std.log.err("Got a {s} type...", .{v}),
+        .argn => |n| std.log.err("Got {d} arguments...", .{n}),
+    }
     return conv.nil_val();
 }
 
