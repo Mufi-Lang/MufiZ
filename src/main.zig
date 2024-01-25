@@ -8,9 +8,9 @@ const Value = value.Value;
 const VAL_INT = value.VAL_INT;
 const builtin = @import("builtin");
 const MAJOR: u8 = 0;
-const MINOR: u8 = 2;
+const MINOR: u8 = 3;
 const PATCH: u8 = 0;
-const CODENAME: []const u8 = "Zula";
+const CODENAME: []const u8 = "Iris";
 
 // Create an add function for integers
 // TODO: Move to stdlib.zig
@@ -84,7 +84,8 @@ pub fn main() !void {
         try natives.append("addi", &addi);
         try natives.append("i2d", &stdlib.i2d);
         try natives.append("d2i", &stdlib.d2i);
-       // try natives.append("str2i", &stdlib.str2i);
+        try natives.append("log2", &stdlib.math.log2);
+        // try natives.append("str2i", &stdlib.str2i);
         natives.define();
     }
 

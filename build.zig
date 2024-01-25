@@ -5,7 +5,7 @@ pub fn build(b: *std.Build) !void {
     const exe = b.addExecutable(.{
         .name = "mufiz",
         .root_source_file = .{ .path = "src/main.zig" },
-        .version = .{ .major = 0, .minor = 2, .patch = 0 },
+        .version = .{ .major = 0, .minor = 3, .patch = 0 },
         .target = target,
         .optimize = .ReleaseSafe,
     });

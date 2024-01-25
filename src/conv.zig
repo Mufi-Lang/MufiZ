@@ -11,6 +11,17 @@ const VAL_NIL = value.VAL_NIL;
 const VAL_OBJ = value.VAL_OBJ;
 const OBJ_STRING = object.OBJ_STRING;
 
+pub fn what_is(val: Value) []const u8 {
+    switch (val.type) {
+        VAL_INT => return "Integer",
+        VAL_DOUBLE => return "Double",
+        VAL_BOOL => return "Boolean",
+        VAL_NIL => return "NIL",
+        VAL_OBJ => return "Object",
+        else => return "Unknown",
+    }
+}
+
 pub fn is_bool(val: Value) bool {
     return val.type == VAL_BOOL;
 }

@@ -3,6 +3,8 @@ const Value = @cImport(@cInclude("value.h")).Value;
 const vm = @cImport(@cInclude("vm.h"));
 const conv = @import("conv.zig");
 
+pub const math = @import("stdlib/math.zig");
+
 const NativeFn = *const fn (c_int, [*c]Value) callconv(.C) Value;
 
 pub const NativeFunctions = struct {
@@ -34,6 +36,12 @@ pub const NativeFunctions = struct {
         }
     }
 };
+
+pub fn stdlib_error(message: []const u8, val: Value) Value {
+    std.log.err("{s}", .{message});
+    std.log.err("Got: {s}", .{conv.what_is(val)});
+    return conv.nil_val();
+}
 
 /// Integer to Double
 /// Usage: `i2d(int) double`
