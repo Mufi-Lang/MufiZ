@@ -22,20 +22,12 @@ jobs:
         uses: goto-bus-stop/setup-zig@v2
         with:
           version: 0.11.0
-      - name: Build multi
-        run: |
-            $bin = "zig-out/bin/mufiz"
-            $targets = "aarch64-macos", "x86_64-macos", "aarch64-linux", "x86_64-linux-gnu", "x86_64-linux-musl", "x86_64-windows"
-            
-            foreach ($target in $targets) {
-                zig build -Dtarget=$target
-            
-                if ($target -eq "x86_64-windows") {
-                    Move-Item -Path "${bin}.exe" -Destination "${bin}_$env:CODENAME_${target}.exe"
-                } else {
-                    Move-Item -Path $bin -Destination "${bin}_$env:CODENAME_${target}"
-                }
-            }        
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+      - name: Run Build Multi
+        run: python build_multi.py
       - name: Create release
         id: create_release
         uses: softprops/action-gh-release@v1
