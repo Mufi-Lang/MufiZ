@@ -24,7 +24,7 @@ jobs:
         with:
           version: 0.11.0
       - name: Build multi
-            run: | 
+        run: | 
             bin="zig-out/bin/mufiz"
             targets=(
                 "aarch64-macos"
