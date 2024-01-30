@@ -8,6 +8,7 @@ pub fn build(b: *std.Build) !void {
         .version = .{ .major = 0, .minor = 3, .patch = 0 },
         .target = target,
         .optimize = .ReleaseSafe,
+        .link_libc = true,
     });
 
     const lib_scanner = b.addStaticLibrary(.{
@@ -15,11 +16,9 @@ pub fn build(b: *std.Build) !void {
         .root_source_file = .{ .path = "src/scanner.zig" },
         .target = target,
         .optimize = .ReleaseFast,
+        .link_libc = true,
     });
 
-    lib_scanner.linkLibC();
-
-    exe.linkLibC();
     exe.linkLibrary(lib_scanner);
 
     exe.addIncludePath(.{ .path = "include" });

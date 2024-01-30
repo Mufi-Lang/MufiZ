@@ -1,0 +1,57 @@
+name: Next Experimental Releases
+
+on:
+  push:
+    branches:
+      - next
+  pull_request:
+    branches:
+      - next
+
+env: 
+    codename: ${{'iris'}}
+
+jobs:
+  build:
+    name: Create Release
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Setup Zig
+        uses: goto-bus-stop/setup-zig@v2
+      - name: Create Zig
+        with:
+          version: 0.11.0
+      - name: Build multi
+            run: | 
+            bin="zig-out/bin/mufiz"
+            targets=(
+                "aarch64-macos"
+                "x86_64-macos"
+                "aarch64-linux"
+                "x86_64-linux-gnu"
+                "x86_64-linux-musl"
+                "x86_64-windows"
+              )
+      
+              for target in "${targets[@]}"; do
+                zig build -Dtarget="$target"
+                
+                if [ "$target" == "x86_64-windows" ]; then
+                  mv "${bin}.exe" "${bin}_${codename}_${target}.exe"
+                else
+                  mv "$bin" "${bin}_${codename}_${target}"
+                fi
+              done
+      - name: Create release 
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with: 
+            token: ${{secrets.GITHUB_TOKEN}}
+            tag_name: next-experimental
+            name: Next Experimental Release
+            generate_release_notes: true 
+            draft: false 
+            prelease: true 
+            files: "zig-out/bin/*"

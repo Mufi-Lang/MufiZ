@@ -1,7 +1,7 @@
 import subprocess
 import os
 
-codename = "zula"
+codename = "iris"
 
 def rename_file(old_name, new_name):
     try:
@@ -12,7 +12,6 @@ def rename_file(old_name, new_name):
     except Exception as e:
         print(f"An error occurred: {e}")
 
-
 bin = "zig-out/bin/mufiz"
 targets = [
     "aarch64-macos", 
@@ -20,10 +19,14 @@ targets = [
     "aarch64-linux", 
     "x86_64-linux-gnu", 
     "x86_64-linux-musl", 
+    "x86_64-windows"
 ]
 
 
 for target in targets: 
     command = "zig build -Dtarget=" + target
     subprocess.run(command, shell=True, text=True)
-    rename_file(bin, f'{bin}_{codename}_{target}')
+    if(target == "x86_64-windows"):
+        rename_file(bin+".exe", f'{bin}_{codename}_{target}'+".exe")
+    else: 
+        rename_file(bin, f'{bin}_{codename}_{target}')
