@@ -9,7 +9,6 @@ pub fn build(b: *std.Build) !void {
         .target = target,
         .optimize = .ReleaseSafe,
     });
-
     const lib_scanner = b.addStaticLibrary(.{
         .name = "libmufiz_scanner",
         .root_source_file = .{ .path = "src/scanner.zig" },

@@ -21,6 +21,7 @@ pub fn main() !void {
         var natives = stdlib.NativeFunctions.init(allocator);
         defer natives.deinit();
         try natives.addMath();
+        try natives.append("str2i", &stdlib.str2i);
         natives.define();
     }
 

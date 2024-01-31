@@ -22,7 +22,7 @@ pub fn what_is(val: Value) []const u8 {
     }
 }
 
-/// Checks if the given range has the correct type 
+/// Checks if the given range has the correct type
 pub fn type_check(n: usize, values: [*c]Value, val_type: i32) bool {
     var check_fn = switch (val_type) {
         VAL_INT => &is_int,
@@ -106,7 +106,7 @@ inline fn is_obj_type(val: Value, ty: ObjType) bool {
 }
 
 pub fn as_string(val: Value) ?*ObjString {
-    return @ptrCast(as_obj(val));
+    return @ptrCast(@alignCast(val.as.obj));
 }
 
 pub fn as_cstring(val: Value) [*c]u8 {
