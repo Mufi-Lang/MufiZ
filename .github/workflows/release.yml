@@ -1,0 +1,41 @@
+name: Next Experimental Releases
+
+on:
+  push:
+    branches:
+      - next
+  pull_request:
+    branches:
+      - next
+
+env:
+  codename: 'iris'
+
+jobs:
+  build:
+    name: Create Release
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Setup Zig
+        uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: 0.11.0
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+      - name: Run Build Multi
+        run: python build_multi.py
+      - name: Create release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          token: ${{secrets.SECRET}}
+          tag_name: next-experimental
+          name: Next Experimental Release
+          generate_release_notes: true
+          draft: false
+          prerelease: true
+          files: "zig-out/bin/*"

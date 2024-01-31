@@ -23,6 +23,7 @@ pub fn what_is(val: Value) []const u8 {
 }
 
 /// Checks if the given range has the correct type
+/// Checks if the given range has the correct type
 pub fn type_check(n: usize, values: [*c]Value, val_type: i32) bool {
     var check_fn = switch (val_type) {
         VAL_INT => &is_int,
@@ -105,11 +106,13 @@ inline fn is_obj_type(val: Value, ty: ObjType) bool {
     return is_obj(val) and as_obj(val).?.type == ty;
 }
 
+// TODO: Broken causes segmentation faults
 pub fn as_string(val: Value) ?*ObjString {
-    return @ptrCast(@alignCast(val.as.obj));
+    return @ptrCast(@alignCast(as_obj(val)));
 }
 
+// TODO: Broken causes segmentation faults
 pub fn as_cstring(val: Value) [*c]u8 {
-    const ptr = as_string(val);
-    return ptr.?.chars;
+    const ptr = as_string(val) orelse return @ptrCast(@constCast(""));
+    return ptr.chars;
 }

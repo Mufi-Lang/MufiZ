@@ -87,7 +87,9 @@ pub fn str2i(argc: c_int, args: [*c]Value) callconv(.C) Value {
     if (argc > 1 or !conv.is_obj(args[0])) return conv.nil_val();
     const str = conv.as_cstring(args[0]);
     const zstr: *[]u8 = @ptrCast(@alignCast(str));
-    std.debug.print("{s}\n", .{zstr.*});
-    const int = std.fmt.parseInt(i32, zstr.*, 'x') catch 0;
+    const int = std.fmt.parseInt(i32, zstr.*, 10) catch |err| {
+        std.log.err("{s}\n", .{@errorName(err)});
+        return conv.nil_val();
+    };
     return conv.int_val(int);
 }

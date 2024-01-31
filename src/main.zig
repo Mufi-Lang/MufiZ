@@ -5,7 +5,7 @@ const vm = @cImport(@cInclude("vm.h"));
 const builtin = @import("builtin");
 const system = @import("system.zig");
 
-/// Because Windows has error with `getStdIn().reader()`
+/// Because Windows hangs on `system.repl()`
 pub const pre = if (builtin.os.tag == .windows) @cImport(@cInclude("pre.h")) else {};
 
 pub fn main() !void {
