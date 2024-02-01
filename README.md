@@ -13,9 +13,18 @@ we can ensure more memory safety.
 ## Usage:
 
 ```shell
-$ zig build run # for repl 
-$ zig build run -- version # for version 
-$ zig build run -- <path> # to run script 
+$ mufiz --help 
+    -h, --help
+            Displays this help and exit.
+
+    -v, --version
+            Prints the version and codename.
+
+    -r, --run <str>
+            Runs a Mufi Script
+
+        --repl
+            Runs Mufi Repl system (Windows uses C bindings)
 ```
 
 ---

@@ -31,11 +31,11 @@ pub fn build(b: *std.Build) !void {
 
     // lib_memory.addIncludePath(.{ .path = "include" });
     // lib_memory.addCSourceFiles(&.{
-    //     "csrc/vm.c", 
-    //     "csrc/compiler.c", 
+    //     "csrc/vm.c",
+    //     "csrc/compiler.c",
     //     "csrc/object.c",
-    //     "csrc/value.c", 
-    //     "csrc/table.c", 
+    //     "csrc/value.c",
+    //     "csrc/table.c",
     //     "csrc/chunk.c",
     // }, c_flags);
 
@@ -58,6 +58,13 @@ pub fn build(b: *std.Build) !void {
     if(builtin.os.tag == .windows){
         exe.addCSourceFile(.{.file = .{.path = "csrc/pre.c"}, .flags = c_flags});
     }
+
+    const clap = b.dependency("clap", .{
+        .target = target, 
+        .optimize = .ReleaseFast
+    });
+
+    exe.addModule("clap", clap.module("clap"));
 
     const options = b.addOptions();
     const nostd = b.option(bool, "nostd", "Run Mufi without Standard Library") orelse false;
