@@ -1,3 +1,14 @@
+/* 
+ * File:   scanner.h
+ * Author: Mustafif Khan
+ * Brief:  Scanner bindings of libmufiz_scanner
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ */
+
+
 #ifndef mufi_scanner_h
 #define mufi_scanner_h
 enum TokenType{

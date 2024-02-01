@@ -1,3 +1,13 @@
+/* 
+ * File:   pre.h
+ * Author: Mustafif Khan
+ * Brief:  Prelude of Mufi 
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ */
+
 #ifndef mufi_pre_h
 #define mufi_pre_h
 

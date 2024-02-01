@@ -1,3 +1,13 @@
+/* 
+ * File:   value.h
+ * Author: Mustafif Khan
+ * Brief:  Mufi Data Type Values 
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ */
+
 #ifndef mufi_value_h
 #define mufi_value_h
 

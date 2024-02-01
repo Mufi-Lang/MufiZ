@@ -1,3 +1,13 @@
+/* 
+ * File:   common.h
+ * Author: Mustafif Khan
+ * Brief:  Common imports and preprocessors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ */
+
 //> All common imports and preprocessor macros defined here 
 #ifndef mufi_common_h 
 #define mufi_common_h 
