@@ -19,7 +19,6 @@ typedef struct ObjString ObjString;
 
 #ifdef NAN_BOXING
 //> qnan
-
 //> sign-bit
 #define SIGN_BIT ((uint64_t)0x8000000000000000)
 //< sign-bit
@@ -102,7 +101,6 @@ typedef enum{
     VAL_DOUBLE,
     VAL_OBJ,
 }ValueType;
-
 typedef struct{
     ValueType type;
     union {
@@ -112,6 +110,7 @@ typedef struct{
         Obj* obj;
     } as;
 }Value;
+
 #define IS_BOOL(value) ((value).type == VAL_BOOL)
 #define IS_NIL(value)  ((value).type == VAL_NIL)
 #define IS_INT(value)   ((value).type == VAL_INT)
@@ -128,16 +127,7 @@ typedef struct{
 #define INT_VAL(value) ((Value){VAL_INT, {.num_int = value}})
 #define DOUBLE_VAL(value) ((Value){VAL_DOUBLE, {.num_double = value}})
 #define OBJ_VAL(object)  ((Value){VAL_OBJ, {.obj = (Obj*)object}})
-
-
-
 #endif
-
-
-
-
-
-
 
 typedef struct {
     int capacity;
