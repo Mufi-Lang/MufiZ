@@ -43,7 +43,7 @@ pub fn main() !void {
         var natives = stdlib.NativeFunctions.init(GlobalAlloc);
         defer natives.deinit();
         try natives.addMath();
-        try natives.append("str2i", &stdlib.str2i);
+        try natives.append("clock", &stdlib.clock);
         natives.define();
     }
 

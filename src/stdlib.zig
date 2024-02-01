@@ -93,3 +93,10 @@ pub fn str2i(argc: c_int, args: [*c]Value) callconv(.C) Value {
     };
     return conv.int_val(int);
 }
+
+pub fn clock(argc: c_int, args: [*c]Value) callconv(.C) Value {
+    _ = args;
+    _ = argc;
+    const now = std.time.timestamp();
+    return conv.int_val(@intCast(now));
+}
