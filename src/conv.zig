@@ -10,6 +10,8 @@ pub const VAL_DOUBLE = value.VAL_DOUBLE;
 pub const VAL_NIL = value.VAL_NIL;
 pub const VAL_OBJ = value.VAL_OBJ;
 pub const OBJ_STRING = object.OBJ_STRING;
+pub const VAL_COMPLEX = value.VAL_COMPLEX;
+pub const Complex = value.Complex;
 
 pub fn what_is(val: Value) []const u8 {
     switch (val.type) {
@@ -18,11 +20,11 @@ pub fn what_is(val: Value) []const u8 {
         VAL_BOOL => return "Boolean",
         VAL_NIL => return "NIL",
         VAL_OBJ => return "Object",
+        VAL_COMPLEX => return "Complex",
         else => return "Unknown",
     }
 }
 
-/// Checks if the given range has the correct type
 /// Checks if the given range has the correct type
 pub fn type_check(n: usize, values: [*c]Value, val_type: i32) bool {
     var check_fn = switch (val_type) {
@@ -66,6 +68,10 @@ pub fn is_obj(val: Value) bool {
     return val.type == VAL_OBJ;
 }
 
+pub fn is_complex(val: Value) bool {
+    return val.type == VAL_COMPLEX;
+}
+
 pub fn as_obj(val: Value) ?*Obj {
     return @ptrCast(@alignCast(val.as.obj));
 }
@@ -82,12 +88,21 @@ pub fn as_double(val: Value) f64 {
     return val.as.num_double;
 }
 
+pub fn as_complex(val: Value) Complex {
+    return val.as.complex;
+}
+
 pub fn bool_val(b: bool) Value {
     return .{ .type = VAL_BOOL, .as = .{ .boolean = b } };
 }
 
 pub fn int_val(i: i32) Value {
     return .{ .type = VAL_INT, .as = .{ .num_int = i } };
+}
+
+pub fn complex_val(r: f64, i: f64) Value {
+    const complex = Complex{ .r = r, .i = i };
+    return .{ .type = VAL_COMPLEX, .as = .{ .complex = complex } };
 }
 
 pub fn nil_val() Value {

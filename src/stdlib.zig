@@ -34,6 +34,11 @@ pub const NativeFunctions = struct {
         try self.append("asin", &math.asin);
         try self.append("acos", &math.acos);
         try self.append("atan", &math.atan);
+        try self.append("complex", &math.complex);
+    }
+
+    pub fn addOthers(self: *Self) !void {
+        try self.append("what_is", &what_is);
     }
 
     pub fn names(self: Self) []const []const u8 {
@@ -48,6 +53,15 @@ pub const NativeFunctions = struct {
         }
     }
 };
+
+pub fn what_is(argc: c_int, args: [*c]Value) callconv(.C) Value {
+    if (argc != 1) return stdlib_error("what_is() expects 1 argument!", .{ .argn = argc });
+
+    const str = conv.what_is(args[0]);
+    std.debug.print("Type: {s}\n", .{str});
+
+    return conv.nil_val();
+}
 
 const Got = union(enum) {
     value_type: []const u8,

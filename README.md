@@ -38,7 +38,6 @@ $ mufiz --help
 - [X] Optional standard library (ability to be ran with `nostd`)
   - Use the option: `-Dnostd`
 - [ ] Standard Libary
-- [ ] NaN Boxing Optimizations
 ---
 
 ## Ziggified

@@ -26,7 +26,7 @@ targets = [
 
 
 for target in targets: 
-    command = "zig build -Dtarget=" + target
+    command = "zig build -Doptimize=ReleaseFast -Dtarget=" + target
     subprocess.run(command, shell=True, text=True)
     if(target == "x86_64-windows"):
         windows =  f'{bin}_{codename}_{target}'+".exe"

@@ -51,29 +51,43 @@ pub fn cos(argc: c_int, args: [*c]Value) callconv(.C) Value {
 }
 /// tan(double) double
 pub fn tan(argc: c_int, args: [*c]Value) callconv(.C) Value {
-    if(argc != 1) return stdlib_error("tan() expects one argument!", .{ .argn = argc });
-    if(!type_check(1, args, 3)) return stdlib_error("tan() expects a Double!", .{ .value_type = conv.what_is(args[0]) });
+    if (argc != 1) return stdlib_error("tan() expects one argument!", .{ .argn = argc });
+    if (!type_check(1, args, 3)) return stdlib_error("tan() expects a Double!", .{ .value_type = conv.what_is(args[0]) });
     const double = conv.as_double(args[0]);
     return conv.double_val(@tan(double));
 }
 /// asin(double) double
 pub fn asin(argc: c_int, args: [*c]Value) callconv(.C) Value {
-    if(argc != 1) return stdlib_error("asin() expects one argument!", .{ .argn = argc });
-    if(!type_check(1, args, 3)) return stdlib_error("asin() expects a Double!", .{ .value_type = conv.what_is(args[0]) });
+    if (argc != 1) return stdlib_error("asin() expects one argument!", .{ .argn = argc });
+    if (!type_check(1, args, 3)) return stdlib_error("asin() expects a Double!", .{ .value_type = conv.what_is(args[0]) });
     const double = conv.as_double(args[0]);
     return conv.double_val(std.math.asin(double));
 }
 /// acos(double) double
 pub fn acos(argc: c_int, args: [*c]Value) callconv(.C) Value {
-    if(argc != 1) return stdlib_error("acos() expects one argument!", .{ .argn = argc });
-    if(!type_check(1, args, 3)) return stdlib_error("acos() expects a Double!", .{ .value_type = conv.what_is(args[0]) });
+    if (argc != 1) return stdlib_error("acos() expects one argument!", .{ .argn = argc });
+    if (!type_check(1, args, 3)) return stdlib_error("acos() expects a Double!", .{ .value_type = conv.what_is(args[0]) });
     const double = conv.as_double(args[0]);
     return conv.double_val(std.math.acos(double));
 }
 /// atan(double) double
 pub fn atan(argc: c_int, args: [*c]Value) callconv(.C) Value {
-    if(argc != 1) return stdlib_error("atan() expects one argument!", .{ .argn = argc });
-    if(!type_check(1, args, 3)) return stdlib_error("atan() expects a Double!", .{ .value_type = conv.what_is(args[0]) });
+    if (argc != 1) return stdlib_error("atan() expects one argument!", .{ .argn = argc });
+    if (!type_check(1, args, 3)) return stdlib_error("atan() expects a Double!", .{ .value_type = conv.what_is(args[0]) });
     const double = conv.as_double(args[0]);
     return conv.double_val(std.math.atan(double));
 }
+
+pub fn complex(argc: c_int, args: [*c]Value) callconv(.C) Value {
+    if (argc != 2) return stdlib_error("complex() expects two arguments!", .{ .argn = argc });
+    if (!type_check(2, args, 3)) return stdlib_error("complex() expects 2 Double!", .{ .value_type = conv.what_is(args[0]) });
+    const r = conv.as_double(args[0]);
+    const i = conv.as_double(args[1]);
+    return conv.complex_val(r, i);
+}
+
+// complex numbers:
+// abs
+// phase: atan2(i, r)
+// real
+// imaginary
