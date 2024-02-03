@@ -27,14 +27,13 @@ targets = [
     "x86_64-linux-musl", 
     "x86_64-windows", 
     "aarch64-windows", 
-    "arm-linux-gnueabihf"
 ]
 
 
 for target in targets: 
     command = "zig build -Doptimize=ReleaseFast -Dtarget=" + target
     subprocess.run(command, shell=True, text=True)
-    if(target == "x86_64-windows"):
+    if(target == "x86_64-windows" or target == "aarch64-windows"):
         windows =  f'{bin}_{codename}_{target}'+".exe"
         rename_file(bin+".exe", windows)
         windows_zip = f"mufiz_{codename}_{target}.zip"

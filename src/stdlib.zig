@@ -4,6 +4,7 @@ const vm = @cImport(@cInclude("vm.h"));
 const conv = @import("conv.zig");
 
 pub const math = @import("stdlib/math.zig");
+pub const time = @import("stdlib/time.zig");
 
 pub const NativeFn = *const fn (c_int, [*c]Value) callconv(.C) Value;
 
@@ -35,6 +36,12 @@ pub const NativeFunctions = struct {
         try self.append("acos", &math.acos);
         try self.append("atan", &math.atan);
         try self.append("complex", &math.complex);
+    }
+
+    pub fn addTime(self: *Self) !void {
+        try self.append("now", &time.now);
+        try self.append("now_ns", &time.now_ns);
+        try self.append("now_ms", &time.now_ms);
     }
 
     pub fn addOthers(self: *Self) !void {
