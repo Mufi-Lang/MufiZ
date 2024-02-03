@@ -65,7 +65,7 @@ pub fn build(b: *std.Build) !void {
 
     const clap = b.dependency("clap", .{
         .target = target, 
-        .optimize = .ReleaseFast
+        .optimize = .ReleaseSafe
     });
 
     exe.addModule("clap", clap.module("clap"));
@@ -124,7 +124,6 @@ const undef_macros =
     \\#undef DEBUG_PRINT_CODE
     \\#undef DEBUG_STRESS_GC
     \\#undef DEBUG_LOG_GC
-    \\#undef NAN_BOXING
 ;
 
 const common_release = common_debug ++ undef_macros;

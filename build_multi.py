@@ -18,10 +18,16 @@ bin = "zig-out/bin/mufiz"
 targets = [
     "aarch64-macos", 
     "x86_64-macos", 
-    "aarch64-linux", 
+    "aarch64-linux-gnu",
+    "aarch64-linux-musl",  
+    "riscv32-linux-musl",  
+    "riscv64-linux-gnu",
+    "riscv64-linux-musl", 
     "x86_64-linux-gnu", 
     "x86_64-linux-musl", 
-    "x86_64-windows"
+    "x86_64-windows", 
+    "aarch64-windows", 
+    "arm-linux-gnueabihf"
 ]
 
 
