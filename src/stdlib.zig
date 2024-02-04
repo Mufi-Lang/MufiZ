@@ -5,6 +5,7 @@ const conv = @import("conv.zig");
 
 pub const math = @import("stdlib/math.zig");
 pub const time = @import("stdlib/time.zig");
+pub const types = @import("stdlib/types.zig");
 
 pub const NativeFn = *const fn (c_int, [*c]Value) callconv(.C) Value;
 
@@ -36,6 +37,12 @@ pub const NativeFunctions = struct {
         try self.append("acos", &math.acos);
         try self.append("atan", &math.atan);
         try self.append("complex", &math.complex);
+    }
+
+    pub fn addTypes(self: *Self) !void {
+        try self.append("double", &types.double);
+        try self.append("int", &types.int);
+        try self.append("str", &types.str);
     }
 
     pub fn addTime(self: *Self) !void {
@@ -82,42 +89,4 @@ pub fn stdlib_error(message: []const u8, got: Got) Value {
         .argn => |n| std.log.err("Got {d} arguments...", .{n}),
     }
     return conv.nil_val();
-}
-
-/// Integer to Double
-/// Usage: `i2d(int) double`
-pub fn i2d(argc: c_int, args: [*c]Value) callconv(.C) Value {
-    if (argc > 1 or !conv.is_int(args[0])) return conv.nil_val();
-    const int = conv.as_int(args[0]);
-    const double: f64 = @floatFromInt(int);
-    return conv.double_val(double);
-}
-
-/// Double to Integer
-/// Usage: `d2i(double) int`
-pub fn d2i(argc: c_int, args: [*c]Value) callconv(.C) Value {
-    if (argc > 1 or !conv.is_double(args[0])) return conv.nil_val();
-    const double = @ceil(conv.as_double(args[0]));
-    const int: i32 = @intFromFloat(double);
-    return conv.int_val(int);
-}
-
-// String to Integer
-// Currently results in segmentation fault
-pub fn str2i(argc: c_int, args: [*c]Value) callconv(.C) Value {
-    if (argc > 1 or !conv.is_obj(args[0])) return conv.nil_val();
-    const str = conv.as_cstring(args[0]);
-    const zstr: *[]u8 = @ptrCast(@alignCast(str));
-    const int = std.fmt.parseInt(i32, zstr.*, 10) catch |err| {
-        std.log.err("{s}\n", .{@errorName(err)});
-        return conv.nil_val();
-    };
-    return conv.int_val(int);
-}
-
-pub fn clock(argc: c_int, args: [*c]Value) callconv(.C) Value {
-    _ = args;
-    _ = argc;
-    const now = std.time.timestamp();
-    return conv.int_val(@intCast(now));
 }

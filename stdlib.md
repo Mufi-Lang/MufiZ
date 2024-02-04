@@ -21,12 +21,12 @@
 
 ## Conversions
 
-- [ ] `double` converts an integer to double
-- [ ] `int` converts a double to an integer
+- [X] `double` converts an integer to double
+- [X] `int` converts a double to an integer
 - [ ] `str` converts an integer or double to string
 
 ## Time
 
-- [ ] `now` returns the time in seconds
-- [ ] `now_ns` ... in ns
-- [ ] `now_ms` ... in ms
+- [X] `now` returns the time in seconds
+- [X] `now_ns` ... in ns
+- [X] `now_ms` ... in ms

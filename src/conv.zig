@@ -117,17 +117,23 @@ pub fn obj_val(o: ?*Obj) Value {
     return .{ .type = VAL_OBJ, .as = .{ .obj = o } };
 }
 
-inline fn is_obj_type(val: Value, ty: ObjType) bool {
+pub fn is_obj_type(val: Value, ty: ObjType) bool {
     return is_obj(val) and as_obj(val).?.type == ty;
 }
 
-// TODO: Broken causes segmentation faults
 pub fn as_string(val: Value) ?*ObjString {
-    return @ptrCast(@alignCast(as_obj(val)));
+    return @ptrCast(@alignCast(val.as.obj));
 }
 
-// TODO: Broken causes segmentation faults
-pub fn as_cstring(val: Value) [*c]u8 {
-    const ptr = as_string(val) orelse return @ptrCast(@constCast(""));
-    return ptr.chars;
+pub fn as_zstring(val: Value) []u8 {
+    const objstr = as_string(val);
+    const len: usize = @intCast(objstr.?.length);
+    return @ptrCast(@alignCast(objstr.?.chars[0..len]));
+}
+
+pub fn string_val(s: []u8) Value {
+    const chars: [*c]const u8 = @ptrCast(@alignCast(s.ptr));
+    const length: c_int = @intCast(s.len);
+    const obj_str = object.copyString(chars, length);
+    return .{ .type = VAL_OBJ, .as = .{ .obj = @ptrCast(obj_str) } };
 }
