@@ -1,3 +1,13 @@
+/* 
+ * File:   table.h
+ * Author: Mustafif Khan
+ * Brief:  Hashtable implementation using ObjString as Key, and Value as the Value
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ */
+
 #ifndef mufi_table_h
 #define mufi_table_h
 

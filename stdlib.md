@@ -2,17 +2,17 @@
 
 ## Math
 
-- [ ] `log2` (double)
-- [ ] `log10` (double)
-- [ ] `sin` (double)
-- [ ] `cos` (double)
-- [ ] `tan` (double)
-- [ ] `asin` (double)
-- [ ] `acos` (double)
-- [ ] `atan` (double)
-- [ ] `pow` (double or integer)
+- [X] `log2` (double)
+- [X] `log10` (double)
+- [X] `sin` (double)
+- [X] `cos` (double)
+- [X] `tan` (double)
+- [X] `asin` (double)
+- [X] `acos` (double)
+- [X] `atan` (double)
+- [ ] `pow` (double, integer or complex)
 - [ ] `sqrt` (double)
-- [ ] `abs` (double or integer)
+- [ ] `abs` (double, integer or complex)
 - [ ] `ceil` (take double -> integer)
 - [ ] `floor` (take double -> integer)
 - [ ] `round` (take double -> integer)
@@ -21,12 +21,21 @@
 
 ## Conversions
 
-- [ ] `double` converts an integer to double
-- [ ] `int` converts a double to an integer
-- [ ] `str` converts an integer or double to string
+- [X] `double` converts an integer to double
+- [X] `int` converts a double to an integer
+- [X] `str` converts an integer or double to string
 
 ## Time
 
-- [ ] `now` returns the time in seconds
-- [ ] `now_ns` ... in ns
-- [ ] `now_ms` ... in ms
+- [X] `now` returns the time in seconds
+- [X] `now_ns` ... in ns
+- [X] `now_ms` ... in ms
+
+## File System
+
+- [ ] `create_file(str) bool`
+- [ ] `write_file(str) bool`
+- [ ] `read_file(str) str` 
+- [ ] `delete_file(str) bool`
+- [ ] `create_dir(str) bool` 
+- [ ] `delete_dir(str) bool`

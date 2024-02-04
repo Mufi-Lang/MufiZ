@@ -3,7 +3,11 @@ const Value = @cImport(@cInclude("value.h")).Value;
 const vm = @cImport(@cInclude("vm.h"));
 const conv = @import("conv.zig");
 
-const NativeFn = *const fn (c_int, [*c]Value) callconv(.C) Value;
+pub const math = @import("stdlib/math.zig");
+pub const time = @import("stdlib/time.zig");
+pub const types = @import("stdlib/types.zig");
+
+pub const NativeFn = *const fn (c_int, [*c]Value) callconv(.C) Value;
 
 pub const NativeFunctions = struct {
     map: std.StringArrayHashMap(NativeFn),
@@ -22,6 +26,35 @@ pub const NativeFunctions = struct {
         try self.map.put(name, func);
     }
 
+    pub fn addMath(self: *Self) !void {
+        try self.append("log2", &math.log2);
+        try self.append("log10", &math.log10);
+        try self.append("pi", &math.pi);
+        try self.append("sin", &math.sin);
+        try self.append("cos", &math.cos);
+        try self.append("tan", &math.tan);
+        try self.append("asin", &math.asin);
+        try self.append("acos", &math.acos);
+        try self.append("atan", &math.atan);
+        try self.append("complex", &math.complex);
+    }
+
+    pub fn addTypes(self: *Self) !void {
+        try self.append("double", &types.double);
+        try self.append("int", &types.int);
+        try self.append("str", &types.str);
+    }
+
+    pub fn addTime(self: *Self) !void {
+        try self.append("now", &time.now);
+        try self.append("now_ns", &time.now_ns);
+        try self.append("now_ms", &time.now_ms);
+    }
+
+    pub fn addOthers(self: *Self) !void {
+        try self.append("what_is", &what_is);
+    }
+
     pub fn names(self: Self) []const []const u8 {
         return self.map.keys();
     }
@@ -35,30 +68,25 @@ pub const NativeFunctions = struct {
     }
 };
 
-/// Integer to Double
-/// Usage: `i2d(int) double`
-pub fn i2d(argc: c_int, args: [*c]Value) callconv(.C) Value {
-    if (argc > 1 or !conv.is_int(args[0])) return conv.nil_val();
-    const int = conv.as_int(args[0]);
-    const double: f64 = @floatFromInt(int);
-    return conv.double_val(double);
+pub fn what_is(argc: c_int, args: [*c]Value) callconv(.C) Value {
+    if (argc != 1) return stdlib_error("what_is() expects 1 argument!", .{ .argn = argc });
+
+    const str = conv.what_is(args[0]);
+    std.debug.print("Type: {s}\n", .{str});
+
+    return conv.nil_val();
 }
 
-/// Double to Integer
-/// Usage: `d2i(double) int`
-pub fn d2i(argc: c_int, args: [*c]Value) callconv(.C) Value {
-    if (argc > 1 or !conv.is_double(args[0])) return conv.nil_val();
-    const double = @ceil(conv.as_double(args[0]));
-    const int: i32 = @intFromFloat(double);
-    return conv.int_val(int);
-}
+const Got = union(enum) {
+    value_type: []const u8,
+    argn: i32,
+};
 
-// String to Integer
-// Currently results in segmentation fault
-pub fn str2i(argc: c_int, args: [*c]Value) callconv(.C) Value {
-    if (argc > 1 or !conv.is_obj(args[0])) return conv.nil_val();
-    const str = conv.as_cstring(args[0]);
-    const zstr: *[]u8 = @ptrCast(@alignCast(str));
-    const int = std.fmt.parseInt(i32, zstr.*, 10) catch 0;
-    return conv.int_val(int);
+pub fn stdlib_error(message: []const u8, got: Got) Value {
+    std.log.err("{s}", .{message});
+    switch (got) {
+        .value_type => |v| std.log.err("Got a {s} type...", .{v}),
+        .argn => |n| std.log.err("Got {d} arguments...", .{n}),
+    }
+    return conv.nil_val();
 }

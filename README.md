@@ -13,23 +13,48 @@ we can ensure more memory safety.
 ## Usage:
 
 ```shell
-$ zig build run # for repl 
-$ zig build run -- version # for version 
-$ zig build run -- <path> # to run script 
+$ mufiz --help 
+    -h, --help
+            Displays this help and exit.
+
+    -v, --version
+            Prints the version and codename.
+
+    -r, --run <str>
+            Runs a Mufi Script
+
+        --repl
+            Runs Mufi Repl system (Windows uses C bindings)
 ```
 
 ---
 
 > Windows still uses `pre.c` to run Mufi-Lang as there is current issues with Zig's `std.io.getStdin().reader()`. 
 
+## Debug vs Release Modes 
+
+Now when building under the `Debug` optimize mode, MufiZ will contain the debugging macros
+that shows GC tracing, and chunk disassembly. These will be turned off when built under any of
+the other `Release*` optimize modes with command `zig build -Doptimize=`. 
+
+> Note: The following components are built under a specific optimize mode:
+>
+> - `libmufiz_scanner`: `ReleaseFast`
+>   - Since this library doesn't involve memory management on the Zig side, we can prioritize performance.
+> - `clap`: `ReleaseSafe`
+>   - Since this library involves components that require allocations, we prioritize safety.
+
 ## Goal
 
-- [X] Replace `pre` with Zig so we can perform `repl/scripts` with guaranteed memory safety. 
+- [X] Replace `pre` with Zig so we can perform `repl/scripts` with guaranteed memory safety.
   - Such cases as avoiding buffer overflow
 - [X] Optional standard library (ability to be ran with `nostd`)
   - Use the option: `-Dnostd`
 - [ ] Standard Libary
-- [ ] Ziggify `value.c/h`
+- [ ] Documentation
+  - [ ] Standard Library documentation
+  - [ ] Language reference
+- [ ] Website: `mufiz.mustafif.com`
 
 ---
 

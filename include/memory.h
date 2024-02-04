@@ -1,9 +1,36 @@
+/* 
+ * File:   memory.h
+ * Author: Mustafif Khan
+ * Brief:  Manages memory allocation/garbage collection 
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ */
+
+
 //> Manages memory allocation in mufi 
 #ifndef mufi_memory_h 
 #define mufi_memory_h 
 
 #include "common.h"
 #include "object.h"
+
+// extern void markArray(array: *ValueArray);
+// extern void markObject(object: *Obj);
+// extern void markValue(value: Value);
+// extern void collectGarbage();
+// extern void freeObjects();
+// extern void blackenObject(object: *Obj);
+// extern void freeObject(object: *Obj);
+// extern void markRoots();
+// extern void traceReferences();
+// extern void sweep();
+// extern *void reallocate(void* pointer, size_t oldSize, size_t newSize);
+// extern int GROW_CAPACITY(capacity: int);
+// extern void* FREE(void* type, void* pointer);
+// extern void* FREE_ARRAY(void* type, void* pointer, int oldCount);
+
 //> Allocates a new array on the heap
 #define ALLOCATE(type, count) \
     ((type*)reallocate(NULL, 0, sizeof(type) * (count)))
