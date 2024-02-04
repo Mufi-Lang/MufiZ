@@ -51,6 +51,11 @@ the other `Release*` optimize modes with command `zig build -Doptimize=`.
 - [X] Optional standard library (ability to be ran with `nostd`)
   - Use the option: `-Dnostd`
 - [ ] Standard Libary
+- [ ] Documentation
+  - [ ] Standard Library documentation
+  - [ ] Language reference
+- [ ] Website: `mufiz.mustafif.com`
+
 ---
 
 ## Ziggified
