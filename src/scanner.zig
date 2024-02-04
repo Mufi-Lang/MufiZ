@@ -2,6 +2,13 @@ const std = @import("std");
 const string_h = @cImport(@cInclude("string.h"));
 const memcmp = string_h.memcmp; // need to find replacement
 const strlen = string_h.strlen; // need to find replacement
+
+// inline fn strlen(s: [*c]u8) usize{
+//     var i: usize = 0;
+//     while(s[i] != 0): (i += 1){}
+//     return i;
+// }
+
 pub const TokenType = enum(c_int) {
     // Single character tokens
     TOKEN_LEFT_PAREN = 0,

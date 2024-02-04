@@ -40,7 +40,7 @@ bool tableDelete(Table* table, ObjString* key);
 //> Copies all hash entries from one table to the other
 void tableAddAll(Table* from, Table* to);
 //> Finds a specified string inside a table
-ObjString* tableFindString(Table* table, const char* chars, int length, uint64_t hash);
+ObjString* tableFindString(Table* table, const char* chars, int length, uint32_t hash);
 //> Removes the white objects in a table
 void tableRemoveWhite(Table* table);
 //> Marks all entries inside a table
