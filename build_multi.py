@@ -3,7 +3,7 @@ import os
 import zipfile
 import shutil
 
-codename = "iris"
+codename = "voxl"
 out_path = "zig-out/bin/"
 def rename_file(old_name, new_name):
     try:

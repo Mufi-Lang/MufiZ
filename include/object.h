@@ -72,7 +72,7 @@ struct ObjString {
     Obj obj;
     int length;
     char* chars;
-    uint32_t hash;
+    uint64_t hash;
 };
 
 typedef struct ObjUpvalue{
@@ -114,7 +114,7 @@ ObjFunction* newFunction();
 ObjInstance* newInstance(ObjClass* klass);
 ObjNative* newNative(NativeFn function);
 ObjString* allocateString(char* chars, int length, uint32_t hash);
-uint32_t hashString(const char* key, int length);
+uint64_t hashString(const char* key, int length);
 ObjString* takeString(char* chars, int length);
 ObjString* copyString(const char* chars, int length);
 ObjUpvalue* newUpvalue(Value* slot);

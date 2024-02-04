@@ -1,11 +1,12 @@
 #include <stdio.h>
 #include <string.h>
-
+#include <time.h>
 #include "../include/object.h"
 #include "../include/memory.h"
 #include "../include/value.h"
 #include "../include/vm.h"
 #include "../include/table.h"
+#include "../include/wyhash.h"
 
 #define ALLOCATE_OBJ(type, objectType) \
     ((type*)allocateObject(sizeof(type), objectType))
@@ -84,13 +85,10 @@ ObjString* allocateString(char* chars, int length, uint32_t hash){
     return string;
 }
 
-uint32_t hashString(const char* key, int length){
-    uint32_t hash = 2166136261u;
-    for(int i = 0; i < length; i++){
-        hash ^= (uint8_t)key[i];
-        hash *= 16777619;
-
-    }
+uint64_t hashString(const char* key, int length){
+    uint64_t _wyp[4];
+    make_secret(time(NULL), _wyp);
+    uint64_t hash = wyhash(key, (size_t)length, 0, _wyp);
     return hash;
 }
 

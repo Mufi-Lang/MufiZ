@@ -4,9 +4,9 @@ const vm = @cImport(@cInclude("vm.h"));
 const conv = @import("conv.zig");
 
 const MAJOR: u8 = 0;
-const MINOR: u8 = 3;
+const MINOR: u8 = 4;
 const PATCH: u8 = 0;
-const CODENAME: []const u8 = "Iris";
+const CODENAME: []const u8 = "Voxl";
 
 pub const vopt = if (nostd) struct {
     pub inline fn version() void {
