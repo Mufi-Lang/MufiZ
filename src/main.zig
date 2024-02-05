@@ -48,6 +48,7 @@ pub fn main() !void {
         natives.define();
     }
 
+    std.debug.print("{any}\n", .{res.args});
     if (res.args.help != 0) return clap.help(std.io.getStdErr().writer(), clap.Help, &params, .{});
     if (res.args.version != 0) system.vopt.version();
     if (res.args.run) |s| try system.runFile(@constCast(s), GlobalAlloc);

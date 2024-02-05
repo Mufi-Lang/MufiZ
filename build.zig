@@ -25,24 +25,6 @@ pub fn build(b: *std.Build) !void {
         .link_libc = true,
     });
 
-    // const lib_memory = b.addStaticLibrary(.{
-    //     .name = "libmufiz_memory",
-    //     .root_source_file = .{ .path = "src/memory.zig" },
-    //     .target = target,
-    //     .optimize = .ReleaseFast,
-    //     .link_libc = true,
-    // });
-
-    // lib_memory.addIncludePath(.{ .path = "include" });
-    // lib_memory.addCSourceFiles(&.{
-    //     "csrc/vm.c",
-    //     "csrc/compiler.c",
-    //     "csrc/object.c",
-    //     "csrc/value.c",
-    //     "csrc/table.c",
-    //     "csrc/chunk.c",
-    // }, c_flags);
-
     // exe.linkLibrary(lib_memory);
     exe.linkLibrary(lib_scanner);
 
