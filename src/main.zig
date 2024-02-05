@@ -48,9 +48,13 @@ pub fn main() !void {
     if (res.args.help != 0) return clap.help(std.io.getStdErr().writer(), clap.Help, &params, .{});
     if (res.args.version != 0) system.vopt.version();
     if (res.args.run) |s| {
+        var runner = system.Runner.init(GlobalAlloc);
         if (res.args.link) |l| {
-            try system.runLinkFiles(@constCast(l), @constCast(s), GlobalAlloc);
-        } else try system.runFile(@constCast(s), GlobalAlloc);
+            runner.setMainWithLink(@constCast(s), @constCast(l));
+        } else {
+            runner.setOnlyMain(@constCast(s));
+        }
+        try runner.runFile();
     }
     if (res.args.repl != 0) try system.repl();
 }

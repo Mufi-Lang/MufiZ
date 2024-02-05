@@ -39,28 +39,51 @@ inline fn zrepl() !void {
     }
 }
 
-const max_bytes: usize = 1048576;
+pub const Runner = struct {
+    main: []u8 = &.{},
+    link: ?[]u8 = null,
+    allocator: std.mem.Allocator,
 
-/// Zig version of `runFile` from `csrc/pre.c 50:57`
-pub fn runFile(path: []u8, allocator: std.mem.Allocator) !void {
-    var str: []u8 = try std.fs.cwd().readFileAlloc(allocator, path, max_bytes);
-    defer allocator.free(str);
-    const result = vm.interpret(conv.cstr(str));
-    if (result == vm.INTERPRET_COMPILE_ERROR) std.os.exit(65);
-    if (result == vm.INTERPRET_RUNTIME_ERROR) std.os.exit(70);
-}
+    const max_bytes: usize = 1048576;
+    const Self = @This();
 
-pub fn runLinkFiles(link: []u8, main: []u8, allocator: std.mem.Allocator) !void {
-    var main_str = try std.fs.cwd().readFileAlloc(allocator, main, max_bytes);
-    var link_str = try std.fs.cwd().readFileAlloc(allocator, link, max_bytes);
-    defer allocator.free(main_str);
-    defer allocator.free(link_str);
-    const size = main_str.len + link_str.len;
-    var str = try allocator.alloc(u8, size);
-    @memcpy(str[0..link_str.len], link_str[0..]);
-    @memcpy(str[link_str.len..], main_str[0..]);
-    defer allocator.free(str);
-    const result = vm.interpret(conv.cstr(str));
-    if (result == vm.INTERPRET_COMPILE_ERROR) std.os.exit(65);
-    if (result == vm.INTERPRET_RUNTIME_ERROR) std.os.exit(70);
-}
+    pub fn init(allocator: std.mem.Allocator) Self {
+        return .{ .allocator = allocator };
+    }
+
+    fn read_file(self: *Self, path: []u8) ![]u8 {
+        return try std.fs.cwd().readFileAlloc(self.allocator, path, max_bytes);
+    }
+
+    fn run(str: []u8) void {
+        const result = vm.interpret(conv.cstr(str));
+        if (result == vm.INTERPRET_COMPILE_ERROR) std.os.exit(65);
+        if (result == vm.INTERPRET_RUNTIME_ERROR) std.os.exit(70);
+    }
+
+    pub fn setOnlyMain(self: *Self, main: []u8) void {
+        self.main = main;
+        self.link = null;
+    }
+    pub fn setMainWithLink(self: *Self, main: []u8, link: []u8) void {
+        self.main = main;
+        self.link = link;
+    }
+    pub fn runFile(self: *Self) !void {
+        var str: []u8 = undefined;
+        if (self.link) |l| {
+            var main_str = try self.read_file(self.main);
+            defer self.allocator.free(main_str);
+            var link_str = try self.read_file(l);
+            defer self.allocator.free(link_str);
+            const size = main_str.len + link_str.len;
+            str = try self.allocator.alloc(u8, size);
+            @memcpy(str[0..link_str.len], link_str[0..]);
+            @memcpy(str[link_str.len..], main_str[0..]);
+        } else {
+            str = try self.read_file(self.main);
+        }
+        run(str);
+        self.allocator.free(str);
+    }
+};
