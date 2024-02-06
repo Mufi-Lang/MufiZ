@@ -15,7 +15,9 @@ pub fn build(b: *std.Build) !void {
         .link_libc = true,
     });
 
-    const c_flags = &.{"-Wall"};
+    const c_flags = &.{
+        "-Wall",
+    };
 
     const lib_scanner = b.addStaticLibrary(.{
         .name = "libmufiz_scanner",
@@ -25,7 +27,6 @@ pub fn build(b: *std.Build) !void {
         .link_libc = true,
     });
 
-    // exe.linkLibrary(lib_memory);
     exe.linkLibrary(lib_scanner);
 
     exe.addIncludePath(.{ .path = "include" });
