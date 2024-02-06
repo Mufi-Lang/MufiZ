@@ -85,6 +85,7 @@ ObjString* allocateString(char* chars, int length, uint64_t hash){
     return string;
 }
 
+// FNV-1a hashing algorithm
 uint64_t hashString(const char* key, int length){
     uint64_t hash = 2166136261u;
     for(int i = 0; i < length; i++){
