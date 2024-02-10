@@ -41,14 +41,18 @@ inline fn zrepl() !void {
 
 pub const Runner = struct {
     main: []u8 = &.{},
-    link: ?[]u8 = null,
+    link: std.ArrayList([]const u8),
     allocator: std.mem.Allocator,
 
     const max_bytes: usize = 1048576;
     const Self = @This();
 
     pub fn init(allocator: std.mem.Allocator) Self {
-        return .{ .allocator = allocator };
+        return .{ .allocator = allocator, .link = std.ArrayList([]const u8).init(allocator) };
+    }
+
+    pub fn deinit(self: *Self) void {
+        self.link.deinit();
     }
 
     fn read_file(self: *Self, path: []u8) ![]u8 {
@@ -65,21 +69,26 @@ pub const Runner = struct {
         self.main = main;
         self.link = null;
     }
-    pub fn setMainWithLink(self: *Self, main: []u8, link: []u8) void {
+    pub fn setMainWithLink(self: *Self, main: []u8, link: []u8) !void {
         self.main = main;
-        self.link = link;
+        var tokenizer = std.mem.tokenizeSequence(u8, link, ",");
+
+        while (tokenizer.next()) |l| {
+            try self.link.append(l);
+        }
     }
     pub fn runFile(self: *Self) !void {
         var str: []u8 = undefined;
-        if (self.link) |l| {
-            var main_str = try self.read_file(self.main);
-            defer self.allocator.free(main_str);
-            var link_str = try self.read_file(l);
-            defer self.allocator.free(link_str);
-            const size = main_str.len + link_str.len;
-            str = try self.allocator.alloc(u8, size);
-            @memcpy(str[0..link_str.len], link_str[0..]);
-            @memcpy(str[link_str.len..], main_str[0..]);
+        if (self.link.items.len != 0) {
+            // var main_str = try self.read_file(self.main);
+            // defer self.allocator.free(main_str);
+            // var link_str = try self.read_file(l);
+            // defer self.allocator.free(link_str);
+            // const size = main_str.len + link_str.len;
+            // str = try self.allocator.alloc(u8, size);
+            // @memcpy(str[0..link_str.len], link_str[0..]);
+            // @memcpy(str[link_str.len..], main_str[0..]);
+            // rework to do multiple files
         } else {
             str = try self.read_file(self.main);
         }

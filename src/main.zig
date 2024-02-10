@@ -9,11 +9,12 @@ var Global = std.heap.GeneralPurposeAllocator(.{}){};
 pub const GlobalAlloc = Global.allocator();
 
 const params = clap.parseParamsComptime(
-    \\-h, --help        Displays this help and exit.
-    \\-v, --version     Prints the version and codename.
-    \\-r, --run <str>   Runs a Mufi Script
-    \\ -l, --link <str> Links another Mufi Script when interpreting 
-    \\--repl            Runs Mufi Repl system (Windows uses C bindings)
+    \\-h, --help             Displays this help and exit.
+    \\-v, --version          Prints the version and codename.
+    \\-r, --run <str>        Runs a Mufi Script
+    \\-l, --link <str>       Link another Mufi Script when interpreting 
+    \\-m, --link-multi <str> Link Multiple Scripts (foo1.mufi,foo2.mufi,foo3.mufi)
+    \\--repl                 Runs Mufi Repl system (Windows uses C bindings)
     \\
 );
 
@@ -56,5 +57,6 @@ pub fn main() !void {
         }
         try runner.runFile();
     }
+    if (res.args.@"link-multi") |m| std.debug.print("{s}\n", .{m});
     if (res.args.repl != 0) try system.repl();
 }
