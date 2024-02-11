@@ -26,6 +26,12 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: '3.x'
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.0'
+      - name: Install fpm
+        run: gem install fpm
       - name: Run Build Multi
         run: python build_multi.py
       - name: Create release
