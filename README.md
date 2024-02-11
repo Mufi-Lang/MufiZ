@@ -69,3 +69,28 @@ the other `Release*` optimize modes with command `zig build -Doptimize=`.
     - Might consider prefixing all functions of scanner with this.
 
 ---
+
+## Releases
+
+| Version | Codename                                                                 | Status      |
+| ------- | ------------------------------------------------------------------------ | ----------- |
+| 0.1.0   | Baloo                                                                    | Archived    |
+| 0.2.0   | [Zula](https://github.com/Mustafif/MufiZ/releases/tag/v0.2.0)            | Released    |
+| 0.3.0   | [Iris](https://github.com/Mustafif/MufiZ/releases/tag/v0.3.0)            | Released    |
+| 0.4.0   | [Voxl](https://github.com/Mustafif/MufiZ/releases/tag/next-experimental) | In Progress |
+
+---
+
+
+## Supported Platforms
+
+| Targets            |
+| ------------------ |
+| aarch64-macos      |
+| x86_64-macos       |
+| aarch64-linux-gnu  |
+| aarch64-linux-musl |
+| x86_64-linux-gnu   |
+| x86_64-linux-musl  |
+| x86_64-windows     |
+| aarch64-windows    |

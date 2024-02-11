@@ -23,9 +23,7 @@ pub fn build(b: *std.Build) !void {
         .link_libc = true,
     });
 
-    const c_flags = &.{
-        "-Wall",
-    };
+    const c_flags = &.{ "-Wall", "-O3", "-Wextra", "-march=native", "-flto", "-ffast-math" };
 
     const lib_scanner = b.addStaticLibrary(.{
         .name = "libmufiz_scanner",
@@ -34,6 +32,8 @@ pub fn build(b: *std.Build) !void {
         .optimize = .ReleaseFast,
         .link_libc = true,
     });
+
+    lib_scanner.c_std = .C11;
 
     exe.linkLibrary(lib_scanner);
 
