@@ -38,12 +38,12 @@ os.remove(out_path+"mufiz.pdb")
 # Build debian packages for Linux targets 
 for target in targets: 
     if ("x86_64-linux" in target): 
-        command = f"fpm -v {version} -a amd64 -s zip -t deb --prefix /usr/bin -n mufiz ./zig-out/bin/mufiz_{version}_{target}.zip "
+        command = f"fpm -v {version} -a amd64 -s zip -t deb --prefix /usr/bin -m 'Mustafif0929@gmail.com' --description 'The Mufi Programming Language' -n mufiz ./zig-out/bin/mufiz_{version}_{target}.zip "
         subprocess.run(command, shell=True, text=True)
         shutil.move(amd64_deb, f"mufiz_{version}_{target}.deb")
         print(f"Built debian package for {target}")
     elif ("aarch64-linux" in target):
-        command = f"fpm -v {version} -a arm64 -s zip -t deb --prefix /usr/bin -n mufiz ./zig-out/bin/mufiz_{version}_{target}.zip "
+        command = f"fpm -v {version} -a arm64 -s zip -t deb --prefix /usr/bin -m 'Mustafif0929@gmail.com' --description 'The Mufi Programming Language' -n mufiz ./zig-out/bin/mufiz_{version}_{target}.zip "
         subprocess.run(command, shell=True, text=True)
         shutil.move(arm64_deb, f"mufiz_{version}_{target}.deb")
         print(f"Built debian package for {target}")
