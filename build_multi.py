@@ -2,6 +2,8 @@ import subprocess
 import os
 import zipfile
 import json
+import shutil
+import glob
 
 version = "0.4.0"
 out_path = "zig-out/bin/"
@@ -40,3 +42,8 @@ for target in targets:
         command = f"fpm -v {version} -a arm64 -s zip -t deb --prefix /usr/bin -n mufiz zig-out/bin/mufiz_{version}_{target}.zip "
         subprocess.run(command, shell=True, text=True)
         print(f"Built debian package for {target}")
+
+deb = glob.glob("*.deb")
+for d in deb: 
+    shutil.move(d, out_path+d)
+    print(f"Moved {d} to {out_path}")
