@@ -1,30 +1,20 @@
 import subprocess
 import os
 import zipfile
-import shutil
+import json
 
 codename = "voxl"
 out_path = "zig-out/bin/"
 windows = f"{out_path}mufiz.exe"
 bin = "zig-out/bin/mufiz"
 
-targets = [
-    "aarch64-macos", 
-    "x86_64-macos", 
-    "aarch64-linux-gnu",
-    "aarch64-linux-musl",  
-    # "riscv32-linux-musl",  
-    # "riscv64-linux-gnu",
-    # "riscv64-linux-musl", 
-    "x86_64-linux-gnu", 
-    "x86_64-linux-musl", 
-    "x86_64-windows", 
-    "aarch64-windows", 
-]
+with open('targets.json', 'r') as file:
+    data = json.load(file)
 
+targets = data['targets']
 
 for target in targets: 
-    command = "zig build -Doptimize=ReleaseFast -Dtarget=" + target
+    command = "zig build -Doptimize=ReleaseSafe -Dtarget=" + target
     subprocess.run(command, shell=True, text=True)
     if(target == "x86_64-windows" or target == "aarch64-windows"):
         windows_zip = f"mufiz_{codename}_{target}.zip"
