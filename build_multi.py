@@ -10,6 +10,9 @@ out_path = "zig-out/bin/"
 windows = f"{out_path}mufiz.exe"
 bin = "zig-out/bin/mufiz"
 
+arm64_deb = f"mufiz_{version}_arm64.deb"
+amd64_deb = f"mufiz_{version}_amd64.deb"
+
 with open('targets.json', 'r') as file:
     data = json.load(file)
 
@@ -37,10 +40,12 @@ for target in targets:
     if ("x86_64-linux" in target): 
         command = f"fpm -v {version} -a amd64 -s zip -t deb --prefix /usr/bin -n mufiz ./zig-out/bin/mufiz_{version}_{target}.zip "
         subprocess.run(command, shell=True, text=True)
+        shutil.move(amd64_deb, f"mufiz_{version}_{target}.deb")
         print(f"Built debian package for {target}")
     elif ("aarch64-linux" in target):
         command = f"fpm -v {version} -a arm64 -s zip -t deb --prefix /usr/bin -n mufiz ./zig-out/bin/mufiz_{version}_{target}.zip "
         subprocess.run(command, shell=True, text=True)
+        shutil.move(arm64_deb, f"mufiz_{version}_{target}.deb")
         print(f"Built debian package for {target}")
 
 deb = glob.glob("*.deb")
