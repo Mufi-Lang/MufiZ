@@ -14,19 +14,17 @@ with open('targets.json', 'r') as file:
 targets = data['targets']
 
 for target in targets: 
-    command = "zig build -Doptimize=ReleaseSafe -Dtarget=" + target
+    command = f"zig build -Doptimize=ReleaseSafe -Dtarget={target}"
     subprocess.run(command, shell=True, text=True)
-    if(target == "x86_64-windows" or target == "aarch64-windows"):
+    if("x86_64-windows" in target or "aarch64-windows" in target):
         windows_zip = f"mufiz_{version}_{target}.zip"
         with zipfile.ZipFile(out_path+windows_zip, 'w') as wz: 
             wz.write(windows, os.path.basename(windows))
-        os.remove(windows)
         print(f"Zipped successfully {windows_zip}")
     else: 
         zipper = f"mufiz_{version}_{target}.zip"
         with zipfile.ZipFile(out_path+zipper, 'w') as z: 
             z.write(bin, os.path.basename(bin))
-        os.remove(bin)
         print(f"Zipped successfully {zipper}")
 os.remove(out_path+"mufiz.pdb")
 
