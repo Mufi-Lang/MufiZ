@@ -40,18 +40,18 @@ pub fn build(b: *std.Build) !void {
     exe.addIncludePath(.{ .path = "include" });
     // zig fmt: off
     exe.addCSourceFiles(&.{ 
-        "csrc/chunk.c", 
-        "csrc/compiler.c", 
-        "csrc/debug.c", 
-        "csrc/memory.c", 
-        "csrc/object.c", 
-        "csrc/table.c", 
-        "csrc/vm.c", 
-        "csrc/value.c" 
+        "core/chunk.c", 
+        "core/compiler.c", 
+        "core/debug.c", 
+        "core/memory.c", 
+        "core/object.c", 
+        "core/table.c", 
+        "core/vm.c", 
+        "core/value.c" 
     }, c_flags);
 
     if(builtin.os.tag == .windows){
-        exe.addCSourceFile(.{.file = .{.path = "csrc/pre.c"}, .flags = c_flags});
+        exe.addCSourceFile(.{.file = .{.path = "core/pre.c"}, .flags = c_flags});
     }
 
     const clap = b.dependency("clap", .{
