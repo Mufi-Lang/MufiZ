@@ -2,40 +2,95 @@
 
 ## Math
 
-- [X] `log2` (double)
-- [X] `log10` (double)
-- [X] `sin` (double)
-- [X] `cos` (double)
-- [X] `tan` (double)
-- [X] `asin` (double)
-- [X] `acos` (double)
-- [X] `atan` (double)
-- [ ] `pow` (double, integer or complex)
-- [ ] `sqrt` (double)
-- [ ] `abs` (double, integer or complex)
-- [ ] `ceil` (take double -> integer)
-- [ ] `floor` (take double -> integer)
-- [ ] `round` (take double -> integer)
-- [ ] `pi` (double)
-- [ ] `rand` (???)
+- [X] `log2`
+  - Return Type: double
+  - Parameters: double
+- [X] `log10`
+  - Return Type: double
+  - Parameters: double
+- [X] `sin`
+  - Return Type: double
+  - Parameters: double
+- [X] `cos`
+  - Return Type: double
+  - Parameters: double
+- [X] `tan`
+  - Return Type: double
+  - Parameters: double
+- [X] `asin`
+  - Return Type: double
+  - Parameters: double
+- [X] `acos`
+  - Return Type: double
+  - Parameters: double
+- [X] `atan`
+  - Return Type: double
+  - Parameters: double
+- [ ] `pow`
+  - Return Type: double
+  - Parameters: double, integer, complex
+- [ ] `sqrt`
+  - Return Type: double
+  - Parameters: double
+- [X] `abs`
+  - Return Type: double or integer
+  - Parameters: double, integer, complex
+- [X] `phase`
+  - Return Type: double
+  - Parameters: complex
+- [ ] `ceil`
+  - Return Type: integer
+  - Parameters: double
+- [ ] `floor`
+  - Return Type: integer
+  - Parameters: double
+- [ ] `round`
+  - Return Type: integer
+  - Parameters: double
+- [ ] `pi`
+  - Return Type: double
+- [X] `rand`
+  - Return Type: integer
 
 ## Conversions
 
-- [X] `double` converts an integer to double
-- [X] `int` converts a double to an integer
-- [X] `str` converts an integer or double to string
+- [X] `double`
+  - Return Type: double
+  - Parameters: integer
+- [X] `int`
+  - Return Type: integer
+  - Parameters: double
+- [X] `str`
+  - Return Type: string
+  - Parameters: integer, double
 
 ## Time
 
-- [X] `now` returns the time in seconds
-- [X] `now_ns` ... in ns
-- [X] `now_ms` ... in ms
+- [X] `now`
+  - Return Type: seconds
+- [X] `now_ns`
+  - Return Type: ns
+- [X] `now_ms`
+  - Return Type: ms
 
 ## File System
 
-- [ ] `create_file(str) bool`
-- [ ] `write_file(str) bool`
-- [ ] `read_file(str) str` 
-- [ ] `delete_file(str) bool`
-- [ ] `create_dir(str) bool` 
-- [ ] `delete_dir(str) bool`
+- [ ] `create_file`
+  - Return Type: bool
+  - Parameters: string
+- [ ] `write_file`
+  - Return Type: bool
+  - Parameters: string
+- [ ] `read_file`
+  - Return Type: string
+  - Parameters: string
+- [ ] `delete_file`
+  - Return Type: bool
+  - Parameters: string
+- [ ] `create_dir`
+  - Return Type: bool
+  - Parameters: string
+- [ ] `delete_dir`
+  - Return Type: bool
+  - Parameters: string
+

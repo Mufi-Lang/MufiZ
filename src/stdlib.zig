@@ -37,6 +37,9 @@ pub const NativeFunctions = struct {
         try self.append("acos", &math.acos);
         try self.append("atan", &math.atan);
         try self.append("complex", &math.complex);
+        try self.append("abs", &math.abs);
+        try self.append("phase", &math.phase);
+        try self.append("rand", &math.rand);
     }
 
     pub fn addTypes(self: *Self) !void {

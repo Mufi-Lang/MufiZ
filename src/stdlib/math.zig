@@ -86,8 +86,41 @@ pub fn complex(argc: c_int, args: [*c]Value) callconv(.C) Value {
     return conv.complex_val(r, i);
 }
 
+pub fn abs(argc: c_int, args: [*c]Value) callconv(.C) Value {
+    if (argc != 1) return stdlib_error("abs() expects one argument!", .{ .argn = argc });
+    switch (args[0].type) {
+        conv.VAL_COMPLEX => {
+            const c = conv.as_complex(args[0]);
+            return conv.double_val(@sqrt(c.r * c.r + c.i * c.i));
+        },
+        conv.VAL_DOUBLE => {
+            const d = conv.as_double(args[0]);
+            return conv.double_val(@fabs(d));
+        },
+        conv.VAL_INT => {
+            const i = conv.as_int(args[0]);
+            return conv.int_val(std.math.absInt(i) catch 0);
+        },
+        else => return stdlib_error("abs() expects a Numeric Type!", .{ .value_type = conv.what_is(args[0]) }),
+    }
+}
+
+pub fn phase(argc: c_int, args: [*c]Value) callconv(.C) Value {
+    if (argc != 1) return stdlib_error("phase() expects one argument!", .{ .argn = argc });
+    if (!type_check(1, args, 4)) return stdlib_error("phase() expects a Complex!", .{ .value_type = conv.what_is(args[0]) });
+    const c = conv.as_complex(args[0]);
+    return conv.double_val(std.math.atan2(f64, c.i, c.r));
+}
+
+pub fn rand(argc: c_int, args: [*c]Value) callconv(.C) Value {
+    _ = args;
+    if (argc != 0) return stdlib_error("rand() expects no arguments!", .{ .argn = argc });
+    const seed: u64 = @intCast(std.time.milliTimestamp());
+    var gen = std.rand.Sfc64.init(seed);
+    const random = gen.random().int(i32);
+    return conv.int_val(random);
+}
+
 // complex numbers:
-// abs
-// phase: atan2(i, r)
 // real
 // imaginary
