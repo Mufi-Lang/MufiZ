@@ -110,7 +110,7 @@ ObjString* tableFindString(Table* table, const char* chars,
                            int length, uint64_t hash) {
     if (table->count == 0) return NULL;
 
-    uint32_t index = hash & (table->capacity - 1);
+    uint64_t index = hash & (table->capacity - 1);
     for (;;) {
         Entry* entry = &table->entries[index];
         if (entry->key == NULL) {

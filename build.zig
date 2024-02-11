@@ -1,5 +1,13 @@
 const std = @import("std");
 const builtin = @import("builtin");
+
+comptime {
+    const supported_version = std.SemanticVersion.parse("0.11.0") catch unreachable;
+    if (builtin.zig_version.order(supported_version) != .eq) {
+        @compileError(std.fmt.comptimePrint("Unsupported Zig version ({}). Required Zig version 0.11.0.", .{builtin.zig_version}));
+    }
+}
+
 pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});

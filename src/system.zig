@@ -41,18 +41,22 @@ inline fn zrepl() !void {
 
 pub const Runner = struct {
     main: []u8 = &.{},
-    link: std.ArrayList([]const u8),
+    link: ?[]u8 = null,
     allocator: std.mem.Allocator,
 
     const max_bytes: usize = 1048576;
     const Self = @This();
 
     pub fn init(allocator: std.mem.Allocator) Self {
-        return .{ .allocator = allocator, .link = std.ArrayList([]const u8).init(allocator) };
+        return .{ .allocator = allocator };
     }
 
     pub fn deinit(self: *Self) void {
-        self.link.deinit();
+        self.allocator.free(self.main);
+        if (self.link) |l| {
+            self.allocator.free(l);
+            self.link = null;
+        }
     }
 
     fn read_file(self: *Self, path: []u8) ![]u8 {
@@ -65,34 +69,34 @@ pub const Runner = struct {
         if (result == vm.INTERPRET_RUNTIME_ERROR) std.os.exit(70);
     }
 
-    pub fn setOnlyMain(self: *Self, main: []u8) void {
-        self.main = main;
-        self.link = null;
+    pub fn setMain(self: *Self, main: []u8) !void {
+        self.main = try self.read_file(main);
     }
-    pub fn setMainWithLink(self: *Self, main: []u8, link: []u8) !void {
-        self.main = main;
-        var tokenizer = std.mem.tokenizeSequence(u8, link, ",");
+    pub fn setLink(self: *Self, link: []u8) !void {
+        self.link = try self.read_file(link);
+    }
+    pub fn setMultiLink(self: *Self, multi: []u8) !void {
+        var tokenize = std.mem.tokenizeSequence(u8, multi, ",");
+        while (tokenize.next()) |l| {
+            try self.link.append(try self.read_file(@constCast(l)));
+        }
+    }
+    fn linkSize(self: Self) usize {
+        return self.link.?.len;
+    }
+    fn mainSize(self: Self) usize {
+        return self.main.len;
+    }
 
-        while (tokenizer.next()) |l| {
-            try self.link.append(l);
-        }
-    }
-    pub fn runFile(self: *Self) !void {
-        var str: []u8 = undefined;
-        if (self.link.items.len != 0) {
-            // var main_str = try self.read_file(self.main);
-            // defer self.allocator.free(main_str);
-            // var link_str = try self.read_file(l);
-            // defer self.allocator.free(link_str);
-            // const size = main_str.len + link_str.len;
-            // str = try self.allocator.alloc(u8, size);
-            // @memcpy(str[0..link_str.len], link_str[0..]);
-            // @memcpy(str[link_str.len..], main_str[0..]);
-            // rework to do multiple files
+    pub fn runFile(self: Self) !void {
+        if (self.link) |l| {
+            var str = try self.allocator.alloc(u8, self.mainSize() + self.linkSize());
+            defer self.allocator.free(str);
+            @memcpy(str[0..l.len], l[0..]);
+            @memcpy(str[l.len..], self.main[0..]);
+            run(str);
         } else {
-            str = try self.read_file(self.main);
+            run(self.main);
         }
-        run(str);
-        self.allocator.free(str);
     }
 };

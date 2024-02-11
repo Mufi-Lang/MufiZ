@@ -13,7 +13,6 @@ const params = clap.parseParamsComptime(
     \\-v, --version          Prints the version and codename.
     \\-r, --run <str>        Runs a Mufi Script
     \\-l, --link <str>       Link another Mufi Script when interpreting 
-    \\-m, --link-multi <str> Link Multiple Scripts (foo1.mufi,foo2.mufi,foo3.mufi)
     \\--repl                 Runs Mufi Repl system (Windows uses C bindings)
     \\
 );
@@ -50,13 +49,12 @@ pub fn main() !void {
     if (res.args.version != 0) system.vopt.version();
     if (res.args.run) |s| {
         var runner = system.Runner.init(GlobalAlloc);
+        defer runner.deinit();
+        try runner.setMain(@constCast(s));
         if (res.args.link) |l| {
-            runner.setMainWithLink(@constCast(s), @constCast(l));
-        } else {
-            runner.setOnlyMain(@constCast(s));
+            try runner.setLink(@constCast(l));
         }
         try runner.runFile();
     }
-    if (res.args.@"link-multi") |m| std.debug.print("{s}\n", .{m});
     if (res.args.repl != 0) try system.repl();
 }
