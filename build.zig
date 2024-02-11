@@ -45,12 +45,9 @@ pub fn build(b: *std.Build) !void {
         "core/object.c", 
         "core/table.c", 
         "core/vm.c", 
-        "core/value.c" 
+        "core/value.c", 
+        "core/pre.c"
     }, c_flags);
-
-    if(builtin.os.tag == .windows){
-        exe.addCSourceFile(.{.file = .{.path = "core/pre.c"}, .flags = c_flags});
-    }
 
     const clap = b.dependency("clap", .{
         .target = target, 
