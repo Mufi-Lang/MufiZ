@@ -9,7 +9,7 @@ on:
       - next
 
 env:
-  codename: 'iris'
+  codename: 'voxl'
 
 jobs:
   build:
