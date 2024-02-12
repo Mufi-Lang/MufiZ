@@ -75,7 +75,7 @@
 
 ## File System
 
-- [ ] `create_file`
+- [X] `create_file`
   - Return Type: bool
   - Parameters: string
 - [ ] `write_file`

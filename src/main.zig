@@ -42,6 +42,7 @@ pub fn main() !void {
         try natives.addTime();
         try natives.addTypes();
         try natives.addOthers();
+        try natives.addFs();
         natives.define();
     }
 

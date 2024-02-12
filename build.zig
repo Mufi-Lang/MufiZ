@@ -33,11 +33,18 @@ pub fn build(b: *std.Build) !void {
         .link_libc = true,
     });
 
-    exe.linkLibrary(lib_scanner);
+    const lib_core = b.addStaticLibrary(.{
+        .name = "libmufiz_core",
+        .target = target,
+        .optimize = .ReleaseFast,
+        .link_libc = true,
+    });
 
-    exe.addIncludePath(.{ .path = "include" });
+    lib_core.linkLibrary(lib_scanner);
+
+    lib_core.addIncludePath(.{ .path = "include" });
     // zig fmt: off
-    exe.addCSourceFiles(&.{ 
+    lib_core.addCSourceFiles(&.{ 
         "core/chunk.c", 
         "core/compiler.c", 
         "core/debug.c", 
@@ -48,6 +55,9 @@ pub fn build(b: *std.Build) !void {
         "core/value.c", 
         "core/pre.c"
     }, c_flags);
+
+    exe.addIncludePath(.{.path = "include"});
+    exe.linkLibrary(lib_core);
 
     const clap = b.dependency("clap", .{
         .target = target, 

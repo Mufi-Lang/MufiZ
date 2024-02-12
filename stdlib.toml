@@ -141,7 +141,7 @@ implemented = true
 name = "create_file"
 return_type = "bool"
 parameters = ["string"]
-implemented = false
+implemented = true
 
 [["File System"]]
 name = "write_file"
