@@ -29,18 +29,20 @@ $ mufiz --help
 
 ---
 
-> Windows still uses `pre.c` to run Mufi-Lang as there is current issues with Zig's `std.io.getStdin().reader()`. 
+> Windows still uses `pre.c` to run Mufi-Lang as there is current issues with Zig's `std.io.getStdin().reader()`.
 
-## Debug vs Release Modes 
+## Debug vs Release Modes
 
 Now when building under the `Debug` optimize mode, MufiZ will contain the debugging macros
 that shows GC tracing, and chunk disassembly. These will be turned off when built under any of
-the other `Release*` optimize modes with command `zig build -Doptimize=`. 
+the other `Release*` optimize modes with command `zig build -Doptimize=`.
 
 > Note: The following components are built under a specific optimize mode:
 >
 > - `libmufiz_scanner`: `ReleaseFast`
 >   - Since this library doesn't involve memory management on the Zig side, we can prioritize performance.
+> - `libmufiz_core`: `ReleaseFast`
+>   - Since this library contains all of the C code, we can prioritize performance.
 > - `clap`: `ReleaseSafe`
 >   - Since this library involves components that require allocations, we prioritize safety.
 
@@ -55,6 +57,7 @@ the other `Release*` optimize modes with command `zig build -Doptimize=`.
   - [ ] Standard Library documentation
   - [ ] Language reference
 - [ ] Website: `mufiz.mustafif.com`
+- [ ] Installation Guide
 
 ---
 
