@@ -1,13 +1,22 @@
 const std = @import("std");
-const string_h = @cImport(@cInclude("string.h"));
-const memcmp = string_h.memcmp; // need to find replacement
-const strlen = string_h.strlen; // need to find replacement
 
-// inline fn strlen(s: [*c]u8) usize{
-//     var i: usize = 0;
-//     while(s[i] != 0): (i += 1){}
-//     return i;
-// }
+fn memcmp(s1: ?*const anyopaque, s2: ?*const anyopaque, n: c_ulong) c_int {
+    const str1: [*c]const u8 = @ptrCast(s1.?);
+    const str2: [*c]const u8 = @ptrCast(s2.?);
+    const num: usize = @intCast(n);
+
+    for (0..num) |i| {
+        if (str1[i] != str2[i]) return @intCast(str1[1] - str2[i]);
+    }
+
+    return 0;
+}
+
+fn strlen(s: [*c]const u8) c_ulong {
+    var len: c_ulong = 0;
+    while (s[len] != 0) : (len += 1) {}
+    return len;
+}
 
 pub const TokenType = enum(c_int) {
     // Single character tokens
