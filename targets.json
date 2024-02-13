@@ -11,6 +11,7 @@
       "powerpc64-linux-gnu",
       "powerpc64-linux-musl",
       "mips64-linux-musl",
-      "riscv64-linux-musl"
+      "riscv64-linux-musl", 
+      "wasm32-wasi"
     ]
 }

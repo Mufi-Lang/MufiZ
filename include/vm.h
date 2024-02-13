@@ -57,9 +57,9 @@ typedef enum {
 extern VM vm;
 
 //> Initializes the VM
-void initVM();
+void initVM(void);
 //> Deallocates the VM's resources
-void freeVM();
+void freeVM(void);
 //> Interprets and runs the code
 InterpretResult interpret(const char* source);
 //> Pushes a value to the stack

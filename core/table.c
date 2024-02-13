@@ -106,6 +106,7 @@ void tableAddAll(Table* from, Table* to) {
         }
     }
 }
+
 ObjString* tableFindString(Table* table, const char* chars,
                            int length, uint64_t hash) {
     if (table->count == 0) return NULL;

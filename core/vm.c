@@ -66,7 +66,7 @@ void defineNative(const char *name, NativeFn function)
 }
 
 // Initializes the virtual machine
-void initVM()
+void initVM(void)
 {
     resetStack();
     vm.objects = NULL;
@@ -84,7 +84,7 @@ void initVM()
 }
 
 // Frees the virtual machine
-void freeVM()
+void freeVM(void)
 {
     freeTable(&vm.globals);
     freeTable(&vm.strings);
