@@ -126,7 +126,7 @@ pub fn pow(argc: c_int, args: [*c]Value) callconv(.C) Value {
     if (!type_check(2, args, 3)) return stdlib_error("pow() expects 2 Double!", .{ .value_type = conv.what_is(args[0]) });
     const base = conv.as_double(args[0]);
     const exponent = conv.as_double(args[1]);
-    return conv.double_val(std.math.pow(base, exponent));
+    return conv.double_val(std.math.pow(f64, base, exponent));
 }
 
 pub fn sqrt(argc: c_int, args: [*c]Value) callconv(.C) Value {
@@ -156,7 +156,6 @@ pub fn round(argc: c_int, args: [*c]Value) callconv(.C) Value {
     const double = conv.as_double(args[0]);
     return conv.int_val(@intFromFloat(@round(double)));
 }
-
 
 // complex numbers:
 // real
