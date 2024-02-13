@@ -41,6 +41,11 @@ pub const NativeFunctions = struct {
         try self.append("abs", &math.abs);
         try self.append("phase", &math.phase);
         try self.append("rand", &math.rand);
+        try self.append("pow", &math.pow);
+        try self.append("sqrt", &math.sqrt);
+        try self.append("ceil", &math.ceil);
+        try self.append("floor", &math.floor);
+        try self.append("round", &math.round);
     }
 
     pub fn addFs(self: *Self) !void {
