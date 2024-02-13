@@ -9,7 +9,7 @@ version = "0.4.0"
 out_path = "zig-out/bin/"
 windows = f"{out_path}mufiz.exe"
 bin = "zig-out/bin/mufiz"
-
+wasm_bin = "zig-out/bin/mufiz.wasm"
 arm64_deb = f"mufiz_{version}_arm64.deb"
 amd64_deb = f"mufiz_{version}_amd64.deb"
 amd64_snap = f"mufiz_{version}_amd64.snap"
@@ -55,7 +55,9 @@ for target in targets:
         print(f"Zipped successfully {windows_zip}")
     else: 
         zipper = f"mufiz_{version}_{target}.zip"
-        with zipfile.ZipFile(out_path+zipper, 'w') as z: 
+        with zipfile.ZipFile(out_path+zipper, 'w') as z:
+            if target == "wasm32-wasi": 
+                bin = wasm_bin
             z.write(bin, os.path.basename(bin))
         os.remove(bin)
         print(f"Zipped successfully {zipper}")
