@@ -26,10 +26,10 @@
 - [X] `atan`
   - Return Type: double
   - Parameters: double
-- [ ] `pow`
+- [X] `pow`
   - Return Type: double
-  - Parameters: double, integer, complex
-- [ ] `sqrt`
+  - Parameters: double
+- [X] `sqrt`
   - Return Type: double
   - Parameters: double
 - [X] `abs`
@@ -38,16 +38,16 @@
 - [X] `phase`
   - Return Type: double
   - Parameters: complex
-- [ ] `ceil`
+- [X] `ceil`
   - Return Type: integer
   - Parameters: double
-- [ ] `floor`
+- [X] `floor`
   - Return Type: integer
   - Parameters: double
-- [ ] `round`
+- [X] `round`
   - Return Type: integer
   - Parameters: double
-- [ ] `pi`
+- [X] `pi`
   - Return Type: double
 - [X] `rand`
   - Return Type: integer

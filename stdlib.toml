@@ -50,13 +50,13 @@ implemented = true
 name = "pow"
 return_type = "double"
 parameters = ["double", "integer", "complex"]
-implemented = false
+implemented = true
 
 [["Math"]]
 name = "sqrt"
 return_type = "double"
 parameters = ["double"]
-implemented = false
+implemented = true
 
 [["Math"]]
 name = "abs"
@@ -75,25 +75,25 @@ implemented = true
 name = "ceil"
 return_type = "integer"
 parameters = ["double"]
-implemented = false
+implemented = true
 
 [["Math"]]
 name = "floor"
 return_type = "integer"
 parameters = ["double"]
-implemented = false
+implemented = true
 
 [["Math"]]
 name = "round"
 return_type = "integer"
 parameters = ["double"]
-implemented = false
+implemented = true
 
 [["Math"]]
 name = "pi"
 return_type = "double"
 parameters = []
-implemented = false
+implemented = true
 
 [["Math"]]
 name = "rand"
