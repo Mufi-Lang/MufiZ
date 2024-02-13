@@ -1,6 +1,6 @@
 const std = @import("std");
 
-fn memcmp(s1: ?*const anyopaque, s2: ?*const anyopaque, n: c_ulong) c_int {
+fn memcmp(s1: ?*const anyopaque, s2: ?*const anyopaque, n: usize) c_int {
     const str1: [*c]const u8 = @ptrCast(s1.?);
     const str2: [*c]const u8 = @ptrCast(s2.?);
     const num: usize = @intCast(n);
@@ -12,8 +12,8 @@ fn memcmp(s1: ?*const anyopaque, s2: ?*const anyopaque, n: c_ulong) c_int {
     return 0;
 }
 
-fn strlen(s: [*c]const u8) c_ulong {
-    var len: c_ulong = 0;
+fn strlen(s: [*c]const u8) usize {
+    var len: usize = 0;
     while (s[len] != 0) : (len += 1) {}
     return len;
 }
@@ -122,7 +122,7 @@ pub export fn makeToken(type_: TokenType) callconv(.C) Token {
     return .{
         .type = type_,
         .start = scanner.start,
-        .length = @as(i32, @bitCast(@as(c_int, @truncate(@divExact(@as(c_longlong, @bitCast(@intFromPtr(scanner.current) -% @intFromPtr(scanner.start))), @sizeOf(u8)))))),
+        .length = @intCast(@intFromPtr(scanner.current) - @intFromPtr(scanner.start)),
         .line = scanner.line,
     };
 }
@@ -131,7 +131,7 @@ pub export fn errorToken(message: [*c]u8) callconv(.C) Token {
     return .{
         .type = TokenType.TOKEN_ERROR,
         .start = message,
-        .length = @as(i32, @bitCast(@as(c_uint, @truncate(strlen(message))))),
+        .length = @intCast(strlen(message)),
         .line = scanner.line,
     };
 }
@@ -162,7 +162,7 @@ pub export fn checkKeyword(arg_start: c_int, arg_length: c_int, arg_rest: [*c]co
     var length = arg_length;
     var rest = arg_rest;
     var @"type" = arg_type;
-    if ((@divExact(@as(c_longlong, @bitCast(@intFromPtr(scanner.current) -% @intFromPtr(scanner.start))), @sizeOf(u8)) == @as(c_longlong, @bitCast(@as(c_longlong, start + length)))) and (memcmp(@as(?*const anyopaque, @ptrCast(scanner.start + @as(usize, @bitCast(@as(isize, @intCast(start)))))), @as(?*const anyopaque, @ptrCast(rest)), @as(c_ulonglong, @bitCast(@as(c_longlong, length)))) == @as(c_int, 0))) {
+    if (@intFromPtr(scanner.current) - @intFromPtr(scanner.start) == start + length and memcmp(@ptrCast(@as([*c]u8, @ptrFromInt(@intFromPtr(scanner.start) + @as(usize, @intCast(start))))), @ptrCast(rest), @intCast(length)) == 0 ) {
         return @"type";
     }
     return .TOKEN_IDENTIFIER;
@@ -213,12 +213,12 @@ pub export fn identifierType() callconv(.C) TokenType {
     return .TOKEN_IDENTIFIER;
 }
 pub export fn identifier() callconv(.C) Token {
-    while ((@as(c_int, @intFromBool(isAlpha(peek()))) != 0) or (@as(c_int, @intFromBool(isDigit(peek()))) != 0)) {
+    while (isAlpha(peek()) or isDigit(peek())) {
         _ = __scanner__advance();
     }
     return makeToken(identifierType());
 }
-/// TODO: need to simply without converting so much
+
 pub export fn __scanner__number() callconv(.C) Token {
     while (isDigit(peek())) {
         _ = __scanner__advance();
@@ -232,10 +232,10 @@ pub export fn __scanner__number() callconv(.C) Token {
         return makeToken(.TOKEN_INT);
     }
 }
-/// TODO: need to simply without converting so much
+
 pub export fn __scanner__string() callconv(.C) Token {
-    while ((@as(c_int, @bitCast(@as(c_uint, peek()))) != @as(c_int, '"')) and !isAtEnd()) {
-        if (@as(c_int, @bitCast(@as(c_uint, peek()))) == @as(c_int, '\n')) {
+    while (peek() != '"' and !isAtEnd()) {
+        if (peek() ==  '\n') {
             scanner.line += 1;
         }
         _ = __scanner__advance();
