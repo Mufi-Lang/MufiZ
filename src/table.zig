@@ -3,7 +3,8 @@ const Value = value_h.Value;
 const ObjString = @cImport(@cInclude("object.h")).ObjString;
 const memory = @cImport(@cInclude("memory.h"));
 const table_h = @cImport(@cInclude("table.h"));
-
+const reallocate = memory.reallocate;
+const VAL_NIL: c_int = 1;
 pub const Table = extern struct {
     count: c_int,
     capacity: c_int,
@@ -75,4 +76,46 @@ pub export fn tableGet(table: *Table, key: ?*ObjString, value: *Value) callconv(
 
     value.* = entry.value;
     return true;
+}
+
+pub export fn adjustCapacity(arg_table: [*c]Table, arg_capacity: c_int) callconv(.C) void {
+    var table = arg_table;
+    var capacity = arg_capacity;
+    var entries: [*c]Entry = @as([*c]Entry, @ptrCast(@alignCast(reallocate(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))), @as(usize, @bitCast(@as(c_longlong, @as(c_int, 0)))), @sizeOf(Entry) *% @as(c_ulonglong, @bitCast(@as(c_longlong, capacity)))))));
+    {
+        var i: c_int = 0;
+        while (i < capacity) : (i += 1) {
+            (blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk entries + @as(usize, @intCast(tmp)) else break :blk entries - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*.key = null;
+            (blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk entries + @as(usize, @intCast(tmp)) else break :blk entries - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*.value = Value{
+                .type = @as(c_uint, @bitCast(VAL_NIL)),
+                .as = .{
+                    .num_int = @as(c_int, 0),
+                },
+            };
+        }
+    }
+    table.*.count = 0;
+    {
+        var i: c_int = 0;
+        while (i < table.*.capacity) : (i += 1) {
+            var entry: [*c]Entry = &(blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk table.*.entries + @as(usize, @intCast(tmp)) else break :blk table.*.entries - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*;
+            if (entry.*.key == @as([*c]ObjString, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) continue;
+            var dest: [*c]Entry = findEntry(entries, capacity, entry.*.key);
+            dest.*.key = entry.*.key;
+            dest.*.value = entry.*.value;
+            table.*.count += 1;
+        }
+    }
+    _ = reallocate(@as(?*anyopaque, @ptrCast(table.*.entries)), @sizeOf(Entry) *% @as(c_ulonglong, @bitCast(@as(c_longlong, table.*.capacity))), @as(usize, @bitCast(@as(c_longlong, @as(c_int, 0)))));
+    table.*.entries = entries;
+    table.*.capacity = capacity;
 }

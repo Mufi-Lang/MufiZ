@@ -33,6 +33,8 @@ extern struct Entry* findEntry(struct Entry* entries, int capacity, ObjString* k
 //> Finds entry with a given key
 //> If an entry is found, return true, if not false
 extern bool tableGet(struct Table* table, ObjString* key, Value* value);
+
+extern void adjustCapacity(struct Table* table, int capacity);
 //> Sets a new value into an entry inside the table using a key
 //> Returns true if the entry is added
 bool tableSet(struct Table* table, ObjString* key, Value value);
