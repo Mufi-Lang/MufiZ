@@ -29,9 +29,10 @@ struct Table{
 extern void initTable(struct Table* table);
 //> Frees a table
 extern void freeTable(struct Table* table);
+extern struct Entry* findEntry(struct Entry* entries, int capacity, ObjString* key);
 //> Finds entry with a given key
 //> If an entry is found, return true, if not false
-bool tableGet(struct Table* table, ObjString* key, Value* value);
+extern bool tableGet(struct Table* table, ObjString* key, Value* value);
 //> Sets a new value into an entry inside the table using a key
 //> Returns true if the entry is added
 bool tableSet(struct Table* table, ObjString* key, Value value);

@@ -18,38 +18,38 @@
 //     initTable(table);
 // }
 
-static struct Entry* findEntry(struct Entry* entries, int capacity,
-                        ObjString* key) {
-    uint32_t index = key->hash & (capacity - 1);
-    struct Entry* tombstone = NULL;
+// struct Entry* findEntry(struct Entry* entries, int capacity,
+//                         ObjString* key) {
+//     uint32_t index = key->hash & (capacity - 1);
+//     struct Entry* tombstone = NULL;
 
-    for (;;) {
-        struct Entry* entry = &entries[index];
-        if (entry->key == NULL) {
-            if (IS_NIL(entry->value)) {
-                // Empty entry.
-                return tombstone != NULL ? tombstone : entry;
-            } else {
-                // We found a tombstone.
-                if (tombstone == NULL) tombstone = entry;
-            }
-        } else if (entry->key == key) {
-            // We found the key.
-            return entry;
-        }
+//     for (;;) {
+//         struct Entry* entry = &entries[index];
+//         if (entry->key == NULL) {
+//             if (IS_NIL(entry->value)) {
+//                 // Empty entry.
+//                 return tombstone != NULL ? tombstone : entry;
+//             } else {
+//                 // We found a tombstone.
+//                 if (tombstone == NULL) tombstone = entry;
+//             }
+//         } else if (entry->key == key) {
+//             // We found the key.
+//             return entry;
+//         }
 
-        index = (index + 1) & (capacity - 1);
-    }
-}
-bool tableGet(struct Table* table, ObjString* key, Value* value) {
-    if (table->count == 0) return false;
+//         index = (index + 1) & (capacity - 1);
+//     }
+// }
+// bool tableGet(struct Table* table, ObjString* key, Value* value) {
+//     if (table->count == 0) return false;
 
-    struct Entry* entry = findEntry(table->entries, table->capacity, key);
-    if (entry->key == NULL) return false;
+//     struct Entry* entry = findEntry(table->entries, table->capacity, key);
+//     if (entry->key == NULL) return false;
 
-    *value = entry->value;
-    return true;
-}
+//     *value = entry->value;
+//     return true;
+// }
 static void adjustCapacity(struct Table* table, int capacity) {
     struct Entry* entries = ALLOCATE(struct Entry, capacity);
     for (int i = 0; i < capacity; i++) {

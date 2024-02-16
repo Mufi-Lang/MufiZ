@@ -2,15 +2,16 @@ const value_h = @cImport(@cInclude("value.h"));
 const Value = value_h.Value;
 const ObjString = @cImport(@cInclude("object.h")).ObjString;
 const memory = @cImport(@cInclude("memory.h"));
+const table_h = @cImport(@cInclude("table.h"));
 
 pub const Table = extern struct {
-    count: usize,
-    capacity: usize,
+    count: c_int,
+    capacity: c_int,
     entries: [*c]Entry,
 };
 
 pub const Entry = extern struct {
-    key: [*c]ObjString,
+    key: ?*ObjString,
     value: Value,
 };
 
@@ -37,14 +38,41 @@ pub const Entry = extern struct {
 
 const TABLE_MAX_LOAD: f64 = 0.75;
 
-pub export fn initTable(table: *Table) void {
+pub export fn initTable(table: *Table) callconv(.C) void {
     table.count = 0;
     table.capacity = 0;
     table.entries = null;
 }
 
-pub export fn freeTable(table: *Table) void {
-    _ = memory.FREE_ARRAY(Entry, table.entries, table.capacity);
+pub export fn freeTable(table: *Table) callconv(.C) void {
+    _ = memory.FREE_ARRAY(Entry, table.entries, @as(usize, @intCast(table.capacity)));
     initTable(table);
 }
 
+pub export fn findEntry(entries: [*]Entry, capacity: c_int, key: ?*ObjString) callconv(.C) *Entry {
+    var index: usize = @as(usize, @as(usize, @intCast(key.?.hash)) & @as(usize, @intCast((capacity - 1))));
+    var tombstone: ?*Entry = null;
+
+    while (true) {
+        var entry: *Entry = &entries[index];
+        if (entry.*.key == null) {
+            if (value_h.IS_NIL(entry.*.value)) {
+                if (tombstone != null) return tombstone.? else return entry;
+            } else {
+                if (tombstone == null) tombstone = entry;
+            }
+        } else if (entry.*.key == key) {
+            return entry;
+        }
+        index = (index + 1) & @as(usize, @intCast(capacity - 1));
+    }
+}
+
+pub export fn tableGet(table: *Table, key: ?*ObjString, value: *Value) callconv(.C) bool {
+    if (table.count == 0) return false;
+    var entry = findEntry(table.entries, table.capacity, key);
+    if (entry.*.key == null) return false;
+
+    value.* = entry.value;
+    return true;
+}
