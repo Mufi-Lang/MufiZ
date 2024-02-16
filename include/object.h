@@ -92,13 +92,13 @@ typedef struct {
 typedef struct{
     Obj obj;
     ObjString* name;
-    Table methods;
+    struct Table methods;
 }ObjClass;
 
 typedef struct {
     Obj obj;
     ObjClass* klass;
-    Table fields;
+    struct Table fields;
 } ObjInstance;
 
 typedef struct {

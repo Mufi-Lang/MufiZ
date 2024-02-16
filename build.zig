@@ -33,12 +33,30 @@ pub fn build(b: *std.Build) !void {
         .link_libc = true,
     });
 
+    const lib_table = b.addStaticLibrary(.{
+        .name = "libmufiz_table",
+        .target = target,
+        .optimize = .ReleaseSafe,
+        .link_libc = true,
+        .root_source_file = .{ .path = "src/table.zig" },
+    });
+
+    lib_table.addCSourceFiles(&.{
+        "core/value.c",
+        "core/memory.c",
+        "core/object.c",
+    }, c_flags);
+
+    lib_table.addIncludePath(.{ .path = "include" });
+
     const lib_core = b.addStaticLibrary(.{
         .name = "libmufiz_core",
         .target = target,
         .optimize = .ReleaseFast,
         .link_libc = true,
     });
+
+    lib_core.linkLibrary(lib_table);
 
     lib_core.linkLibrary(lib_scanner);
 
@@ -48,11 +66,11 @@ pub fn build(b: *std.Build) !void {
         "core/chunk.c", 
         "core/compiler.c", 
         "core/debug.c", 
-        "core/memory.c", 
-        "core/object.c", 
+       // "core/memory.c", 
+       // "core/object.c", 
         "core/table.c", 
         "core/vm.c", 
-        "core/value.c", 
+     //   "core/value.c", 
         "core/pre.c"
     }, c_flags);
 
