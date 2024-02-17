@@ -75,7 +75,7 @@ pub export fn tableGet(table: *Table, key: ?*ObjString, value: *Value) callconv(
 pub export fn adjustCapacity(arg_table: [*c]Table, arg_capacity: c_int) callconv(.C) void {
     var table = arg_table;
     var capacity = arg_capacity;
-    var entries: [*c]Entry = @as([*c]Entry, @ptrCast(@alignCast(reallocate(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))), @as(usize, @bitCast(@as(c_longlong, @as(c_int, 0)))), @sizeOf(Entry) *% @as(c_ulonglong, @bitCast(@as(c_longlong, capacity)))))));
+    var entries: [*c]Entry = @as([*c]Entry, @ptrCast(@alignCast(reallocate(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))), @as(usize, @bitCast(@as(usize, @as(c_int, 0)))), @sizeOf(Entry) *% @as(usize, @bitCast(@as(usize, @intCast(capacity))))))));
     {
         var i: c_int = 0;
         while (i < capacity) : (i += 1) {
@@ -109,7 +109,7 @@ pub export fn adjustCapacity(arg_table: [*c]Table, arg_capacity: c_int) callconv
             table.*.count += 1;
         }
     }
-    _ = reallocate(@as(?*anyopaque, @ptrCast(table.*.entries)), @sizeOf(Entry) *% @as(c_ulonglong, @bitCast(@as(c_longlong, table.*.capacity))), @as(usize, @bitCast(@as(c_longlong, @as(c_int, 0)))));
+    _ = reallocate(@as(?*anyopaque, @ptrCast(table.*.entries)), @sizeOf(Entry) *% @as(usize, @bitCast(@as(usize, @intCast(table.*.capacity)))), @as(usize, @bitCast(@as(usize, 0))));
     table.*.entries = entries;
     table.*.capacity = capacity;
 }
@@ -168,15 +168,15 @@ pub export fn tableFindString(arg_table: [*c]Table, arg_chars: [*c]const u8, arg
     var length = arg_length;
     var hash = arg_hash;
     if (table.*.count == @as(c_int, 0)) return null;
-    var index: u64 = hash & @as(u64, @bitCast(@as(c_longlong, table.*.capacity - @as(c_int, 1))));
+    var index: usize = @as(usize, @intCast(hash)) & @as(usize, @intCast(table.*.capacity - 1));
     while (true) {
         var entry: [*c]Entry = &table.*.entries[@as(usize, @intCast(index))];
         if (entry.*.key == @as([*c]ObjString, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
             if (entry.*.value.type == @as(c_uint, @bitCast(VAL_NIL))) return null;
-        } else if (((entry.*.key.?.length == length) and (entry.*.key.?.hash == hash)) and (memcmp(@as(?*const anyopaque, @ptrCast(entry.*.key.?.chars)), @as(?*const anyopaque, @ptrCast(chars)), @as(c_ulonglong, @bitCast(@as(c_longlong, length)))) == @as(c_int, 0))) {
+        } else if (((entry.*.key.?.length == length) and (entry.*.key.?.hash == hash)) and (memcmp(@as(?*const anyopaque, @ptrCast(entry.*.key.?.chars)), @as(?*const anyopaque, @ptrCast(chars)), @as(usize, @bitCast(@as(usize, @intCast(length))))) == @as(usize, 0))) {
             return entry.*.key;
         }
-        index = (index +% @as(u64, @bitCast(@as(c_longlong, @as(c_int, 1))))) & @as(u64, @bitCast(@as(c_longlong, table.*.capacity - @as(c_int, 1))));
+        index = (index + 1) & @as(usize, @intCast(table.*.capacity - 1));
     }
     return null;
 }
