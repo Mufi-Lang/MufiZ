@@ -22,6 +22,9 @@ $ mufiz --help
     -r, --run <str>
             Runs a Mufi Script
 
+    -l, --link <str>
+            Link another Mufi Script when interpreting
+
         --repl
             Runs Mufi Repl system (Windows uses C bindings)
 ```
