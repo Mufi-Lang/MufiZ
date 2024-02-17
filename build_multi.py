@@ -12,8 +12,8 @@ bin = "zig-out/bin/mufiz"
 wasm_bin = "zig-out/bin/mufiz.wasm"
 arm64_deb = f"mufiz_{version}_arm64.deb"
 amd64_deb = f"mufiz_{version}_amd64.deb"
-amd64_rpm = f"mufiz_{version}_amd64.rpm"
-arm64_rpm = f"mufiz_{version}_arm64.rpm"
+amd64_rpm = f"mufiz-{version}-1.x86_64.rpm"
+arm64_rpm = f"mufiz-{version}-1.aarch64.rpm"
 
 def build_deb_x86_64(target): 
     command = f"fpm -v {version} -a amd64 -s zip -t deb --prefix /usr/bin -m 'Mustafif0929@gmail.com' --description 'The Mufi Programming Language' -n mufiz ./zig-out/bin/mufiz_{version}_{target}.zip "
