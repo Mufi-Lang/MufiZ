@@ -28,7 +28,7 @@
   - Parameters: double
 - [X] `pow`
   - Return Type: double
-  - Parameters: double
+  - Parameters: double, integer, complex
 - [X] `sqrt`
   - Return Type: double
   - Parameters: double
@@ -78,19 +78,19 @@
 - [X] `create_file`
   - Return Type: bool
   - Parameters: string
-- [ ] `write_file`
+- [X] `write_file`
   - Return Type: bool
   - Parameters: string
-- [ ] `read_file`
+- [X] `read_file`
   - Return Type: string
   - Parameters: string
-- [ ] `delete_file`
+- [X] `delete_file`
   - Return Type: bool
   - Parameters: string
-- [ ] `create_dir`
+- [X] `create_dir`
   - Return Type: bool
   - Parameters: string
-- [ ] `delete_dir`
+- [X] `delete_dir`
   - Return Type: bool
   - Parameters: string
 

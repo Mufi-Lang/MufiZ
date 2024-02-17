@@ -45,6 +45,12 @@ the other `Release*` optimize modes with command `zig build -Doptimize=`.
 > - `clap`: `ReleaseSafe`
 >   - Since this library involves components that require allocations, we prioritize safety.
 
+## Installation
+
+- To install MufiZ, you can get the latest release from the Github releases page with your appropriate toolchain.
+- Then you may run the binary when you unzip the Zip file.
+- We also provide a deb and rpm package for Linux users.
+
 ## Goal
 
 - [X] Replace `pre` with Zig so we can perform `repl/scripts` with guaranteed memory safety.

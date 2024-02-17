@@ -147,28 +147,28 @@ implemented = true
 name = "write_file"
 return_type = "bool"
 parameters = ["string"]
-implemented = false
+implemented = true
 
 [["File System"]]
 name = "read_file"
 return_type = "string"
 parameters = ["string"]
-implemented = false
+implemented = true
 
 [["File System"]]
 name = "delete_file"
 return_type = "bool"
 parameters = ["string"]
-implemented = false
+implemented = true
 
 [["File System"]]
 name = "create_dir"
 return_type = "bool"
 parameters = ["string"]
-implemented = false
+implemented = true
 
 [["File System"]]
 name = "delete_dir"
 return_type = "bool"
 parameters = ["string"]
-implemented = false
+implemented = true

@@ -50,6 +50,11 @@ pub const NativeFunctions = struct {
 
     pub fn addFs(self: *Self) !void {
         try self.append("create_file", &fs.create_file);
+        try self.append("read_file", &fs.read_file);
+        try self.append("write_file", &fs.write_file);
+        try self.append("delete_file", &fs.delete_file);
+        try self.append("create_dir", &fs.create_dir);
+        try self.append("delete_dir", &fs.delete_dir);
     }
 
     pub fn addTypes(self: *Self) !void {
