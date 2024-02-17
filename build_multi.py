@@ -12,8 +12,8 @@ bin = "zig-out/bin/mufiz"
 wasm_bin = "zig-out/bin/mufiz.wasm"
 arm64_deb = f"mufiz_{version}_arm64.deb"
 amd64_deb = f"mufiz_{version}_amd64.deb"
-amd64_snap = f"mufiz_{version}_amd64.snap"
-arm64_snap = f"mufiz_{version}_arm64.snap"
+amd64_rpm = f"mufiz_{version}_amd64.rpm"
+arm64_rpm = f"mufiz_{version}_arm64.rpm"
 
 def build_deb_x86_64(target): 
     command = f"fpm -v {version} -a amd64 -s zip -t deb --prefix /usr/bin -m 'Mustafif0929@gmail.com' --description 'The Mufi Programming Language' -n mufiz ./zig-out/bin/mufiz_{version}_{target}.zip "
@@ -27,17 +27,19 @@ def build_deb_arm(target):
     shutil.move(arm64_deb, f"mufiz_{version}_{target}.deb")
     print(f"Built debian package for {target}")
     
-def build_snap_x86_64(target):
-    command = f"fpm -v {version} -a amd64 -s zip -t snap --prefix /usr/bin -m 'Mustafif0929@gmail.com' --description 'The Mufi Programming Language' -n mufiz ./zig-out/bin/mufiz_{version}_{target}.zip "
+def build_rpm_x86_64(target): 
+    command = f"fpm -v {version} -a amd64 -s zip -t rpm --prefix /usr/bin -m 'Mustafif0929@gmail.com' --description 'The Mufi Programming Language' -n mufiz ./zig-out/bin/mufiz_{version}_{target}.zip "
     subprocess.run(command, shell=True, text=True)
-    shutil.move(amd64_snap, f"mufiz_{version}_{target}.snap")
-    print(f"Built snap package for {target}")
+    shutil.move(amd64_rpm, f"mufiz_{version}_{target}.rpm")
+    print(f"Built rpm package for {target}")
+    
+def build_rpm_arm(target):
+    command = f"fpm -v {version} -a arm64 -s zip -t rpm --prefix /usr/bin -m 'Mustafif0929@gmail.com' --description 'The Mufi Programming Language' -n mufiz ./zig-out/bin/mufiz_{version}_{target}.zip "
+    subprocess.run(command, shell=True, text=True)
+    shutil.move(arm64_rpm, f"mufiz_{version}_{target}.rpm")
+    print(f"Built rpm package for {target}")
+    
 
-def build_snap_arm(target):
-    command = f"fpm -v {version} -a arm64 -s zip -t snap --prefix /usr/bin -m 'Mustafif0929@gmail.com' --description 'The Mufi Programming Language' -n mufiz ./zig-out/bin/mufiz_{version}_{target}.zip "
-    subprocess.run(command, shell=True, text=True)
-    shutil.move(arm64_snap, f"mufiz_{version}_{target}.snap")
-    print(f"Built snap package for {target}")
 
 with open('targets.json', 'r') as file:
     data = json.load(file)
@@ -53,31 +55,34 @@ for target in targets:
             wz.write(windows, os.path.basename(windows))
         os.remove(windows)
         print(f"Zipped successfully {windows_zip}")
+    elif("wasm32-wasi" in target):
+        zipper = f"mufiz_{version}_{target}.zip"
+        with zipfile.ZipFile(out_path+zipper, 'w') as z:
+            z.write(wasm_bin, os.path.basename(wasm_bin))
+        os.remove(wasm_bin)
     else: 
         zipper = f"mufiz_{version}_{target}.zip"
         with zipfile.ZipFile(out_path+zipper, 'w') as z:
-            if target == "wasm32-wasi": 
-                bin = wasm_bin
             z.write(bin, os.path.basename(bin))
         os.remove(bin)
         print(f"Zipped successfully {zipper}")
 os.remove(out_path+"mufiz.pdb")
 
-# Build debian and snap packages for Linux targets 
+# Build debian packages for Linux targets 
 for target in targets: 
     if ("x86_64-linux" in target): 
         build_deb_x86_64(target)
-        build_snap_x86_64(target)
+        build_rpm_x86_64(target)
     elif ("aarch64-linux" in target):
         build_deb_arm(target)
-        build_snap_arm(target)
+        build_rpm_arm(target)
         
 deb = glob.glob("*.deb")
 for d in deb: 
     shutil.move(d, out_path+d)
     print(f"Moved {d} to {out_path}")
-    
-snap = glob.glob("*.snap")
-for s in snap: 
-    shutil.move(s, out_path+s)
-    print(f"Moved {s} to {out_path}")
+
+rpm = glob.glob("*.rpm")
+for r in rpm: 
+    shutil.move(r, out_path+r)
+    print(f"Moved {r} to {out_path}")
