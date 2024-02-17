@@ -1,6 +1,6 @@
 const std = @import("std");
 const conv = @import("../conv.zig");
-const Value = @cImport(@cInclude("value.h")).Value;
+const Value = @import("core").value_h.Value;
 const stdlib_error = @import("../stdlib.zig").stdlib_error;
 const NativeFn = @import("../stdlib.zig").NativeFn;
 const type_check = conv.type_check;
