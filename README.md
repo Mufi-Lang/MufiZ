@@ -74,7 +74,7 @@ the other `Release*` optimize modes with command `zig build -Doptimize=`.
     - Might consider prefixing all functions of scanner with this.
 
 - **Table**  
-  - The table is the hashtable implementation that is used in Mufi-Lang, and is mostly converted into Zig except for the `markTable`` function which is still in C.
+  - The table is the hashtable implementation that is used in Mufi-Lang. It is now completely written in Zig, and exported to C.
 
 ---
 
