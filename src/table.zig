@@ -1,12 +1,17 @@
-const ObjString = @cImport(@cInclude("object.h")).ObjString;
-const Obj = value_h.Obj;
+const object_h = @cImport(@cInclude("object.h"));
 const memory = @cImport(@cInclude("memory.h"));
-const table_h = @cImport(@cInclude("table.h"));
 const value_h = @cImport(@cInclude("value.h"));
+
+const ObjString = object_h.ObjString;
+const Obj = object_h.Obj;
+const Value = value_h.Value;
+
 const reallocate = memory.reallocate;
+const markObject = memory.markObject;
+
 const VAL_NIL: c_int = 1;
 const VAL_BOOL: c_int = 0;
-const Value = value_h.Value;
+const TABLE_MAX_LOAD: f64 = 0.75;
 
 pub const Table = extern struct {
     count: c_int,
@@ -31,7 +36,7 @@ fn memcmp(s1: ?*const anyopaque, s2: ?*const anyopaque, n: usize) c_int {
     return 0;
 }
 
-const TABLE_MAX_LOAD: f64 = 0.75;
+
 
 pub export fn initTable(table: *Table) callconv(.C) void {
     table.count = 0;
@@ -158,6 +163,26 @@ pub export fn tableRemoveWhite(arg_table: [*c]Table) callconv(.C) void {
             if (entry.*.key != null and !entry.*.key.?.obj.isMarked) {
                 _ = tableDelete(table, entry.*.key);
             }
+        }
+    }
+}
+
+
+inline fn markValue(value: Value) void{
+    if(value_h.IS_OBJ(value)) markObject(@ptrCast(@alignCast(value_h.AS_OBJ(value))));
+}
+
+pub export fn markTable(arg_table: [*c]Table) void {
+    var table = arg_table;
+    {
+        var i: c_int = 0;
+        while (i < table.*.capacity) : (i += 1) {
+            var entry: [*c]Entry = &(blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk table.*.entries + @as(usize, @intCast(tmp)) else break :blk table.*.entries - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*;
+            markObject(@ptrCast(@alignCast(entry.*.key)));
+            markValue(entry.*.value);
         }
     }
 }

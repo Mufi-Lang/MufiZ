@@ -34,7 +34,7 @@ void* reallocate(void* pointer, size_t oldSize, size_t newSize){
     return result;
 }
 
-void markObject(struct Obj* object){
+void markObject(Obj* object){
     if(object == NULL) return;
     if(object->isMarked) return;
 #ifdef DEBUG_LOG_GC

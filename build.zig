@@ -66,11 +66,8 @@ pub fn build(b: *std.Build) !void {
         "core/chunk.c", 
         "core/compiler.c", 
         "core/debug.c", 
-       // "core/memory.c", 
-       // "core/object.c", 
-       "core/table.c", 
+        "core/table.c", 
         "core/vm.c", 
-     //   "core/value.c", 
         "core/pre.c"
     }, c_flags);
 

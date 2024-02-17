@@ -47,5 +47,5 @@ extern ObjString* tableFindString(struct Table* table, const char* chars, int le
 //> Removes the white objects in a table
 extern void tableRemoveWhite(struct Table* table);
 //> Marks all entries inside a table
-void markTable(struct Table* table);
+extern void markTable(struct Table* table);
 #endif

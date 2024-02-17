@@ -137,10 +137,10 @@
 //     }
 // }
 
-void markTable(struct Table* table){
-    for(int i = 0; i < table->capacity; i++){
-        struct Entry* entry = &table->entries[i];
-        markObject((Obj*)entry->key);
-        markValue(entry->value);
-    }
-}
+// void markTable(struct Table* table){
+//     for(int i = 0; i < table->capacity; i++){
+//         struct Entry* entry = &table->entries[i];
+//         markObject((Obj*)entry->key);
+//         markValue(entry->value);
+//     }
+// }
