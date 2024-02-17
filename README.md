@@ -4,11 +4,10 @@
 
 This project aims to integrate the Mufi-Lang compiler with the Zig language by using the 
 Zig Build system. We hope to integrate more features with this language and see how nicely 
-we can utilize both languages in unity. The advantage of Zig's Build system is easy cross-compatibility and caching, and as we integrate more, 
+we can utilize both languages in unity. The advantage of Zig's Build system is easy cross-compatibility and caching, and as we integrate more,
 we can ensure more memory safety.
 
 [MufiZ Standard Library Plans](stdlib.md)
-
 
 ## Usage:
 
@@ -28,8 +27,6 @@ $ mufiz --help
 ```
 
 ---
-
-> Windows still uses `pre.c` to run Mufi-Lang as there is current issues with Zig's `std.io.getStdin().reader()`.
 
 ## Debug vs Release Modes
 
@@ -88,7 +85,6 @@ the other `Release*` optimize modes with command `zig build -Doptimize=`.
 | 0.4.0   | [Voxl](https://github.com/Mustafif/MufiZ/releases/tag/next-experimental) | In Progress |
 
 ---
-
 
 ## Supported Platforms
 
