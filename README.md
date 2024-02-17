@@ -92,17 +92,30 @@ the other `Release*` optimize modes with command `zig build -Doptimize=`.
 
 ## Supported Platforms
 
-| Targets              |
-| -------------------- |
-| aarch64-macos        |
-| x86_64-macos         |
-| aarch64-linux-gnu    |
-| aarch64-linux-musl   |
-| x86_64-linux-gnu     |
-| x86_64-linux-musl    |
-| x86_64-windows       |
-| aarch64-windows      |
-| powerpc64-linux-gnu  |
-| powerpc64-linux-musl |
-| mips64-linux-musl    |
-| riscv64-linux-musl   |
+| Target                   |
+|--------------------------|
+| aarch64-linux-gnu        |
+| aarch64-linux-musl       |
+| aarch64-macos            |
+| aarch64-windows          |
+| aarch64-windows-gnu      |
+| arm-linux-gnueabi        |
+| arm-linux-gnueabihf      |
+| arm-linux-musleabi       |
+| arm-linux-musleabihf     |
+| mips64-linux-musl        |
+| mips64el-linux-musl      |
+| mipsel-linux-musl        |
+| mips-linux-musl          |
+| powerpc64-linux-gnu      |
+| powerpc64-linux-musl     |
+| powerpc-linux-musl       |
+| powerpc64le-linux-gnu    |
+| powerpc64le-linux-musl   |
+| riscv64-linux-musl       |
+| wasm32-wasi              |
+| x86_64-linux-gnu         |
+| x86_64-linux-musl        |
+| x86_64-macos             |
+| x86_64-windows           |
+| x86_64-windows-gnu       |
