@@ -72,6 +72,7 @@ pub export fn tableGet(table: *Table, key: ?*ObjString, value: *Value) callconv(
     return true;
 }
 
+// TODO: Cleanup 
 pub export fn adjustCapacity(arg_table: [*c]Table, arg_capacity: c_int) callconv(.C) void {
     var table = arg_table;
     var capacity = arg_capacity;
@@ -96,13 +97,10 @@ pub export fn adjustCapacity(arg_table: [*c]Table, arg_capacity: c_int) callconv
     }
     table.*.count = 0;
     {
-        var i: c_int = 0;
+        var i: usize = 0;
         while (i < table.*.capacity) : (i += 1) {
-            var entry: [*c]Entry = &(blk: {
-                const tmp = i;
-                if (tmp >= 0) break :blk table.*.entries + @as(usize, @intCast(tmp)) else break :blk table.*.entries - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-            }).*;
-            if (entry.*.key == @as([*c]ObjString, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) continue;
+            var entry: [*c]Entry = &table.*.entries[i];
+            if (entry.*.key == null) continue;
             var dest: [*c]Entry = findEntry(entries, capacity, entry.*.key);
             dest.*.key = entry.*.key;
             dest.*.value = entry.*.value;
@@ -113,7 +111,7 @@ pub export fn adjustCapacity(arg_table: [*c]Table, arg_capacity: c_int) callconv
     table.*.entries = entries;
     table.*.capacity = capacity;
 }
-
+// TODO: Cleanup 
 pub export fn tableSet(arg_table: [*c]Table, arg_key: [*c]ObjString, arg_value: Value) bool {
     var table = arg_table;
     var key = arg_key;
@@ -131,37 +129,30 @@ pub export fn tableSet(arg_table: [*c]Table, arg_key: [*c]ObjString, arg_value: 
     entry.*.value = value;
     return isNewKey;
 }
-pub export fn tableDelete(arg_table: [*c]Table, arg_key: [*c]ObjString) bool {
-    var table = arg_table;
-    var key = arg_key;
-    if (table.*.count == @as(c_int, 0)) return @as(c_int, 0) != 0;
+pub export fn tableDelete(table: *Table, key: ?*ObjString) bool {
+    if (table.*.count == 0) return false;
     var entry: [*c]Entry = findEntry(table.*.entries, table.*.capacity, key);
-    if (entry.*.key == @as([*c]ObjString, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) return @as(c_int, 0) != 0;
+    if (entry.*.key == null) return false;
     entry.*.key = null;
     entry.*.value = Value{
-        .type = @as(c_uint, @bitCast(VAL_BOOL)),
+        .type = VAL_BOOL,
         .as = .{
-            .boolean = @as(c_int, 1) != 0,
+            .boolean = true,
         },
     };
-    return @as(c_int, 1) != 0;
+    return true;
 }
-pub export fn tableAddAll(arg_from: [*c]Table, arg_to: [*c]Table) void {
-    var from = arg_from;
-    var to = arg_to;
-    {
-        var i: c_int = 0;
-        while (i < from.*.capacity) : (i += 1) {
-            var entry: [*c]Entry = &(blk: {
-                const tmp = i;
-                if (tmp >= 0) break :blk from.*.entries + @as(usize, @intCast(tmp)) else break :blk from.*.entries - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-            }).*;
-            if (entry.*.key != @as([*c]ObjString, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
-                _ = tableSet(to, entry.*.key, entry.*.value);
-            }
+pub export fn tableAddAll(from: *Table, to: *Table) void {
+    var i: usize = 0;
+    while (i < from.*.capacity) : (i += 1) {
+        var entry: [*c]Entry = &from.*.entries[i];
+        if (entry.*.key != null) {
+            _ = tableSet(to, entry.*.key, entry.*.value);
         }
     }
 }
+
+//TODO: Cleanup 
 pub export fn tableFindString(arg_table: [*c]Table, arg_chars: [*c]const u8, arg_length: c_int, arg_hash: u64) callconv(.C) [*c]ObjString {
     var table = arg_table;
     var chars = arg_chars;
@@ -173,7 +164,7 @@ pub export fn tableFindString(arg_table: [*c]Table, arg_chars: [*c]const u8, arg
         var entry: [*c]Entry = &table.*.entries[@as(usize, @intCast(index))];
         if (entry.*.key == @as([*c]ObjString, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
             if (entry.*.value.type == @as(c_uint, @bitCast(VAL_NIL))) return null;
-        } else if (((entry.*.key.?.length == length) and (entry.*.key.?.hash == hash)) and (memcmp(@as(?*const anyopaque, @ptrCast(entry.*.key.?.chars)), @as(?*const anyopaque, @ptrCast(chars)), @as(usize, @bitCast(@as(usize, @intCast(length))))) == @as(usize, 0))) {
+        } else if (((entry.*.key.?.length == length) and (entry.*.key.?.hash == hash)) and (memcmp(@ptrCast(entry.*.key.?.chars), @ptrCast(chars), @as(usize, @intCast(length))) == 0)) {
             return entry.*.key;
         }
         index = (index + 1) & @as(usize, @intCast(table.*.capacity - 1));
@@ -184,13 +175,10 @@ pub export fn tableFindString(arg_table: [*c]Table, arg_chars: [*c]const u8, arg
 pub export fn tableRemoveWhite(arg_table: [*c]Table) callconv(.C) void {
     var table = arg_table;
     {
-        var i: c_int = 0;
+        var i: usize = 0;
         while (i < table.*.capacity) : (i += 1) {
-            var entry: [*c]Entry = &(blk: {
-                const tmp = i;
-                if (tmp >= 0) break :blk table.*.entries + @as(usize, @intCast(tmp)) else break :blk table.*.entries - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-            }).*;
-            if ((entry.*.key != @as([*c]ObjString, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) and !entry.*.key.?.obj.isMarked) {
+            var entry: [*c]Entry = &table.*.entries[i];
+            if (entry.*.key != null and !entry.*.key.?.obj.isMarked) {
                 _ = tableDelete(table, entry.*.key);
             }
         }

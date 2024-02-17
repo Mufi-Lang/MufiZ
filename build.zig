@@ -36,7 +36,7 @@ pub fn build(b: *std.Build) !void {
     const lib_table = b.addStaticLibrary(.{
         .name = "libmufiz_table",
         .target = target,
-        .optimize = .ReleaseSafe,
+        .optimize = .ReleaseFast,
         .link_libc = true,
         .root_source_file = .{ .path = "src/table.zig" },
     });

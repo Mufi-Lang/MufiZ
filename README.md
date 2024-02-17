@@ -41,6 +41,8 @@ the other `Release*` optimize modes with command `zig build -Doptimize=`.
 >
 > - `libmufiz_scanner`: `ReleaseFast`
 >   - Since this library doesn't involve memory management on the Zig side, we can prioritize performance.
+> - `libmufiz_table`: `ReleaseFast`
+>   - Since this library doesn't involve memory management on the Zig side, we can prioritize performance.
 > - `libmufiz_core`: `ReleaseFast`
 >   - Since this library contains all of the C code, we can prioritize performance.
 > - `clap`: `ReleaseSafe`
@@ -70,6 +72,9 @@ the other `Release*` optimize modes with command `zig build -Doptimize=`.
   too much breakage when moving it (only had to care about `compiler.c`).
   - Any function that would interfere with another function, was prefixed with `__scanner__`
     - Might consider prefixing all functions of scanner with this.
+
+- **Table**  
+  - The table is the hashtable implementation that is used in Mufi-Lang, and is mostly converted into Zig except for the `markTable`` function which is still in C.
 
 ---
 
