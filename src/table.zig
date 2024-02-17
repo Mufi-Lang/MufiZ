@@ -36,8 +36,6 @@ fn memcmp(s1: ?*const anyopaque, s2: ?*const anyopaque, n: usize) c_int {
     return 0;
 }
 
-
-
 pub export fn initTable(table: *Table) callconv(.C) void {
     table.count = 0;
     table.capacity = 0;
@@ -129,6 +127,7 @@ pub export fn tableDelete(table: *Table, key: ?*ObjString) bool {
     };
     return true;
 }
+
 pub export fn tableAddAll(from: *Table, to: *Table) void {
     var i: usize = 0;
     while (i < from.*.capacity) : (i += 1) {
@@ -166,7 +165,6 @@ pub export fn tableRemoveWhite(arg_table: [*c]Table) callconv(.C) void {
         }
     }
 }
-
 
 inline fn markValue(value: Value) void{
     if(value_h.IS_OBJ(value)) markObject(@ptrCast(@alignCast(value_h.AS_OBJ(value))));
