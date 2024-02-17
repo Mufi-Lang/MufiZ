@@ -88,30 +88,30 @@ the other `Release*` optimize modes with command `zig build -Doptimize=`.
 
 ## Supported Platforms
 
-| Target                   |
-|--------------------------|
-| aarch64-linux-gnu        |
-| aarch64-linux-musl       |
-| aarch64-macos            |
-| aarch64-windows          |
-| aarch64-windows-gnu      |
-| arm-linux-gnueabi        |
-| arm-linux-gnueabihf      |
-| arm-linux-musleabi       |
-| arm-linux-musleabihf     |
-| mips64-linux-musl        |
-| mips64el-linux-musl      |
-| mipsel-linux-musl        |
-| mips-linux-musl          |
-| powerpc64-linux-gnu      |
-| powerpc64-linux-musl     |
-| powerpc-linux-musl       |
-| powerpc64le-linux-gnu    |
-| powerpc64le-linux-musl   |
-| riscv64-linux-musl       |
-| wasm32-wasi              |
-| x86_64-linux-gnu         |
-| x86_64-linux-musl        |
-| x86_64-macos             |
-| x86_64-windows           |
-| x86_64-windows-gnu       |
+| Target                 | Deb Package        | RPM Package        |
+| ---------------------- | ------------------ | ------------------ |
+| aarch64-linux-gnu      | :white_check_mark: | :white_check_mark: |
+| aarch64-linux-musl     | :white_check_mark: | :white_check_mark: |
+| aarch64-macos          | :x:                | :x:                |
+| aarch64-windows        | :x:                | :x:                |
+| aarch64-windows-gnu    | :x:                | :x:                |
+| arm-linux-gnueabi      | :white_check_mark: | :white_check_mark: |
+| arm-linux-gnueabihf    | :white_check_mark: | :white_check_mark: |
+| arm-linux-musleabi     | :white_check_mark: | :white_check_mark: |
+| arm-linux-musleabihf   | :white_check_mark: | :white_check_mark: |
+| mips64-linux-musl      | :white_check_mark: | :white_check_mark: |
+| mips64el-linux-musl    | :white_check_mark: | :white_check_mark: |
+| mipsel-linux-musl      | :white_check_mark: | :white_check_mark: |
+| mips-linux-musl        | :white_check_mark: | :white_check_mark: |
+| powerpc64-linux-gnu    | :white_check_mark: | :white_check_mark: |
+| powerpc64-linux-musl   | :white_check_mark: | :white_check_mark: |
+| powerpc-linux-musl     | :white_check_mark: | :white_check_mark: |
+| powerpc64le-linux-gnu  | :white_check_mark: | :white_check_mark: |
+| powerpc64le-linux-musl | :white_check_mark: | :white_check_mark: |
+| riscv64-linux-musl     | :white_check_mark: | :white_check_mark: |
+| wasm32-wasi            | :x:                | :x:                |
+| x86_64-linux-gnu       | :white_check_mark: | :white_check_mark: |
+| x86_64-linux-musl      | :white_check_mark: | :white_check_mark: |
+| x86_64-macos           | :x:                | :x:                |
+| x86_64-windows         | :x:                | :x:                |
+| x86_64-windows-gnu     | :x:                | :x:                |

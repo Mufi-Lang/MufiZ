@@ -23,7 +23,7 @@ pub fn build(b: *std.Build) !void {
         .link_libc = true,
     });
 
-    const c_flags = &.{ "-Wall", "-O3", "-ffast-math" };
+    const c_flags = &.{ "-Wall", "-O3", "-ffast-math", "-Werror" };
 
     const lib_scanner = b.addStaticLibrary(.{
         .name = "libmufiz_scanner",
