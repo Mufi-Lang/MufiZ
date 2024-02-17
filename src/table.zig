@@ -153,34 +153,25 @@ pub export fn tableFindString(table: *Table, chars: [*c]const u8, length: c_int,
     return null;
 }
 
-pub export fn tableRemoveWhite(arg_table: [*c]Table) callconv(.C) void {
-    var table = arg_table;
-    {
-        var i: usize = 0;
-        while (i < table.*.capacity) : (i += 1) {
-            var entry: [*c]Entry = &table.*.entries[i];
-            if (entry.*.key != null and !entry.*.key.?.obj.isMarked) {
-                _ = tableDelete(table, entry.*.key);
-            }
+pub export fn tableRemoveWhite(table: *Table) callconv(.C) void {
+    var i: usize = 0;
+    while (i < table.*.capacity) : (i += 1) {
+        var entry: [*c]Entry = &table.*.entries[i];
+        if (entry.*.key != null and !entry.*.key.?.obj.isMarked) {
+            _ = tableDelete(table, entry.*.key);
         }
     }
 }
 
-inline fn markValue(value: Value) void{
-    if(value_h.IS_OBJ(value)) markObject(@ptrCast(@alignCast(value_h.AS_OBJ(value))));
+inline fn markValue(value: Value) void {
+    if (value_h.IS_OBJ(value)) markObject(@ptrCast(@alignCast(value_h.AS_OBJ(value))));
 }
 
-pub export fn markTable(arg_table: [*c]Table) void {
-    var table = arg_table;
-    {
-        var i: c_int = 0;
-        while (i < table.*.capacity) : (i += 1) {
-            var entry: [*c]Entry = &(blk: {
-                const tmp = i;
-                if (tmp >= 0) break :blk table.*.entries + @as(usize, @intCast(tmp)) else break :blk table.*.entries - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-            }).*;
-            markObject(@ptrCast(@alignCast(entry.*.key)));
-            markValue(entry.*.value);
-        }
+pub export fn markTable(table: *Table) void {
+    var i: usize = 0;
+    while (i < table.*.capacity) : (i += 1) {
+        var entry: [*c]Entry = &table.entries[i];
+        markObject(@ptrCast(@alignCast(entry.*.key)));
+        markValue(entry.*.value);
     }
 }
