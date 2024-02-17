@@ -43,7 +43,7 @@ pub export fn initTable(table: *Table) callconv(.C) void {
 }
 
 pub export fn freeTable(table: *Table) callconv(.C) void {
-    _ = memory.FREE_ARRAY(Entry, table.entries, @as(usize, @intCast(table.capacity)));
+    _ = memory.FREE_ARRAY(Entry, table.entries, @as(usize, @intCast(table.capacity))) orelse unreachable;
     initTable(table);
 }
 

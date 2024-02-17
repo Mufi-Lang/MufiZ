@@ -1,9 +1,9 @@
 const std = @import("std");
 const nostd = @import("build_opts").nostd;
 const stdlib = @import("stdlib.zig");
-const vm = @cImport(@cInclude("vm.h"));
 const system = @import("system.zig");
 const clap = @import("clap");
+const core = @import("core");
 
 var Global = std.heap.GeneralPurposeAllocator(.{}){};
 pub const GlobalAlloc = Global.allocator();
@@ -18,8 +18,8 @@ const params = clap.parseParamsComptime(
 );
 
 pub fn main() !void {
-    vm.initVM();
-    defer vm.freeVM();
+    core.vm_h.initVM();
+    defer core.vm_h.freeVM();
     defer {
         const check = Global.deinit();
         if (check == .leak) @panic("memory leak!");

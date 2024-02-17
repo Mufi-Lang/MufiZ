@@ -51,6 +51,7 @@ pub fn build(b: *std.Build) !void {
 
     const lib_core = b.addStaticLibrary(.{
         .name = "libmufiz_core",
+        .root_source_file = .{ .path = "src/core.zig" },
         .target = target,
         .optimize = .ReleaseFast,
         .link_libc = true,
@@ -68,7 +69,6 @@ pub fn build(b: *std.Build) !void {
         "core/debug.c", 
         "core/table.c", 
         "core/vm.c", 
-        "core/pre.c"
     }, c_flags);
 
     exe.addIncludePath(.{.path = "include"});
@@ -80,6 +80,7 @@ pub fn build(b: *std.Build) !void {
     });
 
     exe.addModule("clap", clap.module("clap"));
+    exe.addModule("core", b.createModule(.{.source_file = .{.path = "src/core.zig"}}));
 
     const options = b.addOptions();
     const nostd = b.option(bool, "nostd", "Run Mufi without Standard Library") orelse false;

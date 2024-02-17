@@ -1,10 +1,10 @@
 const std = @import("std");
 const nostd = @import("build_opts").nostd;
-const vm = @cImport(@cInclude("vm.h"));
+const core = @import("core");
+const vm_h = core.vm_h;
 const conv = @import("conv.zig");
 const builtin = @import("builtin");
-/// Because Windows hangs on `system.repl()`
-pub const pre = if (builtin.os.tag == .windows) @cImport(@cInclude("pre.h")) else {};
+
 
 const MAJOR: u8 = 0;
 const MINOR: u8 = 4;
@@ -21,12 +21,7 @@ pub const vopt = if (nostd) struct {
     }
 };
 
-/// Zig version of `repl` from `csrc/pre.c 10:21`
 pub fn repl() !void {
-    if (builtin.os.tag == .windows) pre.repl() else try zrepl();
-}
-
-inline fn zrepl() !void {
     var buffer: [1024]u8 = undefined;
     var streamer = std.io.FixedBufferStream([]u8){ .buffer = &buffer, .pos = 0 };
     vopt.version();
@@ -34,7 +29,7 @@ inline fn zrepl() !void {
         std.debug.print("(mufi) >> ", .{});
         try std.io.getStdIn().reader().streamUntilDelimiter(streamer.writer(), '\n', 1024);
         var input = streamer.getWritten();
-        _ = vm.interpret(conv.cstr(input));
+        _ = vm_h.interpret(conv.cstr(input));
         streamer.reset();
     }
 }
@@ -64,26 +59,23 @@ pub const Runner = struct {
     }
 
     fn run(str: []u8) void {
-        const result = vm.interpret(conv.cstr(str));
-        if (result == vm.INTERPRET_COMPILE_ERROR) std.os.exit(65);
-        if (result == vm.INTERPRET_RUNTIME_ERROR) std.os.exit(70);
+        const result = vm_h.interpret(conv.cstr(str));
+        if (result == vm_h.INTERPRET_COMPILE_ERROR) std.os.exit(65);
+        if (result == vm_h.INTERPRET_RUNTIME_ERROR) std.os.exit(70);
     }
 
     pub fn setMain(self: *Self, main: []u8) !void {
         self.main = try self.read_file(main);
     }
+
     pub fn setLink(self: *Self, link: []u8) !void {
         self.link = try self.read_file(link);
     }
-    pub fn setMultiLink(self: *Self, multi: []u8) !void {
-        var tokenize = std.mem.tokenizeSequence(u8, multi, ",");
-        while (tokenize.next()) |l| {
-            try self.link.append(try self.read_file(@constCast(l)));
-        }
-    }
+
     fn linkSize(self: Self) usize {
         return self.link.?.len;
     }
+
     fn mainSize(self: Self) usize {
         return self.main.len;
     }
