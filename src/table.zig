@@ -48,7 +48,7 @@ pub export fn freeTable(table: *Table) callconv(.C) void {
 }
 
 pub export fn findEntry(entries: [*]Entry, capacity: c_int, key: ?*ObjString) callconv(.C) *Entry {
-    var index: usize = @as(usize, @as(usize, @intCast(key.?.hash)) & @as(usize, @intCast((capacity - 1))));
+    var index: usize = @as(usize, @intCast(key.?.hash)) & @as(usize, @intCast(capacity - 1));
     var tombstone: ?*Entry = null;
 
     while (true) {
@@ -76,25 +76,22 @@ pub export fn tableGet(table: *Table, key: ?*ObjString, value: *Value) callconv(
 }
 
 pub export fn adjustCapacity(table: *Table, capacity: c_int) callconv(.C) void {
-    var entries: [*c]Entry = @ptrCast(@alignCast(reallocate(null, 0, @sizeOf(Entry) * @as(usize, @intCast(capacity)))));
-    {
-        var i: usize = 0;
-        while (i < capacity) : (i += 1) {
-            entries[i].key = null;
-            entries[i].value = .{ .type = VAL_NIL, .as = .{ .num_int = 0 } };
-        }
+    var entries: [*c]Entry = @ptrCast(@alignCast(reallocate(null, 0, @as(usize, @intCast(@sizeOf(Entry) * capacity)))));
+    const c: usize = @intCast(capacity);
+
+    for (0..c) |i| {
+        entries[i].key = null;
+        entries[i].value = .{ .type = VAL_NIL, .as = .{ .num_int = 0 } };
     }
     table.*.count = 0;
-    {
-        var i: usize = 0;
-        while (i < table.*.capacity) : (i += 1) {
-            var entry: [*c]Entry = &table.*.entries[i];
-            if (entry.*.key == null) continue;
-            var dest: [*c]Entry = findEntry(entries, capacity, entry.*.key);
-            dest.*.key = entry.*.key;
-            dest.*.value = entry.*.value;
-            table.*.count += 1;
-        }
+
+    for (0..@as(usize, @intCast(table.*.capacity))) |i| {
+        var entry: [*c]Entry = &table.*.entries[i];
+        if (entry.*.key == null) continue;
+        var dest: [*c]Entry = findEntry(entries, capacity, entry.*.key);
+        dest.*.key = entry.*.key;
+        dest.*.value = entry.*.value;
+        table.*.count += 1;
     }
     _ = memory.FREE_ARRAY(Entry, table.entries, @as(usize, @intCast(table.*.capacity)));
     table.*.entries = entries;
@@ -154,8 +151,7 @@ pub export fn tableFindString(table: *Table, chars: [*c]const u8, length: c_int,
 }
 
 pub export fn tableRemoveWhite(table: *Table) callconv(.C) void {
-    var i: usize = 0;
-    while (i < table.*.capacity) : (i += 1) {
+    for (0..@as(usize, @intCast(table.*.capacity))) |i| {
         var entry: [*c]Entry = &table.*.entries[i];
         if (entry.*.key != null and !entry.*.key.?.obj.isMarked) {
             _ = tableDelete(table, entry.*.key);
@@ -168,8 +164,7 @@ inline fn markValue(value: Value) void {
 }
 
 pub export fn markTable(table: *Table) void {
-    var i: usize = 0;
-    while (i < table.*.capacity) : (i += 1) {
+    for (0..@as(usize, @intCast(table.*.capacity))) |i| {
         var entry: [*c]Entry = &table.entries[i];
         markObject(@ptrCast(@alignCast(entry.*.key)));
         markValue(entry.*.value);
