@@ -15,6 +15,7 @@
 
 #include "common.h"
 #include "object.h"
+#include "value.h"
 
 //> Allocates a new array on the heap
 #define ALLOCATE(type, count) \
@@ -41,7 +42,7 @@
 //> Used to reallocate memory for arrays
 void* reallocate(void* pointer, size_t oldSize, size_t newSize);
 //> Marks a heap-allocated object
-void markObject(Obj* object);
+void markObject(struct Obj* object);
 //> Marks values for the garbage collector
 void markValue(Value value);
 //> Used for the garbage collector to manage memory
