@@ -1,28 +1,25 @@
 const std = @import("std");
 const nostd = @import("build_opts").nostd;
 const stdlib = @import("stdlib.zig");
-const vm = @cImport(@cInclude("vm.h"));
-const builtin = @import("builtin");
 const system = @import("system.zig");
 const clap = @import("clap");
-
-/// Because Windows hangs on `system.repl()`
-pub const pre = if (builtin.os.tag == .windows) @cImport(@cInclude("pre.h")) else {};
+const core = @import("core");
 
 var Global = std.heap.GeneralPurposeAllocator(.{}){};
 pub const GlobalAlloc = Global.allocator();
 
 const params = clap.parseParamsComptime(
-    \\-h, --help        Displays this help and exit.
-    \\-v, --version     Prints the version and codename.
-    \\-r, --run <str>   Runs a Mufi Script
-    \\--repl            Runs Mufi Repl system (Windows uses C bindings)
+    \\-h, --help             Displays this help and exit.
+    \\-v, --version          Prints the version and codename.
+    \\-r, --run <str>        Runs a Mufi Script
+    \\-l, --link <str>       Link another Mufi Script when interpreting 
+    \\--repl                 Runs Mufi Repl system (Windows uses C bindings)
     \\
 );
 
 pub fn main() !void {
-    vm.initVM();
-    defer vm.freeVM();
+    core.vm_h.initVM();
+    defer core.vm_h.freeVM();
     defer {
         const check = Global.deinit();
         if (check == .leak) @panic("memory leak!");
@@ -45,11 +42,20 @@ pub fn main() !void {
         try natives.addTime();
         try natives.addTypes();
         try natives.addOthers();
+        try natives.addFs();
         natives.define();
     }
 
     if (res.args.help != 0) return clap.help(std.io.getStdErr().writer(), clap.Help, &params, .{});
     if (res.args.version != 0) system.vopt.version();
-    if (res.args.run) |s| try system.runFile(@constCast(s), GlobalAlloc);
-    if (res.args.repl != 0) if (builtin.os.tag == .windows) pre.repl() else try system.repl();
+    if (res.args.run) |s| {
+        var runner = system.Runner.init(GlobalAlloc);
+        defer runner.deinit();
+        try runner.setMain(@constCast(s));
+        if (res.args.link) |l| {
+            try runner.setLink(@constCast(l));
+        }
+        try runner.runFile();
+    }
+    if (res.args.repl != 0) try system.repl();
 }

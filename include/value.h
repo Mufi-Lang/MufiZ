@@ -17,8 +17,6 @@
 typedef struct Obj Obj;
 typedef struct ObjString ObjString;
 
-
-
 typedef enum{
     VAL_BOOL,
     VAL_NIL,
@@ -43,8 +41,6 @@ typedef struct{
         Complex complex; // will be purely handled with Zig 
     } as;
 }Value;
-
-
 
 #define IS_BOOL(value) ((value).type == VAL_BOOL)
 #define IS_NIL(value)  ((value).type == VAL_NIL)

@@ -1,12 +1,15 @@
 const std = @import("std");
 const nostd = @import("build_opts").nostd;
-const vm = @cImport(@cInclude("vm.h"));
+const core = @import("core");
+const vm_h = core.vm_h;
 const conv = @import("conv.zig");
+const builtin = @import("builtin");
+
 
 const MAJOR: u8 = 0;
-const MINOR: u8 = 3;
+const MINOR: u8 = 4;
 const PATCH: u8 = 0;
-const CODENAME: []const u8 = "Iris";
+const CODENAME: []const u8 = "Voxl";
 
 pub const vopt = if (nostd) struct {
     pub inline fn version() void {
@@ -18,7 +21,6 @@ pub const vopt = if (nostd) struct {
     }
 };
 
-/// Zig version of `repl` from `csrc/pre.c 10:21`
 pub fn repl() !void {
     var buffer: [1024]u8 = undefined;
     var streamer = std.io.FixedBufferStream([]u8){ .buffer = &buffer, .pos = 0 };
@@ -27,16 +29,66 @@ pub fn repl() !void {
         std.debug.print("(mufi) >> ", .{});
         try std.io.getStdIn().reader().streamUntilDelimiter(streamer.writer(), '\n', 1024);
         var input = streamer.getWritten();
-        _ = vm.interpret(conv.cstr(input));
+        _ = vm_h.interpret(conv.cstr(input));
         streamer.reset();
     }
 }
 
-/// Zig version of `runFile` from `csrc/pre.c 50:57`
-pub fn runFile(path: []u8, allocator: std.mem.Allocator) !void {
-    var str: []u8 = try std.fs.cwd().readFileAlloc(allocator, path, 1048576);
-    defer allocator.free(str);
-    const result = vm.interpret(conv.cstr(str));
-    if (result == vm.INTERPRET_COMPILE_ERROR) std.os.exit(65);
-    if (result == vm.INTERPRET_RUNTIME_ERROR) std.os.exit(70);
-}
+pub const Runner = struct {
+    main: []u8 = &.{},
+    link: ?[]u8 = null,
+    allocator: std.mem.Allocator,
+
+    const max_bytes: usize = 1048576;
+    const Self = @This();
+
+    pub fn init(allocator: std.mem.Allocator) Self {
+        return .{ .allocator = allocator };
+    }
+
+    pub fn deinit(self: *Self) void {
+        self.allocator.free(self.main);
+        if (self.link) |l| {
+            self.allocator.free(l);
+            self.link = null;
+        }
+    }
+
+    fn read_file(self: *Self, path: []u8) ![]u8 {
+        return try std.fs.cwd().readFileAlloc(self.allocator, path, max_bytes);
+    }
+
+    fn run(str: []u8) void {
+        const result = vm_h.interpret(conv.cstr(str));
+        if (result == vm_h.INTERPRET_COMPILE_ERROR) std.os.exit(65);
+        if (result == vm_h.INTERPRET_RUNTIME_ERROR) std.os.exit(70);
+    }
+
+    pub fn setMain(self: *Self, main: []u8) !void {
+        self.main = try self.read_file(main);
+    }
+
+    pub fn setLink(self: *Self, link: []u8) !void {
+        self.link = try self.read_file(link);
+    }
+
+    fn linkSize(self: Self) usize {
+        return self.link.?.len;
+    }
+
+    fn mainSize(self: Self) usize {
+        return self.main.len;
+    }
+
+    pub fn runFile(self: Self) !void {
+        if (self.link) |l| {
+            var str = try self.allocator.alloc(u8, self.mainSize() + self.linkSize());
+            defer self.allocator.free(str);
+            @memcpy(str[0..l.len], l[0..]);
+            @memcpy(str[l.len..], self.main[0..]);
+            run(str);
+        } else {
+            run(self.main);
+        }
+    }
+};

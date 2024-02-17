@@ -17,7 +17,7 @@ class Zoo {
 
 var zoo = Zoo();
 var sum = 0;
-var start = clock();
+var start = now();
 while (sum < 100000000) {
   sum = sum + zoo.ant()
             + zoo.banana()
@@ -27,5 +27,5 @@ while (sum < 100000000) {
             + zoo.mouse();
 }
 
-print clock() - start;
+print now() - start;
 print sum;

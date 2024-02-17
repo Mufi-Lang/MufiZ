@@ -14,22 +14,8 @@
 #define mufi_memory_h 
 
 #include "common.h"
+#include "value.h"
 #include "object.h"
-
-// extern void markArray(array: *ValueArray);
-// extern void markObject(object: *Obj);
-// extern void markValue(value: Value);
-// extern void collectGarbage();
-// extern void freeObjects();
-// extern void blackenObject(object: *Obj);
-// extern void freeObject(object: *Obj);
-// extern void markRoots();
-// extern void traceReferences();
-// extern void sweep();
-// extern *void reallocate(void* pointer, size_t oldSize, size_t newSize);
-// extern int GROW_CAPACITY(capacity: int);
-// extern void* FREE(void* type, void* pointer);
-// extern void* FREE_ARRAY(void* type, void* pointer, int oldCount);
 
 //> Allocates a new array on the heap
 #define ALLOCATE(type, count) \

@@ -72,7 +72,7 @@ struct ObjString {
     Obj obj;
     int length;
     char* chars;
-    uint32_t hash;
+    uint64_t hash;
 };
 
 typedef struct ObjUpvalue{
@@ -92,13 +92,13 @@ typedef struct {
 typedef struct{
     Obj obj;
     ObjString* name;
-    Table methods;
+    struct Table methods;
 }ObjClass;
 
 typedef struct {
     Obj obj;
     ObjClass* klass;
-    Table fields;
+    struct Table fields;
 } ObjInstance;
 
 typedef struct {
@@ -113,8 +113,8 @@ ObjClosure* newClosure(ObjFunction* function);
 ObjFunction* newFunction();
 ObjInstance* newInstance(ObjClass* klass);
 ObjNative* newNative(NativeFn function);
-ObjString* allocateString(char* chars, int length, uint32_t hash);
-uint32_t hashString(const char* key, int length);
+ObjString* allocateString(char* chars, int length, uint64_t hash);
+uint64_t hashString(const char* key, int length);
 ObjString* takeString(char* chars, int length);
 ObjString* copyString(const char* chars, int length);
 ObjUpvalue* newUpvalue(Value* slot);

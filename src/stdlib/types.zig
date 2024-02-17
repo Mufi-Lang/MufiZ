@@ -1,9 +1,9 @@
 const std = @import("std");
+const core = @import("core");
 const conv = @import("../conv.zig");
 const stdlib_error = @import("../stdlib.zig").stdlib_error;
-const Value = @cImport(@cInclude("value.h")).Value;
-const value_h = @cImport(@cInclude("value.h"));
-const obj_h = @cImport(@cInclude("object.h"));
+const value_h = core.value_h;
+const Value = value_h.Value;
 const GlobalAlloc = @import("../main.zig").GlobalAlloc;
 
 pub fn int(argc: c_int, args: [*c]Value) callconv(.C) Value {

@@ -6,6 +6,7 @@
 #include "../include/value.h"
 #include "../include/vm.h"
 #include "../include/table.h"
+#include "../include/wyhash.h"
 
 #define ALLOCATE_OBJ(type, objectType) \
     ((type*)allocateObject(sizeof(type), objectType))
@@ -73,7 +74,7 @@ ObjNative* newNative(NativeFn function) {
     return native;
 }
 
-ObjString* allocateString(char* chars, int length, uint32_t hash){
+ObjString* allocateString(char* chars, int length, uint64_t hash){
     ObjString* string = ALLOCATE_OBJ(ObjString, OBJ_STRING);
     string->length = length;
     string->chars = chars;
@@ -84,18 +85,18 @@ ObjString* allocateString(char* chars, int length, uint32_t hash){
     return string;
 }
 
-uint32_t hashString(const char* key, int length){
-    uint32_t hash = 2166136261u;
+// FNV-1a hashing algorithm
+uint64_t hashString(const char* key, int length){
+    uint64_t hash = 2166136261u;
     for(int i = 0; i < length; i++){
         hash ^= (uint8_t)key[i];
         hash *= 16777619;
-
     }
     return hash;
 }
 
 ObjString* takeString(char* chars, int length){
-    uint32_t hash = hashString(chars, length);
+    uint64_t hash = hashString(chars, length);
     ObjString* interned = tableFindString(&vm.strings, chars, length, hash);
     if(interned != NULL){
         FREE_ARRAY(char, chars, length+1);
@@ -105,7 +106,7 @@ ObjString* takeString(char* chars, int length){
 }
 
 ObjString* copyString(const char* chars, int length){
-    uint32_t hash = hashString(chars, length);
+    uint64_t hash = hashString(chars, length);
     ObjString* interned = tableFindString(&vm.strings, chars, length, hash);
     if(interned != NULL) return interned;
     char* heapChars = ALLOCATE(char, length + 1);

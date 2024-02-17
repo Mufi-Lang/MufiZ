@@ -4,11 +4,10 @@
 
 This project aims to integrate the Mufi-Lang compiler with the Zig language by using the 
 Zig Build system. We hope to integrate more features with this language and see how nicely 
-we can utilize both languages in unity. The advantage of Zig's Build system is easy cross-compatibility and caching, and as we integrate more, 
+we can utilize both languages in unity. The advantage of Zig's Build system is easy cross-compatibility and caching, and as we integrate more,
 we can ensure more memory safety.
 
 [MufiZ Standard Library Plans](stdlib.md)
-
 
 ## Usage:
 
@@ -23,26 +22,37 @@ $ mufiz --help
     -r, --run <str>
             Runs a Mufi Script
 
+    -l, --link <str>
+            Link another Mufi Script when interpreting
+
         --repl
             Runs Mufi Repl system (Windows uses C bindings)
 ```
 
 ---
 
-> Windows still uses `pre.c` to run Mufi-Lang as there is current issues with Zig's `std.io.getStdin().reader()`. 
-
-## Debug vs Release Modes 
+## Debug vs Release Modes
 
 Now when building under the `Debug` optimize mode, MufiZ will contain the debugging macros
 that shows GC tracing, and chunk disassembly. These will be turned off when built under any of
-the other `Release*` optimize modes with command `zig build -Doptimize=`. 
+the other `Release*` optimize modes with command `zig build -Doptimize=`.
 
 > Note: The following components are built under a specific optimize mode:
 >
 > - `libmufiz_scanner`: `ReleaseFast`
 >   - Since this library doesn't involve memory management on the Zig side, we can prioritize performance.
+> - `libmufiz_table`: `ReleaseFast`
+>   - Since this library doesn't involve memory management on the Zig side, we can prioritize performance.
+> - `libmufiz_core`: `ReleaseFast`
+>   - Since this library contains all of the C code, we can prioritize performance.
 > - `clap`: `ReleaseSafe`
 >   - Since this library involves components that require allocations, we prioritize safety.
+
+## Installation
+
+- To install MufiZ, you can get the latest release from the Github releases page with your appropriate toolchain.
+- Then you may run the binary when you unzip the Zip file.
+- We also provide a deb and rpm package for Linux users.
 
 ## Goal
 
@@ -55,6 +65,7 @@ the other `Release*` optimize modes with command `zig build -Doptimize=`.
   - [ ] Standard Library documentation
   - [ ] Language reference
 - [ ] Website: `mufiz.mustafif.com`
+- [ ] Installation Guide
 
 ---
 
@@ -68,4 +79,48 @@ the other `Release*` optimize modes with command `zig build -Doptimize=`.
   - Any function that would interfere with another function, was prefixed with `__scanner__`
     - Might consider prefixing all functions of scanner with this.
 
+- **Table**  
+  - The table is the hashtable implementation that is used in Mufi-Lang. It is now completely written in Zig, and exported to C.
+
 ---
+
+## Releases
+
+| Version | Codename                                                      | Status   |
+| ------- | ------------------------------------------------------------- | -------- |
+| 0.1.0   | Baloo                                                         | Archived |
+| 0.2.0   | [Zula](https://github.com/Mustafif/MufiZ/releases/tag/v0.2.0) | Released |
+| 0.3.0   | [Iris](https://github.com/Mustafif/MufiZ/releases/tag/v0.3.0) | Released |
+| 0.4.0   | [Voxl](https://github.com/Mustafif/MufiZ/releases/tag/v0.4.0) | Released |
+
+---
+
+## Supported Platforms
+
+| Target                 | Deb Package        | RPM Package        |
+| ---------------------- | ------------------ | ------------------ |
+| aarch64-linux-gnu      | :white_check_mark: | :white_check_mark: |
+| aarch64-linux-musl     | :white_check_mark: | :white_check_mark: |
+| aarch64-macos          | :x:                | :x:                |
+| aarch64-windows        | :x:                | :x:                |
+| aarch64-windows-gnu    | :x:                | :x:                |
+| arm-linux-gnueabi      | :white_check_mark: | :white_check_mark: |
+| arm-linux-gnueabihf    | :white_check_mark: | :white_check_mark: |
+| arm-linux-musleabi     | :white_check_mark: | :white_check_mark: |
+| arm-linux-musleabihf   | :white_check_mark: | :white_check_mark: |
+| mips64-linux-musl      | :white_check_mark: | :white_check_mark: |
+| mips64el-linux-musl    | :white_check_mark: | :white_check_mark: |
+| mipsel-linux-musl      | :white_check_mark: | :white_check_mark: |
+| mips-linux-musl        | :white_check_mark: | :white_check_mark: |
+| powerpc64-linux-gnu    | :white_check_mark: | :white_check_mark: |
+| powerpc64-linux-musl   | :white_check_mark: | :white_check_mark: |
+| powerpc-linux-musl     | :white_check_mark: | :white_check_mark: |
+| powerpc64le-linux-gnu  | :white_check_mark: | :white_check_mark: |
+| powerpc64le-linux-musl | :white_check_mark: | :white_check_mark: |
+| riscv64-linux-musl     | :white_check_mark: | :white_check_mark: |
+| wasm32-wasi            | :x:                | :x:                |
+| x86_64-linux-gnu       | :white_check_mark: | :white_check_mark: |
+| x86_64-linux-musl      | :white_check_mark: | :white_check_mark: |
+| x86_64-macos           | :x:                | :x:                |
+| x86_64-windows         | :x:                | :x:                |
+| x86_64-windows-gnu     | :x:                | :x:                |

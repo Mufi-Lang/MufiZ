@@ -1,3 +1,6 @@
 zig-cache
 zig-out
 m.zig
+fpm.txt
+core/t.zig
+web/target

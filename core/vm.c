@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <math.h>
 #include "../include/common.h"
 #include "../include/compiler.h"
 #include "../include/vm.h"
@@ -65,7 +66,7 @@ void defineNative(const char *name, NativeFn function)
 }
 
 // Initializes the virtual machine
-void initVM()
+void initVM(void)
 {
     resetStack();
     vm.objects = NULL;
@@ -83,7 +84,7 @@ void initVM()
 }
 
 // Frees the virtual machine
-void freeVM()
+void freeVM(void)
 {
     freeTable(&vm.globals);
     freeTable(&vm.strings);
@@ -301,49 +302,41 @@ static void concatenate()
 
 static void complex_add()
 {
-    Complex a = AS_COMPLEX(peek(0));
-    Complex b = AS_COMPLEX(peek(1));
+    Complex b = AS_COMPLEX(pop());
+    Complex a = AS_COMPLEX(pop());
     Complex result;
     result.r = a.r + b.r;
     result.i = a.i + b.i;
-    pop();
-    pop();
     push(COMPLEX_VAL(result));
 }
 
 static void complex_sub()
 {
-    Complex a = AS_COMPLEX(peek(0));
-    Complex b = AS_COMPLEX(peek(1));
+    Complex b = AS_COMPLEX(pop());
+    Complex a = AS_COMPLEX(pop());
     Complex result;
     result.r = a.r - b.r;
     result.i = a.i - b.i;
-    pop();
-    pop();
     push(COMPLEX_VAL(result));
 }
 
 static void complex_mul()
 {
-    Complex a = AS_COMPLEX(peek(0));
-    Complex b = AS_COMPLEX(peek(1));
+    Complex b = AS_COMPLEX(pop());
+    Complex a = AS_COMPLEX(pop());
     Complex result;
     result.r = a.r * b.r - a.i * b.i;
     result.i = a.r * b.i + a.i * b.r;
-    pop();
-    pop();
     push(COMPLEX_VAL(result));
 }
 
 static void complex_div()
 {
-    Complex a = AS_COMPLEX(peek(0));
-    Complex b = AS_COMPLEX(peek(1));
+    Complex b = AS_COMPLEX(pop());
+    Complex a = AS_COMPLEX(pop());
     Complex result;
     result.r = (a.r * b.r + a.i * b.i) / (b.r * b.r + b.i * b.i);
     result.i = (a.i * b.r - a.r * b.i) / (b.r * b.r + b.i * b.i);
-    pop();
-    pop();
     push(COMPLEX_VAL(result));
 }
 
@@ -383,26 +376,26 @@ static InterpretResult run()
             return INTERPRET_RUNTIME_ERROR;                                               \
         }                                                                                 \
     } while (false)
-#define BINARY_OP_COMPARISON(op)                                                          \
-    do                                                                                    \
-    {                                                                                     \
-        if (IS_INT(peek(0)) && IS_INT(peek(1)))                                           \
-        {                                                                                 \
-            int b = AS_INT(pop());                                                        \
-            int a = AS_INT(pop());                                                        \
-            push(BOOL_VAL(a op b));                                                       \
-        }                                                                                 \
-        else if (IS_DOUBLE(peek(0)) && IS_DOUBLE(peek(1)))                                \
-        {                                                                                 \
-            double b = AS_DOUBLE(pop());                                                  \
-            double a = AS_DOUBLE(pop());                                                  \
-            push(BOOL_VAL(a op b));                                                       \
-        }                                                                                 \
-        else                                                                              \
-        {                                                                                 \
-            runtimeError("Operands must be either both integer or both double numbers."); \
-            return INTERPRET_RUNTIME_ERROR;                                               \
-        }                                                                                 \
+#define BINARY_OP_COMPARISON(op)                                                 \
+    do                                                                           \
+    {                                                                            \
+        if (IS_INT(peek(0)) && IS_INT(peek(1)))                                  \
+        {                                                                        \
+            int b = AS_INT(pop());                                               \
+            int a = AS_INT(pop());                                               \
+            push(BOOL_VAL(a op b));                                              \
+        }                                                                        \
+        else if (IS_DOUBLE(peek(0)) && IS_DOUBLE(peek(1)))                       \
+        {                                                                        \
+            double b = AS_DOUBLE(pop());                                         \
+            double a = AS_DOUBLE(pop());                                         \
+            push(BOOL_VAL(a op b));                                              \
+        }                                                                        \
+        else                                                                     \
+        {                                                                        \
+            runtimeError("Operands must be numeric type (double/int/complex)."); \
+            return INTERPRET_RUNTIME_ERROR;                                      \
+        }                                                                        \
     } while (false)
 #ifdef DEBUG_TRACE_EXECUTION
     printf("         ");

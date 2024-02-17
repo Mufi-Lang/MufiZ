@@ -14,36 +14,38 @@
 #include "common.h"
 #include "value.h"
 
-
-typedef struct{
+struct Entry{
     ObjString* key;
     Value value;
-}Entry;
+};
 
-typedef struct{
+struct Table{
     int count;
     int capacity;
-    Entry* entries;
-}Table;
+    struct Entry* entries;
+};
 
 //> Create an empty table
-void initTable(Table* table);
+extern void initTable(struct Table* table);
 //> Frees a table
-void freeTable(Table* table);
+extern void freeTable(struct Table* table);
+extern struct Entry* findEntry(struct Entry* entries, int capacity, ObjString* key);
 //> Finds entry with a given key
 //> If an entry is found, return true, if not false
-bool tableGet(Table* table, ObjString* key, Value* value);
+extern bool tableGet(struct Table* table, ObjString* key, Value* value);
+
+extern void adjustCapacity(struct Table* table, int capacity);
 //> Sets a new value into an entry inside the table using a key
 //> Returns true if the entry is added
-bool tableSet(Table* table, ObjString* key, Value value);
+extern bool tableSet(struct Table* table, ObjString* key, Value value);
 //> Removes an entry and adds a tombstone
-bool tableDelete(Table* table, ObjString* key);
+extern bool tableDelete(struct Table* table, ObjString* key);
 //> Copies all hash entries from one table to the other
-void tableAddAll(Table* from, Table* to);
+extern void tableAddAll(struct Table* from, struct Table* to);
 //> Finds a specified string inside a table
-ObjString* tableFindString(Table* table, const char* chars, int length, uint32_t hash);
+extern ObjString* tableFindString(struct Table* table, const char* chars, int length, uint64_t hash);
 //> Removes the white objects in a table
-void tableRemoveWhite(Table* table);
+extern void tableRemoveWhite(struct Table* table);
 //> Marks all entries inside a table
-void markTable(Table* table);
+extern void markTable(struct Table* table);
 #endif

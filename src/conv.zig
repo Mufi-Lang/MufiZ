@@ -1,17 +1,18 @@
-const value = @cImport(@cInclude("value.h"));
-const object = @cImport(@cInclude("object.h"));
-const Value = value.Value;
-const Obj = object.Obj;
-const ObjType = object.ObjType;
-const ObjString = object.ObjString;
-pub const VAL_INT = value.VAL_INT;
-pub const VAL_BOOL = value.VAL_BOOL;
-pub const VAL_DOUBLE = value.VAL_DOUBLE;
-pub const VAL_NIL = value.VAL_NIL;
-pub const VAL_OBJ = value.VAL_OBJ;
-pub const OBJ_STRING = object.OBJ_STRING;
-pub const VAL_COMPLEX = value.VAL_COMPLEX;
-pub const Complex = value.Complex;
+const core = @import("core");
+const value_h = core.value_h;
+const object_h = core.object_h;
+const Value = value_h.Value;
+const Obj = object_h.Obj;
+const ObjType = object_h.ObjType;
+const ObjString = object_h.ObjString;
+pub const VAL_INT = value_h.VAL_INT;
+pub const VAL_BOOL = value_h.VAL_BOOL;
+pub const VAL_DOUBLE = value_h.VAL_DOUBLE;
+pub const VAL_NIL = value_h.VAL_NIL;
+pub const VAL_OBJ = value_h.VAL_OBJ;
+pub const OBJ_STRING = object_h.OBJ_STRING;
+pub const VAL_COMPLEX = value_h.VAL_COMPLEX;
+pub const Complex = value_h.Complex;
 
 pub fn what_is(val: Value) []const u8 {
     switch (val.type) {
@@ -134,6 +135,6 @@ pub fn as_zstring(val: Value) []u8 {
 pub fn string_val(s: []u8) Value {
     const chars: [*c]const u8 = @ptrCast(@alignCast(s.ptr));
     const length: c_int = @intCast(s.len);
-    const obj_str = object.copyString(chars, length);
+    const obj_str = object_h.copyString(chars, length);
     return .{ .type = VAL_OBJ, .as = .{ .obj = @ptrCast(obj_str) } };
 }

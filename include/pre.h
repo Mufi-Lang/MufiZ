@@ -14,11 +14,11 @@
 //> Major version of mufi
 #define MAJOR 0
 //> Minor version of mufi
-#define MINOR 3
+#define MINOR 4
 //> Patch version of mufi
 #define PATCH 0
 //> Codename of release
-#define CODENAME "Iris"
+#define CODENAME "Voxl"
 //> Declares the version
 #define VERSION() (printf("Version %d.%d.%d (%s Release)\n", MAJOR, MINOR, PATCH, CODENAME))
 

@@ -1,0 +1,174 @@
+[["Math"]]
+name = "log2"
+return_type = "double"
+parameters = ["double"]
+implemented = true
+
+[["Math"]]
+name = "log10"
+return_type = "double"
+parameters = ["double"]
+implemented = true
+
+[["Math"]]
+name = "sin"
+return_type = "double"
+parameters = ["double"]
+implemented = true
+
+[["Math"]]
+name = "cos"
+return_type = "double"
+parameters = ["double"]
+implemented = true
+
+[["Math"]]
+name = "tan"
+return_type = "double"
+parameters = ["double"]
+implemented = true
+
+[["Math"]]
+name = "asin"
+return_type = "double"
+parameters = ["double"]
+implemented = true
+
+[["Math"]]
+name = "acos"
+return_type = "double"
+parameters = ["double"]
+implemented = true
+
+[["Math"]]
+name = "atan"
+return_type = "double"
+parameters = ["double"]
+implemented = true
+
+[["Math"]]
+name = "pow"
+return_type = "double"
+parameters = ["double", "integer", "complex"]
+implemented = true
+
+[["Math"]]
+name = "sqrt"
+return_type = "double"
+parameters = ["double"]
+implemented = true
+
+[["Math"]]
+name = "abs"
+return_type = "double or integer"
+parameters = ["double", "integer", "complex"]
+implemented = true
+
+[["Math"]]
+name = "phase"
+return_type = "double"
+parameters = ["complex"]
+implemented = true
+
+
+[["Math"]]
+name = "ceil"
+return_type = "integer"
+parameters = ["double"]
+implemented = true
+
+[["Math"]]
+name = "floor"
+return_type = "integer"
+parameters = ["double"]
+implemented = true
+
+[["Math"]]
+name = "round"
+return_type = "integer"
+parameters = ["double"]
+implemented = true
+
+[["Math"]]
+name = "pi"
+return_type = "double"
+parameters = []
+implemented = true
+
+[["Math"]]
+name = "rand"
+return_type = "integer"
+parameters = []
+implemented = true
+
+[["Conversions"]]
+name = "double"
+return_type = "double"
+parameters = ["integer"]
+implemented = true
+
+[["Conversions"]]
+name = "int"
+return_type = "integer"
+parameters = ["double"]
+implemented = true
+
+[["Conversions"]]
+name = "str"
+return_type = "string"
+parameters = ["integer", "double"]
+implemented = true
+
+[["Time"]]
+name = "now"
+return_type = "seconds"
+parameters = []
+implemented = true
+
+[["Time"]]
+name = "now_ns"
+return_type = "ns"
+parameters = []
+implemented = true
+
+[["Time"]]
+name = "now_ms"
+return_type = "ms"
+parameters = []
+implemented = true
+
+[["File System"]]
+name = "create_file"
+return_type = "bool"
+parameters = ["string"]
+implemented = true
+
+[["File System"]]
+name = "write_file"
+return_type = "bool"
+parameters = ["string"]
+implemented = true
+
+[["File System"]]
+name = "read_file"
+return_type = "string"
+parameters = ["string"]
+implemented = true
+
+[["File System"]]
+name = "delete_file"
+return_type = "bool"
+parameters = ["string"]
+implemented = true
+
+[["File System"]]
+name = "create_dir"
+return_type = "bool"
+parameters = ["string"]
+implemented = true
+
+[["File System"]]
+name = "delete_dir"
+return_type = "bool"
+parameters = ["string"]
+implemented = true

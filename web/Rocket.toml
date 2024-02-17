@@ -1,0 +1,18 @@
+[default]
+template_dir = "templates"
+
+[debug]
+address = "127.0.0.1"
+port = 3030
+keep_alive = 5
+cli_colors = true
+log_level = "normal"
+limits = { forms = 32768 }
+
+[release]
+address = "0.0.0.0"
+port = 8000
+keep_alive = 5
+cli_colors = true
+log_level = "critical"
+limits = { forms = 32768 }

@@ -9,25 +9,41 @@ on:
       - next
 
 env:
-  codename: 'iris'
+  codename: 'voxl'
 
 jobs:
   build:
     name: Create Release
-    runs-on: windows-latest
+    runs-on: ubuntu-latest  # Switched to Ubuntu environment
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+
       - name: Setup Zig
         uses: goto-bus-stop/setup-zig@v2
         with:
           version: 0.11.0
+
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
           python-version: '3.x'
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.0'
+
+      - name: Install fpm and unzip
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y unzip
+          sudo apt-get install rpm
+          gem install fpm
+
       - name: Run Build Multi
         run: python build_multi.py
+
       - name: Create release
         id: create_release
         uses: softprops/action-gh-release@v1

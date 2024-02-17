@@ -6,6 +6,7 @@ const conv = @import("conv.zig");
 pub const math = @import("stdlib/math.zig");
 pub const time = @import("stdlib/time.zig");
 pub const types = @import("stdlib/types.zig");
+pub const fs = @import("stdlib/fs.zig");
 
 pub const NativeFn = *const fn (c_int, [*c]Value) callconv(.C) Value;
 
@@ -37,6 +38,23 @@ pub const NativeFunctions = struct {
         try self.append("acos", &math.acos);
         try self.append("atan", &math.atan);
         try self.append("complex", &math.complex);
+        try self.append("abs", &math.abs);
+        try self.append("phase", &math.phase);
+        try self.append("rand", &math.rand);
+        try self.append("pow", &math.pow);
+        try self.append("sqrt", &math.sqrt);
+        try self.append("ceil", &math.ceil);
+        try self.append("floor", &math.floor);
+        try self.append("round", &math.round);
+    }
+
+    pub fn addFs(self: *Self) !void {
+        try self.append("create_file", &fs.create_file);
+        try self.append("read_file", &fs.read_file);
+        try self.append("write_file", &fs.write_file);
+        try self.append("delete_file", &fs.delete_file);
+        try self.append("create_dir", &fs.create_dir);
+        try self.append("delete_dir", &fs.delete_dir);
     }
 
     pub fn addTypes(self: *Self) !void {

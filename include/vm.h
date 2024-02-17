@@ -16,6 +16,7 @@
 #include "value.h"
 #include "object.h"
 #include "table.h"
+#include "common.h"
 
 #define FRAMES_MAX 64
 #define STACK_MAX (FRAMES_MAX * UINT8_COUNT)
@@ -34,8 +35,8 @@ typedef struct {
     uint8_t* ip; // Instruction pointer
     Value stack[STACK_MAX]; // The virtual machine's stack
     Value* stackTop; // Top of the stack, always point to where the next item should be pushed
-    Table globals; // Hash table of all global variables inside the program
-    Table strings; // Hash table of all strings in heap
+    struct Table globals; // Hash table of all global variables inside the program
+    struct Table strings; // Hash table of all strings in heap
     ObjString* initString;
     ObjUpvalue* openUpvalues; // open up values inside of closures
     size_t bytesAllocated; // bytes allocated by the vm
@@ -56,9 +57,9 @@ typedef enum {
 extern VM vm;
 
 //> Initializes the VM
-void initVM();
+void initVM(void);
 //> Deallocates the VM's resources
-void freeVM();
+void freeVM(void);
 //> Interprets and runs the code
 InterpretResult interpret(const char* source);
 //> Pushes a value to the stack
