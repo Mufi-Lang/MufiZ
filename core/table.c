@@ -72,70 +72,70 @@
 //     table->entries = entries;
 //     table->capacity = capacity;
 // }
-bool tableSet(struct Table* table, ObjString* key, Value value) {
-    if (table->count + 1 > table->capacity * TABLE_MAX_LOAD) {
-        int capacity = GROW_CAPACITY(table->capacity);
-        adjustCapacity(table, capacity);
-    }
+// bool tableSet(struct Table* table, ObjString* key, Value value) {
+//     if (table->count + 1 > table->capacity * TABLE_MAX_LOAD) {
+//         int capacity = GROW_CAPACITY(table->capacity);
+//         adjustCapacity(table, capacity);
+//     }
 
-    struct Entry* entry = findEntry(table->entries, table->capacity, key);
-    bool isNewKey = entry->key == NULL;
-    if (isNewKey && IS_NIL(entry->value)) table->count++;
+//     struct Entry* entry = findEntry(table->entries, table->capacity, key);
+//     bool isNewKey = entry->key == NULL;
+//     if (isNewKey && IS_NIL(entry->value)) table->count++;
 
-    entry->key = key;
-    entry->value = value;
-    return isNewKey;
-}
-bool tableDelete(struct Table* table, ObjString* key) {
-    if (table->count == 0) return false;
+//     entry->key = key;
+//     entry->value = value;
+//     return isNewKey;
+// }
+// bool tableDelete(struct Table* table, ObjString* key) {
+//     if (table->count == 0) return false;
 
-    // Find the entry.
-    struct Entry* entry = findEntry(table->entries, table->capacity, key);
-    if (entry->key == NULL) return false;
+//     // Find the entry.
+//     struct Entry* entry = findEntry(table->entries, table->capacity, key);
+//     if (entry->key == NULL) return false;
 
-    // Place a tombstone in the entry.
-    entry->key = NULL;
-    entry->value = BOOL_VAL(true);
-    return true;
-}
-void tableAddAll(struct Table* from, struct Table* to) {
-    for (int i = 0; i < from->capacity; i++) {
-        struct Entry* entry = &from->entries[i];
-        if (entry->key != NULL) {
-            tableSet(to, entry->key, entry->value);
-        }
-    }
-}
+//     // Place a tombstone in the entry.
+//     entry->key = NULL;
+//     entry->value = BOOL_VAL(true);
+//     return true;
+// }
+// void tableAddAll(struct Table* from, struct Table* to) {
+//     for (int i = 0; i < from->capacity; i++) {
+//         struct Entry* entry = &from->entries[i];
+//         if (entry->key != NULL) {
+//             tableSet(to, entry->key, entry->value);
+//         }
+//     }
+// }
 
-ObjString* tableFindString(struct Table* table, const char* chars,
-                           int length, uint64_t hash) {
-    if (table->count == 0) return NULL;
+// ObjString* tableFindString(struct Table* table, const char* chars,
+//                            int length, uint64_t hash) {
+//     if (table->count == 0) return NULL;
 
-    uint64_t index = hash & (table->capacity - 1);
-    for (;;) {
-        struct Entry* entry = &table->entries[index];
-        if (entry->key == NULL) {
-            // Stop if we find an empty non-tombstone entry.
-            if (IS_NIL(entry->value)) return NULL;
-        } else if (entry->key->length == length &&
-                   entry->key->hash == hash &&
-                   memcmp(entry->key->chars, chars, length) == 0) {
-            // We found it.
-            return entry->key;
-        }
+//     uint64_t index = hash & (table->capacity - 1);
+//     for (;;) {
+//         struct Entry* entry = &table->entries[index];
+//         if (entry->key == NULL) {
+//             // Stop if we find an empty non-tombstone entry.
+//             if (IS_NIL(entry->value)) return NULL;
+//         } else if (entry->key->length == length &&
+//                    entry->key->hash == hash &&
+//                    memcmp(entry->key->chars, chars, length) == 0) {
+//             // We found it.
+//             return entry->key;
+//         }
 
-        index = (index + 1) & (table->capacity - 1);
-    }
-}
+//         index = (index + 1) & (table->capacity - 1);
+//     }
+// }
 
-void tableRemoveWhite(struct Table* table){
-    for(int i = 0; i < table->capacity; i++){
-        struct Entry* entry = &table->entries[i];
-        if(entry->key != NULL && !entry->key->obj.isMarked){
-            tableDelete(table, entry->key);
-        }
-    }
-}
+// void tableRemoveWhite(struct Table* table){
+//     for(int i = 0; i < table->capacity; i++){
+//         struct Entry* entry = &table->entries[i];
+//         if(entry->key != NULL && !entry->key->obj.isMarked){
+//             tableDelete(table, entry->key);
+//         }
+//     }
+// }
 
 void markTable(struct Table* table){
     for(int i = 0; i < table->capacity; i++){

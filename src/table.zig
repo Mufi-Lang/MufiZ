@@ -1,12 +1,13 @@
-const value_h = @cImport(@cInclude("value.h"));
-const Value = value_h.Value;
 const ObjString = @cImport(@cInclude("object.h")).ObjString;
-const Obj = @cImport(@cInclude("object.h")).Obj;
+const Obj = value_h.Obj;
 const memory = @cImport(@cInclude("memory.h"));
 const table_h = @cImport(@cInclude("table.h"));
+const value_h = @cImport(@cInclude("value.h"));
 const reallocate = memory.reallocate;
 const VAL_NIL: c_int = 1;
 const VAL_BOOL: c_int = 0;
+const Value = value_h.Value;
+
 pub const Table = extern struct {
     count: c_int,
     capacity: c_int,
@@ -29,27 +30,6 @@ fn memcmp(s1: ?*const anyopaque, s2: ?*const anyopaque, n: usize) c_int {
 
     return 0;
 }
-
-// //> Create an empty table
-// void initTable(struct Table* table);
-// //> Frees a table
-// void freeTable(struct Table* table);
-// //> Finds entry with a given key
-// //> If an entry is found, return true, if not false
-// bool tableGet(struct Table* table, ObjString* key, Value* value);
-// //> Sets a new value into an entry inside the table using a key
-// //> Returns true if the entry is added
-// bool tableSet(struct Table* table, ObjString* key, Value value);
-// //> Removes an entry and adds a tombstone
-// bool tableDelete(struct Table* table, ObjString* key);
-// //> Copies all hash entries from one table to the other
-// void tableAddAll(struct Table* from, struct Table* to);
-// //> Finds a specified string inside a table
-// ObjString* tableFindString(struct Table* table, const char* chars, int length, uint64_t hash);
-// //> Removes the white objects in a table
-// void tableRemoveWhite(struct Table* table);
-// //> Marks all entries inside a table
-// void markTable(struct Table* table);
 
 const TABLE_MAX_LOAD: f64 = 0.75;
 
@@ -213,20 +193,6 @@ pub export fn tableRemoveWhite(arg_table: [*c]Table) callconv(.C) void {
             if ((entry.*.key != @as([*c]ObjString, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) and !entry.*.key.?.obj.isMarked) {
                 _ = tableDelete(table, entry.*.key);
             }
-        }
-    }
-}
-pub export fn markTable(arg_table: [*c]Table) callconv(.C) void {
-    var table = arg_table;
-    {
-        var i: c_int = 0;
-        while (i < table.*.capacity) : (i += 1) {
-            var entry: [*c]Entry = &(blk: {
-                const tmp = i;
-                if (tmp >= 0) break :blk table.*.entries + @as(usize, @intCast(tmp)) else break :blk table.*.entries - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-            }).*;
-            memory.markObject(@ptrCast(@alignCast(entry.*.key)));
-            memory.markValue(entry.*.value);
         }
     }
 }
