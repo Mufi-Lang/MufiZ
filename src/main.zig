@@ -1,11 +1,13 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const nostd = @import("build_opts").nostd;
 const stdlib = @import("stdlib.zig");
 const system = @import("system.zig");
 const clap = @import("clap");
 const core = @import("core");
+const heap = std.heap;
 
-var Global = std.heap.GeneralPurposeAllocator(.{}){};
+var Global = heap.GeneralPurposeAllocator(.{}){};
 pub const GlobalAlloc = Global.allocator();
 
 const params = clap.parseParamsComptime(

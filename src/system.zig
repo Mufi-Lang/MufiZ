@@ -5,11 +5,10 @@ const vm_h = core.vm_h;
 const conv = @import("conv.zig");
 const builtin = @import("builtin");
 
-
 const MAJOR: u8 = 0;
-const MINOR: u8 = 4;
+const MINOR: u8 = 5;
 const PATCH: u8 = 0;
-const CODENAME: []const u8 = "Voxl";
+const CODENAME: []const u8 = "Luna";
 
 pub const vopt = if (nostd) struct {
     pub inline fn version() void {
