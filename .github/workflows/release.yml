@@ -9,7 +9,7 @@ on:
       - next
 
 env:
-  codename: 'voxl'
+  codename: 'luna'
 
 jobs:
   build:
