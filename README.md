@@ -124,3 +124,5 @@ the other `Release*` optimize modes with command `zig build -Doptimize=`.
 | x86_64-macos           | :x:                | :x:                | :x:                |
 | x86_64-windows         | :x:                | :x:                | :x:                |
 | x86_64-windows-gnu     | :x:                | :x:                | :x:                |
+
+> Currently there is an issue with `snap` packaging where the binary is not being found (in the prefix `/snap/bin`). This is being worked on, and will hopefully be resolved before the next release.
