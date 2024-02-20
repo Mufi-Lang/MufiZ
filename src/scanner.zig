@@ -13,9 +13,8 @@ fn memcmp(s1: ?*const anyopaque, s2: ?*const anyopaque, n: usize) c_int {
 }
 
 fn strlen(s: [*c]const u8) usize {
-    var len: usize = 0;
-    while (s[len] != 0) : (len += 1) {}
-    return len;
+    var str: *[]u8 = @constCast(@ptrCast(@alignCast(s)));
+    return str.*.len;
 }
 
 pub const TokenType = enum(c_int) {
