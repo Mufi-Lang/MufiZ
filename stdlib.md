@@ -147,10 +147,10 @@
 - [X] `range`
   - Return Type: array
   - Parameters: integer, integer
-- [ ] `reverse`
+- [X] `reverse`
   - Return Type: nil
   - Parameters: array, linked_list
-- [ ] `search`
+- [X] `search`
   - Return Type: integer
   - Parameters: array, linked_list
 
