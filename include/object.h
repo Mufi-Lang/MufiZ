@@ -27,6 +27,7 @@
 #define IS_STRING(value)       isObjType(value, OBJ_STRING)
 #define IS_ARRAY(value)        isObjType(value, OBJ_ARRAY)
 #define IS_LINKED_LIST(value)  isObjType(value, OBJ_LINKED_LIST)
+#define IS_HASH_TABLE(value)   isObjType(value, OBJ_HASH_TABLE)
 
 #define AS_BOUND_METHOD(value)  ((ObjBoundMethod*)AS_OBJ(value))
 #define AS_CLASS(value)        ((ObjClass*)AS_OBJ(value))
@@ -39,6 +40,7 @@
 #define AS_CSTRING(value)      (((ObjString*)AS_OBJ(value))->chars)
 #define AS_ARRAY(value)        ((ObjArray*)AS_OBJ(value))
 #define AS_LINKED_LIST(value)  ((ObjLinkedList*)AS_OBJ(value))
+#define AS_HASH_TABLE(value)   ((ObjHashTable*)AS_OBJ(value))
 
 typedef enum {
     OBJ_CLOSURE,
@@ -50,7 +52,8 @@ typedef enum {
     OBJ_BOUND_METHOD,
     OBJ_CLASS,
     OBJ_ARRAY, 
-    OBJ_LINKED_LIST
+    OBJ_LINKED_LIST, 
+    OBJ_HASH_TABLE
 } ObjType;
 
 struct Obj {
@@ -72,6 +75,12 @@ typedef struct
     struct Node* tail;
     int count;
 }ObjLinkedList;
+
+typedef struct
+{
+    Obj obj;
+    struct Table table;
+}ObjHashTable;
 
 
 typedef struct{
@@ -158,6 +167,12 @@ void pushBack(ObjLinkedList* list, Value value);
 Value popFront(ObjLinkedList* list);
 Value popBack(ObjLinkedList* list);
 void freeObjectLinkedList(ObjLinkedList* list);
+
+ObjHashTable* newHashTable();
+bool putHashTable(ObjHashTable* table, ObjString* key, Value value);
+Value getHashTable(ObjHashTable* table, ObjString* key);
+bool removeHashTable(ObjHashTable* table, ObjString* key);
+void freeObjectHashTable(ObjHashTable* table);
 
 void printObject(Value value);
 

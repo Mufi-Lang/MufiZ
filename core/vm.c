@@ -51,6 +51,7 @@ static void runtimeError(const char *format, ...)
     resetStack();
 }
 
+
 void defineNative(const char *name, NativeFn function)
 {
     push(OBJ_VAL(copyString(name, (int)strlen(name))));
@@ -59,6 +60,12 @@ void defineNative(const char *name, NativeFn function)
     pop();
     pop();
 }
+
+/*
+ Native functions will be suffixed with _nf on the C side 
+ to avoid any name conflicts. 
+ All native functions defined here will be for the data structures. 
+*/
 
 Value array_nf(int argCount, Value *args)
 {
@@ -70,6 +77,63 @@ Value linkedlist_nf(int argCount, Value *args)
 {
     ObjLinkedList *l = newLinkedList();
     return OBJ_VAL(l);
+}
+
+Value hashtable_nf(int argCount, Value *args)
+{
+    ObjHashTable *h = newHashTable();
+    return OBJ_VAL(h);
+}
+
+Value put_nf(int argCount, Value *args)
+{
+    if (!IS_HASH_TABLE(args[0]))
+    {
+        runtimeError("First argument must be a hash table.");
+        return NIL_VAL;
+    }
+    if (!IS_STRING(args[1]))
+    {
+        runtimeError("Second argument must be a string.");
+        return NIL_VAL;
+    }
+    ObjHashTable *h = AS_HASH_TABLE(args[0]);
+    ObjString *key = AS_STRING(args[1]);
+    return BOOL_VAL(putHashTable(h, key, args[2]));
+}
+
+Value get_nf(int argCount, Value *args)
+{
+    if (!IS_HASH_TABLE(args[0]))
+    {
+        runtimeError("First argument must be a hash table.");
+        return NIL_VAL;
+    }
+    if (!IS_STRING(args[1]))
+    {
+        runtimeError("Second argument must be a string.");
+        return NIL_VAL;
+    }
+    ObjHashTable *h = AS_HASH_TABLE(args[0]);
+    ObjString *key = AS_STRING(args[1]);
+    return getHashTable(h, key);
+}
+
+Value remove_nf(int argCount, Value *args)
+{
+    if (!IS_HASH_TABLE(args[0]))
+    {
+        runtimeError("First argument must be a hash table.");
+        return NIL_VAL;
+    }
+    if (!IS_STRING(args[1]))
+    {
+        runtimeError("Second argument must be a string.");
+        return NIL_VAL;
+    }
+    ObjHashTable *h = AS_HASH_TABLE(args[0]);
+    ObjString *key = AS_STRING(args[1]);
+    return BOOL_VAL(removeHashTable(h, key));
 }
 
 Value push_nf(int argCount, Value *args)
@@ -170,6 +234,26 @@ Value nth_nf(int argCount, Value *args)
     return a->values[index];
 }
 
+Value is_empty_nf(int argCount, Value *args)
+{
+    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]))
+    {
+        runtimeError("First argument must be an array or linked list.");
+        return NIL_VAL;
+    }
+
+    if (IS_ARRAY(args[0]))
+    {
+        ObjArray *a = AS_ARRAY(args[0]);
+        return BOOL_VAL(a->count == 0);
+    }
+    else
+    {
+        ObjLinkedList *l = AS_LINKED_LIST(args[0]);
+        return BOOL_VAL(l->count == 0);
+    }
+}
+
 // Initializes the virtual machine
 void initVM(void)
 {
@@ -189,11 +273,16 @@ void initVM(void)
 
     defineNative("array", array_nf);
     defineNative("linked_list", linkedlist_nf);
+    defineNative("hash_table", hashtable_nf);
     defineNative("push", push_nf);
     defineNative("push_front", push_front_nf);
     defineNative("pop", pop_nf);
     defineNative("pop_front", pop_front_nf);
     defineNative("nth", nth_nf);
+    defineNative("is_empty", is_empty_nf);
+    defineNative("put", put_nf);
+    defineNative("get", get_nf);
+    defineNative("remove", remove_nf);
 }
 
 // Frees the virtual machine

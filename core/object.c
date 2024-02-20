@@ -158,6 +158,40 @@ void freeObjectLinkedList(ObjLinkedList *list)
     FREE(ObjLinkedList, list);
 }
 
+ObjHashTable *newHashTable()
+{
+    ObjHashTable *htable = ALLOCATE_OBJ(ObjHashTable, OBJ_HASH_TABLE);
+    initTable(&htable->table);
+    return htable;
+}
+bool putHashTable(ObjHashTable *table, ObjString *key, Value value)
+{
+    return tableSet(&table->table, key, value);
+}
+Value getHashTable(ObjHashTable *table, ObjString *key)
+{
+    Value value;
+    if (tableGet(&table->table, key, &value))
+    {
+        return value;
+    }
+    else
+    {
+        return NIL_VAL;
+    }
+}
+
+bool removeHashTable(ObjHashTable *table, ObjString *key)
+{
+    return tableDelete(&table->table, key);
+}
+
+void freeObjectHashTable(ObjHashTable *table)
+{
+    freeTable(&table->table);
+    FREE(ObjHashTable, table);
+}
+
 ObjBoundMethod *newBoundMethod(Value receiver, ObjClosure *method)
 {
     ObjBoundMethod *bound = ALLOCATE_OBJ(ObjBoundMethod, OBJ_BOUND_METHOD);
@@ -338,6 +372,29 @@ void printObject(Value value)
             current = current->next;
         }
         printf("]");
+        break;
+    }
+    case OBJ_HASH_TABLE:
+    {
+        ObjHashTable* hashtable = AS_HASH_TABLE(value);
+        printf("{");
+        struct Entry *entries = hashtable->table.entries;
+        int count = 0;
+        for (int i = 0; i < hashtable->table.capacity; i++)
+        {
+            if (entries[i].key != NULL)
+            {
+                if (count > 0)
+                {
+                    printf(", ");
+                }
+                printValue(OBJ_VAL(entries[i].key));
+                printf(": ");
+                printValue(entries[i].value);
+                count++;
+            }
+        }
+        printf("}");
         break;
     }
     }

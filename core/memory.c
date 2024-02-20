@@ -117,6 +117,10 @@ static void blackenObject(Obj* object){
                 current = current->next;
             }
         }
+        case OBJ_HASH_TABLE:{
+            ObjHashTable* hashTable = (ObjHashTable*)object;
+            markTable(&hashTable->table);
+        }
         case OBJ_NATIVE:
         case OBJ_STRING:
             break;
@@ -179,6 +183,10 @@ static void freeObject(Obj* object) {
             ObjLinkedList* linkedList = (ObjLinkedList*)object;
             freeObjectLinkedList(linkedList);
             break;
+        }
+        case OBJ_HASH_TABLE: {
+            ObjHashTable* hashTable = (ObjHashTable*)object;
+            freeObjectHashTable(hashTable);
         }
     }
 }
