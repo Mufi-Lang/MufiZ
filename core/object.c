@@ -346,6 +346,61 @@ void reverseLinkedList(ObjLinkedList *list)
     }
 }
 
+static bool valuesLess(Value a, Value b)
+{
+    if (IS_INT(a) && IS_INT(b))
+    {
+        return AS_INT(a) < AS_INT(b);
+    }
+    else if (IS_DOUBLE(a) && IS_DOUBLE(b))
+    {
+        return AS_DOUBLE(a) < AS_DOUBLE(b);
+    }
+    return false;
+}
+
+int searchArray(ObjArray *array, Value value)
+{
+    int low = 0;
+    int high = array->count - 1;
+
+    while (low <= high)
+    {
+        int mid = (low + high) / 2;
+        Value midValue = array->values[mid];
+
+        if (valuesEqual(midValue, value))
+        {
+            return mid;
+        }
+        else if (valuesLess(midValue, value))
+        {
+            low = mid + 1;
+        }
+        else
+        {
+            high = mid - 1;
+        }
+    }
+    return -1;
+}
+
+int searchLinkedList(ObjLinkedList *list, Value value)
+{
+    struct Node *current = list->head;
+    int index = 0;
+    while (current != NULL)
+    {
+        if (valuesEqual(current->data, value))
+        {
+            return index;
+        }
+        current = current->next;
+        index++;
+    }
+    return -1;
+}
+
 ObjBoundMethod *newBoundMethod(Value receiver, ObjClosure *method)
 {
     ObjBoundMethod *bound = ALLOCATE_OBJ(ObjBoundMethod, OBJ_BOUND_METHOD);

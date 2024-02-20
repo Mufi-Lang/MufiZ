@@ -457,33 +457,20 @@ Value search_nf(int argCount, Value *args)
     if (IS_ARRAY(args[0]))
     {
         ObjArray *a = AS_ARRAY(args[0]);
-        for (int i = 0; i < a->count; i++)
-        {
-            if (valuesEqual(a->values[i], args[1]))
-            {
-                return INT_VAL(i);
-            }
-        }
-        return NIL_VAL;
+        int result = searchArray(a, args[1]);
+        if (result == -1)
+            return NIL_VAL;
+        return INT_VAL(result);
     }
     else
     {
         ObjLinkedList *l = AS_LINKED_LIST(args[0]);
-        struct Node *current = l->head;
-        int index = 0;
-        while (current != NULL)
-        {
-            if (valuesEqual(current->data, args[1]))
-            {
-                return INT_VAL(index);
-            }
-            current = current->next;
-            index++;
-        }
-        return NIL_VAL;
+        int result = searchLinkedList(l, args[1]);
+        if (result == -1)
+            return NIL_VAL;
+        return INT_VAL(result);
     }
 }
-
 
 // Initializes the virtual machine
 void initVM(void)
