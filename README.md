@@ -93,14 +93,15 @@ the other `Release*` optimize modes with command `zig build -Doptimize=`.
 | 0.3.0   | [Iris](https://github.com/Mustafif/MufiZ/releases/tag/v0.3.0) | Released |
 | 0.4.0   | [Voxl](https://github.com/Mustafif/MufiZ/releases/tag/v0.4.0) | Released |
 
+[![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-black.svg)](https://snapcraft.io/mufiz)
 ---
 
 ## Supported Platforms
 
 | Target                 | Deb Package        | RPM Package        | Snap Package       |
 | ---------------------- | ------------------ | ------------------ | ------------------ |
-| aarch64-linux-gnu      | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| aarch64-linux-musl     | :white_check_mark: | :white_check_mark: | :white_check_mark: |
+| aarch64-linux-gnu      | :white_check_mark: | :white_check_mark: | :x:                |
+| aarch64-linux-musl     | :white_check_mark: | :white_check_mark: | :x:                |
 | aarch64-macos          | :x:                | :x:                | :x:                |
 | aarch64-windows        | :x:                | :x:                | :x:                |
 | aarch64-windows-gnu    | :x:                | :x:                | :x:                |
@@ -114,10 +115,10 @@ the other `Release*` optimize modes with command `zig build -Doptimize=`.
 | mips-linux-musl        | :white_check_mark: | :white_check_mark: | :x:                |
 | powerpc64-linux-gnu    | :white_check_mark: | :white_check_mark: | :x:                |
 | powerpc64-linux-musl   | :white_check_mark: | :white_check_mark: | :x:                |
-| powerpc-linux-musl     | :white_check_mark: | :white_check_mark: | :white_check_mark: |
+| powerpc-linux-musl     | :white_check_mark: | :white_check_mark: | :x:                |
 | powerpc64le-linux-gnu  | :white_check_mark: | :white_check_mark: | :x:                |
 | powerpc64le-linux-musl | :white_check_mark: | :white_check_mark: | :x:                |
-| riscv64-linux-musl     | :white_check_mark: | :white_check_mark: | :white_check_mark: |
+| riscv64-linux-musl     | :white_check_mark: | :white_check_mark: | :x:                |
 | wasm32-wasi            | :x:                | :x:                | :x:                |
 | x86_64-linux-gnu       | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 | x86_64-linux-musl      | :white_check_mark: | :white_check_mark: | :white_check_mark: |
@@ -125,4 +126,4 @@ the other `Release*` optimize modes with command `zig build -Doptimize=`.
 | x86_64-windows         | :x:                | :x:                | :x:                |
 | x86_64-windows-gnu     | :x:                | :x:                | :x:                |
 
-> Currently there is an issue with `snap` packaging where the binary is not being found (in the prefix `/snap/bin`). This is being worked on, and will hopefully be resolved before the next release.
+> Currently `v0.4.0` is available as a `snap` package for `x86_64-linux-gnu` and `x86_64-linux-musl` targets. I hope to expand this to more targets for the next release using the `snapcraft` automatic build system.
