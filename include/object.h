@@ -25,6 +25,7 @@
 #define IS_INSTANCE(value)     isObjType(value, OBJ_INSTANCE)
 #define IS_NATIVE(value)       isObjType(value, OBJ_NATIVE)
 #define IS_STRING(value)       isObjType(value, OBJ_STRING)
+#define IS_ARRAY(value)        isObjType(value, OBJ_ARRAY)
 
 #define AS_BOUND_METHOD(value)  ((ObjBoundMethod*)AS_OBJ(value))
 #define AS_CLASS(value)        ((ObjClass*)AS_OBJ(value))
@@ -35,6 +36,7 @@
     (((ObjNative*)AS_OBJ(value))->function)
 #define AS_STRING(value)       ((ObjString*)AS_OBJ(value))
 #define AS_CSTRING(value)      (((ObjString*)AS_OBJ(value))->chars)
+#define AS_ARRAY(value)        ((ObjArray*)AS_OBJ(value))
 
 typedef enum {
     OBJ_CLOSURE,
@@ -44,7 +46,8 @@ typedef enum {
     OBJ_STRING,
     OBJ_UPVALUE,
     OBJ_BOUND_METHOD,
-    OBJ_CLASS
+    OBJ_CLASS,
+    OBJ_ARRAY, 
 } ObjType;
 
 struct Obj {
@@ -52,6 +55,13 @@ struct Obj {
     bool isMarked;
     struct Obj* next;
 };
+
+typedef struct{
+    Obj obj;
+    int capacity;
+    int count;
+    Value* values;
+}ObjArray;
 
 typedef struct {
     Obj obj;
@@ -118,6 +128,10 @@ uint64_t hashString(const char* key, int length);
 ObjString* takeString(char* chars, int length);
 ObjString* copyString(const char* chars, int length);
 ObjUpvalue* newUpvalue(Value* slot);
+ObjArray* newArray();
+void pushArray(ObjArray* array, Value value);
+Value popArray(ObjArray* array);
+void freeObjectArray(ObjArray* array);
 void printObject(Value value);
 
 static inline bool isObjType(Value value, ObjType type) {

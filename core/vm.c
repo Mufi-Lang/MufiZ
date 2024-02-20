@@ -65,6 +65,30 @@ void defineNative(const char *name, NativeFn function)
     pop();
 }
 
+Value array_builtin(int argCount, Value* args){
+    ObjArray* a = newArray();
+    return OBJ_VAL(a);
+}
+
+Value push_builtin(int argCount, Value* args){
+    if(!IS_ARRAY(args[0])){
+        runtimeError("First argument must be an array.");
+        return NIL_VAL;
+    }
+    ObjArray* a = AS_ARRAY(args[0]);
+    pushArray(a, args[1]);
+    return NIL_VAL;
+}
+
+Value pop_builtin(int argCount, Value* args){
+    if(!IS_ARRAY(args[0])){
+        runtimeError("First argument must be an array.");
+        return NIL_VAL;
+    }
+    ObjArray* a = AS_ARRAY(args[0]);
+    return popArray(a);
+}
+
 // Initializes the virtual machine
 void initVM(void)
 {
@@ -81,6 +105,10 @@ void initVM(void)
 
     vm.initString = NULL;
     vm.initString = copyString("init", 4);
+
+    defineNative("array", array_builtin);
+    defineNative("push", push_builtin);
+    defineNative("pop", pop_builtin);
 }
 
 // Frees the virtual machine

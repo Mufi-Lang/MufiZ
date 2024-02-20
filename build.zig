@@ -61,9 +61,10 @@ pub fn build(b: *std.Build) !void {
 
     lib_core.linkLibrary(lib_scanner);
 
-    lib_core.addIncludePath(.{ .path = "include" });
+    // lib_core.addIncludePath(.{ .path = "include" });
     // zig fmt: off
     lib_core.addCSourceFiles(&.{ 
+       // "core/value.c",
         "core/chunk.c", 
         "core/compiler.c", 
         "core/debug.c", 

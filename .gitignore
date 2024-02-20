@@ -4,3 +4,5 @@ m.zig
 fpm.txt
 core/t.zig
 web/target
+*.snap
+snap.py

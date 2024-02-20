@@ -1,7 +1,8 @@
 const std = @import("std");
-const Value = @cImport(@cInclude("value.h")).Value;
+const Value = core.value_h.Value;
 const vm = @cImport(@cInclude("vm.h"));
 const conv = @import("conv.zig");
+const core = @import("core");
 
 pub const math = @import("stdlib/math.zig");
 pub const time = @import("stdlib/time.zig");

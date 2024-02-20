@@ -15,7 +15,7 @@ const params = clap.parseParamsComptime(
     \\-v, --version          Prints the version and codename.
     \\-r, --run <str>        Runs a Mufi Script
     \\-l, --link <str>       Link another Mufi Script when interpreting 
-    \\--repl                 Runs Mufi Repl system (Windows uses C bindings)
+    \\--repl                 Runs Mufi Repl system
     \\
 );
 
