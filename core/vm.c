@@ -65,28 +65,48 @@ void defineNative(const char *name, NativeFn function)
     pop();
 }
 
-Value array_builtin(int argCount, Value* args){
+Value array_nf(int argCount, Value* args){
     ObjArray* a = newArray();
     return OBJ_VAL(a);
 }
 
-Value push_builtin(int argCount, Value* args){
+Value push_nf(int argCount, Value* args){
     if(!IS_ARRAY(args[0])){
         runtimeError("First argument must be an array.");
         return NIL_VAL;
     }
     ObjArray* a = AS_ARRAY(args[0]);
-    pushArray(a, args[1]);
+    for(int i = 1; i < argCount; i++){
+        pushArray(a, args[i]);
+    }
     return NIL_VAL;
 }
 
-Value pop_builtin(int argCount, Value* args){
+Value pop_nf(int argCount, Value* args){
     if(!IS_ARRAY(args[0])){
         runtimeError("First argument must be an array.");
         return NIL_VAL;
     }
     ObjArray* a = AS_ARRAY(args[0]);
     return popArray(a);
+}
+
+Value nth_nf(int argCount, Value* args){
+    if(!IS_ARRAY(args[0])){
+        runtimeError("First argument must be an array.");
+        return NIL_VAL;
+    }
+    if(!IS_INT(args[1])){
+        runtimeError("Second argument must be an integer.");
+        return NIL_VAL;
+    }
+    ObjArray* a = AS_ARRAY(args[0]);
+    int index = AS_INT(args[1]);
+    if(index < 0 || index >= a->count){
+        runtimeError("Index out of bounds.");
+        return NIL_VAL;
+    }
+    return a->values[index];
 }
 
 // Initializes the virtual machine
@@ -106,9 +126,10 @@ void initVM(void)
     vm.initString = NULL;
     vm.initString = copyString("init", 4);
 
-    defineNative("array", array_builtin);
-    defineNative("push", push_builtin);
-    defineNative("pop", pop_builtin);
+    defineNative("array", array_nf);
+    defineNative("push", push_nf);
+    defineNative("pop", pop_nf);
+    defineNative("nth", nth_nf);
 }
 
 // Frees the virtual machine
