@@ -213,9 +213,9 @@ Value pop_front_nf(int argCount, Value *args)
 
 Value nth_nf(int argCount, Value *args)
 {
-    if (!IS_ARRAY(args[0]))
+    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]))
     {
-        runtimeError("First argument must be an array.");
+        runtimeError("First argument must be an array or linked list.");
         return NIL_VAL;
     }
     if (!IS_INT(args[1]))
@@ -223,14 +223,35 @@ Value nth_nf(int argCount, Value *args)
         runtimeError("Second argument must be an integer.");
         return NIL_VAL;
     }
-    ObjArray *a = AS_ARRAY(args[0]);
-    int index = AS_INT(args[1]);
-    if (index < 0 || index >= a->count)
+
+    if (IS_ARRAY(args[0]))
     {
-        runtimeError("Index out of bounds.");
-        return NIL_VAL;
+        ObjArray *a = AS_ARRAY(args[0]);
+        int index = AS_INT(args[1]);
+        if (index < 0 || index >= a->count)
+        {
+            runtimeError("Index out of bounds.");
+            return NIL_VAL;
+        }
+        return a->values[index];
     }
-    return a->values[index];
+    else
+    {
+        ObjLinkedList *l = AS_LINKED_LIST(args[0]);
+        int index = AS_INT(args[1]);
+        if (index < 0 || index >= l->count)
+        {
+            runtimeError("Index out of bounds.");
+            return NIL_VAL;
+        }
+        struct Node *node = l->head;
+        for (int i = 0; i < index; i++)
+        {
+            node = node->next;
+        }
+
+        return node->data;
+    }
 }
 
 Value is_empty_nf(int argCount, Value *args)

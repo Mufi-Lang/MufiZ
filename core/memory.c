@@ -108,6 +108,7 @@ static void blackenObject(Obj* object){
             for(int i = 0; i < array->count; i++){
                 markValue(array->values[i]);
             }
+            break;
         }
         case OBJ_LINKED_LIST:{
             ObjLinkedList* linkedList = (ObjLinkedList*)object;
@@ -116,10 +117,12 @@ static void blackenObject(Obj* object){
                 markValue(current->data);
                 current = current->next;
             }
+            break;
         }
         case OBJ_HASH_TABLE:{
             ObjHashTable* hashTable = (ObjHashTable*)object;
             markTable(&hashTable->table);
+            break;
         }
         case OBJ_NATIVE:
         case OBJ_STRING:
@@ -187,6 +190,7 @@ static void freeObject(Obj* object) {
         case OBJ_HASH_TABLE: {
             ObjHashTable* hashTable = (ObjHashTable*)object;
             freeObjectHashTable(hashTable);
+            break;
         }
     }
 }
