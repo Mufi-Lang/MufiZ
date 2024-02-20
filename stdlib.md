@@ -138,4 +138,19 @@
 - [X] `equal_list`
   - Return Type: bool
   - Parameters: array, linked_list
+- [X] `contains`
+  - Return Type: bool
+  - Parameters: array, linked_list, hash_table
+- [X] `len`
+  - Return Type: integer
+  - Parameters: array, linked_list, hash_table
+- [X] `range`
+  - Return Type: array
+  - Parameters: integer, integer
+- [ ] `reverse`
+  - Return Type: nil
+  - Parameters: array, linked_list
+- [ ] `search`
+  - Return Type: integer
+  - Parameters: array, linked_list
 

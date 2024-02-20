@@ -315,6 +315,37 @@ void freeObjectHashTable(ObjHashTable *table)
     FREE(ObjHashTable, table);
 }
 
+void reverseArray(ObjArray *array)
+{
+    int i = 0;
+    int j = array->count - 1;
+    while (i < j)
+    {
+        Value temp = array->values[i];
+        array->values[i] = array->values[j];
+        array->values[j] = temp;
+        i++;
+        j--;
+    }
+}
+
+void reverseLinkedList(ObjLinkedList *list)
+{
+    struct Node *current = list->head;
+    while (current != NULL)
+    {
+        struct Node *temp = current->prev;
+        current->prev = current->next;
+        current->next = temp;
+        current = current->prev;
+    }
+    struct Node *temp = current->prev;
+    if (temp != NULL)
+    {
+        list->head = temp->prev;
+    }
+}
+
 ObjBoundMethod *newBoundMethod(Value receiver, ObjClosure *method)
 {
     ObjBoundMethod *bound = ALLOCATE_OBJ(ObjBoundMethod, OBJ_BOUND_METHOD);

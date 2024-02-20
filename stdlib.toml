@@ -261,35 +261,29 @@ implemented = true
 name = "contains"
 return_type = "bool"
 parameters = ["array", "linked_list", "hash_table"]
-implemented = false
+implemented = true
 
 [["Collections"]]
 name = "len"
 return_type = "integer"
 parameters = ["array", "linked_list", "hash_table"]
-implemented = false
+implemented = true
 
 [["Collections"]]
 name = "range"
 return_type = "array"
 parameters = ["integer", "integer"]
-implemented = false
-
-[["Collections"]]
-name = "filter"
-return_type = "array"
-parameters = ["array", "linked_list"]
-implemented = false
+implemented = true
 
 [["Collections"]]
 name = "reverse"
 return_type = "nil"
 parameters = ["array", "linked_list"]
-implemented = false
+implemented = true
 
 [["Collections"]]
 name = "search"
 return_type = "integer"
 parameters = ["array", "linked_list"]
-implemented = false
+implemented = true
 

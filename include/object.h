@@ -160,6 +160,7 @@ ObjArray* newArray();
 void pushArray(ObjArray* array, Value value);
 Value popArray(ObjArray* array);
 void sortArray(ObjArray* array);
+void reverseArray(ObjArray* array);
 bool equalArray(ObjArray* a, ObjArray* b);
 void freeObjectArray(ObjArray* array);
 
@@ -171,6 +172,7 @@ Value popBack(ObjLinkedList* list);
 bool equalLinkedList(ObjLinkedList* a, ObjLinkedList* b);
 void freeObjectLinkedList(ObjLinkedList* list);
 void mergeSort(ObjLinkedList* list);
+void reverseLinkedList(ObjLinkedList* list);
 
 ObjHashTable* newHashTable();
 bool putHashTable(ObjHashTable* table, ObjString* key, Value value);
