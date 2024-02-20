@@ -1,11 +1,11 @@
 name: mufiz
-version: "0.5.0"
+version: "0.4.0"
 summary: The Official MufiZ compiler
 description: |
   MufiZ is a toy programming language that combines the power of a core bytecode compiler written in C, 
   and built alongside the Zig programming language.
 
-base: core20
+base: core22
 grade: stable
 confinement: strict
 
@@ -13,11 +13,12 @@ parts:
   mufiz:
     plugin: nil
     build-snaps:
-      - zig/0.11.0/beta
+      - zig/latest/beta
     source: .
     override-build: |
-      zig build -Doptimize=ReleaseSafe
+      zig build -Doptimize=ReleaseSafe 
+      cp zig-out/bin/mufiz $SNAPCRAFT_PART_INSTALL
 
 apps:
   mufiz:
-    command: zig-out/bin/mufiz
+    command: ./mufiz
