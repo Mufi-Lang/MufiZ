@@ -51,7 +51,6 @@ static void runtimeError(const char *format, ...)
     resetStack();
 }
 
-
 void defineNative(const char *name, NativeFn function)
 {
     push(OBJ_VAL(copyString(name, (int)strlen(name))));
@@ -62,9 +61,9 @@ void defineNative(const char *name, NativeFn function)
 }
 
 /*
- Native functions will be suffixed with _nf on the C side 
- to avoid any name conflicts. 
- All native functions defined here will be for the data structures. 
+ Native functions will be suffixed with _nf on the C side
+ to avoid any name conflicts.
+ All native functions defined here will be for the data structures.
 */
 
 Value array_nf(int argCount, Value *args)
@@ -254,6 +253,61 @@ Value is_empty_nf(int argCount, Value *args)
     }
 }
 
+Value sort_nf(int argCount, Value *args)
+{
+    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]))
+    {
+        runtimeError("First argument must be an array or linked list.");
+        return NIL_VAL;
+    }
+
+    if (IS_ARRAY(args[0]))
+    {
+
+        ObjArray *a = AS_ARRAY(args[0]);
+        sortArray(a);
+        return NIL_VAL;
+    }
+    else
+    {
+        ObjLinkedList *l = AS_LINKED_LIST(args[0]);
+        mergeSort(l);
+        return NIL_VAL;
+    }
+}
+
+Value equal_list_nf(int argCount, Value *args)
+{
+    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]))
+    {
+        runtimeError("First argument must be an array or linked list.");
+        return NIL_VAL;
+    }
+
+    if (IS_ARRAY(args[0]))
+    {
+        if (!IS_ARRAY(args[1]))
+        {
+            runtimeError("Second argument must be an array.");
+            return NIL_VAL;
+        }
+        ObjArray *a = AS_ARRAY(args[0]);
+        ObjArray *b = AS_ARRAY(args[1]);
+        return BOOL_VAL(equalArray(a, b));
+    }
+    else
+    {
+        if (!IS_LINKED_LIST(args[1]))
+        {
+            runtimeError("Second argument must be a linked list.");
+            return NIL_VAL;
+        }
+        ObjLinkedList *a = AS_LINKED_LIST(args[0]);
+        ObjLinkedList *b = AS_LINKED_LIST(args[1]);
+        return BOOL_VAL(equalLinkedList(a, b));
+    }
+}
+
 // Initializes the virtual machine
 void initVM(void)
 {
@@ -280,9 +334,11 @@ void initVM(void)
     defineNative("pop_front", pop_front_nf);
     defineNative("nth", nth_nf);
     defineNative("is_empty", is_empty_nf);
+    defineNative("sort", sort_nf);
     defineNative("put", put_nf);
     defineNative("get", get_nf);
     defineNative("remove", remove_nf);
+    defineNative("equal_list", equal_list_nf);
 }
 
 // Frees the virtual machine

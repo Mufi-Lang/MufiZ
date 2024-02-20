@@ -70,6 +70,7 @@ typedef struct {
 
 //> Evaluates if two values are equal to each other
 bool valuesEqual(Value a, Value b);
+int valueCompare(Value a, Value b);
 //> Creates a new empty value array
 void initValueArray(ValueArray* array);
 //> Appends to the end of a value array

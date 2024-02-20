@@ -55,6 +55,129 @@ Value popArray(ObjArray *array)
     return array->values[--array->count];
 }
 
+static int compareValues(const void *a, const void *b)
+{
+    if (IS_INT(*(Value *)a) && IS_INT(*(Value *)b))
+    {
+        return AS_INT(*(Value *)a) - AS_INT(*(Value *)b);
+    }
+    else if (IS_DOUBLE(*(Value *)a) && IS_DOUBLE(*(Value *)b))
+    {
+        return (int)(AS_DOUBLE(*(Value *)a) - AS_DOUBLE(*(Value *)b));
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+static struct Node *merge(struct Node *left, struct Node *right)
+{
+    if (left == NULL)
+        return right;
+    if (right == NULL)
+        return left;
+    if (valueCompare(left->data, right->data) < 0)
+    {
+        left->next = merge(left->next, right);
+        left->next->prev = left;
+        left->prev = NULL;
+        return left;
+    }
+    else
+    {
+        right->next = merge(left, right->next);
+        right->next->prev = right;
+        right->prev = NULL;
+        return right;
+    }
+}
+
+static void split(ObjLinkedList *list, ObjLinkedList *left, ObjLinkedList *right)
+{
+    int count = list->count;
+    int middle = count / 2;
+
+    left->head = list->head;
+    left->count = middle;
+    right->count = count - middle;
+
+    struct Node *current = list->head;
+    for (int i = 0; i < middle - 1; ++i)
+    {
+        current = current->next;
+    }
+
+    left->tail = current;
+    right->head = current->next;
+    current->next = NULL;
+    right->head->prev = NULL;
+}
+
+void mergeSort(ObjLinkedList *list)
+{
+    if (list->count < 2)
+    {
+        return;
+    }
+
+    ObjLinkedList left, right;
+    split(list, &left, &right);
+
+    mergeSort(&left);
+    mergeSort(&right);
+
+    list->head = merge(left.head, right.head);
+
+    struct Node *current = list->head;
+    while (current->next != NULL)
+    {
+        current = current->next;
+    }
+    list->tail = current;
+}
+
+void sortArray(ObjArray *array)
+{
+    qsort(array->values, array->count, sizeof(Value), compareValues);
+}
+
+bool equalArray(ObjArray *a, ObjArray *b)
+{
+    if (a->count != b->count)
+    {
+        return false;
+    }
+    for (int i = 0; i < a->count; i++)
+    {
+        if (!valuesEqual(a->values[i], b->values[i]))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool equalLinkedList(ObjLinkedList *a, ObjLinkedList *b)
+{
+    if (a->count != b->count)
+    {
+        return false;
+    }
+    struct Node *currentA = a->head;
+    struct Node *currentB = b->head;
+    while (currentA != NULL)
+    {
+        if (!valuesEqual(currentA->data, currentB->data))
+        {
+            return false;
+        }
+        currentA = currentA->next;
+        currentB = currentB->next;
+    }
+    return true;
+}
+
 void freeObjectArray(ObjArray *array)
 {
     FREE_ARRAY(Value, array->values, array->capacity);
@@ -376,7 +499,7 @@ void printObject(Value value)
     }
     case OBJ_HASH_TABLE:
     {
-        ObjHashTable* hashtable = AS_HASH_TABLE(value);
+        ObjHashTable *hashtable = AS_HASH_TABLE(value);
         printf("{");
         struct Entry *entries = hashtable->table.entries;
         int count = 0;

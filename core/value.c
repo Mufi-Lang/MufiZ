@@ -93,3 +93,43 @@ bool valuesEqual(Value a, Value b)
     }
     return false;
 }
+
+int valueCompare(Value a, Value b)
+{
+    if (a.type != b.type)
+        return -1;
+    switch (a.type)
+    {
+    case VAL_BOOL:
+        return AS_BOOL(a) - AS_BOOL(b);
+    case VAL_NIL:
+        return 0;
+    case VAL_INT:
+    {
+        int a1 = AS_INT(a);
+        int b1 = AS_INT(b);
+        if (a1 > b1)
+            return 1;
+        if (a1 < b1)
+            return -1;
+        if (a1 == b1)
+            return 0;
+        break;
+    }
+    case VAL_DOUBLE:
+    {
+        double a1 = AS_DOUBLE(a);
+        double b1 = AS_DOUBLE(b);
+        if (a1 > b1)
+            return 1;
+        if (a1 < b1)
+            return -1;
+        if (a1 == b1)
+            return 0;
+        break;
+    }
+    default:
+        return -1; // unreachable
+    }
+    return -1;
+}
