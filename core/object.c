@@ -61,6 +61,103 @@ void freeObjectArray(ObjArray *array)
     FREE(ObjArray, array);
 }
 
+ObjLinkedList *newLinkedList()
+{
+    ObjLinkedList *list = ALLOCATE_OBJ(ObjLinkedList, OBJ_LINKED_LIST);
+    list->head = NULL;
+    list->tail = NULL;
+    list->count = 0;
+    return list;
+}
+
+void pushFront(ObjLinkedList *list, Value value)
+{
+    struct Node *node = ALLOCATE(struct Node, 1);
+    node->data = value;
+    node->prev = NULL;
+    node->next = list->head;
+    if (list->head != NULL)
+    {
+        list->head->prev = node;
+    }
+    list->head = node;
+    if (list->tail == NULL)
+    {
+        list->tail = node;
+    }
+    list->count++;
+}
+void pushBack(ObjLinkedList *list, Value value)
+{
+    struct Node *node = ALLOCATE(struct Node, 1);
+    node->data = value;
+    node->prev = list->tail;
+    node->next = NULL;
+    if (list->tail != NULL)
+    {
+        list->tail->next = node;
+    }
+    list->tail = node;
+    if (list->head == NULL)
+    {
+        list->head = node;
+    }
+    list->count++;
+}
+Value popFront(ObjLinkedList *list)
+{
+    if (list->head == NULL)
+    {
+        return NIL_VAL;
+    }
+    struct Node *node = list->head;
+    Value data = node->data;
+    list->head = node->next;
+    if (list->head != NULL)
+    {
+        list->head->prev = NULL;
+    }
+    if (list->tail == node)
+    {
+        list->tail = NULL;
+    }
+    list->count--;
+    FREE(struct Node, node);
+    return data;
+}
+Value popBack(ObjLinkedList *list)
+{
+    if (list->tail == NULL)
+    {
+        return NIL_VAL;
+    }
+    struct Node *node = list->tail;
+    Value data = node->data;
+    list->tail = node->prev;
+    if (list->tail != NULL)
+    {
+        list->tail->next = NULL;
+    }
+    if (list->head == node)
+    {
+        list->head = NULL;
+    }
+    list->count--;
+    FREE(struct Node, node);
+    return data;
+}
+void freeObjectLinkedList(ObjLinkedList *list)
+{
+    struct Node *current = list->head;
+    while (current != NULL)
+    {
+        struct Node *next = current->next;
+        FREE(struct Node, current);
+        current = next;
+    }
+    FREE(ObjLinkedList, list);
+}
+
 ObjBoundMethod *newBoundMethod(Value receiver, ObjClosure *method)
 {
     ObjBoundMethod *bound = ALLOCATE_OBJ(ObjBoundMethod, OBJ_BOUND_METHOD);
@@ -223,6 +320,22 @@ void printObject(Value value)
             {
                 printf(", ");
             }
+        }
+        printf("]");
+        break;
+    }
+    case OBJ_LINKED_LIST:
+    {
+        printf("[");
+        struct Node *current = AS_LINKED_LIST(value)->head;
+        while (current != NULL)
+        {
+            printValue(current->data);
+            if (current->next != NULL)
+            {
+                printf(", ");
+            }
+            current = current->next;
         }
         printf("]");
         break;

@@ -109,6 +109,14 @@ static void blackenObject(Obj* object){
                 markValue(array->values[i]);
             }
         }
+        case OBJ_LINKED_LIST:{
+            ObjLinkedList* linkedList = (ObjLinkedList*)object;
+            struct Node* current = linkedList->head;
+            while(current != NULL){
+                markValue(current->data);
+                current = current->next;
+            }
+        }
         case OBJ_NATIVE:
         case OBJ_STRING:
             break;
@@ -165,6 +173,11 @@ static void freeObject(Obj* object) {
         case OBJ_ARRAY: {
             ObjArray* array = (ObjArray*)object;
             freeObjectArray(array);
+            break;
+        }
+        case OBJ_LINKED_LIST: {
+            ObjLinkedList* linkedList = (ObjLinkedList*)object;
+            freeObjectLinkedList(linkedList);
             break;
         }
     }

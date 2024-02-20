@@ -51,11 +51,6 @@ static void runtimeError(const char *format, ...)
     resetStack();
 }
 
-Value zero(int argCount, Value *args)
-{
-    return INT_VAL(0);
-}
-
 void defineNative(const char *name, NativeFn function)
 {
     push(OBJ_VAL(copyString(name, (int)strlen(name))));
@@ -65,44 +60,110 @@ void defineNative(const char *name, NativeFn function)
     pop();
 }
 
-Value array_nf(int argCount, Value* args){
-    ObjArray* a = newArray();
+Value array_nf(int argCount, Value *args)
+{
+    ObjArray *a = newArray();
     return OBJ_VAL(a);
 }
 
-Value push_nf(int argCount, Value* args){
-    if(!IS_ARRAY(args[0])){
-        runtimeError("First argument must be an array.");
+Value linkedlist_nf(int argCount, Value *args)
+{
+    ObjLinkedList *l = newLinkedList();
+    return OBJ_VAL(l);
+}
+
+Value push_nf(int argCount, Value *args)
+{
+    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]))
+    {
+        runtimeError("First argument must be an array or linked list.");
         return NIL_VAL;
     }
-    ObjArray* a = AS_ARRAY(args[0]);
-    for(int i = 1; i < argCount; i++){
-        pushArray(a, args[i]);
+
+    if (IS_ARRAY(args[0]))
+    {
+
+        ObjArray *a = AS_ARRAY(args[0]);
+        for (int i = 1; i < argCount; i++)
+        {
+            pushArray(a, args[i]);
+        }
+        return NIL_VAL;
+    }
+    else
+    {
+        ObjLinkedList *l = AS_LINKED_LIST(args[0]);
+        for (int i = 1; i < argCount; i++)
+        {
+            pushBack(l, args[i]);
+        }
+        return NIL_VAL;
+    }
+}
+
+Value push_front_nf(int argCount, Value *args)
+{
+    if (!IS_LINKED_LIST(args[0]))
+    {
+        runtimeError("First argument must be a linked list.");
+        return NIL_VAL;
+    }
+    ObjLinkedList *l = AS_LINKED_LIST(args[0]);
+    for (int i = 1; i < argCount; i++)
+    {
+        pushFront(l, args[i]);
     }
     return NIL_VAL;
 }
 
-Value pop_nf(int argCount, Value* args){
-    if(!IS_ARRAY(args[0])){
-        runtimeError("First argument must be an array.");
+Value pop_nf(int argCount, Value *args)
+{
+    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]))
+    {
+        runtimeError("First argument must be an array or linked list.");
         return NIL_VAL;
     }
-    ObjArray* a = AS_ARRAY(args[0]);
-    return popArray(a);
+
+    if (IS_ARRAY(args[0]))
+    {
+
+        ObjArray *a = AS_ARRAY(args[0]);
+        return popArray(a);
+    }
+    else
+    {
+        ObjLinkedList *l = AS_LINKED_LIST(args[0]);
+        return popBack(l);
+    }
 }
 
-Value nth_nf(int argCount, Value* args){
-    if(!IS_ARRAY(args[0])){
+Value pop_front_nf(int argCount, Value *args)
+{
+    if (!IS_LINKED_LIST(args[0]))
+    {
+        runtimeError("First argument must be a linked list.");
+        return NIL_VAL;
+    }
+    ObjLinkedList *l = AS_LINKED_LIST(args[0]);
+    return popFront(l);
+}
+
+Value nth_nf(int argCount, Value *args)
+{
+    if (!IS_ARRAY(args[0]))
+    {
         runtimeError("First argument must be an array.");
         return NIL_VAL;
     }
-    if(!IS_INT(args[1])){
+    if (!IS_INT(args[1]))
+    {
         runtimeError("Second argument must be an integer.");
         return NIL_VAL;
     }
-    ObjArray* a = AS_ARRAY(args[0]);
+    ObjArray *a = AS_ARRAY(args[0]);
     int index = AS_INT(args[1]);
-    if(index < 0 || index >= a->count){
+    if (index < 0 || index >= a->count)
+    {
         runtimeError("Index out of bounds.");
         return NIL_VAL;
     }
@@ -127,8 +188,11 @@ void initVM(void)
     vm.initString = copyString("init", 4);
 
     defineNative("array", array_nf);
+    defineNative("linked_list", linkedlist_nf);
     defineNative("push", push_nf);
+    defineNative("push_front", push_front_nf);
     defineNative("pop", pop_nf);
+    defineNative("pop_front", pop_front_nf);
     defineNative("nth", nth_nf);
 }
 

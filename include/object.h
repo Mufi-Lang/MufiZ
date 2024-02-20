@@ -26,6 +26,7 @@
 #define IS_NATIVE(value)       isObjType(value, OBJ_NATIVE)
 #define IS_STRING(value)       isObjType(value, OBJ_STRING)
 #define IS_ARRAY(value)        isObjType(value, OBJ_ARRAY)
+#define IS_LINKED_LIST(value)  isObjType(value, OBJ_LINKED_LIST)
 
 #define AS_BOUND_METHOD(value)  ((ObjBoundMethod*)AS_OBJ(value))
 #define AS_CLASS(value)        ((ObjClass*)AS_OBJ(value))
@@ -37,6 +38,7 @@
 #define AS_STRING(value)       ((ObjString*)AS_OBJ(value))
 #define AS_CSTRING(value)      (((ObjString*)AS_OBJ(value))->chars)
 #define AS_ARRAY(value)        ((ObjArray*)AS_OBJ(value))
+#define AS_LINKED_LIST(value)  ((ObjLinkedList*)AS_OBJ(value))
 
 typedef enum {
     OBJ_CLOSURE,
@@ -48,6 +50,7 @@ typedef enum {
     OBJ_BOUND_METHOD,
     OBJ_CLASS,
     OBJ_ARRAY, 
+    OBJ_LINKED_LIST
 } ObjType;
 
 struct Obj {
@@ -55,6 +58,21 @@ struct Obj {
     bool isMarked;
     struct Obj* next;
 };
+
+struct Node{
+    Value data;
+    struct Node* prev;
+    struct Node* next;
+};
+
+typedef struct
+{
+    Obj obj;
+    struct Node* head;
+    struct Node* tail;
+    int count;
+}ObjLinkedList;
+
 
 typedef struct{
     Obj obj;
@@ -128,10 +146,19 @@ uint64_t hashString(const char* key, int length);
 ObjString* takeString(char* chars, int length);
 ObjString* copyString(const char* chars, int length);
 ObjUpvalue* newUpvalue(Value* slot);
+
 ObjArray* newArray();
 void pushArray(ObjArray* array, Value value);
 Value popArray(ObjArray* array);
 void freeObjectArray(ObjArray* array);
+
+ObjLinkedList* newLinkedList();
+void pushFront(ObjLinkedList* list, Value value);
+void pushBack(ObjLinkedList* list, Value value);
+Value popFront(ObjLinkedList* list);
+Value popBack(ObjLinkedList* list);
+void freeObjectLinkedList(ObjLinkedList* list);
+
 void printObject(Value value);
 
 static inline bool isObjType(Value value, ObjType type) {
