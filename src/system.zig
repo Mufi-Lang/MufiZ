@@ -4,6 +4,7 @@ const core = @import("core");
 const vm_h = core.vm_h;
 const conv = @import("conv.zig");
 const builtin = @import("builtin");
+const GlobalAlloc = @import("main.zig").GlobalAlloc;
 
 const MAJOR: u8 = 0;
 const MINOR: u8 = 5;
@@ -21,6 +22,8 @@ pub const vopt = if (nostd) struct {
 };
 
 pub fn repl() !void {
+    var history = std.ArrayList([]u8).init(GlobalAlloc);
+    defer history.deinit();
     var buffer: [1024]u8 = undefined;
     var streamer = std.io.FixedBufferStream([]u8){ .buffer = &buffer, .pos = 0 };
     vopt.version();
@@ -28,7 +31,14 @@ pub fn repl() !void {
         std.debug.print("(mufi) >> ", .{});
         try std.io.getStdIn().reader().streamUntilDelimiter(streamer.writer(), '\n', 1024);
         var input = streamer.getWritten();
-        _ = vm_h.interpret(conv.cstr(input));
+        try history.append(streamer.getWritten());
+        if (std.mem.eql(u8, input, "history")) {
+            for (history.items, 0..) |item, i| {
+                std.debug.print("[{d}] {s}\n", .{ i, item });
+            }
+        } else {
+            _ = vm_h.interpret(conv.cstr(input));
+        }
         streamer.reset();
     }
 }
@@ -38,7 +48,7 @@ pub const Runner = struct {
     link: ?[]u8 = null,
     allocator: std.mem.Allocator,
 
-    const max_bytes: usize = 1048576;
+    const max_bytes: usize = @intCast(std.math.maxInt(u16));
     const Self = @This();
 
     pub fn init(allocator: std.mem.Allocator) Self {

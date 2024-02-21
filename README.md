@@ -26,7 +26,7 @@ $ mufiz --help
             Link another Mufi Script when interpreting
 
         --repl
-            Runs Mufi Repl system (Windows uses C bindings)
+            Runs Mufi Repl system
 ```
 
 ---
