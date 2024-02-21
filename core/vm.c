@@ -14,6 +14,34 @@
 // Global vm
 VM vm;
 
+// Initializes the history
+void initHistory(History* history)
+{
+    history->capacity = 0;
+    history->count = 0;
+    history->items = NULL;
+}
+
+// Frees the history
+void freeHistory(History* history)
+{
+    FREE_ARRAY(char *, history->items, history->capacity);
+    initHistory(history);
+}
+
+// Adds a line to the history
+void writeHistory(History* history, char *line)
+{
+    if (history->capacity < history->count + 1)
+    {
+        int oldCapacity = history->capacity;
+        history->capacity = GROW_CAPACITY(oldCapacity);
+        history->items = GROW_ARRAY(char *, history->items, oldCapacity, history->capacity);
+    }
+    history->items[history->count] = line;
+    history->count++;
+}
+
 // Resets the stack
 static void resetStack()
 {
@@ -472,6 +500,23 @@ Value search_nf(int argCount, Value *args)
     }
 }
 
+Value history_nf(int argCount, Value *args)
+{
+    if (argCount == 0)
+    {
+        for (int i = 0; i < vm.history.count; i++)
+        {
+            printf("[%d]: %s\n", i + 1, vm.history.items[i]);
+        }
+        return NIL_VAL;
+    }
+    else
+    {
+        runtimeError("history() takes no arguments.");
+        return NIL_VAL;
+    }
+}
+
 // Initializes the virtual machine
 void initVM(void)
 {
@@ -485,6 +530,7 @@ void initVM(void)
 
     initTable(&vm.globals);
     initTable(&vm.strings);
+    initHistory(&vm.history);
 
     vm.initString = NULL;
     vm.initString = copyString("init", 4);
@@ -508,6 +554,7 @@ void initVM(void)
     defineNative("range", range_nf);
     defineNative("reverse", reverse_nf);
     defineNative("search", search_nf);
+    defineNative("history", history_nf);
 }
 
 // Frees the virtual machine
@@ -517,6 +564,7 @@ void freeVM(void)
     freeTable(&vm.strings);
     vm.initString = NULL;
     freeObjects();
+    freeHistory(&vm.history);
 }
 
 // Pops value off of the stack
@@ -1185,6 +1233,7 @@ static InterpretResult run()
 // Interprets the chunks
 InterpretResult interpret(const char *source)
 {
+    writeHistory(&vm.history, (char*)source);
     ObjFunction *function = compile(source);
     if (function == NULL)
         return INTERPRET_COMPILE_ERROR;

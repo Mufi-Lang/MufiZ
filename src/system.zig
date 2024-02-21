@@ -22,8 +22,6 @@ pub const vopt = if (nostd) struct {
 };
 
 pub fn repl() !void {
-    var history = std.ArrayList([]u8).init(GlobalAlloc);
-    defer history.deinit();
     var buffer: [1024]u8 = undefined;
     var streamer = std.io.FixedBufferStream([]u8){ .buffer = &buffer, .pos = 0 };
     vopt.version();
@@ -31,14 +29,7 @@ pub fn repl() !void {
         std.debug.print("(mufi) >> ", .{});
         try std.io.getStdIn().reader().streamUntilDelimiter(streamer.writer(), '\n', 1024);
         var input = streamer.getWritten();
-        try history.append(streamer.getWritten());
-        if (std.mem.eql(u8, input, "history")) {
-            for (history.items, 0..) |item, i| {
-                std.debug.print("[{d}] {s}\n", .{ i, item });
-            }
-        } else {
-            _ = vm_h.interpret(conv.cstr(input));
-        }
+        _ = vm_h.interpret(conv.cstr(input));
         streamer.reset();
     }
 }
