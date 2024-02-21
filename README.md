@@ -1,5 +1,7 @@
 # MufiZ
 
+[![mufiz](https://snapcraft.io/mufiz/badge.svg)](https://snapcraft.io/mufiz)
+
 > This project uses the Zig `v0.11.0`
 
 This project aims to integrate the Mufi-Lang compiler with the Zig language by using the 
