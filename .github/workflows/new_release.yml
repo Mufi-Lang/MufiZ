@@ -9,7 +9,7 @@ on:
       - main
 
 env:
-  codename: 'voxl'
+  codename: 'luna'
 
 jobs:
   build:
@@ -49,8 +49,8 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           token: ${{secrets.SECRET}}
-          tag_name: v0.4.0
-          name: v0.4.0 ${{env.codename}} Release
+          tag_name: v0.5.0
+          name: v0.5.0 ${{env.codename}} Release
           generate_release_notes: true
           draft: true
           prerelease: false
