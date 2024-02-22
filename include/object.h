@@ -157,6 +157,8 @@ ObjString* copyString(const char* chars, int length);
 ObjUpvalue* newUpvalue(Value* slot);
 
 ObjArray* newArray();
+ObjArray* newArrayWithCap(int capacity);
+ObjArray* mergeArrays(ObjArray* a, ObjArray* b);
 void pushArray(ObjArray* array, Value value);
 Value popArray(ObjArray* array);
 void sortArray(ObjArray* array);

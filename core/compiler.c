@@ -867,6 +867,8 @@ static void function(FunctionType type)
     }
 }
 
+
+
 static void method()
 {
     consume(TOKEN_IDENTIFIER, "Expect method name.");

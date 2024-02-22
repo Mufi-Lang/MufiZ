@@ -8,14 +8,13 @@
 #include "../include/vm.h"
 #include "../include/debug.h"
 #include "../include/memory.h"
-#include "../include/object.h"
 #include "../include/value.h"
 
 // Global vm
 VM vm;
 
 // Initializes the history
-void initHistory(History* history)
+void initHistory(History *history)
 {
     history->capacity = 0;
     history->count = 0;
@@ -23,14 +22,14 @@ void initHistory(History* history)
 }
 
 // Frees the history
-void freeHistory(History* history)
+void freeHistory(History *history)
 {
     FREE_ARRAY(char *, history->items, history->capacity);
     initHistory(history);
 }
 
 // Adds a line to the history
-void writeHistory(History* history, char *line)
+void writeHistory(History *history, char *line)
 {
     if (history->capacity < history->count + 1)
     {
@@ -96,8 +95,26 @@ void defineNative(const char *name, NativeFn function)
 
 Value array_nf(int argCount, Value *args)
 {
-    ObjArray *a = newArray();
-    return OBJ_VAL(a);
+    if (argCount == 0)
+    {
+        ObjArray *a = newArray();
+        return OBJ_VAL(a);
+    }
+    else if (argCount == 1)
+    {
+        if (!IS_INT(args[0]))
+        {
+            runtimeError("First argument must be an integer.");
+            return NIL_VAL;
+        }
+        ObjArray *a = newArrayWithCap(AS_INT(args[0]));
+        return OBJ_VAL(a);
+    }
+    else
+    {
+        runtimeError("array() takes 0 or 1 argument.");
+        return NIL_VAL;
+    }
 }
 
 Value linkedlist_nf(int argCount, Value *args)
@@ -1012,9 +1029,25 @@ static InterpretResult run()
         }
         case OP_EQUAL:
         {
-            Value b = pop();
-            Value a = pop();
-            push(BOOL_VAL(valuesEqual(a, b)));
+            if (IS_ARRAY(peek(0)) && IS_ARRAY(peek(1)))
+            {
+                ObjArray *b = AS_ARRAY(pop());
+                ObjArray *a = AS_ARRAY(pop());
+                push(BOOL_VAL(equalArray(a, b)));
+            }
+            else if (IS_LINKED_LIST(peek(0)) && IS_LINKED_LIST(peek(1)))
+            {
+                ObjLinkedList *b = AS_LINKED_LIST(pop());
+                ObjLinkedList *a = AS_LINKED_LIST(pop());
+                push(BOOL_VAL(equalLinkedList(a, b)));
+            }
+            else
+            {
+                Value b = pop();
+                Value a = pop();
+                push(BOOL_VAL(valuesEqual(a, b)));
+            }
+
             break;
         }
         case OP_GREATER:
@@ -1032,6 +1065,13 @@ static InterpretResult run()
             else if (IS_COMPLEX(peek(0)) && IS_COMPLEX(peek(1)))
             {
                 complex_add();
+            }
+            else if (IS_ARRAY(peek(0)) && IS_ARRAY(peek(1)))
+            {
+                ObjArray *b = AS_ARRAY(pop());
+                ObjArray *a = AS_ARRAY(pop());
+                ObjArray *merged = mergeArrays(a, b);
+                push(OBJ_VAL(merged));
             }
             else
             {
@@ -1069,7 +1109,7 @@ static InterpretResult run()
                 BINARY_OP(/);
             }
             break;
-        case OP_MODULO: 
+        case OP_MODULO:
         {
             if (IS_INT(peek(0)) && IS_INT(peek(1)))
             {
@@ -1248,7 +1288,7 @@ static InterpretResult run()
 // Interprets the chunks
 InterpretResult interpret(const char *source)
 {
-    writeHistory(&vm.history, (char*)source);
+    writeHistory(&vm.history, (char *)source);
     ObjFunction *function = compile(source);
     if (function == NULL)
         return INTERPRET_COMPILE_ERROR;

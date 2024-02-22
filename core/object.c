@@ -35,6 +35,26 @@ ObjArray *newArray()
     return array;
 }
 
+ObjArray *newArrayWithCap(int capacity)
+{
+    ObjArray *array = ALLOCATE_OBJ(ObjArray, OBJ_ARRAY);
+    array->capacity = capacity;
+    array->count = 0;
+    array->values = ALLOCATE(Value, capacity);
+    return array;
+}
+
+ObjArray* mergeArrays(ObjArray* a, ObjArray* b){
+    ObjArray* newArray = newArrayWithCap(a->count + b->count);
+    for(int i = 0; i < a->count; i++){
+        pushArray(newArray, a->values[i]);
+    }
+    for(int i = 0; i < b->count; i++){
+        pushArray(newArray, b->values[i]);
+    }
+    return newArray;
+}
+
 void pushArray(ObjArray *array, Value value)
 {
     if (array->capacity < array->count + 1)
