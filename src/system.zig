@@ -4,12 +4,12 @@ const core = @import("core");
 const vm_h = core.vm_h;
 const conv = @import("conv.zig");
 const builtin = @import("builtin");
-
+const GlobalAlloc = @import("main.zig").GlobalAlloc;
 
 const MAJOR: u8 = 0;
-const MINOR: u8 = 4;
+const MINOR: u8 = 5;
 const PATCH: u8 = 0;
-const CODENAME: []const u8 = "Voxl";
+const CODENAME: []const u8 = "Luna";
 
 pub const vopt = if (nostd) struct {
     pub inline fn version() void {
@@ -39,7 +39,7 @@ pub const Runner = struct {
     link: ?[]u8 = null,
     allocator: std.mem.Allocator,
 
-    const max_bytes: usize = 1048576;
+    const max_bytes: usize = @intCast(std.math.maxInt(u16));
     const Self = @This();
 
     pub fn init(allocator: std.mem.Allocator) Self {

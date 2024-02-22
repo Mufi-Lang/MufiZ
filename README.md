@@ -1,5 +1,7 @@
 # MufiZ
 
+[![mufiz](https://snapcraft.io/mufiz/badge.svg)](https://snapcraft.io/mufiz)
+
 > This project uses the Zig `v0.11.0`
 
 This project aims to integrate the Mufi-Lang compiler with the Zig language by using the 
@@ -26,7 +28,7 @@ $ mufiz --help
             Link another Mufi Script when interpreting
 
         --repl
-            Runs Mufi Repl system (Windows uses C bindings)
+            Runs Mufi Repl system
 ```
 
 ---
@@ -92,35 +94,39 @@ the other `Release*` optimize modes with command `zig build -Doptimize=`.
 | 0.2.0   | [Zula](https://github.com/Mustafif/MufiZ/releases/tag/v0.2.0) | Released |
 | 0.3.0   | [Iris](https://github.com/Mustafif/MufiZ/releases/tag/v0.3.0) | Released |
 | 0.4.0   | [Voxl](https://github.com/Mustafif/MufiZ/releases/tag/v0.4.0) | Released |
+| 0.5.0  | [Luna](https://github.com/Mustafif/MufiZ/releases/tag/v0.5.0)  | Released |
 
+[![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-black.svg)](https://snapcraft.io/mufiz)
 ---
 
 ## Supported Platforms
 
-| Target                 | Deb Package        | RPM Package        |
-| ---------------------- | ------------------ | ------------------ |
-| aarch64-linux-gnu      | :white_check_mark: | :white_check_mark: |
-| aarch64-linux-musl     | :white_check_mark: | :white_check_mark: |
-| aarch64-macos          | :x:                | :x:                |
-| aarch64-windows        | :x:                | :x:                |
-| aarch64-windows-gnu    | :x:                | :x:                |
-| arm-linux-gnueabi      | :white_check_mark: | :white_check_mark: |
-| arm-linux-gnueabihf    | :white_check_mark: | :white_check_mark: |
-| arm-linux-musleabi     | :white_check_mark: | :white_check_mark: |
-| arm-linux-musleabihf   | :white_check_mark: | :white_check_mark: |
-| mips64-linux-musl      | :white_check_mark: | :white_check_mark: |
-| mips64el-linux-musl    | :white_check_mark: | :white_check_mark: |
-| mipsel-linux-musl      | :white_check_mark: | :white_check_mark: |
-| mips-linux-musl        | :white_check_mark: | :white_check_mark: |
-| powerpc64-linux-gnu    | :white_check_mark: | :white_check_mark: |
-| powerpc64-linux-musl   | :white_check_mark: | :white_check_mark: |
-| powerpc-linux-musl     | :white_check_mark: | :white_check_mark: |
-| powerpc64le-linux-gnu  | :white_check_mark: | :white_check_mark: |
-| powerpc64le-linux-musl | :white_check_mark: | :white_check_mark: |
-| riscv64-linux-musl     | :white_check_mark: | :white_check_mark: |
-| wasm32-wasi            | :x:                | :x:                |
-| x86_64-linux-gnu       | :white_check_mark: | :white_check_mark: |
-| x86_64-linux-musl      | :white_check_mark: | :white_check_mark: |
-| x86_64-macos           | :x:                | :x:                |
-| x86_64-windows         | :x:                | :x:                |
-| x86_64-windows-gnu     | :x:                | :x:                |
+| Target                 | Deb Package        | RPM Package        | Snap Package       |
+| ---------------------- | ------------------ | ------------------ | ------------------ |
+| aarch64-linux-gnu      | :white_check_mark: | :white_check_mark: | :x:                |
+| aarch64-linux-musl     | :white_check_mark: | :white_check_mark: | :x:                |
+| aarch64-macos          | :x:                | :x:                | :x:                |
+| aarch64-windows        | :x:                | :x:                | :x:                |
+| aarch64-windows-gnu    | :x:                | :x:                | :x:                |
+| arm-linux-gnueabi      | :white_check_mark: | :white_check_mark: | :x:                |
+| arm-linux-gnueabihf    | :white_check_mark: | :white_check_mark: | :x:                |
+| arm-linux-musleabi     | :white_check_mark: | :white_check_mark: | :x:                |
+| arm-linux-musleabihf   | :white_check_mark: | :white_check_mark: | :x:                |
+| mips64-linux-musl      | :white_check_mark: | :white_check_mark: | :x:                |
+| mips64el-linux-musl    | :white_check_mark: | :white_check_mark: | :x:                |
+| mipsel-linux-musl      | :white_check_mark: | :white_check_mark: | :x:                |
+| mips-linux-musl        | :white_check_mark: | :white_check_mark: | :x:                |
+| powerpc64-linux-gnu    | :white_check_mark: | :white_check_mark: | :x:                |
+| powerpc64-linux-musl   | :white_check_mark: | :white_check_mark: | :x:                |
+| powerpc-linux-musl     | :white_check_mark: | :white_check_mark: | :x:                |
+| powerpc64le-linux-gnu  | :white_check_mark: | :white_check_mark: | :x:                |
+| powerpc64le-linux-musl | :white_check_mark: | :white_check_mark: | :x:                |
+| riscv64-linux-musl     | :white_check_mark: | :white_check_mark: | :x:                |
+| wasm32-wasi            | :x:                | :x:                | :x:                |
+| x86_64-linux-gnu       | :white_check_mark: | :white_check_mark: | :white_check_mark: |
+| x86_64-linux-musl      | :white_check_mark: | :white_check_mark: | :white_check_mark: |
+| x86_64-macos           | :x:                | :x:                | :x:                |
+| x86_64-windows         | :x:                | :x:                | :x:                |
+| x86_64-windows-gnu     | :x:                | :x:                | :x:                |
+
+> Currently `snap` packages are only for `x86_64-linux-gnu` and `x86_64-linux-musl` targets. I hope to expand this to more targets for the next release using the `snapcraft` automatic build system.

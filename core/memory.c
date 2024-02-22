@@ -103,6 +103,27 @@ static void blackenObject(Obj* object){
         case OBJ_UPVALUE:
             markValue(((ObjUpvalue*)object)->closed);
             break;
+        case OBJ_ARRAY:{
+            ObjArray* array = (ObjArray*)object;
+            for(int i = 0; i < array->count; i++){
+                markValue(array->values[i]);
+            }
+            break;
+        }
+        case OBJ_LINKED_LIST:{
+            ObjLinkedList* linkedList = (ObjLinkedList*)object;
+            struct Node* current = linkedList->head;
+            while(current != NULL){
+                markValue(current->data);
+                current = current->next;
+            }
+            break;
+        }
+        case OBJ_HASH_TABLE:{
+            ObjHashTable* hashTable = (ObjHashTable*)object;
+            markTable(&hashTable->table);
+            break;
+        }
         case OBJ_NATIVE:
         case OBJ_STRING:
             break;
@@ -154,6 +175,21 @@ static void freeObject(Obj* object) {
         }
         case OBJ_UPVALUE: {
             FREE(ObjUpvalue, object);
+            break;
+        }
+        case OBJ_ARRAY: {
+            ObjArray* array = (ObjArray*)object;
+            freeObjectArray(array);
+            break;
+        }
+        case OBJ_LINKED_LIST: {
+            ObjLinkedList* linkedList = (ObjLinkedList*)object;
+            freeObjectLinkedList(linkedList);
+            break;
+        }
+        case OBJ_HASH_TABLE: {
+            ObjHashTable* hashTable = (ObjHashTable*)object;
+            freeObjectHashTable(hashTable);
             break;
         }
     }

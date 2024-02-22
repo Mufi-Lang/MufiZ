@@ -94,3 +94,63 @@
   - Return Type: bool
   - Parameters: string
 
+## Collections
+
+- [X] `array`
+  - Return Type: array
+  - Parameters: nil
+- [X] `linked_list`
+  - Return Type: linked_list
+  - Parameters: nil
+- [X] `hash_table`
+  - Return Type: hash_table
+  - Parameters: nil
+- [X] `push`
+  - Return Type: nil
+  - Parameters: array, linked_list
+- [X] `push_front`
+  - Return Type: nil
+  - Parameters: linked_list
+- [X] `pop`
+  - Return Type: any
+  - Parameters: array, linked_list
+- [X] `pop_front`
+  - Return Type: any
+  - Parameters: linked_list
+- [X] `nth`
+  - Return Type: any
+  - Parameters: array
+- [X] `is_empty`
+  - Return Type: bool
+  - Parameters: array, linked_list
+- [X] `sort`
+  - Return Type: nil
+  - Parameters: array, linked_list
+- [X] `put`
+  - Return Type: nil
+  - Parameters: hash_table
+- [X] `get`
+  - Return Type: any
+  - Parameters: hash_table
+- [X] `remove`
+  - Return Type: nil
+  - Parameters: hash_table
+- [X] `equal_list`
+  - Return Type: bool
+  - Parameters: array, linked_list
+- [X] `contains`
+  - Return Type: bool
+  - Parameters: array, linked_list, hash_table
+- [X] `len`
+  - Return Type: integer
+  - Parameters: array, linked_list, hash_table
+- [X] `range`
+  - Return Type: array
+  - Parameters: integer, integer
+- [X] `reverse`
+  - Return Type: nil
+  - Parameters: array, linked_list
+- [X] `search`
+  - Return Type: integer
+  - Parameters: array, linked_list
+

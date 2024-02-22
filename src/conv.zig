@@ -115,11 +115,15 @@ pub fn double_val(f: f64) Value {
 }
 
 pub fn obj_val(o: ?*Obj) Value {
-    return .{ .type = VAL_OBJ, .as = .{ .obj = o } };
+    return .{ .type = VAL_OBJ, .as = .{ .obj = @ptrCast(o) } };
 }
 
 pub fn is_obj_type(val: Value, ty: ObjType) bool {
     return is_obj(val) and as_obj(val).?.type == ty;
+}
+
+pub fn is_string(val: Value) bool {
+    return is_obj(val) and is_obj_type(val, object_h.OBJ_STRING);
 }
 
 pub fn as_string(val: Value) ?*ObjString {

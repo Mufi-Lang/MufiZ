@@ -13,9 +13,8 @@ fn memcmp(s1: ?*const anyopaque, s2: ?*const anyopaque, n: usize) c_int {
 }
 
 fn strlen(s: [*c]const u8) usize {
-    var len: usize = 0;
-    while (s[len] != 0) : (len += 1) {}
-    return len;
+    var str: *[]u8 = @constCast(@ptrCast(@alignCast(s)));
+    return str.*.len;
 }
 
 pub const TokenType = enum(c_int) {
@@ -31,41 +30,48 @@ pub const TokenType = enum(c_int) {
     TOKEN_SEMICOLON = 8,
     TOKEN_SLASH = 9,
     TOKEN_STAR = 10,
+    TOKEN_PERCENT = 11,
     // One or more character tokens
-    TOKEN_BANG = 11,
-    TOKEN_BANG_EQUAL = 12,
-    TOKEN_EQUAL = 13,
-    TOKEN_EQUAL_EQUAL = 14,
-    TOKEN_GREATER = 15,
-    TOKEN_GREATER_EQUAL = 16,
-    TOKEN_LESS = 17,
-    TOKEN_LESS_EQUAL = 18,
+    TOKEN_BANG = 12,
+    TOKEN_BANG_EQUAL = 13,
+    TOKEN_EQUAL = 14,
+    TOKEN_EQUAL_EQUAL = 15,
+    TOKEN_GREATER = 16,
+    TOKEN_GREATER_EQUAL = 17,
+    TOKEN_LESS = 18,
+    TOKEN_LESS_EQUAL = 19,
     // Literals
-    TOKEN_IDENTIFIER = 19,
-    TOKEN_STRING = 20,
-    TOKEN_DOUBLE = 21,
-    TOKEN_INT = 22,
+    TOKEN_IDENTIFIER = 20,
+    TOKEN_STRING = 21,
+    TOKEN_DOUBLE = 22,
+    TOKEN_INT = 23,
     // Keywords
-    TOKEN_AND = 23,
-    TOKEN_CLASS = 24,
-    TOKEN_ELSE = 25,
-    TOKEN_FALSE = 26,
-    TOKEN_FOR = 27,
-    TOKEN_FUN = 28,
-    TOKEN_IF = 29,
-    TOKEN_LET = 30,
-    TOKEN_NIL = 31,
-    TOKEN_OR = 32,
-    TOKEN_PRINT = 33,
-    TOKEN_RETURN = 34,
-    TOKEN_SELF = 35,
-    TOKEN_SUPER = 36,
-    TOKEN_TRUE = 37,
-    TOKEN_VAR = 38,
-    TOKEN_WHILE = 39,
-    //Misc
-    TOKEN_ERROR = 40,
-    TOKEN_EOF = 41,
+    TOKEN_AND = 24,
+    TOKEN_CLASS = 25,
+    TOKEN_ELSE = 26,
+    TOKEN_FALSE = 27,
+    TOKEN_FOR = 28,
+    TOKEN_FUN = 29,
+    TOKEN_IF = 30,
+    TOKEN_LET = 31,
+    TOKEN_NIL = 32,
+    TOKEN_OR = 33,
+    TOKEN_PRINT = 34,
+    TOKEN_RETURN = 35,
+    TOKEN_SELF = 36,
+    TOKEN_SUPER = 37,
+    TOKEN_TRUE = 38,
+    TOKEN_VAR = 39,
+    TOKEN_WHILE = 40,
+    // Misc
+    TOKEN_ERROR = 41,
+    TOKEN_EOF = 42,
+    TOKEN_PLUS_EQUAL = 43,
+    TOKEN_MINUS_EQUAL = 44,
+    TOKEN_STAR_EQUAL = 45,
+    TOKEN_SLASH_EQUAL = 46,
+    TOKEN_PLUS_PLUS = 47,
+    TOKEN_MINUS_MINUS = 48,
 };
 
 pub const Token = extern struct {
@@ -162,7 +168,7 @@ pub export fn checkKeyword(arg_start: c_int, arg_length: c_int, arg_rest: [*c]co
     var length = arg_length;
     var rest = arg_rest;
     var @"type" = arg_type;
-    if (@intFromPtr(scanner.current) - @intFromPtr(scanner.start) == start + length and memcmp(@ptrCast(@as([*c]u8, @ptrFromInt(@intFromPtr(scanner.start) + @as(usize, @intCast(start))))), @ptrCast(rest), @intCast(length)) == 0 ) {
+    if (@intFromPtr(scanner.current) - @intFromPtr(scanner.start) == start + length and memcmp(@ptrCast(@as([*c]u8, @ptrFromInt(@intFromPtr(scanner.start) + @as(usize, @intCast(start))))), @ptrCast(rest), @intCast(length)) == 0) {
         return @"type";
     }
     return .TOKEN_IDENTIFIER;
@@ -235,7 +241,7 @@ pub export fn __scanner__number() callconv(.C) Token {
 
 pub export fn __scanner__string() callconv(.C) Token {
     while (peek() != '"' and !isAtEnd()) {
-        if (peek() ==  '\n') {
+        if (peek() == '\n') {
             scanner.line += 1;
         }
         _ = __scanner__advance();
@@ -262,10 +268,30 @@ pub export fn scanToken() Token {
         ';' => return makeToken(.TOKEN_SEMICOLON),
         ',' => return makeToken(.TOKEN_COMMA),
         '.' => return makeToken(.TOKEN_DOT),
-        '-' => return makeToken(.TOKEN_MINUS),
-        '+' => return makeToken(.TOKEN_PLUS),
-        '/' => return makeToken(.TOKEN_SLASH),
-        '*' => return makeToken(.TOKEN_STAR),
+        '-' => {
+            if (__scanner__match('=')) {
+                return makeToken(.TOKEN_MINUS_EQUAL);
+            } else if (__scanner__match('-')) {
+                return makeToken(.TOKEN_MINUS_MINUS);
+            } else {
+                return makeToken(.TOKEN_MINUS);
+            }
+        },
+        '+' => {
+            if (__scanner__match('=')) {
+                return makeToken(.TOKEN_PLUS_EQUAL);
+            } else if (__scanner__match('+')) {
+                return makeToken(.TOKEN_PLUS_PLUS);
+            } else {
+                return makeToken(.TOKEN_PLUS);
+            }
+        },
+        '/' => {
+            if (__scanner__match('=')) return makeToken(.TOKEN_SLASH_EQUAL) else return makeToken(.TOKEN_SLASH);
+        },
+        '*' => {
+            if (__scanner__match('=')) return makeToken(.TOKEN_STAR_EQUAL) else return makeToken(.TOKEN_STAR);
+        },
         '!' => {
             if (__scanner__match('=')) return makeToken(.TOKEN_BANG_EQUAL) else return makeToken(.TOKEN_BANG);
         },
@@ -278,6 +304,7 @@ pub export fn scanToken() Token {
         '>' => {
             if (__scanner__match('=')) return makeToken(.TOKEN_GREATER_EQUAL) else return makeToken(.TOKEN_GREATER);
         },
+        '%' => return makeToken(.TOKEN_PERCENT),
         '"' => return __scanner__string(),
         else => {},
     }

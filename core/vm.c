@@ -14,6 +14,34 @@
 // Global vm
 VM vm;
 
+// Initializes the history
+void initHistory(History* history)
+{
+    history->capacity = 0;
+    history->count = 0;
+    history->items = NULL;
+}
+
+// Frees the history
+void freeHistory(History* history)
+{
+    FREE_ARRAY(char *, history->items, history->capacity);
+    initHistory(history);
+}
+
+// Adds a line to the history
+void writeHistory(History* history, char *line)
+{
+    if (history->capacity < history->count + 1)
+    {
+        int oldCapacity = history->capacity;
+        history->capacity = GROW_CAPACITY(oldCapacity);
+        history->items = GROW_ARRAY(char *, history->items, oldCapacity, history->capacity);
+    }
+    history->items[history->count] = line;
+    history->count++;
+}
+
 // Resets the stack
 static void resetStack()
 {
@@ -51,11 +79,6 @@ static void runtimeError(const char *format, ...)
     resetStack();
 }
 
-Value zero(int argCount, Value *args)
-{
-    return INT_VAL(0);
-}
-
 void defineNative(const char *name, NativeFn function)
 {
     push(OBJ_VAL(copyString(name, (int)strlen(name))));
@@ -63,6 +86,435 @@ void defineNative(const char *name, NativeFn function)
     tableSet(&vm.globals, AS_STRING(vm.stack[0]), vm.stack[1]);
     pop();
     pop();
+}
+
+/*
+ Native functions will be suffixed with _nf on the C side
+ to avoid any name conflicts.
+ All native functions defined here will be for the data structures.
+*/
+
+Value array_nf(int argCount, Value *args)
+{
+    ObjArray *a = newArray();
+    return OBJ_VAL(a);
+}
+
+Value linkedlist_nf(int argCount, Value *args)
+{
+    ObjLinkedList *l = newLinkedList();
+    return OBJ_VAL(l);
+}
+
+Value hashtable_nf(int argCount, Value *args)
+{
+    ObjHashTable *h = newHashTable();
+    return OBJ_VAL(h);
+}
+
+Value put_nf(int argCount, Value *args)
+{
+    if (!IS_HASH_TABLE(args[0]))
+    {
+        runtimeError("First argument must be a hash table.");
+        return NIL_VAL;
+    }
+    if (!IS_STRING(args[1]))
+    {
+        runtimeError("Second argument must be a string.");
+        return NIL_VAL;
+    }
+    ObjHashTable *h = AS_HASH_TABLE(args[0]);
+    ObjString *key = AS_STRING(args[1]);
+    return BOOL_VAL(putHashTable(h, key, args[2]));
+}
+
+Value get_nf(int argCount, Value *args)
+{
+    if (!IS_HASH_TABLE(args[0]))
+    {
+        runtimeError("First argument must be a hash table.");
+        return NIL_VAL;
+    }
+    if (!IS_STRING(args[1]))
+    {
+        runtimeError("Second argument must be a string.");
+        return NIL_VAL;
+    }
+    ObjHashTable *h = AS_HASH_TABLE(args[0]);
+    ObjString *key = AS_STRING(args[1]);
+    return getHashTable(h, key);
+}
+
+Value remove_nf(int argCount, Value *args)
+{
+    if (!IS_HASH_TABLE(args[0]))
+    {
+        runtimeError("First argument must be a hash table.");
+        return NIL_VAL;
+    }
+    if (!IS_STRING(args[1]))
+    {
+        runtimeError("Second argument must be a string.");
+        return NIL_VAL;
+    }
+    ObjHashTable *h = AS_HASH_TABLE(args[0]);
+    ObjString *key = AS_STRING(args[1]);
+    return BOOL_VAL(removeHashTable(h, key));
+}
+
+Value push_nf(int argCount, Value *args)
+{
+    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]))
+    {
+        runtimeError("First argument must be an array or linked list.");
+        return NIL_VAL;
+    }
+
+    if (IS_ARRAY(args[0]))
+    {
+
+        ObjArray *a = AS_ARRAY(args[0]);
+        for (int i = 1; i < argCount; i++)
+        {
+            pushArray(a, args[i]);
+        }
+        return NIL_VAL;
+    }
+    else
+    {
+        ObjLinkedList *l = AS_LINKED_LIST(args[0]);
+        for (int i = 1; i < argCount; i++)
+        {
+            pushBack(l, args[i]);
+        }
+        return NIL_VAL;
+    }
+}
+
+Value push_front_nf(int argCount, Value *args)
+{
+    if (!IS_LINKED_LIST(args[0]))
+    {
+        runtimeError("First argument must be a linked list.");
+        return NIL_VAL;
+    }
+    ObjLinkedList *l = AS_LINKED_LIST(args[0]);
+    for (int i = 1; i < argCount; i++)
+    {
+        pushFront(l, args[i]);
+    }
+    return NIL_VAL;
+}
+
+Value pop_nf(int argCount, Value *args)
+{
+    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]))
+    {
+        runtimeError("First argument must be an array or linked list.");
+        return NIL_VAL;
+    }
+
+    if (IS_ARRAY(args[0]))
+    {
+
+        ObjArray *a = AS_ARRAY(args[0]);
+        return popArray(a);
+    }
+    else
+    {
+        ObjLinkedList *l = AS_LINKED_LIST(args[0]);
+        return popBack(l);
+    }
+}
+
+Value pop_front_nf(int argCount, Value *args)
+{
+    if (!IS_LINKED_LIST(args[0]))
+    {
+        runtimeError("First argument must be a linked list.");
+        return NIL_VAL;
+    }
+    ObjLinkedList *l = AS_LINKED_LIST(args[0]);
+    return popFront(l);
+}
+
+Value nth_nf(int argCount, Value *args)
+{
+    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]))
+    {
+        runtimeError("First argument must be an array or linked list.");
+        return NIL_VAL;
+    }
+    if (!IS_INT(args[1]))
+    {
+        runtimeError("Second argument must be an integer.");
+        return NIL_VAL;
+    }
+
+    if (IS_ARRAY(args[0]))
+    {
+        ObjArray *a = AS_ARRAY(args[0]);
+        int index = AS_INT(args[1]);
+        if (index < 0 || index >= a->count)
+        {
+            runtimeError("Index out of bounds.");
+            return NIL_VAL;
+        }
+        return a->values[index];
+    }
+    else
+    {
+        ObjLinkedList *l = AS_LINKED_LIST(args[0]);
+        int index = AS_INT(args[1]);
+        if (index < 0 || index >= l->count)
+        {
+            runtimeError("Index out of bounds.");
+            return NIL_VAL;
+        }
+        struct Node *node = l->head;
+        for (int i = 0; i < index; i++)
+        {
+            node = node->next;
+        }
+
+        return node->data;
+    }
+}
+
+Value is_empty_nf(int argCount, Value *args)
+{
+    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]) && !IS_HASH_TABLE(args[0]))
+    {
+        runtimeError("First argument must be an array, linked list or hash table.");
+        return NIL_VAL;
+    }
+
+    if (IS_ARRAY(args[0]))
+    {
+        ObjArray *a = AS_ARRAY(args[0]);
+        return BOOL_VAL(a->count == 0);
+    }
+    else if (IS_HASH_TABLE(args[0]))
+    {
+        ObjHashTable *h = AS_HASH_TABLE(args[0]);
+        return BOOL_VAL(h->table.count == 0);
+    }
+    else
+    {
+        ObjLinkedList *l = AS_LINKED_LIST(args[0]);
+        return BOOL_VAL(l->count == 0);
+    }
+}
+
+Value sort_nf(int argCount, Value *args)
+{
+    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]))
+    {
+        runtimeError("First argument must be an array or linked list.");
+        return NIL_VAL;
+    }
+
+    if (IS_ARRAY(args[0]))
+    {
+
+        ObjArray *a = AS_ARRAY(args[0]);
+        sortArray(a);
+        return NIL_VAL;
+    }
+    else
+    {
+        ObjLinkedList *l = AS_LINKED_LIST(args[0]);
+        mergeSort(l);
+        return NIL_VAL;
+    }
+}
+
+Value equal_list_nf(int argCount, Value *args)
+{
+    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]))
+    {
+        runtimeError("First argument must be an array or linked list.");
+        return NIL_VAL;
+    }
+
+    if (IS_ARRAY(args[0]))
+    {
+        if (!IS_ARRAY(args[1]))
+        {
+            runtimeError("Second argument must be an array.");
+            return NIL_VAL;
+        }
+        ObjArray *a = AS_ARRAY(args[0]);
+        ObjArray *b = AS_ARRAY(args[1]);
+        return BOOL_VAL(equalArray(a, b));
+    }
+    else
+    {
+        if (!IS_LINKED_LIST(args[1]))
+        {
+            runtimeError("Second argument must be a linked list.");
+            return NIL_VAL;
+        }
+        ObjLinkedList *a = AS_LINKED_LIST(args[0]);
+        ObjLinkedList *b = AS_LINKED_LIST(args[1]);
+        return BOOL_VAL(equalLinkedList(a, b));
+    }
+}
+
+Value contains_nf(int argCount, Value *args)
+{
+    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]) && !IS_HASH_TABLE(args[0]))
+    {
+        runtimeError("First argument must be an array, linked list or hash table.");
+        return NIL_VAL;
+    }
+
+    if (IS_ARRAY(args[0]))
+    {
+        ObjArray *a = AS_ARRAY(args[0]);
+        for (int i = 0; i < a->count; i++)
+        {
+            if (valuesEqual(a->values[i], args[1]))
+            {
+                return BOOL_VAL(true);
+            }
+        }
+        return BOOL_VAL(false);
+    }
+    else if (IS_HASH_TABLE(args[0]))
+    {
+        ObjHashTable *h = AS_HASH_TABLE(args[0]);
+        if (!valuesEqual(getHashTable(h, AS_STRING(args[1])), NIL_VAL))
+        {
+            return BOOL_VAL(true);
+        }
+        else
+        {
+            return BOOL_VAL(false);
+        }
+    }
+    else
+    {
+        ObjLinkedList *l = AS_LINKED_LIST(args[0]);
+        struct Node *current = l->head;
+        while (current != NULL)
+        {
+            if (valuesEqual(current->data, args[1]))
+            {
+                return BOOL_VAL(true);
+            }
+            current = current->next;
+        }
+        return BOOL_VAL(false);
+    }
+}
+
+Value len_nf(int argCount, Value *args)
+{
+    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]) && !IS_HASH_TABLE(args[0]))
+    {
+        runtimeError("First argument must be an array, linked list or hash table.");
+        return NIL_VAL;
+    }
+
+    if (IS_ARRAY(args[0]))
+    {
+        ObjArray *a = AS_ARRAY(args[0]);
+        return INT_VAL(a->count);
+    }
+    else if (IS_HASH_TABLE(args[0]))
+    {
+        ObjHashTable *h = AS_HASH_TABLE(args[0]);
+        return INT_VAL(h->table.count);
+    }
+    else
+    {
+        ObjLinkedList *l = AS_LINKED_LIST(args[0]);
+        return INT_VAL(l->count);
+    }
+}
+
+Value range_nf(int argCount, Value *args)
+{
+    if (!IS_INT(args[0]) || !IS_INT(args[1]))
+    {
+        runtimeError("Both arguments must be integers.");
+        return NIL_VAL;
+    }
+    int start = AS_INT(args[0]);
+    int end = AS_INT(args[1]);
+    ObjArray *a = newArray();
+    for (int i = start; i < end; i++)
+    {
+        pushArray(a, INT_VAL(i));
+    }
+    return OBJ_VAL(a);
+}
+
+Value reverse_nf(int argCount, Value *args)
+{
+    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]))
+    {
+        runtimeError("First argument must be an array or linked list.");
+        return NIL_VAL;
+    }
+
+    if (IS_ARRAY(args[0]))
+    {
+        ObjArray *a = AS_ARRAY(args[0]);
+        reverseArray(a);
+        return NIL_VAL;
+    }
+    else
+    {
+        ObjLinkedList *l = AS_LINKED_LIST(args[0]);
+        reverseLinkedList(l);
+        return NIL_VAL;
+    }
+}
+
+Value search_nf(int argCount, Value *args)
+{
+    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]))
+    {
+        runtimeError("First argument must be an array or linked list.");
+        return NIL_VAL;
+    }
+
+    if (IS_ARRAY(args[0]))
+    {
+        ObjArray *a = AS_ARRAY(args[0]);
+        int result = searchArray(a, args[1]);
+        if (result == -1)
+            return NIL_VAL;
+        return INT_VAL(result);
+    }
+    else
+    {
+        ObjLinkedList *l = AS_LINKED_LIST(args[0]);
+        int result = searchLinkedList(l, args[1]);
+        if (result == -1)
+            return NIL_VAL;
+        return INT_VAL(result);
+    }
+}
+
+Value history_nf(int argCount, Value *args)
+{
+    if (argCount == 0)
+    {
+        for (int i = 0; i < vm.history.count; i++)
+        {
+            printf("[%d]: %s\n", i + 1, vm.history.items[i]);
+        }
+        return NIL_VAL;
+    }
+    else
+    {
+        runtimeError("history() takes no arguments.");
+        return NIL_VAL;
+    }
 }
 
 // Initializes the virtual machine
@@ -78,9 +530,31 @@ void initVM(void)
 
     initTable(&vm.globals);
     initTable(&vm.strings);
+    initHistory(&vm.history);
 
     vm.initString = NULL;
     vm.initString = copyString("init", 4);
+
+    defineNative("array", array_nf);
+    defineNative("linked_list", linkedlist_nf);
+    defineNative("hash_table", hashtable_nf);
+    defineNative("push", push_nf);
+    defineNative("push_front", push_front_nf);
+    defineNative("pop", pop_nf);
+    defineNative("pop_front", pop_front_nf);
+    defineNative("nth", nth_nf);
+    defineNative("is_empty", is_empty_nf);
+    defineNative("sort", sort_nf);
+    defineNative("put", put_nf);
+    defineNative("get", get_nf);
+    defineNative("remove", remove_nf);
+    defineNative("equal_list", equal_list_nf);
+    defineNative("contains", contains_nf);
+    defineNative("len", len_nf);
+    defineNative("range", range_nf);
+    defineNative("reverse", reverse_nf);
+    defineNative("search", search_nf);
+    defineNative("history", history_nf);
 }
 
 // Frees the virtual machine
@@ -90,6 +564,7 @@ void freeVM(void)
     freeTable(&vm.strings);
     vm.initString = NULL;
     freeObjects();
+    freeHistory(&vm.history);
 }
 
 // Pops value off of the stack
@@ -594,6 +1069,21 @@ static InterpretResult run()
                 BINARY_OP(/);
             }
             break;
+        case OP_MODULO: 
+        {
+            if (IS_INT(peek(0)) && IS_INT(peek(1)))
+            {
+                int b = AS_INT(pop());
+                int a = AS_INT(pop());
+                push(INT_VAL(a % b));
+            }
+            else
+            {
+                runtimeError("Operands must be integers.");
+                return INTERPRET_RUNTIME_ERROR;
+            }
+            break;
+        }
         case OP_NOT:
             push(BOOL_VAL(isFalsey(pop())));
             break;
@@ -758,6 +1248,7 @@ static InterpretResult run()
 // Interprets the chunks
 InterpretResult interpret(const char *source)
 {
+    writeHistory(&vm.history, (char*)source);
     ObjFunction *function = compile(source);
     if (function == NULL)
         return INTERPRET_COMPILE_ERROR;

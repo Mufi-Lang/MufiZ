@@ -17,7 +17,7 @@ pub fn build(b: *std.Build) !void {
     const exe = b.addExecutable(.{
         .name = "mufiz",
         .root_source_file = .{ .path = "src/main.zig" },
-        .version = .{ .major = 0, .minor = 4, .patch = 0 },
+        .version = .{ .major = 0, .minor = 5, .patch = 0 },
         .target = target,
         .optimize = optimize,
         .link_libc = true,
@@ -61,7 +61,6 @@ pub fn build(b: *std.Build) !void {
 
     lib_core.linkLibrary(lib_scanner);
 
-    lib_core.addIncludePath(.{ .path = "include" });
     // zig fmt: off
     lib_core.addCSourceFiles(&.{ 
         "core/chunk.c", 

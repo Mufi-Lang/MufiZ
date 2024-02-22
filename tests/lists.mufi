@@ -1,0 +1,13 @@
+var ll = linked_list();
+push(ll, 3, 2, 1);
+var sorted_ll = linked_list();
+push(sorted_ll, 1, 2, 3);
+sort(ll);
+print equal_list(ll, sorted_ll);
+
+var arr = array();
+push(arr, 2, 3, 1);
+var sorted_arr = array();
+push(sorted_arr, 1, 2, 3);
+sort(arr);
+print equal_list(arr, sorted_arr);

@@ -172,3 +172,118 @@ name = "delete_dir"
 return_type = "bool"
 parameters = ["string"]
 implemented = true
+
+[["Collections"]]
+name = "array"
+return_type = "array"
+parameters = ["nil"]
+implemented = true
+
+[["Collections"]]
+name = "linked_list"
+return_type = "linked_list"
+parameters = ["nil"]
+implemented = true
+
+[["Collections"]]
+name = "hash_table"
+return_type = "hash_table"
+parameters = ["nil"]
+implemented = true
+
+[["Collections"]]
+name = "push"
+return_type = "nil"
+parameters = ["array", "linked_list"]
+implemented = true
+
+[["Collections"]]
+name = "push_front"
+return_type = "nil"
+parameters = ["linked_list"]
+implemented = true
+
+[["Collections"]]
+name = "pop"
+return_type = "any"
+parameters = ["array", "linked_list"]
+implemented = true
+
+[["Collections"]]
+name = "pop_front"
+return_type = "any"
+parameters = ["linked_list"]
+implemented = true
+
+[["Collections"]]
+name = "nth"
+return_type = "any"
+parameters = ["array"]
+implemented = true
+
+[["Collections"]]
+name = "is_empty"
+return_type = "bool"
+parameters = ["array", "linked_list"]
+implemented = true
+
+[["Collections"]]
+name = "sort"
+return_type = "nil"
+parameters = ["array", "linked_list"]
+implemented = true
+
+[["Collections"]]
+name = "put"
+return_type = "nil"
+parameters = ["hash_table"]
+implemented = true
+
+[["Collections"]]
+name = "get"
+return_type = "any"
+parameters = ["hash_table"]
+implemented = true
+
+[["Collections"]]
+name = "remove"
+return_type = "nil"
+parameters = ["hash_table"]
+implemented = true
+
+[["Collections"]]
+name = "equal_list"
+return_type = "bool"
+parameters = ["array", "linked_list"]
+implemented = true
+
+[["Collections"]]
+name = "contains"
+return_type = "bool"
+parameters = ["array", "linked_list", "hash_table"]
+implemented = true
+
+[["Collections"]]
+name = "len"
+return_type = "integer"
+parameters = ["array", "linked_list", "hash_table"]
+implemented = true
+
+[["Collections"]]
+name = "range"
+return_type = "array"
+parameters = ["integer", "integer"]
+implemented = true
+
+[["Collections"]]
+name = "reverse"
+return_type = "nil"
+parameters = ["array", "linked_list"]
+implemented = true
+
+[["Collections"]]
+name = "search"
+return_type = "integer"
+parameters = ["array", "linked_list"]
+implemented = true
+

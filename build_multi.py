@@ -5,7 +5,7 @@ import json
 import shutil
 import glob
 
-version = "0.4.0"
+version = "0.5.0"
 out_path = "zig-out/bin/"
 windows = f"{out_path}mufiz.exe"
 bin = "zig-out/bin/mufiz"
@@ -35,10 +35,18 @@ powerpc64le_rpm = f"mufiz-{version}-1.powerpc64le.rpm"
 powerpc_rpm = f"mufiz-{version}-1.powerpc.rpm"
 riscv64_rpm = f"mufiz-{version}-1.riscv64.rpm"
 
-def command_str(arch, target, pkg): 
-    return f"fpm -v {version} -a {arch} -s zip -t {pkg} --prefix /usr/bin -m 'Mustafif0929@gmail.com' --description 'The Mufi Programming Language' -n mufiz ./zig-out/bin/mufiz_{version}_{target}.zip "
+amd64_snap = f"mufiz_{version}_amd64.snap"
+arm64_snap = f"mufiz_{version}_arm64.snap"
+powerpc_snap = f"mufiz_{version}_powerpc.snap"
+riscv64_snap = f"mufiz_{version}_riscv64.snap"
 
-def build_deb_x86_64(target): 
+def command_str(arch, target, pkg): 
+    if(pkg == "snap"): 
+        return f"fpm -v {version} -a {arch} -s zip -t {pkg} --prefix /snap/bin --snap-confinement strict --snap-grade stable -m 'Mustafif0929@gmail.com' --description 'The Mufi Programming Language' -n mufiz ./zig-out/bin/mufiz_{version}_{target}.zip"
+    else:
+        return f"fpm -v {version} -a {arch} -s zip -t {pkg} --prefix /usr/bin -m 'Mustafif0929@gmail.com' --description 'The Mufi Programming Language' -n mufiz ./zig-out/bin/mufiz_{version}_{target}.zip "
+
+def build_deb_x86_64(target):
     command = command_str("amd64", target, "deb")
     subprocess.run(command, shell=True, text=True)
     shutil.move(amd64_deb, f"mufiz_{version}_{target}.deb")
@@ -170,6 +178,30 @@ def build_rpm_arm64(target):
     shutil.move(arm64_rpm, f"mufiz_{version}_{target}.rpm")
     print(f"Built rpm package for {target}")
     
+def build_snap_x86_64(target):
+    command = command_str("amd64", target, "snap")
+    subprocess.run(command, shell=True, text=True)
+    #shutil.move(amd64_snap, f"mufiz_{version}_{target}.snap")
+    print(f"Built snap package for {target}")
+
+def build_snap_arm64(target):
+    command = command_str("arm64", target, "snap")
+    subprocess.run(command, shell=True, text=True)
+    #shutil.move(arm64_snap, f"mufiz_{version}_{target}.snap")
+    print(f"Built snap package for {target}")
+
+def build_snap_powerpc(target):
+    command = command_str("powerpc", target, "snap")
+    subprocess.run(command, shell=True, text=True)
+    #shutil.move(powerpc_snap, f"mufiz_{version}_{target}.snap")
+    print(f"Built snap package for {target}")
+    
+def build_snap_riscv64(target):
+    command = command_str("riscv64", target, "snap")
+    subprocess.run(command, shell=True, text=True)
+    #shutil.move(riscv64_snap, f"mufiz_{version}_{target}.snap")
+    print(f"Built snap package for {target}")
+    
 
 
 with open('targets.json', 'r') as file:
@@ -204,36 +236,54 @@ for target in targets:
     if ("x86_64-linux" in target): 
         build_deb_x86_64(target)
         build_rpm_x86_64(target)
+        if ("gnu" in target):
+            build_snap_x86_64(target)
+    
     elif ("aarch64-linux" in target):
         build_deb_arm64(target)
         build_rpm_arm64(target)
+        if ("gnu" in target):
+            build_snap_arm64(target)
+        
     elif ("arm-linux" in target):
         build_deb_arm(target)
         build_rpm_arm(target)
+        
     elif ("mips64-linux" in target):
         build_deb_mips64(target)
         build_rpm_mips64(target)
+        
     elif ("mips64el-linux" in target):
         build_deb_mips64el(target)
         build_rpm_mips64el(target)
+        
     elif ("mipsel-linux" in target):
         build_deb_mipsel(target)
         build_rpm_mipsel(target)
+        
     elif ("mips-linux" in target):
         build_deb_mips(target)
         build_rpm_mips(target)
+        
     elif ("powerpc64-linux" in target):
         build_deb_powerpc64(target)
         build_rpm_powerpc64(target)
+        
     elif ("powerpc64le-linux" in target):
         build_deb_powerpc64le(target)
         build_rpm_powerpc64le(target)
+        
     elif ("powerpc-linux" in target):
         build_deb_powerpc(target)
         build_rpm_powerpc(target)
+        if ("gnu" in target):
+            build_snap_powerpc(target)        
+        
     elif ("riscv64-linux" in target):
         build_deb_riscv64(target)
         build_rpm_riscv64(target)
+        if ("gnu" in target):
+            build_snap_riscv64(target)
 
         
 deb = glob.glob("*.deb")
