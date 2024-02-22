@@ -4,6 +4,7 @@ import zipfile
 import json
 import shutil
 import glob
+import time
 
 version = "0.6.0"
 out_path = "zig-out/bin/"
@@ -229,7 +230,7 @@ def build_target(target):
             z.write(bin, os.path.basename(bin))
         os.remove(bin)
         print(f"Zipped successfully {zipper}")
-    import time
+
     time.sleep(5)
 
 import concurrent.futures
@@ -239,12 +240,7 @@ with concurrent.futures.ThreadPoolExecutor() as executor:
 
 os.remove(out_path+"mufiz.pdb")
 
-# for target in targets:
-#     build_target(target)
-# os.remove(out_path+"mufiz.pdb")
-
-# Build debian packages for Linux targets 
-for target in targets: 
+def build_linux_pkg(target):
     if ("x86_64-linux" in target): 
         build_deb_x86_64(target)
         build_rpm_x86_64(target)
@@ -288,6 +284,10 @@ for target in targets:
     elif ("riscv64-linux" in target):
         build_deb_riscv64(target)
         build_rpm_riscv64(target)
+    time.sleep(5)
+
+with concurrent.futures.ThreadPoolExecutor() as executor:
+    executor.map(build_linux_pkg, targets)
 
         
 deb = glob.glob("*.deb")
