@@ -69,7 +69,6 @@ pub fn build(b: *std.Build) !void {
         "core/debug.c", 
         "core/vm.c", 
     }, c_flags);
-
     exe.addIncludePath(.{.path = "include"});
     exe.linkLibrary(lib_core);
 
@@ -117,6 +116,7 @@ const common_debug =
     \\#include <stdbool.h>
     \\#include <stddef.h>
     \\#include<stdint.h>
+    \\
     \\#include <stdlib.h>
     \\
     \\#define DEBUG_PRINT_CODE

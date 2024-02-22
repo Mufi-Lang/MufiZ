@@ -1,4 +1,3 @@
-#include <stdlib.h>
 #include "../include/memory.h"
 #include "../include/vm.h"
 #include "../include/compiler.h"
