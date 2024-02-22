@@ -1,0 +1,42 @@
+var arr = array();
+
+push(arr, 1, 2, 3, 4, 5, 6);
+print arr;
+// [1, 2, 3, 4, 5, 6]
+
+var popped = pop(arr);
+print popped;
+// 6
+
+for(var i = 0; i < len(arr); i++){
+   print nth(arr, i);
+}
+// 1
+// 2
+// 3 
+// 4
+// 5
+// 6
+
+print is_empty(arr);
+// false
+
+sort(arr);
+var arr2 = array();
+push(arr2, 1, 2, 3, 4, 5);
+print equal_list(arr, arr2);
+// true 
+
+print contains(arr, 7);
+// false 
+
+var r = range(1, 10);
+print r;
+// [1, 2, 3, 4, 5, 6, 7, 8, 9]
+
+reverse(r);
+print r;
+// [9, 8, 7, 6, 5, 4, 3, 2, 1]
+
+print search(r, 2);
+// 2
