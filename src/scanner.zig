@@ -65,6 +65,10 @@ pub const TokenType = enum(c_int) {
     // Misc
     TOKEN_ERROR = 40,
     TOKEN_EOF = 41,
+    TOKEN_PLUS_EQUAL = 42,
+    TOKEN_MINUS_EQUAL = 43,
+    TOKEN_STAR_EQUAL = 44,
+    TOKEN_SLASH_EQUAL = 45,
 };
 
 pub const Token = extern struct {
@@ -261,10 +265,18 @@ pub export fn scanToken() Token {
         ';' => return makeToken(.TOKEN_SEMICOLON),
         ',' => return makeToken(.TOKEN_COMMA),
         '.' => return makeToken(.TOKEN_DOT),
-        '-' => return makeToken(.TOKEN_MINUS),
-        '+' => return makeToken(.TOKEN_PLUS),
-        '/' => return makeToken(.TOKEN_SLASH),
-        '*' => return makeToken(.TOKEN_STAR),
+        '-' => {
+            if (__scanner__match('=')) return makeToken(.TOKEN_MINUS_EQUAL) else return makeToken(.TOKEN_MINUS);
+        },
+        '+' => {
+            if (__scanner__match('=')) return makeToken(.TOKEN_PLUS_EQUAL) else return makeToken(.TOKEN_PLUS);
+        },
+        '/' => {
+            if (__scanner__match('=')) return makeToken(.TOKEN_SLASH_EQUAL) else return makeToken(.TOKEN_SLASH);
+        },
+        '*' => {
+            if (__scanner__match('=')) return makeToken(.TOKEN_STAR_EQUAL) else return makeToken(.TOKEN_STAR);
+        },
         '!' => {
             if (__scanner__match('=')) return makeToken(.TOKEN_BANG_EQUAL) else return makeToken(.TOKEN_BANG);
         },

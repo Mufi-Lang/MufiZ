@@ -6,3 +6,4 @@ core/t.zig
 web/target
 *.snap
 snap.py
+t
