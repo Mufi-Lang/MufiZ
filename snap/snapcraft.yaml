@@ -9,9 +9,6 @@ base: core22
 grade: stable
 confinement: strict
 
-architectures:
-  - build-on: amd64
-    run-on: [amd64, arm64, armhf, powerpc, riscv64]
 parts:
   mufiz:
     plugin: nil

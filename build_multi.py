@@ -209,7 +209,7 @@ with open('targets.json', 'r') as file:
 
 targets = data['targets']
 
-for target in targets: 
+def build_target(target):
     command = f"zig build -Doptimize=ReleaseSafe -Dtarget={target}"
     subprocess.run(command, shell=True, text=True)
     if("x86_64-windows" in target or "aarch64-windows" in target):
@@ -229,7 +229,19 @@ for target in targets:
             z.write(bin, os.path.basename(bin))
         os.remove(bin)
         print(f"Zipped successfully {zipper}")
+    import time
+    time.sleep(5)
+
+import concurrent.futures
+
+with concurrent.futures.ThreadPoolExecutor() as executor:
+    executor.map(build_target, targets)
+
 os.remove(out_path+"mufiz.pdb")
+
+# for target in targets:
+#     build_target(target)
+# os.remove(out_path+"mufiz.pdb")
 
 # Build debian packages for Linux targets 
 for target in targets: 
@@ -275,15 +287,11 @@ for target in targets:
         
     elif ("powerpc-linux" in target):
         build_deb_powerpc(target)
-        build_rpm_powerpc(target)
-        if ("gnu" in target):
-            build_snap_powerpc(target)        
+        build_rpm_powerpc(target)        
         
     elif ("riscv64-linux" in target):
         build_deb_riscv64(target)
         build_rpm_riscv64(target)
-        if ("gnu" in target):
-            build_snap_riscv64(target)
 
         
 deb = glob.glob("*.deb")
