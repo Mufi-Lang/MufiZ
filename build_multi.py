@@ -229,89 +229,69 @@ def build_target(target):
             z.write(bin, os.path.basename(bin))
         os.remove(bin)
         print(f"Zipped successfully {zipper}")
+    import time
+    time.sleep(5)
 
 import concurrent.futures
 
 with concurrent.futures.ThreadPoolExecutor() as executor:
-    executor.submit(build_target, targets)
-    executor.submit(os.remove, out_path+"mufiz.pdb")
-
-    for target in targets: 
-        if ("x86_64-linux" in target): 
-            executor.submit(build_deb_x86_64, target)
-            executor.submit(build_rpm_x86_64, target)
-            if ("gnu" in target):
-                executor.submit(build_snap_x86_64, target)
-
-        elif ("aarch64-linux" in target):
-            executor.submit(build_deb_arm64, target)
-            executor.submit(build_rpm_arm64, target)
-            if ("gnu" in target):
-                executor.submit(build_snap_arm64, target)
-
-        elif ("arm-linux" in target):
-            executor.submit(build_deb_arm, target)
-            executor.submit(build_rpm_arm, target)
-
-        elif ("mips64-linux" in target):
-            executor.submit(build_deb_mips64, target)
-            executor.submit(build_rpm_mips64, target)
     executor.map(build_target, targets)
+
 os.remove(out_path+"mufiz.pdb")
 
-# # Build debian packages for Linux targets 
-# for target in targets: 
-#     if ("x86_64-linux" in target): 
-#         build_deb_x86_64(target)
-#         build_rpm_x86_64(target)
-#         if ("gnu" in target):
-#             build_snap_x86_64(target)
+# for target in targets:
+#     build_target(target)
+# os.remove(out_path+"mufiz.pdb")
+
+# Build debian packages for Linux targets 
+for target in targets: 
+    if ("x86_64-linux" in target): 
+        build_deb_x86_64(target)
+        build_rpm_x86_64(target)
+        if ("gnu" in target):
+            build_snap_x86_64(target)
     
-#     elif ("aarch64-linux" in target):
-#         build_deb_arm64(target)
-#         build_rpm_arm64(target)
-#         if ("gnu" in target):
-#             build_snap_arm64(target)
+    elif ("aarch64-linux" in target):
+        build_deb_arm64(target)
+        build_rpm_arm64(target)
+        if ("gnu" in target):
+            build_snap_arm64(target)
         
-#     elif ("arm-linux" in target):
-#         build_deb_arm(target)
-#         build_rpm_arm(target)
+    elif ("arm-linux" in target):
+        build_deb_arm(target)
+        build_rpm_arm(target)
         
-#     elif ("mips64-linux" in target):
-#         build_deb_mips64(target)
-#         build_rpm_mips64(target)
+    elif ("mips64-linux" in target):
+        build_deb_mips64(target)
+        build_rpm_mips64(target)
         
-#     elif ("mips64el-linux" in target):
-#         build_deb_mips64el(target)
-#         build_rpm_mips64el(target)
+    elif ("mips64el-linux" in target):
+        build_deb_mips64el(target)
+        build_rpm_mips64el(target)
         
-#     elif ("mipsel-linux" in target):
-#         build_deb_mipsel(target)
-#         build_rpm_mipsel(target)
+    elif ("mipsel-linux" in target):
+        build_deb_mipsel(target)
+        build_rpm_mipsel(target)
         
-#     elif ("mips-linux" in target):
-#         build_deb_mips(target)
-#         build_rpm_mips(target)
+    elif ("mips-linux" in target):
+        build_deb_mips(target)
+        build_rpm_mips(target)
         
-#     elif ("powerpc64-linux" in target):
-#         build_deb_powerpc64(target)
-#         build_rpm_powerpc64(target)
+    elif ("powerpc64-linux" in target):
+        build_deb_powerpc64(target)
+        build_rpm_powerpc64(target)
         
-#     elif ("powerpc64le-linux" in target):
-#         build_deb_powerpc64le(target)
-#         build_rpm_powerpc64le(target)
+    elif ("powerpc64le-linux" in target):
+        build_deb_powerpc64le(target)
+        build_rpm_powerpc64le(target)
         
-#     elif ("powerpc-linux" in target):
-#         build_deb_powerpc(target)
-#         build_rpm_powerpc(target)
-#         if ("gnu" in target):
-#             build_snap_powerpc(target)        
+    elif ("powerpc-linux" in target):
+        build_deb_powerpc(target)
+        build_rpm_powerpc(target)        
         
-#     elif ("riscv64-linux" in target):
-#         build_deb_riscv64(target)
-#         build_rpm_riscv64(target)
-#         if ("gnu" in target):
-#             build_snap_riscv64(target)
+    elif ("riscv64-linux" in target):
+        build_deb_riscv64(target)
+        build_rpm_riscv64(target)
 
         
 deb = glob.glob("*.deb")
