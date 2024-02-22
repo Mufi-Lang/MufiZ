@@ -248,14 +248,10 @@ for target in targets:
     if ("x86_64-linux" in target): 
         build_deb_x86_64(target)
         build_rpm_x86_64(target)
-        if ("gnu" in target):
-            build_snap_x86_64(target)
     
     elif ("aarch64-linux" in target):
         build_deb_arm64(target)
         build_rpm_arm64(target)
-        if ("gnu" in target):
-            build_snap_arm64(target)
         
     elif ("arm-linux" in target):
         build_deb_arm(target)
