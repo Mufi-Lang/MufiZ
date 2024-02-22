@@ -1069,6 +1069,21 @@ static InterpretResult run()
                 BINARY_OP(/);
             }
             break;
+        case OP_MODULO: 
+        {
+            if (IS_INT(peek(0)) && IS_INT(peek(1)))
+            {
+                int b = AS_INT(pop());
+                int a = AS_INT(pop());
+                push(INT_VAL(a % b));
+            }
+            else
+            {
+                runtimeError("Operands must be integers.");
+                return INTERPRET_RUNTIME_ERROR;
+            }
+            break;
+        }
         case OP_NOT:
             push(BOOL_VAL(isFalsey(pop())));
             break;
