@@ -1,5 +1,5 @@
 name: mufiz
-version: "0.4.0"
+version: "0.5.0"
 summary: The Official MufiZ compiler
 description: |
   MufiZ is a toy programming language that combines the power of a core bytecode compiler written in C, 
