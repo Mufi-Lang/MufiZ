@@ -5,7 +5,7 @@ import json
 import shutil
 import glob
 
-version = "0.5.0"
+version = "0.6.0"
 out_path = "zig-out/bin/"
 windows = f"{out_path}mufiz.exe"
 bin = "zig-out/bin/mufiz"

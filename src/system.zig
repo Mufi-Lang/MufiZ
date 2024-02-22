@@ -7,9 +7,9 @@ const builtin = @import("builtin");
 const GlobalAlloc = @import("main.zig").GlobalAlloc;
 
 const MAJOR: u8 = 0;
-const MINOR: u8 = 5;
+const MINOR: u8 = 6;
 const PATCH: u8 = 0;
-const CODENAME: []const u8 = "Luna";
+const CODENAME: []const u8 = "Mars";
 
 pub const vopt = if (nostd) struct {
     pub inline fn version() void {

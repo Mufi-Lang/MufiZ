@@ -49,11 +49,37 @@ the other `Release*` optimize modes with command `zig build -Doptimize=`.
 > - `clap`: `ReleaseSafe`
 >   - Since this library involves components that require allocations, we prioritize safety.
 
+---
+
 ## Installation
 
-- To install MufiZ, you can get the latest release from the Github releases page with your appropriate toolchain.
-- Then you may run the binary when you unzip the Zip file.
-- We also provide a deb and rpm package for Linux users.
+### Deb Package
+
+```shell
+$ sudo dpkg -i mufiz_{version}_{target}.deb
+```
+
+### RPM Package
+
+```shell
+$ sudo rpm -i mufiz_{version}_{target}.rpm
+```
+
+### Linux/MacOS Zip
+
+```shell
+$ unzip mufiz_{version}_{target}.zip
+$ mv mufiz /usr/local/bin
+```
+
+### Windows
+
+- Download the `mufiz_{version}_{target}.zip` file from the releases page.
+- Extract the zip file to a directory of your choice.
+- Add the directory to your PATH environment variable.
+- Open a new terminal and run `mufiz --version` to verify the installation.
+
+---
 
 ## Goal
 
@@ -93,7 +119,8 @@ the other `Release*` optimize modes with command `zig build -Doptimize=`.
 | 0.2.0   | [Zula](https://github.com/Mustafif/MufiZ/releases/tag/v0.2.0) | Released |
 | 0.3.0   | [Iris](https://github.com/Mustafif/MufiZ/releases/tag/v0.3.0) | Released |
 | 0.4.0   | [Voxl](https://github.com/Mustafif/MufiZ/releases/tag/v0.4.0) | Released |
-| 0.5.0  | [Luna](https://github.com/Mustafif/MufiZ/releases/tag/v0.5.0)  | Released |
+| 0.5.0   | [Luna](https://github.com/Mustafif/MufiZ/releases/tag/v0.5.0) | Released |
+| 0.6.0   | [Mars](https://github.com/Mustafif/MufiZ/releases/tag/next-experimental) | In Progress |
 
 ---
 
