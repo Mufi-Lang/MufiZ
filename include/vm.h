@@ -21,12 +21,6 @@
 #define FRAMES_MAX 64
 #define STACK_MAX (FRAMES_MAX * UINT8_COUNT)
 
-typedef struct{
-    char** items;
-    int capacity;
-    int count;
-}History;
-
 typedef struct {
     ObjClosure* closure;
     uint8_t* ip;
@@ -51,7 +45,6 @@ typedef struct {
     int grayCount; // Count of objects marked grey
     int grayCapacity; // Capacity of the grayStack
     Obj** grayStack; // Array of objects
-    History history;
 }VM;
 //> Error result of virtual machine's interpretation
 typedef enum {
@@ -75,9 +68,5 @@ void push(Value value);
 Value pop();
 //> Defines a native function
 void defineNative(const char* name, NativeFn function);
-
-void initHistory(History* history);
-void writeHistory(History* history, char* line);
-void freeHistory(History* history);
 
 #endif
