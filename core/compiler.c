@@ -628,6 +628,24 @@ static void namedVariable(struct Token name, bool canAssign)
         emitByte(OP_SUBTRACT);          // Perform the subtraction
         emitBytes(setOp, (uint8_t)arg); // Store the result
     }
+
+    else if (match(TOKEN_PLUS_PLUS))
+    {
+        emitBytes(getOp, (uint8_t)arg); // Get the current value
+        emitByte(OP_CONSTANT);
+        emitByte(makeConstant(INT_VAL(1))); // Load the constant value 1
+        emitByte(OP_ADD);                   // Perform the addition
+        emitBytes(setOp, (uint8_t)arg);     // Store the result
+    }
+    else if (match(TOKEN_MINUS_MINUS))
+    {
+        emitBytes(getOp, (uint8_t)arg); // Get the current value
+
+        emitByte(OP_CONSTANT);
+        emitByte(makeConstant(INT_VAL(1))); // Load the constant value 1
+        emitByte(OP_SUBTRACT);              // Perform the subtraction
+        emitBytes(setOp, (uint8_t)arg);     // Store the result
+    }
     else if (match(TOKEN_STAR_EQUAL))
     {
         emitBytes(getOp, (uint8_t)arg); // Get the current value
@@ -762,7 +780,14 @@ ParseRule rules[] = {
     [TOKEN_VAR] = {NULL, NULL, PREC_NONE},
     [TOKEN_WHILE] = {NULL, NULL, PREC_NONE},
     [TOKEN_ERROR] = {NULL, NULL, PREC_NONE},
-    [TOKEN_EOF] = {NULL, NULL, PREC_NONE}};
+    [TOKEN_EOF] = {NULL, NULL, PREC_NONE},
+    [TOKEN_PLUS_EQUAL] = {NULL, NULL, PREC_NONE},
+    [TOKEN_MINUS_EQUAL] = {NULL, NULL, PREC_NONE},
+    [TOKEN_STAR_EQUAL] = {NULL, NULL, PREC_NONE},
+    [TOKEN_SLASH_EQUAL] = {NULL, NULL, PREC_NONE},
+    [TOKEN_PLUS_PLUS] = {NULL, NULL, PREC_NONE},
+    [TOKEN_MINUS_MINUS] = {NULL, NULL, PREC_NONE},
+};
 
 static void parsePrecedence(Precedence precedence)
 {

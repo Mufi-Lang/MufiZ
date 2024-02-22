@@ -65,6 +65,8 @@ enum TokenType
     TOKEN_MINUS_EQUAL,
     TOKEN_STAR_EQUAL,
     TOKEN_SLASH_EQUAL,
+    TOKEN_PLUS_PLUS,
+    TOKEN_MINUS_MINUS,
 };
 
 struct Token
