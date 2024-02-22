@@ -94,6 +94,7 @@ the other `Release*` optimize modes with command `zig build -Doptimize=`.
 | 0.2.0   | [Zula](https://github.com/Mustafif/MufiZ/releases/tag/v0.2.0) | Released |
 | 0.3.0   | [Iris](https://github.com/Mustafif/MufiZ/releases/tag/v0.3.0) | Released |
 | 0.4.0   | [Voxl](https://github.com/Mustafif/MufiZ/releases/tag/v0.4.0) | Released |
+| 0.5.0  | [Luna](https://github.com/Mustafif/MufiZ/releases/tag/v0.5.0)  | Released |
 
 [![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-black.svg)](https://snapcraft.io/mufiz)
 ---
@@ -128,4 +129,4 @@ the other `Release*` optimize modes with command `zig build -Doptimize=`.
 | x86_64-windows         | :x:                | :x:                | :x:                |
 | x86_64-windows-gnu     | :x:                | :x:                | :x:                |
 
-> Currently `v0.4.0` is available as a `snap` package for `x86_64-linux-gnu` and `x86_64-linux-musl` targets. I hope to expand this to more targets for the next release using the `snapcraft` automatic build system.
+> Currently `snap` packages are only for `x86_64-linux-gnu` and `x86_64-linux-musl` targets. I hope to expand this to more targets for the next release using the `snapcraft` automatic build system.
