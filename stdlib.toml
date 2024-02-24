@@ -287,3 +287,26 @@ return_type = "integer"
 parameters = ["array", "linked_list"]
 implemented = true
 
+[["Net"]]
+name = "get_req"
+return_type = "string"
+parameters = ["string", "int", "string", "string"]
+implemented = true
+
+[["Net"]]
+name = "post_req"
+return_type = "string"
+parameters = ["string", "int", "string", "string"]
+implemented = false
+
+[["Net"]]
+name = "put_req"
+return_type = "string"
+parameters = ["string", "int", "string", "string"]
+implemented = false
+
+[["Net"]]
+name = "delete_req"
+return_type = "string"
+parameters = ["string", "int", "string", "string"]
+implemented = false
