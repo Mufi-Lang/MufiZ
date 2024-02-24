@@ -1,18 +1,16 @@
 const core = @import("core");
-const value_h = core.value_h;
-const object_h = core.object_h;
-const Value = value_h.Value;
-const Obj = object_h.Obj;
-const ObjType = object_h.ObjType;
-const ObjString = object_h.ObjString;
-pub const VAL_INT = value_h.VAL_INT;
-pub const VAL_BOOL = value_h.VAL_BOOL;
-pub const VAL_DOUBLE = value_h.VAL_DOUBLE;
-pub const VAL_NIL = value_h.VAL_NIL;
-pub const VAL_OBJ = value_h.VAL_OBJ;
-pub const OBJ_STRING = object_h.OBJ_STRING;
-pub const VAL_COMPLEX = value_h.VAL_COMPLEX;
-pub const Complex = value_h.Complex;
+const Value = core.Value;
+const Obj = core.Obj;
+const ObjType = core.ObjType;
+const ObjString = core.ObjString;
+pub const VAL_INT = core.VAL_INT;
+pub const VAL_BOOL = core.VAL_BOOL;
+pub const VAL_DOUBLE = core.VAL_DOUBLE;
+pub const VAL_NIL = core.VAL_NIL;
+pub const VAL_OBJ = core.VAL_OBJ;
+pub const OBJ_STRING = core.OBJ_STRING;
+pub const VAL_COMPLEX = core.VAL_COMPLEX;
+pub const Complex = core.Complex;
 
 pub fn what_is(val: Value) []const u8 {
     switch (val.type) {
@@ -123,7 +121,7 @@ pub fn is_obj_type(val: Value, ty: ObjType) bool {
 }
 
 pub fn is_string(val: Value) bool {
-    return is_obj(val) and is_obj_type(val, object_h.OBJ_STRING);
+    return is_obj(val) and is_obj_type(val, core.OBJ_STRING);
 }
 
 pub fn as_string(val: Value) ?*ObjString {
@@ -139,6 +137,6 @@ pub fn as_zstring(val: Value) []u8 {
 pub fn string_val(s: []u8) Value {
     const chars: [*c]const u8 = @ptrCast(@alignCast(s.ptr));
     const length: c_int = @intCast(s.len);
-    const obj_str = object_h.copyString(chars, length);
+    const obj_str = core.copyString(chars, length);
     return .{ .type = VAL_OBJ, .as = .{ .obj = @ptrCast(obj_str) } };
 }

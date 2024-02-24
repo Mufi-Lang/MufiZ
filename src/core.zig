@@ -76,6 +76,7 @@ pub const Node = object_h.Node;
 pub const ObjLinkedList = object_h.ObjLinkedList;
 pub const ObjHashTable = object_h.ObjHashTable;
 pub const ObjArray = object_h.ObjArray;
+pub const copyString = object_h.copyString;
 
 pub const Value = value_h.Value;
 pub const ValueType = value_h.ValueType;
@@ -86,3 +87,4 @@ pub const VAL_DOUBLE = value_h.VAL_DOUBLE;
 pub const VAL_OBJ = value_h.VAL_OBJ;
 pub const VAL_COMPLEX = value_h.VAL_COMPLEX;
 pub const ValueArray = value_h.ValueArray;
+pub const Complex = value_h.Complex;

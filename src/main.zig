@@ -48,9 +48,11 @@ pub fn main() !void {
         natives.define();
     }
 
-    if (res.args.help != 0) return clap.help(std.io.getStdErr().writer(), clap.Help, &params, .{});
-    if (res.args.version != 0) system.vopt.version();
-    if (res.args.run) |s| {
+    if (res.args.help != 0) {
+        return clap.help(std.io.getStdErr().writer(), clap.Help, &params, .{});
+    } else if (res.args.version != 0) {
+        system.vopt.version();
+    } else if (res.args.run) |s| {
         var runner = system.Runner.init(GlobalAlloc);
         defer runner.deinit();
         try runner.setMain(@constCast(s));
@@ -58,6 +60,9 @@ pub fn main() !void {
             try runner.setLink(@constCast(l));
         }
         try runner.runFile();
+    } else if (res.args.repl != 0) {
+        try system.repl();
+    } else {
+        return clap.help(std.io.getStdErr().writer(), clap.Help, &params, .{});
     }
-    if (res.args.repl != 0) try system.repl();
 }

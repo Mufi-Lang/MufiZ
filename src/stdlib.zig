@@ -3,6 +3,8 @@ const Value = core.value_h.Value;
 const vm = @cImport(@cInclude("vm.h"));
 const conv = @import("conv.zig");
 const core = @import("core");
+const net = @import("net.zig");
+const GlobalAlloc = @import("main.zig").GlobalAlloc;
 
 pub const math = @import("stdlib/math.zig");
 pub const time = @import("stdlib/time.zig");
@@ -72,6 +74,7 @@ pub const NativeFunctions = struct {
 
     pub fn addOthers(self: *Self) !void {
         try self.append("what_is", &what_is);
+        try self.append("get_req", &get);
     }
 
     pub fn names(self: Self) []const []const u8 {
@@ -94,6 +97,24 @@ pub fn what_is(argc: c_int, args: [*c]Value) callconv(.C) Value {
     std.debug.print("Type: {s}\n", .{str});
 
     return conv.nil_val();
+}
+
+pub fn get(argc: c_int, args: [*c]Value) callconv(.C) Value {
+    // expects `(url, method)`
+    if (argc < 2) return stdlib_error("get() expects at least 2 arguments!", .{ .argn = argc });
+    const url = conv.as_zstring(args[0]);
+    const method: u8 = @intCast(conv.as_int(args[1]));
+    var options = net.Options{};
+
+    if (argc >= 3) {
+        options.user_agent = conv.as_zstring(args[2]);
+    }
+    if (argc == 4) {
+        options.authorization_token = conv.as_zstring(args[3]);
+    }
+
+    var data = net.get(url, @enumFromInt(method), options) catch return conv.nil_val();
+    return conv.string_val(data);
 }
 
 const Got = union(enum) {
