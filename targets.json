@@ -19,7 +19,6 @@
     "powerpc64le-linux-gnu",
     "powerpc64le-linux-musl",
     "riscv64-linux-musl",
-    "wasm32-wasi",
     "x86_64-linux-gnu",
     "x86_64-linux-musl",
     "x86_64-macos",
