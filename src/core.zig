@@ -88,3 +88,5 @@ pub const VAL_OBJ = value_h.VAL_OBJ;
 pub const VAL_COMPLEX = value_h.VAL_COMPLEX;
 pub const ValueArray = value_h.ValueArray;
 pub const Complex = value_h.Complex;
+
+pub const Table = table_h.Table;

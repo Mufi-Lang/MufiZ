@@ -65,4 +65,6 @@ pub fn main() !void {
     } else {
         return clap.help(std.io.getStdErr().writer(), clap.Help, &params, .{});
     }
+
+  // const res = try @import("net.zig").post("http://127.0.0.1:8000/pos_data", "new", .PlainText, .{});
 }

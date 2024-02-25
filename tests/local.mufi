@@ -1,0 +1,7 @@
+// tests a local web server 
+var res = get_req("http://127.0.0.1:8000/data", 0);
+print res;
+
+print post_req("http://127.0.0.1:8000/pos_data", "new value from post", 0);
+print put_req("http://127.0.0.1:8000/put_data", "new value from put", 0);
+print del_req("http://127.0.0.1:8000/del_data", 0);

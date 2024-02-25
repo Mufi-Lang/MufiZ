@@ -1,14 +1,18 @@
+const std = @import("std");
+const JValue = std.json.Value;
 const core = @import("core");
 const Value = core.Value;
 const Obj = core.Obj;
 const ObjType = core.ObjType;
 const ObjString = core.ObjString;
+const ObjClass = core.ObjClass;
 pub const VAL_INT = core.VAL_INT;
 pub const VAL_BOOL = core.VAL_BOOL;
 pub const VAL_DOUBLE = core.VAL_DOUBLE;
 pub const VAL_NIL = core.VAL_NIL;
 pub const VAL_OBJ = core.VAL_OBJ;
 pub const OBJ_STRING = core.OBJ_STRING;
+pub const OBJ_CLASS = core.OBJ_CLASS;
 pub const VAL_COMPLEX = core.VAL_COMPLEX;
 pub const Complex = core.Complex;
 
@@ -32,6 +36,7 @@ pub fn type_check(n: usize, values: [*c]Value, val_type: i32) bool {
         VAL_BOOL => &is_bool,
         VAL_NIL => &is_nil,
         VAL_OBJ => &is_obj,
+        VAL_COMPLEX => &is_complex,
         else => return false,
     };
     for (0..n) |i| {
@@ -121,10 +126,18 @@ pub fn is_obj_type(val: Value, ty: ObjType) bool {
 }
 
 pub fn is_string(val: Value) bool {
-    return is_obj(val) and is_obj_type(val, core.OBJ_STRING);
+    return is_obj(val) and is_obj_type(val, OBJ_STRING);
+}
+
+pub fn is_class(val: Value) bool {
+    return is_obj(val) and is_obj_type(val, OBJ_CLASS);
 }
 
 pub fn as_string(val: Value) ?*ObjString {
+    return @ptrCast(@alignCast(val.as.obj));
+}
+
+pub fn as_class(val: Value) ?*ObjClass {
     return @ptrCast(@alignCast(val.as.obj));
 }
 
@@ -139,4 +152,22 @@ pub fn string_val(s: []u8) Value {
     const length: c_int = @intCast(s.len);
     const obj_str = core.copyString(chars, length);
     return .{ .type = VAL_OBJ, .as = .{ .obj = @ptrCast(obj_str) } };
+}
+
+pub fn json_val(val: Value) JValue {
+    switch (val.type) {
+        VAL_INT => return JValue{ .integer = @as(i64, @intCast(as_int(val))) },
+        VAL_DOUBLE => return JValue{ .float = as_double(val) },
+        VAL_BOOL => return JValue{ .bool = as_bool(val) },
+        VAL_NIL => return JValue{ .integer = 0 },
+        VAL_OBJ => {
+            if (is_string(val)) {
+                var s = as_zstring(val);
+                return JValue{ .string = s };
+            } else {
+                return JValue{.null};
+            }
+        },
+        else => return JValue{.null},
+    }
 }
