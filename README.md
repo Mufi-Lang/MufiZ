@@ -113,13 +113,13 @@ $ mv mufiz /usr/local/bin
 
 ## Releases
 
-| Version | Codename                                                      | Status   |
-| ------- | ------------------------------------------------------------- | -------- |
-| 0.1.0   | Baloo                                                         | Archived |
-| 0.2.0   | [Zula](https://github.com/Mustafif/MufiZ/releases/tag/v0.2.0) | Released |
-| 0.3.0   | [Iris](https://github.com/Mustafif/MufiZ/releases/tag/v0.3.0) | Released |
-| 0.4.0   | [Voxl](https://github.com/Mustafif/MufiZ/releases/tag/v0.4.0) | Released |
-| 0.5.0   | [Luna](https://github.com/Mustafif/MufiZ/releases/tag/v0.5.0) | Released |
+| Version | Codename                                                                 | Status      |
+| ------- | ------------------------------------------------------------------------ | ----------- |
+| 0.1.0   | Baloo                                                                    | Archived    |
+| 0.2.0   | [Zula](https://github.com/Mustafif/MufiZ/releases/tag/v0.2.0)            | Released    |
+| 0.3.0   | [Iris](https://github.com/Mustafif/MufiZ/releases/tag/v0.3.0)            | Released    |
+| 0.4.0   | [Voxl](https://github.com/Mustafif/MufiZ/releases/tag/v0.4.0)            | Released    |
+| 0.5.0   | [Luna](https://github.com/Mustafif/MufiZ/releases/tag/v0.5.0)            | Released    |
 | 0.6.0   | [Mars](https://github.com/Mustafif/MufiZ/releases/tag/next-experimental) | In Progress |
 
 ---
@@ -147,7 +147,6 @@ $ mv mufiz /usr/local/bin
 | powerpc64le-linux-gnu  | :white_check_mark: | :white_check_mark: |
 | powerpc64le-linux-musl | :white_check_mark: | :white_check_mark: |
 | riscv64-linux-musl     | :white_check_mark: | :white_check_mark: |
-| wasm32-wasi            | :x:                | :x:                |
 | x86_64-linux-gnu       | :white_check_mark: | :white_check_mark: |
 | x86_64-linux-musl      | :white_check_mark: | :white_check_mark: |
 | x86_64-macos           | :x:                | :x:                |
@@ -158,3 +157,5 @@ $ mv mufiz /usr/local/bin
 > current version specified in the snapcraft.yaml file. This is an issue that is way too time-consuming to fix
 > and is not worth the effort. We will be focusing on the deb and rpm packages for now, and will look for packaging 
 > options for other platforms such as `brew` and `winget` in the future.
+
+> `wasm32-wasi` is not supported as it requires a different approach to building the binary, and is not worth the effort
