@@ -5,6 +5,7 @@ const stdlib = @import("stdlib.zig");
 const system = @import("system.zig");
 const clap = @import("clap");
 const core = @import("core");
+const net = @import("net.zig");
 const heap = std.heap;
 
 var Global = heap.GeneralPurposeAllocator(.{}){};
@@ -22,6 +23,7 @@ const params = clap.parseParamsComptime(
 pub fn main() !void {
     core.vm_h.initVM();
     defer core.vm_h.freeVM();
+    defer net.client.deinit();
     defer {
         const check = Global.deinit();
         if (check == .leak) @panic("memory leak!");
@@ -65,6 +67,4 @@ pub fn main() !void {
     } else {
         return clap.help(std.io.getStdErr().writer(), clap.Help, &params, .{});
     }
-
-  // const res = try @import("net.zig").post("http://127.0.0.1:8000/pos_data", "new", .PlainText, .{});
 }
