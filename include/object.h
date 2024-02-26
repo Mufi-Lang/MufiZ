@@ -28,6 +28,7 @@
 #define IS_ARRAY(value)        isObjType(value, OBJ_ARRAY)
 #define IS_LINKED_LIST(value)  isObjType(value, OBJ_LINKED_LIST)
 #define IS_HASH_TABLE(value)   isObjType(value, OBJ_HASH_TABLE)
+#define IS_MATRIX(value)       isObjType(value, OBJ_MATRIX)
 
 #define AS_BOUND_METHOD(value)  ((ObjBoundMethod*)AS_OBJ(value))
 #define AS_CLASS(value)        ((ObjClass*)AS_OBJ(value))
@@ -41,6 +42,7 @@
 #define AS_ARRAY(value)        ((ObjArray*)AS_OBJ(value))
 #define AS_LINKED_LIST(value)  ((ObjLinkedList*)AS_OBJ(value))
 #define AS_HASH_TABLE(value)   ((ObjHashTable*)AS_OBJ(value))
+#define AS_MATRIX(value)       ((ObjMatrix*)AS_OBJ(value))
 
 typedef enum {
     OBJ_CLOSURE,
@@ -53,7 +55,8 @@ typedef enum {
     OBJ_CLASS,
     OBJ_ARRAY, 
     OBJ_LINKED_LIST, 
-    OBJ_HASH_TABLE
+    OBJ_HASH_TABLE, 
+    OBJ_MATRIX
 } ObjType;
 
 struct Obj {
@@ -89,6 +92,14 @@ typedef struct{
     int count;
     Value* values;
 }ObjArray;
+
+typedef struct
+{
+    Obj obj;
+    int rows;
+    int cols;
+    Value **data;
+} ObjMatrix;
 
 typedef struct {
     Obj obj;
@@ -189,5 +200,23 @@ void printObject(Value value);
 static inline bool isObjType(Value value, ObjType type) {
     return IS_OBJ(value) && AS_OBJ(value)->type == type;
 }
+
+ObjMatrix initMatrix(int rows, int cols);
+void freeMatrix(ObjMatrix *matrix);
+void printMatrix(ObjMatrix *matrix);
+void setRow(ObjMatrix *matrix, int row, Value *values);
+void setCol(ObjMatrix *matrix, int col, Value *values);
+void setMatrix(ObjMatrix *matrix, int row, int col, Value value);
+Value getMatrix(ObjMatrix *matrix, int row, int col);
+ObjMatrix addMatrix(ObjMatrix *a, ObjMatrix *b);
+ObjMatrix subMatrix(ObjMatrix *a, ObjMatrix *b);
+ObjMatrix mulMatrix(ObjMatrix *a, ObjMatrix *b);
+ObjMatrix divMatrix(ObjMatrix *a, ObjMatrix *b);
+ObjMatrix transposeMatrix(ObjMatrix *matrix);
+ObjMatrix scaleMatrix(ObjMatrix *matrix, Value scalar);
+void rref(ObjMatrix *matrix);
+void swapRows(ObjMatrix *matrix, int row1, int row2);
+ObjMatrix identityMatrix(int n);
+void copyMatrix(ObjMatrix *a, ObjMatrix *b);
 
 #endif

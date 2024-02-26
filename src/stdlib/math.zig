@@ -107,7 +107,7 @@ pub fn abs(argc: c_int, args: [*c]Value) callconv(.C) Value {
 
 pub fn phase(argc: c_int, args: [*c]Value) callconv(.C) Value {
     if (argc != 1) return stdlib_error("phase() expects one argument!", .{ .argn = argc });
-    if (!type_check(1, args, 4)) return stdlib_error("phase() expects a Complex!", .{ .value_type = conv.what_is(args[0]) });
+    if (!type_check(1, args, conv.VAL_COMPLEX)) return stdlib_error("phase() expects a Complex!", .{ .value_type = conv.what_is(args[0]) });
     const c = conv.as_complex(args[0]);
     return conv.double_val(std.math.atan2(f64, c.i, c.r));
 }

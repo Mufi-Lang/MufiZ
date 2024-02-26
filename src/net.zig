@@ -6,8 +6,6 @@ const Headers = http.Headers;
 const Client = http.Client;
 const GlobalAlloc = @import("main.zig").GlobalAlloc;
 
-pub var client = Client{.allocator = GlobalAlloc};
-
 pub const ContentType = enum(u8) {
     PlainText = 0,
     HTML = 1,
@@ -16,7 +14,7 @@ pub const ContentType = enum(u8) {
     PDF = 4,
     JPEG = 5,
     PNG = 6,
-
+    
     const Self = @This();
 
     pub fn to_str(self: Self) []const u8 {
@@ -53,6 +51,8 @@ pub const Options = struct {
 };
 
 pub fn get(url: []const u8, ct: ContentType, op: Options) ![]u8 {
+    var client = Client{ .allocator = GlobalAlloc };
+    defer client.deinit();
     const method = http.Method.GET;
     const uri = try Uri.parse(url);
     var headers = Headers.init(GlobalAlloc);
@@ -72,7 +72,8 @@ pub fn get(url: []const u8, ct: ContentType, op: Options) ![]u8 {
 }
 
 pub fn post(url: []const u8, data: []const u8, ct: ContentType, op: Options) ![]u8 {
-
+    var client = Client{ .allocator = GlobalAlloc };
+    defer client.deinit();
     const method = http.Method.POST;
     const uri = try Uri.parse(url);
     var headers = Headers.init(GlobalAlloc);
@@ -98,7 +99,8 @@ pub fn post(url: []const u8, data: []const u8, ct: ContentType, op: Options) ![]
 }
 
 pub fn put(url: []const u8, data: []const u8, ct: ContentType, op: Options) ![]u8 {
-
+    var client = Client{ .allocator = GlobalAlloc };
+    defer client.deinit();
     const method = http.Method.PUT;
     const uri = try Uri.parse(url);
     var headers = Headers.init(GlobalAlloc);
@@ -124,6 +126,8 @@ pub fn put(url: []const u8, data: []const u8, ct: ContentType, op: Options) ![]u
 }
 
 pub fn delete(url: []const u8, ct: ContentType, op: Options) ![]u8 {
+    var client = Client{ .allocator = GlobalAlloc };
+    defer client.deinit();
     const method = http.Method.DELETE;
     const uri = try Uri.parse(url);
     var headers = Headers.init(GlobalAlloc);

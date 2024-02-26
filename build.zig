@@ -85,8 +85,6 @@ pub fn build(b: *std.Build) !void {
     options.addOption(bool, "nostd", nostd);
     exe.addOptions("build_opts", options);
 
-    exe.strip = true;
-
     // zig fmt: on
     b.installArtifact(exe);
 

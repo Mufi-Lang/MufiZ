@@ -489,6 +489,188 @@ Value search_nf(int argCount, Value *args)
     }
 }
 
+Value matrix_nf(int argCount, Value *args)
+{
+    if (!IS_INT(args[0]) || !IS_INT(args[1]))
+    {
+        runtimeError("Both arguments must be integers.");
+        return NIL_VAL;
+    }
+    int rows = AS_INT(args[0]);
+    int cols = AS_INT(args[1]);
+    ObjMatrix m = initMatrix(rows, cols);
+    return OBJ_VAL(&m);
+}
+
+Value set_row_nf(int argCount, Value *args)
+{
+    if (!IS_MATRIX(args[0]))
+    {
+        runtimeError("First argument must be a matrix.");
+        return NIL_VAL;
+    }
+    if (!IS_INT(args[1]))
+    {
+        runtimeError("Second argument must be an integer.");
+        return NIL_VAL;
+    }
+    if (!IS_ARRAY(args[2]))
+    {
+        runtimeError("Third argument must be an array.");
+        return NIL_VAL;
+    }
+    ObjMatrix *m = AS_MATRIX(args[0]);
+    int row = AS_INT(args[1]);
+    ObjArray *a = AS_ARRAY(args[2]);
+    if (a->count != m->cols)
+    {
+        runtimeError("Array length does not match matrix column count.");
+        return NIL_VAL;
+    }
+    setRow(m, row, a->values);
+    return NIL_VAL;
+}
+
+Value set_col_nf(int argCount, Value *args)
+{
+    if (!IS_MATRIX(args[0]))
+    {
+        runtimeError("First argument must be a matrix.");
+        return NIL_VAL;
+    }
+    if (!IS_INT(args[1]))
+    {
+        runtimeError("Second argument must be an integer.");
+        return NIL_VAL;
+    }
+    if (!IS_ARRAY(args[2]))
+    {
+        runtimeError("Third argument must be an array.");
+        return NIL_VAL;
+    }
+    ObjMatrix *m = AS_MATRIX(args[0]);
+    int col = AS_INT(args[1]);
+    ObjArray *a = AS_ARRAY(args[2]);
+    if (a->count != m->rows)
+    {
+        runtimeError("Array length does not match matrix row count.");
+        return NIL_VAL;
+    }
+    setCol(m, col, a->values);
+    return NIL_VAL;
+}
+
+Value set_mat_nf(int argCount, Value *args)
+{
+    if (!IS_MATRIX(args[0]))
+    {
+        runtimeError("First argument must be a matrix.");
+        return NIL_VAL;
+    }
+    if (!IS_INT(args[1]) || !IS_INT(args[2]))
+    {
+        runtimeError("Second and third arguments must be integers.");
+        return NIL_VAL;
+    }
+    if (!IS_DOUBLE(args[3]))
+    {
+        runtimeError("Fourth argument must be a double.");
+        return NIL_VAL;
+    }
+    ObjMatrix *m = AS_MATRIX(args[0]);
+    int row = AS_INT(args[1]);
+    int col = AS_INT(args[2]);
+    setMatrix(m, row, col, args[3]);
+    return NIL_VAL;
+}
+
+Value get_mat_nf(int argCount, Value *args)
+{
+    if (!IS_MATRIX(args[0]))
+    {
+        runtimeError("First argument must be a matrix.");
+        return NIL_VAL;
+    }
+    if (!IS_INT(args[1]) || !IS_INT(args[2]))
+    {
+        runtimeError("Second and third arguments must be integers.");
+        return NIL_VAL;
+    }
+    ObjMatrix *m = AS_MATRIX(args[0]);
+    int row = AS_INT(args[1]);
+    int col = AS_INT(args[2]);
+    return getMatrix(m, row, col);
+}
+
+Value transpose_nf(int argCount, Value *args)
+{
+    if (!IS_MATRIX(args[0]))
+    {
+        runtimeError("First argument must be a matrix.");
+        return NIL_VAL;
+    }
+    ObjMatrix *m = AS_MATRIX(args[0]);
+    ObjMatrix t = transposeMatrix(m);
+    return OBJ_VAL(&t);
+}
+
+Value scale_nf(int argCount, Value *args)
+{
+    if (!IS_MATRIX(args[0]))
+    {
+        runtimeError("First argument must be a matrix.");
+        return NIL_VAL;
+    }
+    if (!IS_DOUBLE(args[1]))
+    {
+        runtimeError("Second argument must be a double.");
+        return NIL_VAL;
+    }
+    ObjMatrix *m = AS_MATRIX(args[0]);
+    ObjMatrix s = scaleMatrix(m, args[1]);
+    return OBJ_VAL(&s);
+}
+
+Value rref_nf(int argCount, Value *args)
+{
+    if (!IS_MATRIX(args[0]))
+    {
+        runtimeError("First argument must be a matrix.");
+        return NIL_VAL;
+    }
+    ObjMatrix *m = AS_MATRIX(args[0]);
+    rref(m);
+    return NIL_VAL;
+}
+
+Value swap_rows_nf(int argCount, Value *args)
+{
+    if (!IS_MATRIX(args[0]))
+    {
+        runtimeError("First argument must be a matrix.");
+        return NIL_VAL;
+    }
+    if (!IS_INT(args[1]) || !IS_INT(args[2]))
+    {
+        runtimeError("Second and third arguments must be integers.");
+        return NIL_VAL;
+    }
+    ObjMatrix *m = AS_MATRIX(args[0]);
+    swapRows(m, AS_INT(args[1]), AS_INT(args[2]));
+    return NIL_VAL;
+}
+
+Value ident_nf(int argCount, Value *args)
+{
+    if (!IS_INT(args[0]))
+    {
+        runtimeError("First argument must be an integer.");
+        return NIL_VAL;
+    }
+    ObjMatrix m = identityMatrix(AS_INT(args[0]));
+    return OBJ_VAL(&m);
+}
+
 // Initializes the virtual machine
 void initVM(void)
 {
@@ -525,6 +707,16 @@ void initVM(void)
     defineNative("range", range_nf);
     defineNative("reverse", reverse_nf);
     defineNative("search", search_nf);
+    defineNative("matrix", matrix_nf);
+    defineNative("set_row", set_row_nf);
+    defineNative("set_col", set_col_nf);
+    defineNative("set_mat", set_mat_nf);
+    defineNative("get_mat", get_mat_nf);
+    defineNative("transpose", transpose_nf);
+    defineNative("scale", scale_nf);
+    defineNative("rref", rref_nf);
+    defineNative("swap_rows", swap_rows_nf);
+    defineNative("identity", ident_nf);
 }
 
 // Frees the virtual machine

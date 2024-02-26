@@ -1,0 +1,2 @@
+var r = get_req("https://httpbin.org/get", 2);
+print r;
