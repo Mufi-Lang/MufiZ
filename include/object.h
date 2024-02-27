@@ -90,6 +90,7 @@ typedef struct{
     Obj obj;
     int capacity;
     int count;
+    bool _static;
     Value* values;
 }ObjArray;
 
@@ -169,9 +170,10 @@ ObjString* copyString(const char* chars, int length);
 ObjUpvalue* newUpvalue(Value* slot);
 
 ObjArray* newArray();
-ObjArray* newArrayWithCap(int capacity);
+ObjArray* newArrayWithCap(int capacity, bool _static);
 ObjArray* mergeArrays(ObjArray* a, ObjArray* b);
 void pushArray(ObjArray* array, Value value);
+void insertArray(ObjArray* array, int index, Value value);
 Value popArray(ObjArray* array);
 void sortArray(ObjArray* array);
 int searchArray(ObjArray* array, Value value);

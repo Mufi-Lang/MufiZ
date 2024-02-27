@@ -32,21 +32,24 @@ ObjArray *newArray()
     array->capacity = 0;
     array->count = 0;
     array->values = NULL;
+    array->_static = false;
     return array;
 }
 
-ObjArray *newArrayWithCap(int capacity)
+ObjArray *newArrayWithCap(int capacity, bool _static)
 {
     ObjArray *array = ALLOCATE_OBJ(ObjArray, OBJ_ARRAY);
     array->capacity = capacity;
     array->count = 0;
     array->values = ALLOCATE(Value, capacity);
+    array->_static = _static;
     return array;
 }
 
 ObjArray *mergeArrays(ObjArray *a, ObjArray *b)
 {
-    ObjArray *newArray = newArrayWithCap(a->count + b->count);
+    bool _static = a->_static && b->_static;
+    ObjArray *newArray = newArrayWithCap(a->count + b->count, _static);
     for (int i = 0; i < a->count; i++)
     {
         pushArray(newArray, a->values[i]);
@@ -60,13 +63,46 @@ ObjArray *mergeArrays(ObjArray *a, ObjArray *b)
 
 void pushArray(ObjArray *array, Value value)
 {
-    if (array->capacity < array->count + 1)
+    if (array->capacity < array->count + 1 && !array->_static)
     {
         int oldCapacity = array->capacity;
         array->capacity = GROW_CAPACITY(oldCapacity);
         array->values = GROW_ARRAY(Value, array->values, oldCapacity, array->capacity);
     }
+    else if (array->capacity < array->count + 1 && array->_static)
+    {
+        printf("Array is full");
+        return;
+    }
+
     array->values[array->count++] = value;
+}
+
+void insertArray(ObjArray *array, int index, Value value)
+{
+    if (index < 0 || index > array->count)
+    {
+        printf("Index out of bounds");
+        return;
+    }
+    if (array->capacity < array->count + 1 && !array->_static)
+    {
+        int oldCapacity = array->capacity;
+        array->capacity = GROW_CAPACITY(oldCapacity);
+        array->values = GROW_ARRAY(Value, array->values, oldCapacity, array->capacity);
+    }
+    else if (array->capacity < array->count + 1 && array->_static)
+    {
+        printf("Array is full");
+        return;
+    }
+
+    for (int i = array->count; i > index; i--)
+    {
+        array->values[i] = array->values[i - 1];
+    }
+    array->values[index] = value;
+    array->count++;
 }
 
 Value popArray(ObjArray *array)
@@ -543,57 +579,51 @@ ObjMatrix *initMatrix(int rows, int cols)
     matrix->rows = rows;
     matrix->cols = cols;
     matrix->len = rows * cols;
-    matrix->data = newArrayWithCap(matrix->len);
-    for (int i = 0; i < matrix->len; i++)
-    {
-        pushArray(matrix->data, DOUBLE_VAL(1.0));
-    }
+    matrix->data = newArrayWithCap(matrix->len, true);
     return matrix;
 }
 
-static Value getValue(ObjMatrix *mat, int row, int col)
-{
-    if (row >= 0 && row < mat->rows && col >= 0 && col < mat->cols)
-    {
-        return mat->data->values[row * mat->cols + col];
-    }
-    return NIL_VAL; // Return -1 or any other appropriate value to indicate error
-}
+// static Value getValue(ObjMatrix *mat, int row, int col)
+// {
+//     if (row >= 0 && row < mat->rows && col >= 0 && col < mat->cols)
+//     {
+//         return mat->data->values[row * mat->cols + col];
+//     }
+//     return NIL_VAL; // Return -1 or any other appropriate value to indicate error
+// }
 
 void printMatrix(ObjMatrix *matrix)
 {
-    printf("[\n");
-    for (int i = 0; i < matrix->rows; i++)
+    if (matrix != NULL)
     {
-        printf("  [");
-        for (int j = 0; j < matrix->cols; j++)
+        if (matrix->data->count > 0)
         {
-            printValue(getValue(matrix, i, j));
-            if (j != matrix->cols - 1)
             {
-                printf(", ");
+                for (int i = 0; i < matrix->len; ++i)
+                {
+                    printValue(matrix->data->values[i]);
+                    printf(" ");
+                    if ((i + 1) % matrix->cols == 0)
+                    {
+                        printf("\n");
+                    }
+                }
             }
-        }
-        printf("]");
-        if (i != matrix->rows - 1)
-        {
-            printf(",\n");
         }
         else
         {
-            printf("\n");
+            printf("[]\n");
         }
     }
-    printf("]\n");
 }
 
 void setRow(ObjMatrix *matrix, int row, ObjArray *values)
 {
-    if (row >= 0 && row < matrix->rows && values->count == matrix->cols)
+    if (matrix != NULL && values != NULL && row >= 0 && row < matrix->rows)
     {
-        for (int i = 0; i < matrix->cols; i++)
+        for (int col = 0; col < matrix->cols; ++col)
         {
-            matrix->data->values[row * matrix->cols + i] = values->values[i];
+            insertArray(matrix->data, row * matrix->cols + col, values->values[col]);
         }
     }
 }

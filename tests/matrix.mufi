@@ -1,2 +1,16 @@
-var m = matrix(2, 2);
+var m = matrix(3, 3);
+
+var row1 = array(3, true);
+push(row1, 1, 2, 3);
+
+var row2 = array(3, true);
+push(row2, 4, 5, 6);
+
+var row3 = array(3, true);
+push(row3, 7, 8, 9);
+
+set_row(m, 0, row1);
+set_row(m, 1, row2);
+set_row(m, 2, row3);
+
 print m;

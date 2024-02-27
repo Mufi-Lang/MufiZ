@@ -72,14 +72,20 @@ Value array_nf(int argCount, Value *args)
         ObjArray *a = newArray();
         return OBJ_VAL(a);
     }
-    else if (argCount == 1)
+    else if (argCount >= 1)
     {
         if (!IS_INT(args[0]))
         {
             runtimeError("First argument must be an integer.");
             return NIL_VAL;
+        } 
+
+        if(argCount == 2 && !IS_BOOL(args[1])){
+            runtimeError("Second argument must be a bool");
+            return NIL_VAL;
         }
-        ObjArray *a = newArrayWithCap(AS_INT(args[0]));
+
+        ObjArray *a = newArrayWithCap(AS_INT(args[0]), AS_BOOL(args[1]));
         return OBJ_VAL(a);
     }
     else
@@ -502,6 +508,42 @@ Value matrix_nf(int argCount, Value *args)
     return OBJ_VAL(m);
 }
 
+Value set_row_nf(int argCount, Value *args)
+{
+    if(!IS_MATRIX(args[0])){
+        runtimeError("First argument must be a matrix.");
+        return NIL_VAL;
+    }
+    if(!IS_INT(args[1])){
+        runtimeError("Second argument must be an integer.");
+        return NIL_VAL;
+    }
+    if(!IS_ARRAY(args[2])){
+        runtimeError("Third argument must be an array.");
+        return NIL_VAL;
+    }
+
+    ObjMatrix* matrix = AS_MATRIX(args[0]);
+    int row = AS_INT(args[1]);
+    ObjArray* array = AS_ARRAY(args[2]);
+
+    setRow(matrix, row, array);
+    return NIL_VAL;
+}
+
+Value kolasa_nf(int argCount, Value *args)
+{
+    if(argCount != 0){
+        runtimeError("kolasa() takes no arguments.");
+        return NIL_VAL;
+    }
+    ObjMatrix* m = initMatrix(3, 3);
+    for(int i = 0; i < m->len; i++){
+        pushArray(m->data, INT_VAL(i+1));
+    }
+    return OBJ_VAL(m);
+}
+
 // Initializes the virtual machine
 void initVM(void)
 {
@@ -539,6 +581,8 @@ void initVM(void)
     defineNative("reverse", reverse_nf);
     defineNative("search", search_nf);
     defineNative("matrix", matrix_nf);
+    defineNative("set_row", set_row_nf);
+    defineNative("kolasa", kolasa_nf);
 }
 
 // Frees the virtual machine

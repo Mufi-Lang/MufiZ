@@ -239,12 +239,13 @@ static void freeObject(Obj *object)
         freeObjectHashTable(hashTable);
         break;
     }
-    case OBJ_MATRIX:
-    {
-        ObjMatrix *matrix = (ObjMatrix *)object;
-        freeObjectArray(matrix->data);
-        break;
-    }
+    // case OBJ_MATRIX:
+    // {
+    //     ObjMatrix *matrix = (ObjMatrix *)object;
+    //     freeObjectArray(matrix->data);
+    //     break;
+    // }
+    default: break;
     }
 }
 
