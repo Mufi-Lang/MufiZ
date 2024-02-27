@@ -1,0 +1,2 @@
+var m = matrix(2, 2);
+print m;

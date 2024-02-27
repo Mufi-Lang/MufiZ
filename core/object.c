@@ -537,263 +537,66 @@ ObjUpvalue *newUpvalue(Value *slot)
     return upvalue;
 }
 
-ObjMatrix initMatrix(int rows, int cols)
+ObjMatrix *initMatrix(int rows, int cols)
 {
-    ObjMatrix matrix;
-    matrix.rows = rows;
-    matrix.cols = cols;
-    matrix.data = ALLOCATE(Value *, rows);
-    for (int i = 0; i < rows; i++)
+    ObjMatrix *matrix = ALLOCATE_OBJ(ObjMatrix, OBJ_MATRIX);
+    matrix->rows = rows;
+    matrix->cols = cols;
+    matrix->len = rows * cols;
+    matrix->data = newArrayWithCap(matrix->len);
+    for (int i = 0; i < matrix->len; i++)
     {
-        matrix.data[i] = ALLOCATE(Value, cols);
+        pushArray(matrix->data, DOUBLE_VAL(1.0));
     }
     return matrix;
 }
 
-void freeMatrix(ObjMatrix *matrix)
+static Value getValue(ObjMatrix *mat, int row, int col)
 {
-    for (int i = 0; i < matrix->rows; i++)
+    if (row >= 0 && row < mat->rows && col >= 0 && col < mat->cols)
     {
-        FREE_ARRAY(Value, matrix->data[i], matrix->cols);
+        return mat->data->values[row * mat->cols + col];
     }
-    FREE_ARRAY(Value *, matrix->data, matrix->rows);
+    return NIL_VAL; // Return -1 or any other appropriate value to indicate error
 }
 
 void printMatrix(ObjMatrix *matrix)
 {
+    printf("[\n");
     for (int i = 0; i < matrix->rows; i++)
     {
+        printf("  [");
         for (int j = 0; j < matrix->cols; j++)
         {
-            printf("%g ", AS_DOUBLE(matrix->data[i][j]));
-        }
-        printf("\n");
-    }
-}
-
-void setRow(ObjMatrix *matrix, int row, Value *values)
-{
-    for (int i = 0; i < matrix->cols; i++)
-    {
-        matrix->data[row][i] = values[i];
-    }
-}
-
-void setCol(ObjMatrix *matrix, int col, Value *values)
-{
-    for (int i = 0; i < matrix->rows; i++)
-    {
-        matrix->data[i][col] = values[i];
-    }
-}
-
-void setMatrix(ObjMatrix *matrix, int row, int col, Value value)
-{
-    if (row >= 0 && row < matrix->rows && col >= 0 && col < matrix->cols)
-    {
-        matrix->data[row][col] = value;
-    }
-    else
-    {
-        printf("Invalid position\n");
-    }
-}
-
-Value getMatrix(ObjMatrix *matrix, int row, int col)
-{
-    if (row >= 0 && row < matrix->rows && col >= 0 && col < matrix->cols)
-    {
-        return matrix->data[row][col];
-    }
-    else
-    {
-        printf("Invalid position\n");
-        return NIL_VAL;
-    }
-}
-
-ObjMatrix addMatrix(ObjMatrix *a, ObjMatrix *b)
-{
-    if (a->rows != b->rows || a->cols != b->cols)
-    {
-        printf("ObjMatrix dimensions do not match\n");
-        return initMatrix(0, 0);
-    }
-    ObjMatrix result = initMatrix(a->rows, a->cols);
-    for (int i = 0; i < a->rows; i++)
-    {
-        for (int j = 0; j < a->cols; j++)
-        {
-            result.data[i][j] = DOUBLE_VAL(AS_DOUBLE(a->data[i][j]) + AS_DOUBLE(b->data[i][j]));
-        }
-    }
-    return result;
-}
-
-ObjMatrix subMatrix(ObjMatrix *a, ObjMatrix *b)
-{
-    if (a->rows != b->rows || a->cols != b->cols)
-    {
-        printf("ObjMatrix dimensions do not match\n");
-        return initMatrix(0, 0);
-    }
-    ObjMatrix result = initMatrix(a->rows, a->cols);
-    for (int i = 0; i < a->rows; i++)
-    {
-        for (int j = 0; j < a->cols; j++)
-        {
-            result.data[i][j] = DOUBLE_VAL(AS_DOUBLE(a->data[i][j]) - AS_DOUBLE(b->data[i][j]));
-        }
-    }
-    return result;
-}
-
-ObjMatrix mulMatrix(ObjMatrix *a, ObjMatrix *b)
-{
-    if (a->cols != b->rows)
-    {
-        printf("ObjMatrix dimensions do not match\n");
-        return initMatrix(0, 0);
-    }
-    ObjMatrix result = initMatrix(a->rows, b->cols);
-    for (int i = 0; i < a->rows; i++)
-    {
-        for (int j = 0; j < b->cols; j++)
-        {
-            Value sum = DOUBLE_VAL(0);
-            for (int k = 0; k < a->cols; k++)
+            printValue(getValue(matrix, i, j));
+            if (j != matrix->cols - 1)
             {
-                sum = DOUBLE_VAL(AS_DOUBLE(sum) + AS_DOUBLE(a->data[i][k]) * AS_DOUBLE(b->data[k][j]));
-            }
-            result.data[i][j] = sum;
-        }
-    }
-    return result;
-}
-
-ObjMatrix divMatrix(ObjMatrix *a, ObjMatrix *b)
-{
-    if (a->rows != b->rows || a->cols != b->cols)
-    {
-        printf("ObjMatrix dimensions do not match\n");
-        return initMatrix(0, 0);
-    }
-    ObjMatrix result = initMatrix(a->rows, a->cols);
-    for (int i = 0; i < a->rows; i++)
-    {
-        for (int j = 0; j < a->cols; j++)
-        {
-            result.data[i][j] = DOUBLE_VAL(AS_DOUBLE(a->data[i][j]) / AS_DOUBLE(b->data[i][j]));
-        }
-    }
-    return result;
-}
-
-ObjMatrix transposeMatrix(ObjMatrix *matrix)
-{
-    ObjMatrix result = initMatrix(matrix->cols, matrix->rows);
-    for (int i = 0; i < matrix->rows; i++)
-    {
-        for (int j = 0; j < matrix->cols; j++)
-        {
-            result.data[j][i] = matrix->data[i][j];
-        }
-    }
-    return result;
-}
-
-ObjMatrix scaleMatrix(ObjMatrix *matrix, Value scalar)
-{
-    ObjMatrix result = initMatrix(matrix->rows, matrix->cols);
-    for (int i = 0; i < matrix->rows; i++)
-    {
-        for (int j = 0; j < matrix->cols; j++)
-        {
-            result.data[i][j] = DOUBLE_VAL(AS_DOUBLE(matrix->data[i][j]) * AS_DOUBLE(scalar));
-        }
-    }
-    return result;
-}
-
-void rref(ObjMatrix *matrix)
-{
-    int lead = 0;
-    for (int r = 0; r < matrix->rows; r++)
-    {
-        if (matrix->cols <= lead)
-        {
-            return;
-        }
-        int i = r;
-        while (AS_DOUBLE(matrix->data[i][lead]) == 0)
-        {
-            i++;
-            if (matrix->rows == i)
-            {
-                i = r;
-                lead++;
-                if (matrix->cols == lead)
-                {
-                    return;
-                }
+                printf(", ");
             }
         }
-        swapRows(matrix, i, r);
-        Value div = DOUBLE_VAL(AS_DOUBLE(matrix->data[r][lead]));
-        for (int j = 0; j < matrix->cols; j++)
+        printf("]");
+        if (i != matrix->rows - 1)
         {
-            matrix->data[r][j] = DOUBLE_VAL(AS_DOUBLE(matrix->data[r][j]) / AS_DOUBLE(div));
+            printf(",\n");
         }
-        for (int i = 0; i < matrix->rows; i++)
+        else
         {
-            if (i != r)
-            {
-                Value sub = DOUBLE_VAL(AS_DOUBLE(matrix->data[i][lead]));
-                for (int j = 0; j < matrix->cols; j++)
-                {
-                    matrix->data[i][j] = DOUBLE_VAL(AS_DOUBLE(matrix->data[i][j]) - AS_DOUBLE(sub) * AS_DOUBLE(matrix->data[r][j]));
-                }
-            }
+            printf("\n");
         }
-        lead++;
     }
+    printf("]\n");
 }
 
-void swapRows(ObjMatrix *matrix, int row1, int row2)
+void setRow(ObjMatrix *matrix, int row, ObjArray *values)
 {
-    Value *temp = matrix->data[row1];
-    matrix->data[row1] = matrix->data[row2];
-    matrix->data[row2] = temp;
-}
-
-ObjMatrix identityMatrix(int n)
-{
-    ObjMatrix matrix = initMatrix(n, n);
-    for (int i = 0; i < n; i++)
+    if (row >= 0 && row < matrix->rows && values->count == matrix->cols)
     {
-        matrix.data[i][i] = DOUBLE_VAL(1);
-        for (int j = 0; j < n; j++)
+        for (int i = 0; i < matrix->cols; i++)
         {
-            if (j != i)
-            {
-                matrix.data[i][j] = DOUBLE_VAL(0);
-            }
-        }
-    }
-    return matrix;
-}
-
-void copyMatrix(ObjMatrix *a, ObjMatrix *b)
-{
-    for (int i = 0; i < a->rows; i++)
-    {
-        for (int j = 0; j < a->cols; j++)
-        {
-            b->data[i][j] = a->data[i][j];
+            matrix->data->values[row * matrix->cols + i] = values->values[i];
         }
     }
 }
-
 
 static void printFunction(ObjFunction *function)
 {

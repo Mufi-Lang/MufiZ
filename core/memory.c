@@ -153,12 +153,9 @@ static void blackenObject(Obj *object)
     case OBJ_MATRIX:
     {
         ObjMatrix *matrix = (ObjMatrix *)object;
-        for (int i = 0; i < matrix->rows; i++)
+        for (int i = 0; i < matrix->len; i++)
         {
-            for (int j = 0; j < matrix->cols; j++)
-            {
-                markValue(matrix->data[i][j]);
-            }
+            markValue(matrix->data->values[i]);
         }
         break;
     }
@@ -245,7 +242,7 @@ static void freeObject(Obj *object)
     case OBJ_MATRIX:
     {
         ObjMatrix *matrix = (ObjMatrix *)object;
-        freeMatrix(matrix);
+        freeObjectArray(matrix->data);
         break;
     }
     }
