@@ -12,6 +12,13 @@ pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    var c_flags: []const []const u8 = undefined;
+    if (target.isLinux() and target.cpu_arch == .x86_64) {
+        c_flags = &.{ "-Wall", "-O3", "-ffast-math", "-Wno-unused-variable", "-Wno-unused-function", "-lm", "-mavx2" };
+    } else {
+        c_flags = &.{ "-Wall", "-O3", "-ffast-math", "-Werror", "-Wno-unused-variable", "-Wno-unused-function" };
+    }
+
     try common(optimize);
 
     const exe = b.addExecutable(.{
@@ -22,8 +29,6 @@ pub fn build(b: *std.Build) !void {
         .optimize = optimize,
         .link_libc = true,
     });
-
-    const c_flags = &.{ "-Wall", "-O3", "-ffast-math", "-Werror", "-Wno-unused-variable", "-Wno-unused-function" };
 
     const lib_scanner = b.addStaticLibrary(.{
         .name = "libmufiz_scanner",

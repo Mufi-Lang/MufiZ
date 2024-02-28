@@ -20,6 +20,9 @@
 //> Allocates a new array on the heap
 #define ALLOCATE(type, count) \
     ((type*)reallocate(NULL, 0, sizeof(type) * (count)))
+
+#define ALLOCATE_ALIGNED(type, count) \
+    ((type*)reallocate_aligned(NULL, 0, sizeof(type) * (count)))
 // To grow capacity we check if the capacity is less than 8,
 // if so, we make it 8, if not we multiply the old capacity by 2.
 //> Grows the capacity of dynamic arrays
@@ -41,6 +44,7 @@
 
 //> Used to reallocate memory for arrays
 void* reallocate(void* pointer, size_t oldSize, size_t newSize);
+void* reallocate_aligned(void* pointer, size_t oldSize, size_t newSize);
 //> Marks a heap-allocated object
 void markObject(Obj* object);
 //> Marks values for the garbage collector
@@ -49,4 +53,5 @@ void markValue(Value value);
 void collectGarbage();
 //> Frees objects (heap allocated values)
 void freeObjects();
+bool checkAVX2(void);
 #endif
