@@ -78,9 +78,10 @@ Value array_nf(int argCount, Value *args)
         {
             runtimeError("First argument must be an integer.");
             return NIL_VAL;
-        } 
+        }
 
-        if(argCount == 2 && !IS_BOOL(args[1])){
+        if (argCount == 2 && !IS_BOOL(args[1]))
+        {
             runtimeError("Second argument must be a bool");
             return NIL_VAL;
         }
@@ -238,13 +239,22 @@ Value nth_nf(int argCount, Value *args)
 {
     if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]))
     {
-        runtimeError("First argument must be an array or linked list.");
+        runtimeError("First argument must be an array, matrix or linked list.");
         return NIL_VAL;
     }
     if (!IS_INT(args[1]))
     {
         runtimeError("Second argument must be an integer.");
         return NIL_VAL;
+    }
+
+    if (IS_MATRIX(args[0]) && argCount == 3)
+    {
+        ObjMatrix *m = AS_MATRIX(args[0]);
+        // improve error handling here
+        int row = AS_INT(args[1]);
+        int col = AS_INT(args[2]);
+        return getMatrix(m, row, col);
     }
 
     if (IS_ARRAY(args[0]))
@@ -405,6 +415,29 @@ Value contains_nf(int argCount, Value *args)
     }
 }
 
+Value insert_nf(int argCount, Value *args)
+{
+    if (argCount != 3)
+    {
+        runtimeError("insert() takes 3 arguments.");
+        return NIL_VAL;
+    }
+    if (!IS_ARRAY(args[0]))
+    {
+        runtimeError("First argument must be an array.");
+        return NIL_VAL;
+    }
+    if (!IS_INT(args[1]))
+    {
+        runtimeError("Second argument must be an integer.");
+        return NIL_VAL;
+    }
+    ObjArray *a = AS_ARRAY(args[0]);
+    int index = AS_INT(args[1]);
+    insertArray(a, index, args[2]);
+    return NIL_VAL;
+}
+
 Value len_nf(int argCount, Value *args)
 {
     if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]) && !IS_HASH_TABLE(args[0]))
@@ -504,44 +537,130 @@ Value matrix_nf(int argCount, Value *args)
     }
     int rows = AS_INT(args[0]);
     int cols = AS_INT(args[1]);
-    ObjMatrix* m = initMatrix(rows, cols);
+    ObjMatrix *m = initMatrix(rows, cols);
     return OBJ_VAL(m);
 }
 
 Value set_row_nf(int argCount, Value *args)
 {
-    if(!IS_MATRIX(args[0])){
+    if (!IS_MATRIX(args[0]))
+    {
         runtimeError("First argument must be a matrix.");
         return NIL_VAL;
     }
-    if(!IS_INT(args[1])){
+    if (!IS_INT(args[1]))
+    {
         runtimeError("Second argument must be an integer.");
         return NIL_VAL;
     }
-    if(!IS_ARRAY(args[2])){
+    if (!IS_ARRAY(args[2]))
+    {
         runtimeError("Third argument must be an array.");
         return NIL_VAL;
     }
 
-    ObjMatrix* matrix = AS_MATRIX(args[0]);
+    ObjMatrix *matrix = AS_MATRIX(args[0]);
     int row = AS_INT(args[1]);
-    ObjArray* array = AS_ARRAY(args[2]);
+    ObjArray *array = AS_ARRAY(args[2]);
 
     setRow(matrix, row, array);
     return NIL_VAL;
 }
 
+Value set_col_nf(int argCount, Value *args)
+{
+    if (!IS_MATRIX(args[0]))
+    {
+        runtimeError("First argument must be a matrix.");
+        return NIL_VAL;
+    }
+    if (!IS_INT(args[1]))
+    {
+        runtimeError("Second argument must be an integer.");
+        return NIL_VAL;
+    }
+    if (!IS_ARRAY(args[2]))
+    {
+        runtimeError("Third argument must be an array.");
+        return NIL_VAL;
+    }
+
+    ObjMatrix *matrix = AS_MATRIX(args[0]);
+    int col = AS_INT(args[1]);
+    ObjArray *array = AS_ARRAY(args[2]);
+
+    setCol(matrix, col, array);
+    return NIL_VAL;
+}
+
+Value set_nf(int argCount, Value *args)
+{
+    if (argCount != 4)
+    {
+        runtimeError("set() takes 4 arguments.");
+        return NIL_VAL;
+    }
+
+    if (!IS_MATRIX(args[0]))
+    {
+        runtimeError("First argument must be a matrix.");
+        return NIL_VAL;
+    }
+    if (!IS_INT(args[1]))
+    {
+        runtimeError("Second argument must be an integer.");
+        return NIL_VAL;
+    }
+    if (!IS_INT(args[2]))
+    {
+        runtimeError("Third argument must be an integer.");
+        return NIL_VAL;
+    }
+
+    ObjMatrix *matrix = AS_MATRIX(args[0]);
+    int row = AS_INT(args[1]);
+    int col = AS_INT(args[2]);
+
+    setMatrix(matrix, row, col, args[3]);
+    return NIL_VAL;
+}
+
 Value kolasa_nf(int argCount, Value *args)
 {
-    if(argCount != 0){
+    if (argCount != 0)
+    {
         runtimeError("kolasa() takes no arguments.");
         return NIL_VAL;
     }
-    ObjMatrix* m = initMatrix(3, 3);
-    for(int i = 0; i < m->len; i++){
-        pushArray(m->data, INT_VAL(i+1));
+    ObjMatrix *m = initMatrix(3, 3);
+    for (int i = 0; i < m->len; i++)
+    {
+        m->data->values[i] = DOUBLE_VAL((double)(i+1));
     }
     return OBJ_VAL(m);
+}
+
+Value rref_nf(int argCount, Value *args)
+{
+    if (!IS_MATRIX(args[0]))
+    {
+        runtimeError("First argument must be a matrix.");
+        return NIL_VAL;
+    }
+    ObjMatrix *m = AS_MATRIX(args[0]);
+    rref(m);
+    return NIL_VAL;
+}
+
+Value rank_nf(int argCount, Value *args)
+{
+    if (!IS_MATRIX(args[0]))
+    {
+        runtimeError("First argument must be a matrix.");
+        return NIL_VAL;
+    }
+    ObjMatrix *m = AS_MATRIX(args[0]);
+    return INT_VAL(rank(m));
 }
 
 // Initializes the virtual machine
@@ -577,12 +696,17 @@ void initVM(void)
     defineNative("equal_list", equal_list_nf);
     defineNative("contains", contains_nf);
     defineNative("len", len_nf);
+    defineNative("insert", insert_nf);
     defineNative("range", range_nf);
     defineNative("reverse", reverse_nf);
     defineNative("search", search_nf);
     defineNative("matrix", matrix_nf);
     defineNative("set_row", set_row_nf);
+    defineNative("set_col", set_col_nf);
+    defineNative("set", set_nf);
     defineNative("kolasa", kolasa_nf);
+    defineNative("rref", rref_nf);
+    defineNative("rank", rank_nf);
 }
 
 // Frees the virtual machine

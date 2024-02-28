@@ -23,7 +23,7 @@ pub fn build(b: *std.Build) !void {
         .link_libc = true,
     });
 
-    const c_flags = &.{ "-Wall", "-O3", "-ffast-math", "-Werror" };
+    const c_flags = &.{ "-Wall", "-O3", "-ffast-math", "-Werror", "-Wno-unused-variable", "-Wno-unused-function" };
 
     const lib_scanner = b.addStaticLibrary(.{
         .name = "libmufiz_scanner",
@@ -68,7 +68,7 @@ pub fn build(b: *std.Build) !void {
         "core/compiler.c", 
         "core/debug.c", 
         "core/vm.c", 
-    }, c_flags);
+    }, &.{ "-Wall", "-O3", "-ffast-math", "-Wno-unused-variable", "-Wno-unused-function", "-lm"});
     exe.addIncludePath(.{.path = "include"});
     exe.linkLibrary(lib_core);
 

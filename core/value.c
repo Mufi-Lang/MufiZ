@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
+#include<math.h>
 #include "../include/object.h"
 #include "../include/value.h"
 #include "../include/memory.h"
@@ -47,8 +48,15 @@ void printValue(Value value)
         printf("nil");
         break;
     case VAL_DOUBLE:
-        printf("%g", AS_DOUBLE(value));
-        break;
+    {
+        double val = AS_DOUBLE(value);
+        if (fabs(val) < 1e-10)
+        {
+            val = 0.0;
+        }
+        printf("%g", val);
+    }
+    break;
     case VAL_INT:
         printf("%d", AS_INT(value));
         break;

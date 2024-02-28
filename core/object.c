@@ -78,6 +78,16 @@ void pushArray(ObjArray *array, Value value)
     array->values[array->count++] = value;
 }
 
+static void overWriteArray(ObjArray *array, int index, Value value)
+{
+    if (index < 0 || index >= array->count)
+    {
+        printf("Index out of bounds");
+        return;
+    }
+    array->values[index] = value;
+}
+
 void insertArray(ObjArray *array, int index, Value value)
 {
     if (index < 0 || index > array->count)
@@ -580,6 +590,10 @@ ObjMatrix *initMatrix(int rows, int cols)
     matrix->cols = cols;
     matrix->len = rows * cols;
     matrix->data = newArrayWithCap(matrix->len, true);
+    for (int i = 0; i < matrix->len; i++)
+    {
+        pushArray(matrix->data, DOUBLE_VAL(0.0));
+    }
     return matrix;
 }
 
@@ -623,9 +637,122 @@ void setRow(ObjMatrix *matrix, int row, ObjArray *values)
     {
         for (int col = 0; col < matrix->cols; ++col)
         {
-            insertArray(matrix->data, row * matrix->cols + col, values->values[col]);
+            overWriteArray(matrix->data, row * matrix->cols + col, values->values[col]);
         }
     }
+}
+
+void setCol(ObjMatrix *matrix, int col, ObjArray *values)
+{
+    if (matrix != NULL && values != NULL && col >= 0 && col < matrix->cols)
+    {
+        for (int row = 0; row < matrix->rows; ++row)
+        {
+            overWriteArray(matrix->data, row * matrix->cols + col, values->values[row]);
+        }
+    }
+}
+void setMatrix(ObjMatrix *matrix, int row, int col, Value value)
+{
+    if (matrix != NULL && row >= 0 && row < matrix->rows && col >= 0 && col < matrix->cols)
+    {
+        overWriteArray(matrix->data, row * matrix->cols + col, value);
+    }
+}
+Value getMatrix(ObjMatrix *matrix, int row, int col)
+{
+    if (matrix != NULL && row >= 0 && row < matrix->rows && col >= 0 && col < matrix->cols)
+    {
+        return matrix->data->values[row * matrix->cols + col];
+    }
+    return NIL_VAL;
+}
+
+void swapRow(ObjMatrix *matrix, int row1, int row2)
+{
+    if (matrix != NULL && row1 >= 0 && row1 < matrix->rows && row2 >= 0 && row2 < matrix->rows)
+    {
+        for (int col = 0; col < matrix->cols; ++col)
+        {
+            Value temp = matrix->data->values[row1 * matrix->cols + col];
+            overWriteArray(matrix->data, row1 * matrix->cols + col, matrix->data->values[row2 * matrix->cols + col]);
+            overWriteArray(matrix->data, row2 * matrix->cols + col, temp);
+        }
+    }
+}
+
+void rref(ObjMatrix *matrix)
+{
+    int lead = 0;
+    for (int r = 0; r < matrix->rows; r++)
+    {
+        if (lead >= matrix->cols)
+        {
+            return;
+        }
+        int i = r;
+        while (AS_DOUBLE(getMatrix(matrix, i, lead)) == 0.0)
+        {
+            i++;
+            if (i == matrix->rows)
+            {
+                i = r;
+                lead++;
+                if (lead == matrix->cols)
+                {
+                    return;
+                }
+            }
+        }
+        swapRow(matrix, i, r);
+        Value div = getMatrix(matrix, r, lead);
+        if (AS_DOUBLE(div) != 0.0)
+        {
+            for (int j = 0; j < matrix->cols; j++)
+            {
+                Value temp = DOUBLE_VAL(AS_DOUBLE(getMatrix(matrix, r, j)) / AS_DOUBLE(div));
+                setMatrix(matrix, r, j, temp);
+            }
+        }
+        for (int i = 0; i < matrix->rows; i++)
+        {
+            if (i != r)
+            {
+                Value sub = getMatrix(matrix, i, lead);
+                for (int j = 0; j < matrix->cols; j++)
+                {
+                    Value temp = DOUBLE_VAL(AS_DOUBLE(getMatrix(matrix, i, j)) - AS_DOUBLE(getMatrix(matrix, r, j)) * AS_DOUBLE(sub));
+                    setMatrix(matrix, i, j, temp);
+                }
+            }
+        }
+        lead++;
+    }
+}
+
+int rank(ObjMatrix *matrix)
+{
+    ObjMatrix *copy = initMatrix(matrix->rows, matrix->cols);
+    for (int i = 0; i < matrix->len; i++)
+    {
+        copy->data->values[i] = matrix->data->values[i];
+    }
+    rref(copy);
+    int rank = 0;
+    for (int i = 0; i < copy->rows; i++)
+    {
+        for (int j = 0; j < copy->cols; j++)
+        {
+            if (AS_DOUBLE(getMatrix(copy, i, j)) != 0.0)
+            {
+                rank++;
+                break;
+            }
+        }
+    }
+    freeObjectArray(copy->data);
+    FREE(ObjMatrix, copy);
+    return rank;
 }
 
 static void printFunction(ObjFunction *function)
