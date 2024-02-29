@@ -1,5 +1,3 @@
-#include <intrin.h>
-#include <immintrin.h>
 #include "../include/memory.h"
 #include "../include/vm.h"
 #include "../include/compiler.h"
@@ -38,45 +36,6 @@ void *reallocate(void *pointer, size_t oldSize, size_t newSize)
         exit(1);
     // return the result of the reallocation
     return result;
-}
-
-void *reallocate_aligned(void *pointer, size_t oldSize, size_t newSize)
-{
-    vm.bytesAllocated += newSize - oldSize;
-    if (newSize > oldSize)
-    {
-#ifdef DEBUG_STRESS_GC
-        collectGarbage();
-#endif
-    }
-    if (vm.bytesAllocated > vm.nextGC)
-    {
-        collectGarbage();
-    }
-
-    // If the new size is 0, we free the array
-    if (newSize == 0)
-    {
-        free(pointer);
-        return NULL;
-    }
-    // use realloc to handle any grow, shrink, etc.
-    // this is aligned to 32 bits for AVX2
-    void *result = _aligned_realloc(pointer, newSize, 32);
-    // if allocation fails exit program
-    if (result == NULL)
-        exit(1);
-    // return the result of the reallocation
-    return result;
-}
-
-bool checkAVX2(void){
-        int info[4];
-    __cpuid(info, 1);
-    if (!(info[2] & (1 << 5))) {
-        return false;
-    }
-    return true;
 }
 
 void markObject(Obj *object)

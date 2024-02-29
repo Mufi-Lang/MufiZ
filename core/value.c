@@ -1,10 +1,14 @@
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
-#include<math.h>
 #include "../include/object.h"
 #include "../include/value.h"
 #include "../include/memory.h"
+
+static double fabs(double x)
+{
+    return x < 0 ? -x : x;
+}
 
 // Creates a new empty array
 void initValueArray(ValueArray *array)

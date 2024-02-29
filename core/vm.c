@@ -635,7 +635,7 @@ Value kolasa_nf(int argCount, Value *args)
     ObjMatrix *m = initMatrix(3, 3);
     for (int i = 0; i < m->len; i++)
     {
-        m->data->values[i] = DOUBLE_VAL((double)(i+1));
+        m->data->values[i] = DOUBLE_VAL((double)(i + 1));
     }
     return OBJ_VAL(m);
 }
@@ -661,6 +661,29 @@ Value rank_nf(int argCount, Value *args)
     }
     ObjMatrix *m = AS_MATRIX(args[0]);
     return INT_VAL(rank(m));
+}
+
+Value transpose_nf(int argCount, Value *args)
+{
+    if (!IS_MATRIX(args[0]))
+    {
+        runtimeError("First argument must be a matrix.");
+        return NIL_VAL;
+    }
+    ObjMatrix *m = AS_MATRIX(args[0]);
+    ObjMatrix *t = transposeMatrix(m);
+    return OBJ_VAL(t);
+}
+
+Value determinant_nf(int argCount, Value *args)
+{
+    if (!IS_MATRIX(args[0]))
+    {
+        runtimeError("First argument must be a matrix.");
+        return NIL_VAL;
+    }
+    ObjMatrix *m = AS_MATRIX(args[0]);
+    return DOUBLE_VAL(determinant(m));
 }
 
 // Initializes the virtual machine
@@ -707,6 +730,8 @@ void initVM(void)
     defineNative("kolasa", kolasa_nf);
     defineNative("rref", rref_nf);
     defineNative("rank", rank_nf);
+    defineNative("transpose", transpose_nf);
+   // defineNative("det", determinant_nf);
 }
 
 // Frees the virtual machine
@@ -1207,6 +1232,13 @@ static InterpretResult run()
                 ObjArray *merged = mergeArrays(a, b);
                 push(OBJ_VAL(merged));
             }
+            else if (IS_MATRIX(peek(0)) && IS_MATRIX(peek(1)))
+            {
+                ObjMatrix *b = AS_MATRIX(pop());
+                ObjMatrix *a = AS_MATRIX(pop());
+                ObjMatrix *merged = addMatrix(a, b);
+                push(OBJ_VAL(merged));
+            }
             else
             {
                 BINARY_OP(+);
@@ -1218,6 +1250,13 @@ static InterpretResult run()
             {
                 complex_sub();
             }
+            else if (IS_MATRIX(peek(0)) && IS_MATRIX(peek(1)))
+            {
+                ObjMatrix *b = AS_MATRIX(pop());
+                ObjMatrix *a = AS_MATRIX(pop());
+                ObjMatrix *merged = subMatrix(a, b);
+                push(OBJ_VAL(merged));
+            }
             else
             {
                 BINARY_OP(-);
@@ -1228,6 +1267,13 @@ static InterpretResult run()
             {
                 complex_mul();
             }
+            else if (IS_MATRIX(peek(0)) && IS_MATRIX(peek(1)))
+            {
+                ObjMatrix *b = AS_MATRIX(pop());
+                ObjMatrix *a = AS_MATRIX(pop());
+                ObjMatrix *merged = mulMatrix(a, b);
+                push(OBJ_VAL(merged));
+            }
             else
             {
                 BINARY_OP(*);
@@ -1237,6 +1283,13 @@ static InterpretResult run()
             if (IS_COMPLEX(peek(0)) && IS_COMPLEX(peek(1)))
             {
                 complex_div();
+            }
+            else if (IS_MATRIX(peek(0)) && IS_MATRIX(peek(1)))
+            {
+                ObjMatrix *b = AS_MATRIX(pop());
+                ObjMatrix *a = AS_MATRIX(pop());
+                ObjMatrix *merged = divMatrix(a, b);
+                push(OBJ_VAL(merged));
             }
             else
             {

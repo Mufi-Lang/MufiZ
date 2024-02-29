@@ -756,6 +756,140 @@ int rank(ObjMatrix *matrix)
     return rank;
 }
 
+ObjMatrix *addMatrix(ObjMatrix *a, ObjMatrix *b)
+{
+    if (a->rows != b->rows || a->cols != b->cols)
+    {
+        printf("Matrix dimensions do not match");
+        return NULL;
+    }
+    ObjMatrix *result = initMatrix(a->rows, a->cols);
+    for (int i = 0; i < a->len; i++)
+    {
+        overWriteArray(result->data, i, DOUBLE_VAL(AS_DOUBLE(a->data->values[i]) + AS_DOUBLE(b->data->values[i])));
+    }
+    return result;
+}
+
+ObjMatrix *subMatrix(ObjMatrix *a, ObjMatrix *b)
+{
+    if (a->rows != b->rows || a->cols != b->cols)
+    {
+        printf("Matrix dimensions do not match");
+        return NULL;
+    }
+    ObjMatrix *result = initMatrix(a->rows, a->cols);
+    for (int i = 0; i < a->len; i++)
+    {
+        overWriteArray(result->data, i, DOUBLE_VAL(AS_DOUBLE(a->data->values[i]) - AS_DOUBLE(b->data->values[i])));
+    }
+    return result;
+}
+
+ObjMatrix *mulMatrix(ObjMatrix *a, ObjMatrix *b)
+{
+    if (a->cols != b->rows)
+    {
+        printf("Matrix dimensions do not match");
+        return NULL;
+    }
+    ObjMatrix *result = initMatrix(a->rows, b->cols);
+    for (int i = 0; i < a->rows; i++)
+    {
+        for (int j = 0; j < b->cols; j++)
+        {
+            Value sum = DOUBLE_VAL(0.0);
+            for (int k = 0; k < a->cols; k++)
+            {
+                Value temp = DOUBLE_VAL(AS_DOUBLE(getMatrix(a, i, k)) * AS_DOUBLE(getMatrix(b, k, j)));
+                sum = DOUBLE_VAL(AS_DOUBLE(sum) + AS_DOUBLE(temp));
+            }
+            setMatrix(result, i, j, sum);
+        }
+    }
+    return result;
+}
+
+ObjMatrix *divMatrix(ObjMatrix *a, ObjMatrix *b)
+{
+    if (a->rows != b->rows || a->cols != b->cols)
+    {
+        printf("Matrix dimensions do not match");
+        return NULL;
+    }
+    ObjMatrix *result = initMatrix(a->rows, a->cols);
+    for (int i = 0; i < a->len; i++)
+    {
+        overWriteArray(result->data, i, DOUBLE_VAL(AS_DOUBLE(a->data->values[i]) / AS_DOUBLE(b->data->values[i])));
+    }
+    return result;
+}
+
+ObjMatrix* transposeMatrix(ObjMatrix *matrix)
+{
+    ObjMatrix *result = initMatrix(matrix->cols, matrix->rows);
+    for (int i = 0; i < matrix->rows; i++)
+    {
+        for (int j = 0; j < matrix->cols; j++)
+        {
+            setMatrix(result, j, i, getMatrix(matrix, i, j));
+        }
+    }
+    return result;
+}
+
+ObjMatrix* identityMatrix(int n)
+{
+    ObjMatrix *result = initMatrix(n, n);
+    for (int i = 0; i < n; i++)
+    {
+        setMatrix(result, i, i, DOUBLE_VAL(1.0));
+    }
+    return result;
+}
+
+double determinant(ObjMatrix* matrix){
+    if (matrix->rows != matrix->cols)
+    {
+        printf("Matrix is not square");
+        return 0.0;
+    }
+    if (matrix->rows == 1)
+    {
+        return AS_DOUBLE(getMatrix(matrix, 0, 0));
+    }
+    if (matrix->rows == 2)
+    {
+        return AS_DOUBLE(getMatrix(matrix, 0, 0)) * AS_DOUBLE(getMatrix(matrix, 1, 1)) - AS_DOUBLE(getMatrix(matrix, 0, 1)) * AS_DOUBLE(getMatrix(matrix, 1, 0));
+    }
+    double det = 0.0;
+    for (int i = 0; i < matrix->rows; i++)
+    {
+        ObjMatrix *submatrix = initMatrix(matrix->rows - 1, matrix->cols - 1);
+        int subi = 0;
+        for (int row = 1; row < matrix->rows; row++)
+        {
+            int subj = 0;
+            for (int col = 0; col < matrix->cols; col++)
+            {
+                if (col == i)
+                {
+                    continue;
+                }
+                setMatrix(submatrix, subi, subj, getMatrix(matrix, row, col));
+                subj++;
+            }
+            subi++;
+        }
+        double sign = (i % 2 == 0) ? 1.0 : -1.0;
+        det += sign * AS_DOUBLE(getMatrix(matrix, 0, i)) * determinant(submatrix);
+        freeObjectArray(submatrix->data);
+        FREE(ObjMatrix, submatrix);
+    }
+    return det;
+}
+
+
 static void printFunction(ObjFunction *function)
 {
     if (function->name == NULL)

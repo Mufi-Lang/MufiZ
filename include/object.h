@@ -210,16 +210,17 @@ void setRow(ObjMatrix *matrix, int row, ObjArray *values);
 void setCol(ObjMatrix *matrix, int col, ObjArray *values);
 void setMatrix(ObjMatrix *matrix, int row, int col, Value value);
 Value getMatrix(ObjMatrix *matrix, int row, int col);
-// ObjMatrix* addMatrix(ObjMatrix *a, ObjMatrix *b);
-// ObjMatrix* subMatrix(ObjMatrix *a, ObjMatrix *b);
-// ObjMatrix* mulMatrix(ObjMatrix *a, ObjMatrix *b);
-// ObjMatrix* divMatrix(ObjMatrix *a, ObjMatrix *b);
-// ObjMatrix* transposeMatrix(ObjMatrix *matrix);
+ObjMatrix* addMatrix(ObjMatrix *a, ObjMatrix *b);
+ObjMatrix* subMatrix(ObjMatrix *a, ObjMatrix *b);
+ObjMatrix* mulMatrix(ObjMatrix *a, ObjMatrix *b);
+ObjMatrix* divMatrix(ObjMatrix *a, ObjMatrix *b);
+ObjMatrix* transposeMatrix(ObjMatrix *matrix);
 // ObjMatrix* scaleMatrix(ObjMatrix *matrix, Value scalar);
 void rref(ObjMatrix *matrix);
 int rank(ObjMatrix *matrix);
 void swapRows(ObjMatrix *matrix, int row1, int row2);
-// ObjMatrix* identityMatrix(int n);
+ObjMatrix* identityMatrix(int n);
+double determinant(ObjMatrix *matrix);
 // void copyMatrix(ObjMatrix *a, ObjMatrix *b);
 
 #endif

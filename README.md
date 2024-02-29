@@ -87,12 +87,13 @@ $ mv mufiz /usr/local/bin
   - Such cases as avoiding buffer overflow
 - [X] Optional standard library (ability to be ran with `nostd`)
   - Use the option: `-Dnostd`
-- [ ] Standard Libary
-- [ ] Documentation
-  - [ ] Standard Library documentation
-  - [ ] Language reference
-- [ ] Website: `mufiz.mustafif.com`
+- [X] Standard Libary
+- [X] Documentation
+  - [X] Standard Library documentation
+- [X] Language reference
+- [X] Website: `mufiz.mustafif.com`
 - [ ] Installation Guide
+- [ ] Code documentation with comments in `core/src`
 
 ---
 
