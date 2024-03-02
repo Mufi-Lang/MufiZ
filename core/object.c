@@ -27,6 +27,70 @@ static Obj *allocateObject(size_t size, ObjType type)
     return object;
 }
 
+static Value add_val(Value a, Value b)
+{
+    if (IS_INT(a) && IS_INT(b))
+    {
+        return INT_VAL(AS_INT(a) + AS_INT(b));
+    }
+    else if (IS_DOUBLE(a) && IS_DOUBLE(b))
+    {
+        return DOUBLE_VAL(AS_DOUBLE(a) + AS_DOUBLE(b));
+    }
+    else
+    {
+        return NIL_VAL;
+    }
+}
+
+static Value sub_val(Value a, Value b)
+{
+    if (IS_INT(a) && IS_INT(b))
+    {
+        return INT_VAL(AS_INT(a) - AS_INT(b));
+    }
+    else if (IS_DOUBLE(a) && IS_DOUBLE(b))
+    {
+        return DOUBLE_VAL(AS_DOUBLE(a) - AS_DOUBLE(b));
+    }
+    else
+    {
+        return NIL_VAL;
+    }
+}
+
+static Value mul_val(Value a, Value b)
+{
+    if (IS_INT(a) && IS_INT(b))
+    {
+        return INT_VAL(AS_INT(a) * AS_INT(b));
+    }
+    else if (IS_DOUBLE(a) && IS_DOUBLE(b))
+    {
+        return DOUBLE_VAL(AS_DOUBLE(a) * AS_DOUBLE(b));
+    }
+    else
+    {
+        return NIL_VAL;
+    }
+}
+
+static Value div_val(Value a, Value b)
+{
+    if (IS_INT(a) && IS_INT(b))
+    {
+        return INT_VAL(AS_INT(a) / AS_INT(b));
+    }
+    else if (IS_DOUBLE(a) && IS_DOUBLE(b))
+    {
+        return DOUBLE_VAL(AS_DOUBLE(a) / AS_DOUBLE(b));
+    }
+    else
+    {
+        return NIL_VAL;
+    }
+}
+
 ObjArray *newArray()
 {
     ObjArray *array = ALLOCATE_OBJ(ObjArray, OBJ_ARRAY);
@@ -252,6 +316,78 @@ void freeObjectArray(ObjArray *array)
 {
     FREE_ARRAY(Value, array->values, array->capacity);
     FREE(ObjArray, array);
+}
+
+ObjArray *sliceArray(ObjArray *array, int start, int end)
+{
+    ObjArray *sliced = newArrayWithCap(end - start, true);
+    for (int i = start; i < end; i++)
+    {
+        pushArray(sliced, array->values[i]);
+    }
+    return sliced;
+}
+
+ObjArray *addArray(ObjArray *a, ObjArray *b)
+{
+    if (a->count != b->count)
+    {
+        printf("Arrays must have the same length");
+        return NULL;
+    }
+    bool _static = a->_static && b->_static;
+    ObjArray *result = newArrayWithCap(a->count, _static);
+    for (int i = 0; i < a->count; i++)
+    {
+        pushArray(result, add_val(a->values[i], b->values[i]));
+    }
+    return result;
+}
+
+ObjArray *subArray(ObjArray *a, ObjArray *b)
+{
+    if (a->count != b->count)
+    {
+        printf("Arrays must have the same length");
+        return NULL;
+    }
+    bool _static = a->_static && b->_static;
+    ObjArray *result = newArrayWithCap(a->count, _static);
+    for (int i = 0; i < a->count; i++)
+    {
+        pushArray(result, sub_val(a->values[i], b->values[i]));
+    }
+    return result;
+}
+ObjArray *mulArray(ObjArray *a, ObjArray *b)
+{
+    if (a->count != b->count)
+    {
+        printf("Arrays must have the same length");
+        return NULL;
+    }
+    bool _static = a->_static && b->_static;
+    ObjArray *result = newArrayWithCap(a->count, _static);
+    for (int i = 0; i < a->count; i++)
+    {
+        pushArray(result, mul_val(a->values[i], b->values[i]));
+    }
+    return result;
+}
+ObjArray *divArray(ObjArray *a, ObjArray *b)
+{
+    if (a->count != b->count)
+    {
+        printf("Arrays must have the same length");
+        return NULL;
+    }
+    bool _static = a->_static && b->_static;
+    ObjArray *result = newArrayWithCap(a->count, _static);
+    for (int i = 0; i < a->count; i++)
+    {
+        pushArray(result, div_val(a->values[i], b->values[i]));
+    }
+    return result;
 }
 
 ObjLinkedList *newLinkedList()
@@ -825,7 +961,7 @@ ObjMatrix *divMatrix(ObjMatrix *a, ObjMatrix *b)
     return result;
 }
 
-ObjMatrix* transposeMatrix(ObjMatrix *matrix)
+ObjMatrix *transposeMatrix(ObjMatrix *matrix)
 {
     ObjMatrix *result = initMatrix(matrix->cols, matrix->rows);
     for (int i = 0; i < matrix->rows; i++)
@@ -838,7 +974,7 @@ ObjMatrix* transposeMatrix(ObjMatrix *matrix)
     return result;
 }
 
-ObjMatrix* identityMatrix(int n)
+ObjMatrix *identityMatrix(int n)
 {
     ObjMatrix *result = initMatrix(n, n);
     for (int i = 0; i < n; i++)
@@ -848,7 +984,8 @@ ObjMatrix* identityMatrix(int n)
     return result;
 }
 
-double determinant(ObjMatrix* matrix){
+double determinant(ObjMatrix *matrix)
+{
     if (matrix->rows != matrix->cols)
     {
         printf("Matrix is not square");
@@ -888,6 +1025,94 @@ double determinant(ObjMatrix* matrix){
     }
     return det;
 }
+
+FloatVector *initFloatVector(int size)
+{
+    FloatVector *vector = ALLOCATE_OBJ(FloatVector, OBJ_FVECTOR);
+    vector->size = size;
+    vector->count = 0;
+    vector->data = ALLOCATE(float, size);
+    return vector;
+}
+
+void freeFloatVector(FloatVector *vector)
+{
+    FREE_ARRAY(float, vector->data, vector->size);
+    FREE(FloatVector, vector);
+}
+
+void pushFloatVector(FloatVector *vector, float value)
+{
+    if (vector->count + 1 > vector->size)
+    {
+        printf("Vector is full\n");
+        return;
+    }
+    vector->data[vector->count] = value;
+    vector->count++;
+}
+
+void printFloatVector(FloatVector *vector)
+{
+    printf("[");
+    for (int i = 0; i < vector->count; i++)
+    {
+        printf("%.2f ", vector->data[i]);
+    }
+    printf("]");
+    printf("\n");
+}
+
+void setFloatVector(FloatVector *vector, int index, float value)
+{
+    if (index < 0 || index >= vector->count)
+    {
+        printf("Index out of bounds\n");
+        return;
+    }
+    vector->data[index] = value;
+}
+
+float getFloatVector(FloatVector *vector, int index)
+{
+    if (index < 0 || index >= vector->count)
+    {
+        printf("Index out of bounds\n");
+        return 0;
+    }
+    return vector->data[index];
+}
+
+FloatVector *addFloatVector(FloatVector *vector1, FloatVector *vector2)
+{
+    if (vector1->size != vector2->size)
+    {
+        printf("Vectors are not of the same size\n");
+        return NULL;
+    }
+    FloatVector *result = initFloatVector(vector1->size);
+#if defined(__AVX2__)
+    printf("Using AVX2\n");
+    for (size_t i = 0; i < vector1->count; i += 8)
+    {
+        __m256 simd_arr1 = _mm256_loadu_ps(&vector1->data[i]);             // Load 8 floats from arr1
+        __m256 simd_arr2 = _mm256_loadu_ps(&vector2->data[i]);             // Load 8 floats from arr2
+        __m256 simd_result = _mm256_add_ps(simd_arr1, simd_arr2); // SIMD addition
+        _mm256_storeu_ps(&result->data[i], simd_result);                // Store result back to memory
+    }
+    result->count = vector1->count;
+    return result;
+#endif
+    printf("Using normal\n");
+    for (int i = 0; i < vector1->size; i++)
+    {
+        result->data[i] = vector1->data[i] + vector2->data[i];
+    }
+    result->count = vector1->count;
+    return result;
+
+}
+
 
 
 static void printFunction(ObjFunction *function)
@@ -936,6 +1161,21 @@ void printObject(Value value)
         {
             printValue(AS_ARRAY(value)->values[i]);
             if (i != AS_ARRAY(value)->count - 1)
+            {
+                printf(", ");
+            }
+        }
+        printf("]");
+        break;
+    }
+    case OBJ_FVECTOR: 
+    {
+        FloatVector *vector = AS_FVECTOR(value);
+        printf("[");
+        for (int i = 0; i < vector->count; i++)
+        {
+            printf("%.2f", vector->data[i]);
+            if (i != vector->count - 1)
             {
                 printf(", ");
             }

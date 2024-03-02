@@ -161,9 +161,9 @@ Value remove_nf(int argCount, Value *args)
 
 Value push_nf(int argCount, Value *args)
 {
-    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]))
+    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]) && !IS_FVECTOR(args[0]))
     {
-        runtimeError("First argument must be an array or linked list.");
+        runtimeError("First argument must be an array, linked list or vector.");
         return NIL_VAL;
     }
 
@@ -174,6 +174,17 @@ Value push_nf(int argCount, Value *args)
         for (int i = 1; i < argCount; i++)
         {
             pushArray(a, args[i]);
+        }
+        return NIL_VAL;
+    }
+    else if(IS_FVECTOR(args[0])){
+        FloatVector *f = AS_FVECTOR(args[0]);
+        for(int i = 1; i < argCount; i++){
+            if(!IS_DOUBLE(args[i])){
+                runtimeError("All elements of the vector must be doubles.");
+                return NIL_VAL;
+            }
+            pushFloatVector(f, (float) AS_DOUBLE(args[i]));
         }
         return NIL_VAL;
     }
@@ -686,6 +697,36 @@ Value determinant_nf(int argCount, Value *args)
     return DOUBLE_VAL(determinant(m));
 }
 
+Value fvector_nf(int argCount, Value *args)
+{
+    if (argCount != 1)
+    {
+        runtimeError("fvec() takes 1 argument.");
+        return NIL_VAL;
+    }
+    if (!IS_INT(args[0]))
+    {
+        runtimeError("First argument must be an integer.");
+        return NIL_VAL;
+    }
+    int n = AS_INT(args[0]);
+    FloatVector *f = initFloatVector(n);
+    return OBJ_VAL(f);
+}
+
+Value addFV_nf(int argCount, Value *args)
+{
+    if (!IS_FVECTOR(args[0]) || !IS_FVECTOR(args[1]))
+    {
+        runtimeError("Both arguments must be vectors.");
+        return NIL_VAL;
+    }
+    FloatVector *a = AS_FVECTOR(args[0]);
+    FloatVector *b = AS_FVECTOR(args[1]);
+    FloatVector *c = addFloatVector(a, b);
+    return OBJ_VAL(c);
+}
+
 // Initializes the virtual machine
 void initVM(void)
 {
@@ -731,7 +772,8 @@ void initVM(void)
     defineNative("rref", rref_nf);
     defineNative("rank", rank_nf);
     defineNative("transpose", transpose_nf);
-   // defineNative("det", determinant_nf);
+    defineNative("fvec", fvector_nf);
+    defineNative("addfv", addFV_nf);
 }
 
 // Frees the virtual machine
@@ -1229,15 +1271,15 @@ static InterpretResult run()
             {
                 ObjArray *b = AS_ARRAY(pop());
                 ObjArray *a = AS_ARRAY(pop());
-                ObjArray *merged = mergeArrays(a, b);
-                push(OBJ_VAL(merged));
+                ObjArray *result = addArray(a, b);
+                push(OBJ_VAL(result));
             }
             else if (IS_MATRIX(peek(0)) && IS_MATRIX(peek(1)))
             {
                 ObjMatrix *b = AS_MATRIX(pop());
                 ObjMatrix *a = AS_MATRIX(pop());
-                ObjMatrix *merged = addMatrix(a, b);
-                push(OBJ_VAL(merged));
+                ObjMatrix *result = addMatrix(a, b);
+                push(OBJ_VAL(result));
             }
             else
             {

@@ -161,6 +161,7 @@ static void blackenObject(Obj *object)
     }
     case OBJ_NATIVE:
     case OBJ_STRING:
+    case OBJ_FVECTOR:
         break;
     }
 }
@@ -237,6 +238,12 @@ static void freeObject(Obj *object)
     {
         ObjHashTable *hashTable = (ObjHashTable *)object;
         freeObjectHashTable(hashTable);
+        break;
+    }
+    case OBJ_FVECTOR:
+    {
+        FloatVector *fvector = (FloatVector *)object;
+        freeFloatVector(fvector);
         break;
     }
     // case OBJ_MATRIX:
