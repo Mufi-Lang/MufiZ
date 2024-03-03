@@ -15,7 +15,10 @@
 #include "chunk.h"
 #include "value.h"
 #include "table.h"
-#include<immintrin.h>
+
+#ifdef __AVX2__
+#include <immintrin.h>
+#endif
 
 #define OBJ_TYPE(value) (AS_OBJ(value)->type)
 

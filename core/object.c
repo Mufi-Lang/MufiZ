@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <string.h>
-#include <immintrin.h>
 
 #include "../include/object.h"
 #include "../include/memory.h"
