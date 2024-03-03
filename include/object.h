@@ -116,7 +116,7 @@ typedef struct {
     Obj obj;
     int size;
     int count;
-    float* data;
+    double* data;
 }FloatVector;
 
 typedef struct
@@ -180,15 +180,6 @@ typedef struct
     Value receiver;
     ObjClosure *method;
 } ObjBoundMethod;
-
-typedef struct
-{
-    Obj obj;
-    int size;
-    int count;
-    Value *data;
-    ValueType type;
-} ObjVector;
 
 ObjBoundMethod *newBoundMethod(Value receiver, ObjClosure *method);
 ObjClass *newClass(ObjString *name);
@@ -263,9 +254,12 @@ double determinant(ObjMatrix *matrix);
 // void copyMatrix(ObjMatrix *a, ObjMatrix *b);
 FloatVector* initFloatVector(int size);
 void freeFloatVector(FloatVector* vector);
-void pushFloatVector(FloatVector* vector, float value);
-void setFloatVector(FloatVector* vector, int index, float value);
-float getFloatVector(FloatVector* vector, int index);
+void pushFloatVector(FloatVector* vector, double value);
+void setFloatVector(FloatVector* vector, int index, double value);
+double getFloatVector(FloatVector* vector, int index);
 void printFloatVector(FloatVector* vector);
 FloatVector* addFloatVector(FloatVector* a, FloatVector* b);
+FloatVector* subFloatVector(FloatVector* a, FloatVector* b);
+FloatVector* mulFloatVector(FloatVector* a, FloatVector* b);
+FloatVector* divFloatVector(FloatVector* a, FloatVector* b);
 #endif

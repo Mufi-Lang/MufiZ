@@ -1031,7 +1031,7 @@ FloatVector *initFloatVector(int size)
     FloatVector *vector = ALLOCATE_OBJ(FloatVector, OBJ_FVECTOR);
     vector->size = size;
     vector->count = 0;
-    vector->data = ALLOCATE(float, size);
+    vector->data = ALLOCATE(double, size);
     return vector;
 }
 
@@ -1041,7 +1041,7 @@ void freeFloatVector(FloatVector *vector)
     FREE(FloatVector, vector);
 }
 
-void pushFloatVector(FloatVector *vector, float value)
+void pushFloatVector(FloatVector *vector, double value)
 {
     if (vector->count + 1 > vector->size)
     {
@@ -1063,7 +1063,7 @@ void printFloatVector(FloatVector *vector)
     printf("\n");
 }
 
-void setFloatVector(FloatVector *vector, int index, float value)
+void setFloatVector(FloatVector *vector, int index, double value)
 {
     if (index < 0 || index >= vector->count)
     {
@@ -1073,7 +1073,7 @@ void setFloatVector(FloatVector *vector, int index, float value)
     vector->data[index] = value;
 }
 
-float getFloatVector(FloatVector *vector, int index)
+double getFloatVector(FloatVector *vector, int index)
 {
     if (index < 0 || index >= vector->count)
     {
@@ -1092,28 +1092,132 @@ FloatVector *addFloatVector(FloatVector *vector1, FloatVector *vector2)
     }
     FloatVector *result = initFloatVector(vector1->size);
 #if defined(__AVX2__)
-    printf("Using AVX2\n");
-    for (size_t i = 0; i < vector1->count; i += 8)
+    size_t simdSize = vector1->count - (vector1->count % 4);
+    for (size_t i = 0; i < simdSize; i += 4)
     {
-        __m256 simd_arr1 = _mm256_loadu_ps(&vector1->data[i]);             // Load 8 floats from arr1
-        __m256 simd_arr2 = _mm256_loadu_ps(&vector2->data[i]);             // Load 8 floats from arr2
-        __m256 simd_result = _mm256_add_ps(simd_arr1, simd_arr2); // SIMD addition
-        _mm256_storeu_ps(&result->data[i], simd_result);                // Store result back to memory
+        __m256 simd_arr1 = _mm256_loadu_pd(&vector1->data[i]);    // Load 4 double from arr1
+        __m256 simd_arr2 = _mm256_loadu_pd(&vector2->data[i]);    // Load 4 double from arr2
+        __m256 simd_result = _mm256_add_pd(simd_arr1, simd_arr2); // SIMD addition
+        _mm256_storeu_pd(&result->data[i], simd_result);          // Store result back to memory
+    }
+
+    // Handle remaining elements
+    for (size_t i = simdSize; i < vector1->count; i++)
+    {
+        result->data[i] = vector1->data[i] + vector2->data[i];
     }
     result->count = vector1->count;
     return result;
 #endif
-    printf("Using normal\n");
     for (int i = 0; i < vector1->size; i++)
     {
         result->data[i] = vector1->data[i] + vector2->data[i];
     }
     result->count = vector1->count;
     return result;
-
 }
 
+FloatVector *subFloatVector(FloatVector *vector1, FloatVector *vector2)
+{
+    if (vector1->size != vector2->size)
+    {
+        printf("Vectors are not of the same size\n");
+        return NULL;
+    }
+    FloatVector *result = initFloatVector(vector1->size);
+#if defined(__AVX2__)
+    size_t simdSize = vector1->count - (vector1->count % 4);
+    for (size_t i = 0; i < simdSize; i += 4)
+    {
+        __m256 simd_arr1 = _mm256_loadu_pd(&vector1->data[i]);    // Load 4 double from arr1
+        __m256 simd_arr2 = _mm256_loadu_pd(&vector2->data[i]);    // Load 4 double from arr2
+        __m256 simd_result = _mm256_sub_pd(simd_arr1, simd_arr2); // SIMD subtraction
+        _mm256_storeu_pd(&result->data[i], simd_result);          // Store result back to memory
+    }
 
+    // Handle remaining elements
+    for (size_t i = simdSize; i < vector1->count; i++)
+    {
+        result->data[i] = vector1->data[i] - vector2->data[i];
+    }
+    result->count = vector1->count;
+    return result;
+#endif
+    for (int i = 0; i < vector1->size; i++)
+    {
+        result->data[i] = vector1->data[i] - vector2->data[i];
+    }
+    result->count = vector1->count;
+    return result;
+}
+
+FloatVector *mulFloatVector(FloatVector *vector1, FloatVector *vector2)
+{
+    if (vector1->size != vector2->size)
+    {
+        printf("Vectors are not of the same size\n");
+        return NULL;
+    }
+    FloatVector *result = initFloatVector(vector1->size);
+#if defined(__AVX2__)
+    size_t simdSize = vector1->count - (vector1->count % 4);
+    for (size_t i = 0; i < simdSize; i += 4)
+    {
+        __m256 simd_arr1 = _mm256_loadu_pd(&vector1->data[i]);    // Load 4 double from arr1
+        __m256 simd_arr2 = _mm256_loadu_pd(&vector2->data[i]);    // Load 4 double from arr2
+        __m256 simd_result = _mm256_mul_pd(simd_arr1, simd_arr2); // SIMD multiplication
+        _mm256_storeu_pd(&result->data[i], simd_result);          // Store result back to memory
+    }
+
+    // Handle remaining elements
+    for (size_t i = simdSize; i < vector1->count; i++)
+    {
+        result->data[i] = vector1->data[i] * vector2->data[i];
+    }
+    result->count = vector1->count;
+    return result;
+#endif
+    for (int i = 0; i < vector1->size; i++)
+    {
+        result->data[i] = vector1->data[i] * vector2->data[i];
+    }
+    result->count = vector1->count;
+    return result;
+}
+
+FloatVector *divFloatVector(FloatVector *vector1, FloatVector *vector2)
+{
+    if (vector1->size != vector2->size)
+    {
+        printf("Vectors are not of the same size\n");
+        return NULL;
+    }
+    FloatVector *result = initFloatVector(vector1->size);
+#if defined(__AVX2__)
+    size_t simdSize = vector1->count - (vector1->count % 4);
+    for (size_t i = 0; i < simdSize; i += 4)
+    {
+        __m256 simd_arr1 = _mm256_loadu_pd(&vector1->data[i]);    // Load 4 double from arr1
+        __m256 simd_arr2 = _mm256_loadu_pd(&vector2->data[i]);    // Load 4 double from arr2
+        __m256 simd_result = _mm256_div_pd(simd_arr1, simd_arr2); // SIMD subtraction
+        _mm256_storeu_pd(&result->data[i], simd_result);          // Store result back to memory
+    }
+
+    // Handle remaining elements
+    for (size_t i = simdSize; i < vector1->count; i++)
+    {
+        result->data[i] = vector1->data[i] / vector2->data[i];
+    }
+    result->count = vector1->count;
+    return result;
+#endif
+    for (int i = 0; i < vector1->size; i++)
+    {
+        result->data[i] = vector1->data[i] / vector2->data[i];
+    }
+    result->count = vector1->count;
+    return result;
+}
 
 static void printFunction(ObjFunction *function)
 {
@@ -1168,7 +1272,7 @@ void printObject(Value value)
         printf("]");
         break;
     }
-    case OBJ_FVECTOR: 
+    case OBJ_FVECTOR:
     {
         FloatVector *vector = AS_FVECTOR(value);
         printf("[");

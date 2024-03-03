@@ -1,0 +1,29 @@
+var size = 95;
+var f_a = fvec(size);
+var f_b = fvec(size);
+var a = array(size, true);
+var b = array(size, true);
+
+for(var i = 0; i < size; i++){
+    push(f_a, double(i*100));
+    push(f_b, double(i/10));
+    push(a, double(i*10));
+    push(b, double(i/10));
+}
+
+print "Size = " + str(size);
+
+var start = now_ns();
+var result = f_a + f_b;
+var end = now_ns();
+var vec_time = end - start;
+print "FloatVector = " + str(vec_time);
+
+start = now_ns();
+var arr_res = a + b;
+end = now_ns();
+var arr_time = end - start;
+
+print "Array = " + str(arr_time);
+
+print "Array is " + str(arr_time/vec_time) + " slower!";
