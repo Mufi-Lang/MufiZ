@@ -1218,6 +1218,110 @@ FloatVector *divFloatVector(FloatVector *vector1, FloatVector *vector2)
     return result;
 }
 
+bool equalFloatVector(FloatVector *a, FloatVector *b)
+{
+    if (a->count != b->count)
+    {
+        return false;
+    }
+    for (int i = 0; i < a->count; i++)
+    {
+        if (a->data[i] != b->data[i])
+        {
+            return false;
+        }
+    }
+    return true;
+}
+FloatVector *scaleFloatVector(FloatVector *vector, double scalar)
+{
+    FloatVector *result = initFloatVector(vector->size);
+
+#if defined(__AVX2__)
+    size_t simdSize = vector->count - (vector->count % 4);
+    for (size_t i = 0; i < simdSize; i += 4)
+    {
+        __m256 simd_arr1 = _mm256_loadu_pd(&vector->data[i]);       // Load 4 double from arr1
+        __m256 simd_scalar = _mm256_set1_pd(scalar);                // Load 4 double from arr2
+        __m256 simd_result = _mm256_mul_pd(simd_arr1, simd_scalar); // SIMD multiplication
+        _mm256_storeu_pd(&result->data[i], simd_result);            // Store result back to memory
+    }
+    for (size_t i = simdSize; i < vector->count; i++)
+    {
+        result->data[i] = vector->data[i] * scalar;
+    }
+    result->count = vector->count;
+    return result;
+#endif
+
+    for (int i = 0; i < vector->count; i++)
+    {
+        result->data[i] = vector->data[i] * scalar;
+    }
+    result->count = vector->count;
+    return result;
+}
+
+FloatVector *singleAddFloatVector(FloatVector *a, double b)
+{
+    FloatVector *result = initFloatVector(a->size);
+
+#if defined(__AVX2__)
+    size_t simdSize = a->count - (a->count % 4);
+    for (size_t i = 0; i < simdSize; i += 4)
+    {
+        __m256 simd_arr1 = _mm256_loadu_pd(&a->data[i]);            // Load 4 double from arr1
+        __m256 simd_scalar = _mm256_set1_pd(b);                     // Load 4 double from arr2
+        __m256 simd_result = _mm256_add_pd(simd_arr1, simd_scalar); // SIMD addition
+        _mm256_storeu_pd(&result->data[i], simd_result);            // Store result back to memory
+    }
+    for (size_t i = simdSize; i < a->count; i++)
+    {
+        result->data[i] = a->data[i] + b;
+    }
+    result->count = a->count;
+    return result;
+#endif
+
+    for (int i = 0; i < a->size; i++)
+    {
+        result->data[i] = a->data[i] + b;
+    }
+    result->count = a->count;
+    return result;
+}
+FloatVector *singleSubFloatVector(FloatVector *a, double b)
+{
+    FloatVector *result = initFloatVector(a->size);
+#if defined(__AVX2__)
+    size_t simdSize = a->count - (a->count % 4);
+    for (size_t i = 0; i < simdSize; i += 4)
+    {
+        __m256 simd_arr1 = _mm256_loadu_pd(&a->data[i]);            // Load 4 double from arr1
+        __m256 simd_scalar = _mm256_set1_pd(b);                     // Load 4 double from arr2
+        __m256 simd_result = _mm256_sub_pd(simd_arr1, simd_scalar); // SIMD subtraction
+        _mm256_storeu_pd(&result->data[i], simd_result);            // Store result back to memory
+    }
+    for (size_t i = simdSize; i < a->count; i++)
+    {
+        result->data[i] = a->data[i] - b;
+    }
+    result->count = a->count;
+    return result;
+#endif
+    for (int i = 0; i < a->size; i++)
+    {
+        result->data[i] = a->data[i] - b;
+    }
+    result->count = a->count;
+    return result;
+}
+
+FloatVector *singleDivFloatVector(FloatVector *a, double b)
+{
+    return scaleFloatVector(a, 1.0 / b);
+}
+
 static void printFunction(ObjFunction *function)
 {
     if (function->name == NULL)

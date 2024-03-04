@@ -47,6 +47,10 @@ pub export fn freeTable(table: *Table) callconv(.C) void {
     initTable(table);
 }
 
+pub export fn entries_(table: *Table) [*c]Entry {
+    return table.entries;
+}
+
 pub export fn findEntry(entries: [*]Entry, capacity: c_int, key: ?*ObjString) callconv(.C) *Entry {
     var index: usize = @as(usize, @intCast(key.?.hash)) & @as(usize, @intCast(capacity - 1));
     var tombstone: ?*Entry = null;

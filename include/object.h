@@ -265,4 +265,10 @@ FloatVector* addFloatVector(FloatVector* a, FloatVector* b);
 FloatVector* subFloatVector(FloatVector* a, FloatVector* b);
 FloatVector* mulFloatVector(FloatVector* a, FloatVector* b);
 FloatVector* divFloatVector(FloatVector* a, FloatVector* b);
+bool equalFloatVector(FloatVector* a, FloatVector* b);
+FloatVector* scaleFloatVector(FloatVector* vector, double scalar);
+FloatVector* singleAddFloatVector(FloatVector* a, double b);
+FloatVector* singleSubFloatVector(FloatVector* a, double b);
+FloatVector* singleMulFloatVector(FloatVector* a, double b);
+FloatVector* singleDivFloatVector(FloatVector* a, double b);
 #endif

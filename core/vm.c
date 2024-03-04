@@ -261,9 +261,9 @@ Value pop_front_nf(int argCount, Value *args)
 
 Value nth_nf(int argCount, Value *args)
 {
-    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]))
+    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]) && !IS_MATRIX(args[0]) && !IS_FVECTOR(args[0]))
     {
-        runtimeError("First argument must be an array, matrix or linked list.");
+        runtimeError("First argument must be an array, matrix, linked list or Vector.");
         return NIL_VAL;
     }
     if (!IS_INT(args[1]))
@@ -274,14 +274,26 @@ Value nth_nf(int argCount, Value *args)
 
     if (IS_MATRIX(args[0]) && argCount == 3)
     {
+        if (!IS_INT(args[2]))
+        {
+            runtimeError("Third argument must be an integer.");
+            return NIL_VAL;
+        }
+
         ObjMatrix *m = AS_MATRIX(args[0]);
         // improve error handling here
         int row = AS_INT(args[1]);
         int col = AS_INT(args[2]);
         return getMatrix(m, row, col);
     }
-
-    if (IS_ARRAY(args[0]))
+    else if (IS_FVECTOR(args[0]))
+    {
+        FloatVector *f = AS_FVECTOR(args[0]);
+        int index = AS_INT(args[1]);
+        double value = getFloatVector(f, index);
+        return DOUBLE_VAL(value);
+    }
+    else if (IS_ARRAY(args[0]))
     {
         ObjArray *a = AS_ARRAY(args[0]);
         int index = AS_INT(args[1]);
@@ -315,7 +327,7 @@ Value is_empty_nf(int argCount, Value *args)
 {
     if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]) && !IS_HASH_TABLE(args[0]))
     {
-        runtimeError("First argument must be an array, linked list or hash table.");
+        runtimeError("First argument must be an array, linked list, hash table or vector.");
         return NIL_VAL;
     }
 
@@ -328,6 +340,11 @@ Value is_empty_nf(int argCount, Value *args)
     {
         ObjHashTable *h = AS_HASH_TABLE(args[0]);
         return BOOL_VAL(h->table.count == 0);
+    }
+    else if (IS_FVECTOR(args[0]))
+    {
+        FloatVector *f = AS_FVECTOR(args[0]);
+        return BOOL_VAL(f->count == 0);
     }
     else
     {
@@ -363,7 +380,7 @@ Value equal_list_nf(int argCount, Value *args)
 {
     if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]))
     {
-        runtimeError("First argument must be an array or linked list.");
+        runtimeError("First argument must be an array, linked list or vector.");
         return NIL_VAL;
     }
 
@@ -377,6 +394,17 @@ Value equal_list_nf(int argCount, Value *args)
         ObjArray *a = AS_ARRAY(args[0]);
         ObjArray *b = AS_ARRAY(args[1]);
         return BOOL_VAL(equalArray(a, b));
+    }
+    else if (IS_FVECTOR(args[0]))
+    {
+        if (!IS_FVECTOR(args[1]))
+        {
+            runtimeError("Second argument must be a vector.");
+            return NIL_VAL;
+        }
+        FloatVector *a = AS_FVECTOR(args[0]);
+        FloatVector *b = AS_FVECTOR(args[1]);
+        return BOOL_VAL(equalFloatVector(a, b));
     }
     else
     {
@@ -446,9 +474,9 @@ Value insert_nf(int argCount, Value *args)
         runtimeError("insert() takes 3 arguments.");
         return NIL_VAL;
     }
-    if (!IS_ARRAY(args[0]))
+    if (!IS_ARRAY(args[0]) && !IS_FVECTOR(args[0]))
     {
-        runtimeError("First argument must be an array.");
+        runtimeError("First argument must be an array or vector.");
         return NIL_VAL;
     }
     if (!IS_INT(args[1]))
@@ -456,17 +484,32 @@ Value insert_nf(int argCount, Value *args)
         runtimeError("Second argument must be an integer.");
         return NIL_VAL;
     }
-    ObjArray *a = AS_ARRAY(args[0]);
-    int index = AS_INT(args[1]);
-    insertArray(a, index, args[2]);
-    return NIL_VAL;
+    if (IS_FVECTOR(args[0]))
+    {
+        FloatVector *f = AS_FVECTOR(args[0]);
+        int index = AS_INT(args[1]);
+        if (!IS_DOUBLE(args[2]))
+        {
+            runtimeError("Third argument must be a double.");
+            return NIL_VAL;
+        }
+        setFloatVector(f, index, AS_DOUBLE(args[2]));
+        return NIL_VAL;
+    }
+    else
+    {
+        ObjArray *a = AS_ARRAY(args[0]);
+        int index = AS_INT(args[1]);
+        insertArray(a, index, args[2]);
+        return NIL_VAL;
+    }
 }
 
 Value len_nf(int argCount, Value *args)
 {
-    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]) && !IS_HASH_TABLE(args[0]))
+    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]) && !IS_HASH_TABLE(args[0]) && !IS_FVECTOR(args[0]))
     {
-        runtimeError("First argument must be an array, linked list or hash table.");
+        runtimeError("First argument must be an array, vector, linked list or hash table.");
         return NIL_VAL;
     }
 
@@ -479,6 +522,11 @@ Value len_nf(int argCount, Value *args)
     {
         ObjHashTable *h = AS_HASH_TABLE(args[0]);
         return INT_VAL(h->table.count);
+    }
+    else if (IS_FVECTOR(args[0]))
+    {
+        FloatVector *f = AS_FVECTOR(args[0]);
+        return INT_VAL(f->count);
     }
     else
     {
@@ -746,6 +794,45 @@ Value fvector_nf(int argCount, Value *args)
     }
 }
 
+Value merge_nf(int argCount, Value *args)
+{
+    if (argCount != 2)
+    {
+        runtimeError("merge() takes 2 arguments.");
+        return NIL_VAL;
+    }
+    if (!IS_ARRAY(args[0]) || !IS_ARRAY(args[1]))
+    {
+        runtimeError("Both arguments must be arrays.");
+        return NIL_VAL;
+    }
+    ObjArray *a = AS_ARRAY(args[0]);
+    ObjArray *b = AS_ARRAY(args[1]);
+    ObjArray *c = mergeArrays(a, b);
+    return OBJ_VAL(c);
+}
+
+Value entries_instance_nf(int argCount, Value *args)
+{
+    if (!IS_INSTANCE(args[0]))
+    {
+        runtimeError("First argument must be an instance.");
+        return NIL_VAL;
+    }
+    ObjInstance *instance = AS_INSTANCE(args[0]);
+    struct Entry *e = entries_(&instance->fields);
+    for (int i = 0; i < instance->fields.capacity; i++)
+    {
+        if (e[i].key != NULL)
+        {
+            printf("%s: ", e[i].key->chars);
+            printValue(e[i].value);
+            printf("\n");
+        }
+    }
+    return NIL_VAL;
+}
+
 // Initializes the virtual machine
 void initVM(void)
 {
@@ -792,6 +879,7 @@ void initVM(void)
     defineNative("rank", rank_nf);
     defineNative("transpose", transpose_nf);
     defineNative("fvec", fvector_nf);
+    defineNative("merge", merge_nf);
 }
 
 // Frees the virtual machine
@@ -1299,6 +1387,13 @@ static InterpretResult run()
                 FloatVector *result = addFloatVector(a, b);
                 push(OBJ_VAL(result));
             }
+            else if (IS_FVECTOR(peek(0)) && IS_DOUBLE(peek(1)))
+            {
+                double b = AS_DOUBLE(pop());
+                FloatVector *a = AS_FVECTOR(pop());
+                FloatVector *result = singleAddFloatVector(a, b);
+                push(OBJ_VAL(result));
+            }
             else if (IS_MATRIX(peek(0)) && IS_MATRIX(peek(1)))
             {
                 ObjMatrix *b = AS_MATRIX(pop());
@@ -1338,6 +1433,13 @@ static InterpretResult run()
                 FloatVector *result = subFloatVector(a, b);
                 push(OBJ_VAL(result));
             }
+            else if (IS_FVECTOR(peek(0)) && IS_DOUBLE(peek(1)))
+            {
+                double b = AS_DOUBLE(pop());
+                FloatVector *a = AS_FVECTOR(pop());
+                FloatVector *result = singleSubFloatVector(a, b);
+                push(OBJ_VAL(result));
+            }
             else
             {
                 BINARY_OP(-);
@@ -1369,6 +1471,13 @@ static InterpretResult run()
                 FloatVector *result = mulFloatVector(a, b);
                 push(OBJ_VAL(result));
             }
+            else if (IS_FVECTOR(peek(0)) && IS_DOUBLE(peek(1)))
+            {
+                double b = AS_DOUBLE(pop());
+                FloatVector *a = AS_FVECTOR(pop());
+                FloatVector *result = scaleFloatVector(a, b);
+                push(OBJ_VAL(result));
+            }
             else
             {
                 BINARY_OP(*);
@@ -1398,6 +1507,13 @@ static InterpretResult run()
                 ObjArray *b = AS_ARRAY(pop());
                 ObjArray *a = AS_ARRAY(pop());
                 ObjArray *result = divArray(a, b);
+                push(OBJ_VAL(result));
+            }
+            else if (IS_FVECTOR(peek(0)) && IS_DOUBLE(peek(1)))
+            {
+                double b = AS_DOUBLE(pop());
+                FloatVector *a = AS_FVECTOR(pop());
+                FloatVector *result = singleDivFloatVector(a, b);
                 push(OBJ_VAL(result));
             }
             else

@@ -13,3 +13,5 @@ print foo2; // expect: Foo instance
 
 // Make sure init() doesn't create a fresh instance.
 print foo.field; // expect: init
+
+entries_instance(foo);

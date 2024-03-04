@@ -6,6 +6,7 @@ const Obj = core.Obj;
 const ObjType = core.ObjType;
 const ObjString = core.ObjString;
 const ObjClass = core.ObjClass;
+const ObjInstance = core.ObjInstance;
 pub const VAL_INT = core.VAL_INT;
 pub const VAL_BOOL = core.VAL_BOOL;
 pub const VAL_DOUBLE = core.VAL_DOUBLE;
@@ -15,6 +16,7 @@ pub const OBJ_STRING = core.OBJ_STRING;
 pub const OBJ_CLASS = core.OBJ_CLASS;
 pub const VAL_COMPLEX = core.VAL_COMPLEX;
 pub const Complex = core.Complex;
+pub const OBJ_INSTANCE = core.OBJ_INSTANCE;
 
 pub fn what_is(val: Value) []const u8 {
     switch (val.type) {
@@ -133,6 +135,10 @@ pub fn is_class(val: Value) bool {
     return is_obj(val) and is_obj_type(val, OBJ_CLASS);
 }
 
+pub fn is_instance(val: Value) bool {
+    return is_obj(val) and is_obj_type(val, OBJ_INSTANCE);
+}
+
 pub fn as_string(val: Value) ?*ObjString {
     return @ptrCast(@alignCast(val.as.obj));
 }
@@ -152,6 +158,10 @@ pub fn string_val(s: []u8) Value {
     const length: c_int = @intCast(s.len);
     const obj_str = core.copyString(chars, length);
     return .{ .type = VAL_OBJ, .as = .{ .obj = @ptrCast(obj_str) } };
+}
+
+pub fn as_instance(val: Value) [*c]ObjInstance {
+    return @ptrCast(@alignCast(val.as.obj));
 }
 
 pub fn json_val(val: Value) JValue {
