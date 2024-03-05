@@ -1,0 +1,10 @@
+var m = matrix(2, 2);
+var r1 = array(2, true);
+var r2 = array(2, true);
+push(r1, 1, 2);
+push(r2, 3, 4);
+set_row(m, 0, r1);
+set_row(m, 1, r2);
+
+var d = det(m);
+print d;

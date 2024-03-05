@@ -493,7 +493,7 @@ Value insert_nf(int argCount, Value *args)
             runtimeError("Third argument must be a double.");
             return NIL_VAL;
         }
-        setFloatVector(f, index, AS_DOUBLE(args[2]));
+        insertFloatVector(f, index, AS_DOUBLE(args[2]));
         return NIL_VAL;
     }
     else
@@ -609,7 +609,7 @@ Value matrix_nf(int argCount, Value *args)
     }
     int rows = AS_INT(args[0]);
     int cols = AS_INT(args[1]);
-    ObjMatrix *m = initMatrix(rows, cols);
+    ObjMatrix *m = newMatrix(rows, cols);
     return OBJ_VAL(m);
 }
 
@@ -704,7 +704,7 @@ Value kolasa_nf(int argCount, Value *args)
         runtimeError("kolasa() takes no arguments.");
         return NIL_VAL;
     }
-    ObjMatrix *m = initMatrix(3, 3);
+    ObjMatrix *m = newMatrix(3, 3);
     for (int i = 0; i < m->len; i++)
     {
         m->data->values[i] = DOUBLE_VAL((double)(i + 1));
@@ -774,7 +774,7 @@ Value fvector_nf(int argCount, Value *args)
     if (IS_ARRAY(args[0]))
     {
         ObjArray *a = AS_ARRAY(args[0]);
-        FloatVector *f = initFloatVector(a->capacity);
+        FloatVector *f = newFloatVector(a->capacity);
         for (int i = 0; i < a->count; i++)
         {
             if (!IS_DOUBLE(a->values[i]))
@@ -789,7 +789,7 @@ Value fvector_nf(int argCount, Value *args)
     else
     {
         int n = AS_INT(args[0]);
-        FloatVector *f = initFloatVector(n);
+        FloatVector *f = newFloatVector(n);
         return OBJ_VAL(f);
     }
 }
@@ -880,6 +880,7 @@ void initVM(void)
     defineNative("transpose", transpose_nf);
     defineNative("fvec", fvector_nf);
     defineNative("merge", merge_nf);
+    defineNative("det", determinant_nf);
 }
 
 // Frees the virtual machine

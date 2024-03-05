@@ -117,6 +117,7 @@ typedef struct
 
 typedef struct {
     Obj obj;
+    bool vec3; // quick check for vec3
     int size;
     int count;
     double* data;
@@ -184,6 +185,7 @@ typedef struct
     ObjClosure *method;
 } ObjBoundMethod;
 
+/*-------------------------- Object Functions --------------------------------*/
 ObjBoundMethod *newBoundMethod(Value receiver, ObjClosure *method);
 ObjClass *newClass(ObjString *name);
 ObjClosure *newClosure(ObjFunction *function);
@@ -195,40 +197,177 @@ uint64_t hashString(const char *key, int length);
 ObjString *takeString(char *chars, int length);
 ObjString *copyString(const char *chars, int length);
 ObjUpvalue *newUpvalue(Value *slot);
+/*----------------------------------------------------------------------------*/
 
+/*-------------------------- Array Functions --------------------------------*/
+//> Creates a new empty array
 ObjArray *newArray();
+//> Creates a new array with a given capacity and static flag
 ObjArray *newArrayWithCap(int capacity, bool _static);
+//> Merges two arrays into a new array
 ObjArray *mergeArrays(ObjArray *a, ObjArray *b);
+//> Pushes a value to the end of the array
 void pushArray(ObjArray *array, Value value);
+//> Inserts a value at a given index
 void insertArray(ObjArray *array, int index, Value value);
+//> Removes a value at the end of the array
 Value popArray(ObjArray *array);
+//> Sorts the array using quick sort
 void sortArray(ObjArray *array);
+//> Searches for a value in the array
 int searchArray(ObjArray *array, Value value);
+//> Reverses the array
 void reverseArray(ObjArray *array);
+//> Checks if two arrays are equal
 bool equalArray(ObjArray *a, ObjArray *b);
+//> Frees the array
 void freeObjectArray(ObjArray *array);
+//> Slices the array from start to end
 ObjArray *sliceArray(ObjArray *array, int start, int end);
+//> Adds two arrays together
 ObjArray *addArray(ObjArray *a, ObjArray *b);
+//> Subtracts two arrays
 ObjArray *subArray(ObjArray *a, ObjArray *b);
+//> Multiplies two arrays
 ObjArray *mulArray(ObjArray *a, ObjArray *b);
+//> Divides two arrays
 ObjArray *divArray(ObjArray *a, ObjArray *b);
+/*----------------------------------------------------------------------------*/
 
+/*-------------------------- Linked List Functions ---------------------------*/
+//> Creates a new empty linked list
 ObjLinkedList *newLinkedList();
+//> Pushes a value to the front of the linked list
 void pushFront(ObjLinkedList *list, Value value);
+//> Pushes a value to the back of the linked list
 void pushBack(ObjLinkedList *list, Value value);
+//> Pops a value from the front of the linked list
 Value popFront(ObjLinkedList *list);
+//> Pops a value from the back of the linked list
 Value popBack(ObjLinkedList *list);
+//> Checks if two linked lists are equal
 bool equalLinkedList(ObjLinkedList *a, ObjLinkedList *b);
+//> Frees the linked list
 void freeObjectLinkedList(ObjLinkedList *list);
+//> Sorts the linked list using merge sort
 void mergeSort(ObjLinkedList *list);
+//> Searches for a value in the linked list
 int searchLinkedList(ObjLinkedList *list, Value value);
+//> Reverses the linked list
 void reverseLinkedList(ObjLinkedList *list);
+/*----------------------------------------------------------------------------*/
 
+/*-------------------------- Hash Table Functions ----------------------------*/
+//> Creates a new empty hash table
 ObjHashTable *newHashTable();
+//> Puts a key-value pair in the hash table
 bool putHashTable(ObjHashTable *table, ObjString *key, Value value);
+//> Gets a value from the hash table
 Value getHashTable(ObjHashTable *table, ObjString *key);
+//> Removes a key-value pair from the hash table
 bool removeHashTable(ObjHashTable *table, ObjString *key);
+//> Frees the hash table
 void freeObjectHashTable(ObjHashTable *table);
+/*----------------------------------------------------------------------------*/
+
+/*-------------------------- Matrix Functions --------------------------------*/
+//> Creates a zero matrix with given rows and columns
+ObjMatrix *newMatrix(int rows, int cols);
+//> Prints the matrix
+void printMatrix(ObjMatrix *matrix);
+//> Sets a row in the matrix with an array and a given row index
+void setRow(ObjMatrix *matrix, int row, ObjArray *values);
+//> Sets a column in the matrix with an array and a given column index
+void setCol(ObjMatrix *matrix, int col, ObjArray *values);
+//> Sets a value in the matrix with a given row and column index
+void setMatrix(ObjMatrix *matrix, int row, int col, Value value);
+//> Gets a value in the matrix with a given row and column index
+Value getMatrix(ObjMatrix *matrix, int row, int col);
+//> Adds two matrices together
+ObjMatrix *addMatrix(ObjMatrix *a, ObjMatrix *b);
+//> Subtracts two matrices
+ObjMatrix *subMatrix(ObjMatrix *a, ObjMatrix *b);
+//> Multiplies two matrices
+ObjMatrix *mulMatrix(ObjMatrix *a, ObjMatrix *b);
+//> Divides two matrices
+ObjMatrix *divMatrix(ObjMatrix *a, ObjMatrix *b);
+//> Transposes the matrix
+ObjMatrix *transposeMatrix(ObjMatrix *matrix);
+//> Scales the matrix with a given scalar
+ObjMatrix* scaleMatrix(ObjMatrix *matrix, Value scalar);
+//> Swaps two rows in the matrix
+void swapRows(ObjMatrix *matrix, int row1, int row2);
+//> Finds the reduced row echelon form of the matrix
+void rref(ObjMatrix *matrix);
+//> Finds the rank of the matrix
+int rank(ObjMatrix *matrix);
+//> Finds the identity matrix of the given size
+ObjMatrix *identityMatrix(int n);
+//> Finds the LU decomposition of the matrix
+ObjMatrix* lu(ObjMatrix *matrix);
+//> Finds the determinant of the matrix (BROKEN)
+double determinant(ObjMatrix *matrix);
+//> TODO: Inverse of the matrix
+ObjMatrix *inverseMatrix(ObjMatrix *matrix);
+//> TODO: Checks if two matrices are equal
+bool equalMatrix(ObjMatrix *a, ObjMatrix *b);
+//> TODO: Solves the matrix with a given vector
+ObjArray* solveMatrix(ObjMatrix *matrix, ObjArray *vector);
+/*----------------------------------------------------------------------------*/
+
+/*-------------------------- Float Vector Functions --------------------------*/
+//> Creates a new empty float vector with a given size
+FloatVector* newFloatVector(int size);
+//> Frees the float vector
+void freeFloatVector(FloatVector* vector);
+//> Pushes a value to the end of the float vector
+void pushFloatVector(FloatVector* vector, double value);
+//> Inserts a value at a given index
+void insertFloatVector(FloatVector* vector, int index, double value);
+//> Gets a value from the float vector at a given index
+double getFloatVector(FloatVector* vector, int index);
+//> Removes a value at the end of the float vector
+double popFloatVector(FloatVector* vector);
+//> Removes a value at a given index from the float vector
+double removeFloatVector(FloatVector* vector, int index);
+//> Prints the float vector
+void printFloatVector(FloatVector* vector);
+//> Adds two float vectors together with SIMD if available
+FloatVector* addFloatVector(FloatVector* a, FloatVector* b);
+//> Subtracts two float vectors with SIMD if available
+FloatVector* subFloatVector(FloatVector* a, FloatVector* b);
+//> Multiplies two float vectors with SIMD if available
+FloatVector* mulFloatVector(FloatVector* a, FloatVector* b);
+//> Divides two float vectors with SIMD if available
+FloatVector* divFloatVector(FloatVector* a, FloatVector* b);
+//> Checks if two float vectors are equal
+bool equalFloatVector(FloatVector* a, FloatVector* b);
+//> Scales the float vector with a given scalar with SIMD if available
+FloatVector* scaleFloatVector(FloatVector* vector, double scalar);
+//> Adds the float vector with a given value with SIMD if available
+FloatVector* singleAddFloatVector(FloatVector* a, double b);
+//> Subtracts the float vector with a given value with SIMD if available
+FloatVector* singleSubFloatVector(FloatVector* a, double b);
+//> Multiplies the float vector with a given value with SIMD if available
+FloatVector* singleMulFloatVector(FloatVector* a, double b);
+//> Divides the float vector with a given value with SIMD if available
+FloatVector* singleDivFloatVector(FloatVector* a, double b);
+//> Sorts the float vector using quick sort
+void sortFloatVector(FloatVector* vector);
+//> Searches for a value in the float vector using binary search
+int searchFloatVector(FloatVector* vector, double value);
+
+/*-------------------------- Float Vec3 Functions --------------------------*/
+double dotProduct(FloatVector* a, FloatVector* b);
+FloatVector* crossProduct(FloatVector* a, FloatVector* b);
+double magnitude(FloatVector* vector);
+FloatVector* normalize(FloatVector* vector);
+FloatVector* projection(FloatVector* a, FloatVector* b);
+FloatVector* rejection(FloatVector* a, FloatVector* b);
+FloatVector* reflection(FloatVector* a, FloatVector* b);
+FloatVector* refraction(FloatVector* a, FloatVector* b, double n1, double n2);
+/*----------------------------------------------------------------------------*/
+
 
 void printObject(Value value);
 
@@ -237,38 +376,4 @@ static inline bool isObjType(Value value, ObjType type)
     return IS_OBJ(value) && AS_OBJ(value)->type == type;
 }
 
-ObjMatrix *initMatrix(int rows, int cols);
-void printMatrix(ObjMatrix *matrix);
-void setRow(ObjMatrix *matrix, int row, ObjArray *values);
-void setCol(ObjMatrix *matrix, int col, ObjArray *values);
-void setMatrix(ObjMatrix *matrix, int row, int col, Value value);
-Value getMatrix(ObjMatrix *matrix, int row, int col);
-ObjMatrix *addMatrix(ObjMatrix *a, ObjMatrix *b);
-ObjMatrix *subMatrix(ObjMatrix *a, ObjMatrix *b);
-ObjMatrix *mulMatrix(ObjMatrix *a, ObjMatrix *b);
-ObjMatrix *divMatrix(ObjMatrix *a, ObjMatrix *b);
-ObjMatrix *transposeMatrix(ObjMatrix *matrix);
-// ObjMatrix* scaleMatrix(ObjMatrix *matrix, Value scalar);
-void rref(ObjMatrix *matrix);
-int rank(ObjMatrix *matrix);
-void swapRows(ObjMatrix *matrix, int row1, int row2);
-ObjMatrix *identityMatrix(int n);
-double determinant(ObjMatrix *matrix);
-// void copyMatrix(ObjMatrix *a, ObjMatrix *b);
-FloatVector* initFloatVector(int size);
-void freeFloatVector(FloatVector* vector);
-void pushFloatVector(FloatVector* vector, double value);
-void setFloatVector(FloatVector* vector, int index, double value);
-double getFloatVector(FloatVector* vector, int index);
-void printFloatVector(FloatVector* vector);
-FloatVector* addFloatVector(FloatVector* a, FloatVector* b);
-FloatVector* subFloatVector(FloatVector* a, FloatVector* b);
-FloatVector* mulFloatVector(FloatVector* a, FloatVector* b);
-FloatVector* divFloatVector(FloatVector* a, FloatVector* b);
-bool equalFloatVector(FloatVector* a, FloatVector* b);
-FloatVector* scaleFloatVector(FloatVector* vector, double scalar);
-FloatVector* singleAddFloatVector(FloatVector* a, double b);
-FloatVector* singleSubFloatVector(FloatVector* a, double b);
-FloatVector* singleMulFloatVector(FloatVector* a, double b);
-FloatVector* singleDivFloatVector(FloatVector* a, double b);
 #endif

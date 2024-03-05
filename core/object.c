@@ -90,521 +90,7 @@ static Value div_val(Value a, Value b)
     }
 }
 
-ObjArray *newArray()
-{
-    ObjArray *array = ALLOCATE_OBJ(ObjArray, OBJ_ARRAY);
-    array->capacity = 0;
-    array->count = 0;
-    array->values = NULL;
-    array->_static = false;
-    return array;
-}
-
-ObjArray *newArrayWithCap(int capacity, bool _static)
-{
-    ObjArray *array = ALLOCATE_OBJ(ObjArray, OBJ_ARRAY);
-    array->capacity = capacity;
-    array->count = 0;
-    array->values = ALLOCATE(Value, capacity);
-    array->_static = _static;
-    return array;
-}
-
-ObjArray *mergeArrays(ObjArray *a, ObjArray *b)
-{
-    bool _static = a->_static && b->_static;
-    ObjArray *newArray = newArrayWithCap(a->count + b->count, _static);
-    for (int i = 0; i < a->count; i++)
-    {
-        pushArray(newArray, a->values[i]);
-    }
-    for (int i = 0; i < b->count; i++)
-    {
-        pushArray(newArray, b->values[i]);
-    }
-    return newArray;
-}
-
-void pushArray(ObjArray *array, Value value)
-{
-    if (array->capacity < array->count + 1 && !array->_static)
-    {
-        int oldCapacity = array->capacity;
-        array->capacity = GROW_CAPACITY(oldCapacity);
-        array->values = GROW_ARRAY(Value, array->values, oldCapacity, array->capacity);
-    }
-    else if (array->capacity < array->count + 1 && array->_static)
-    {
-        printf("Array is full");
-        return;
-    }
-
-    array->values[array->count++] = value;
-}
-
-static void overWriteArray(ObjArray *array, int index, Value value)
-{
-    if (index < 0 || index >= array->count)
-    {
-        printf("Index out of bounds");
-        return;
-    }
-    array->values[index] = value;
-}
-
-void insertArray(ObjArray *array, int index, Value value)
-{
-    if (index < 0 || index > array->count)
-    {
-        printf("Index out of bounds");
-        return;
-    }
-    if (array->capacity < array->count + 1 && !array->_static)
-    {
-        int oldCapacity = array->capacity;
-        array->capacity = GROW_CAPACITY(oldCapacity);
-        array->values = GROW_ARRAY(Value, array->values, oldCapacity, array->capacity);
-    }
-    else if (array->capacity < array->count + 1 && array->_static)
-    {
-        printf("Array is full");
-        return;
-    }
-
-    for (int i = array->count; i > index; i--)
-    {
-        array->values[i] = array->values[i - 1];
-    }
-    array->values[index] = value;
-    array->count++;
-}
-
-Value popArray(ObjArray *array)
-{
-    if (array->count == 0)
-    {
-        return NIL_VAL;
-    }
-    return array->values[--array->count];
-}
-
-static int compareValues(const void *a, const void *b)
-{
-    if (IS_INT(*(Value *)a) && IS_INT(*(Value *)b))
-    {
-        return AS_INT(*(Value *)a) - AS_INT(*(Value *)b);
-    }
-    else if (IS_DOUBLE(*(Value *)a) && IS_DOUBLE(*(Value *)b))
-    {
-        return (int)(AS_DOUBLE(*(Value *)a) - AS_DOUBLE(*(Value *)b));
-    }
-    else
-    {
-        return 0;
-    }
-}
-
-static struct Node *merge(struct Node *left, struct Node *right)
-{
-    if (left == NULL)
-        return right;
-    if (right == NULL)
-        return left;
-    if (valueCompare(left->data, right->data) < 0)
-    {
-        left->next = merge(left->next, right);
-        left->next->prev = left;
-        left->prev = NULL;
-        return left;
-    }
-    else
-    {
-        right->next = merge(left, right->next);
-        right->next->prev = right;
-        right->prev = NULL;
-        return right;
-    }
-}
-
-static void split(ObjLinkedList *list, ObjLinkedList *left, ObjLinkedList *right)
-{
-    int count = list->count;
-    int middle = count / 2;
-
-    left->head = list->head;
-    left->count = middle;
-    right->count = count - middle;
-
-    struct Node *current = list->head;
-    for (int i = 0; i < middle - 1; ++i)
-    {
-        current = current->next;
-    }
-
-    left->tail = current;
-    right->head = current->next;
-    current->next = NULL;
-    right->head->prev = NULL;
-}
-
-void mergeSort(ObjLinkedList *list)
-{
-    if (list->count < 2)
-    {
-        return;
-    }
-
-    ObjLinkedList left, right;
-    split(list, &left, &right);
-
-    mergeSort(&left);
-    mergeSort(&right);
-
-    list->head = merge(left.head, right.head);
-
-    struct Node *current = list->head;
-    while (current->next != NULL)
-    {
-        current = current->next;
-    }
-    list->tail = current;
-}
-
-void sortArray(ObjArray *array)
-{
-    qsort(array->values, array->count, sizeof(Value), compareValues);
-}
-
-bool equalArray(ObjArray *a, ObjArray *b)
-{
-    if (a->count != b->count)
-    {
-        return false;
-    }
-    for (int i = 0; i < a->count; i++)
-    {
-        if (!valuesEqual(a->values[i], b->values[i]))
-        {
-            return false;
-        }
-    }
-    return true;
-}
-
-bool equalLinkedList(ObjLinkedList *a, ObjLinkedList *b)
-{
-    if (a->count != b->count)
-    {
-        return false;
-    }
-    struct Node *currentA = a->head;
-    struct Node *currentB = b->head;
-    while (currentA != NULL)
-    {
-        if (!valuesEqual(currentA->data, currentB->data))
-        {
-            return false;
-        }
-        currentA = currentA->next;
-        currentB = currentB->next;
-    }
-    return true;
-}
-
-void freeObjectArray(ObjArray *array)
-{
-    FREE_ARRAY(Value, array->values, array->capacity);
-    FREE(ObjArray, array);
-}
-
-ObjArray *sliceArray(ObjArray *array, int start, int end)
-{
-    ObjArray *sliced = newArrayWithCap(end - start, true);
-    for (int i = start; i < end; i++)
-    {
-        pushArray(sliced, array->values[i]);
-    }
-    return sliced;
-}
-
-ObjArray *addArray(ObjArray *a, ObjArray *b)
-{
-    if (a->count != b->count)
-    {
-        printf("Arrays must have the same length");
-        return NULL;
-    }
-    bool _static = a->_static && b->_static;
-    ObjArray *result = newArrayWithCap(a->count, _static);
-    for (int i = 0; i < a->count; i++)
-    {
-        pushArray(result, add_val(a->values[i], b->values[i]));
-    }
-    return result;
-}
-
-ObjArray *subArray(ObjArray *a, ObjArray *b)
-{
-    if (a->count != b->count)
-    {
-        printf("Arrays must have the same length");
-        return NULL;
-    }
-    bool _static = a->_static && b->_static;
-    ObjArray *result = newArrayWithCap(a->count, _static);
-    for (int i = 0; i < a->count; i++)
-    {
-        pushArray(result, sub_val(a->values[i], b->values[i]));
-    }
-    return result;
-}
-ObjArray *mulArray(ObjArray *a, ObjArray *b)
-{
-    if (a->count != b->count)
-    {
-        printf("Arrays must have the same length");
-        return NULL;
-    }
-    bool _static = a->_static && b->_static;
-    ObjArray *result = newArrayWithCap(a->count, _static);
-    for (int i = 0; i < a->count; i++)
-    {
-        pushArray(result, mul_val(a->values[i], b->values[i]));
-    }
-    return result;
-}
-ObjArray *divArray(ObjArray *a, ObjArray *b)
-{
-    if (a->count != b->count)
-    {
-        printf("Arrays must have the same length");
-        return NULL;
-    }
-    bool _static = a->_static && b->_static;
-    ObjArray *result = newArrayWithCap(a->count, _static);
-    for (int i = 0; i < a->count; i++)
-    {
-        pushArray(result, div_val(a->values[i], b->values[i]));
-    }
-    return result;
-}
-
-ObjLinkedList *newLinkedList()
-{
-    ObjLinkedList *list = ALLOCATE_OBJ(ObjLinkedList, OBJ_LINKED_LIST);
-    list->head = NULL;
-    list->tail = NULL;
-    list->count = 0;
-    return list;
-}
-
-void pushFront(ObjLinkedList *list, Value value)
-{
-    struct Node *node = ALLOCATE(struct Node, 1);
-    node->data = value;
-    node->prev = NULL;
-    node->next = list->head;
-    if (list->head != NULL)
-    {
-        list->head->prev = node;
-    }
-    list->head = node;
-    if (list->tail == NULL)
-    {
-        list->tail = node;
-    }
-    list->count++;
-}
-void pushBack(ObjLinkedList *list, Value value)
-{
-    struct Node *node = ALLOCATE(struct Node, 1);
-    node->data = value;
-    node->prev = list->tail;
-    node->next = NULL;
-    if (list->tail != NULL)
-    {
-        list->tail->next = node;
-    }
-    list->tail = node;
-    if (list->head == NULL)
-    {
-        list->head = node;
-    }
-    list->count++;
-}
-Value popFront(ObjLinkedList *list)
-{
-    if (list->head == NULL)
-    {
-        return NIL_VAL;
-    }
-    struct Node *node = list->head;
-    Value data = node->data;
-    list->head = node->next;
-    if (list->head != NULL)
-    {
-        list->head->prev = NULL;
-    }
-    if (list->tail == node)
-    {
-        list->tail = NULL;
-    }
-    list->count--;
-    FREE(struct Node, node);
-    return data;
-}
-Value popBack(ObjLinkedList *list)
-{
-    if (list->tail == NULL)
-    {
-        return NIL_VAL;
-    }
-    struct Node *node = list->tail;
-    Value data = node->data;
-    list->tail = node->prev;
-    if (list->tail != NULL)
-    {
-        list->tail->next = NULL;
-    }
-    if (list->head == node)
-    {
-        list->head = NULL;
-    }
-    list->count--;
-    FREE(struct Node, node);
-    return data;
-}
-void freeObjectLinkedList(ObjLinkedList *list)
-{
-    struct Node *current = list->head;
-    while (current != NULL)
-    {
-        struct Node *next = current->next;
-        FREE(struct Node, current);
-        current = next;
-    }
-    FREE(ObjLinkedList, list);
-}
-
-ObjHashTable *newHashTable()
-{
-    ObjHashTable *htable = ALLOCATE_OBJ(ObjHashTable, OBJ_HASH_TABLE);
-    initTable(&htable->table);
-    return htable;
-}
-bool putHashTable(ObjHashTable *table, ObjString *key, Value value)
-{
-    return tableSet(&table->table, key, value);
-}
-Value getHashTable(ObjHashTable *table, ObjString *key)
-{
-    Value value;
-    if (tableGet(&table->table, key, &value))
-    {
-        return value;
-    }
-    else
-    {
-        return NIL_VAL;
-    }
-}
-
-bool removeHashTable(ObjHashTable *table, ObjString *key)
-{
-    return tableDelete(&table->table, key);
-}
-
-void freeObjectHashTable(ObjHashTable *table)
-{
-    freeTable(&table->table);
-    FREE(ObjHashTable, table);
-}
-
-void reverseArray(ObjArray *array)
-{
-    int i = 0;
-    int j = array->count - 1;
-    while (i < j)
-    {
-        Value temp = array->values[i];
-        array->values[i] = array->values[j];
-        array->values[j] = temp;
-        i++;
-        j--;
-    }
-}
-
-void reverseLinkedList(ObjLinkedList *list)
-{
-    struct Node *current = list->head;
-    while (current != NULL)
-    {
-        struct Node *temp = current->prev;
-        current->prev = current->next;
-        current->next = temp;
-        current = current->prev;
-    }
-    struct Node *temp = current->prev;
-    if (temp != NULL)
-    {
-        list->head = temp->prev;
-    }
-}
-
-static bool valuesLess(Value a, Value b)
-{
-    if (IS_INT(a) && IS_INT(b))
-    {
-        return AS_INT(a) < AS_INT(b);
-    }
-    else if (IS_DOUBLE(a) && IS_DOUBLE(b))
-    {
-        return AS_DOUBLE(a) < AS_DOUBLE(b);
-    }
-    return false;
-}
-
-int searchArray(ObjArray *array, Value value)
-{
-    int low = 0;
-    int high = array->count - 1;
-
-    while (low <= high)
-    {
-        int mid = (low + high) / 2;
-        Value midValue = array->values[mid];
-
-        if (valuesEqual(midValue, value))
-        {
-            return mid;
-        }
-        else if (valuesLess(midValue, value))
-        {
-            low = mid + 1;
-        }
-        else
-        {
-            high = mid - 1;
-        }
-    }
-    return -1;
-}
-
-int searchLinkedList(ObjLinkedList *list, Value value)
-{
-    struct Node *current = list->head;
-    int index = 0;
-    while (current != NULL)
-    {
-        if (valuesEqual(current->data, value))
-        {
-            return index;
-        }
-        current = current->next;
-        index++;
-    }
-    return -1;
-}
+/*-------------------------- Object Functions --------------------------------*/
 
 ObjBoundMethod *newBoundMethod(Value receiver, ObjClosure *method)
 {
@@ -719,7 +205,543 @@ ObjUpvalue *newUpvalue(Value *slot)
     return upvalue;
 }
 
-ObjMatrix *initMatrix(int rows, int cols)
+/*------------------------------------------------------------------------------*/
+
+/*-------------------------- Array Functions --------------------------------*/
+ObjArray *newArray()
+{
+    ObjArray *array = ALLOCATE_OBJ(ObjArray, OBJ_ARRAY);
+    array->capacity = 0;
+    array->count = 0;
+    array->values = NULL;
+    array->_static = false;
+    return array;
+}
+
+ObjArray *newArrayWithCap(int capacity, bool _static)
+{
+    ObjArray *array = ALLOCATE_OBJ(ObjArray, OBJ_ARRAY);
+    array->capacity = capacity;
+    array->count = 0;
+    array->values = ALLOCATE(Value, capacity);
+    array->_static = _static;
+    return array;
+}
+
+ObjArray *mergeArrays(ObjArray *a, ObjArray *b)
+{
+    bool _static = a->_static && b->_static;
+    ObjArray *newArray = newArrayWithCap(a->count + b->count, _static);
+    for (int i = 0; i < a->count; i++)
+    {
+        pushArray(newArray, a->values[i]);
+    }
+    for (int i = 0; i < b->count; i++)
+    {
+        pushArray(newArray, b->values[i]);
+    }
+    return newArray;
+}
+
+void pushArray(ObjArray *array, Value value)
+{
+    if (array->capacity < array->count + 1 && !array->_static)
+    {
+        int oldCapacity = array->capacity;
+        array->capacity = GROW_CAPACITY(oldCapacity);
+        array->values = GROW_ARRAY(Value, array->values, oldCapacity, array->capacity);
+    }
+    else if (array->capacity < array->count + 1 && array->_static)
+    {
+        printf("Array is full");
+        return;
+    }
+
+    array->values[array->count++] = value;
+}
+
+static void overWriteArray(ObjArray *array, int index, Value value)
+{
+    if (index < 0 || index >= array->count)
+    {
+        printf("Index out of bounds");
+        return;
+    }
+    array->values[index] = value;
+}
+
+void insertArray(ObjArray *array, int index, Value value)
+{
+    if (index < 0 || index > array->count)
+    {
+        printf("Index out of bounds");
+        return;
+    }
+    if (array->capacity < array->count + 1 && !array->_static)
+    {
+        int oldCapacity = array->capacity;
+        array->capacity = GROW_CAPACITY(oldCapacity);
+        array->values = GROW_ARRAY(Value, array->values, oldCapacity, array->capacity);
+    }
+    else if (array->capacity < array->count + 1 && array->_static)
+    {
+        printf("Array is full");
+        return;
+    }
+
+    for (int i = array->count; i > index; i--)
+    {
+        array->values[i] = array->values[i - 1];
+    }
+    array->values[index] = value;
+    array->count++;
+}
+
+Value popArray(ObjArray *array)
+{
+    if (array->count == 0)
+    {
+        return NIL_VAL;
+    }
+    return array->values[--array->count];
+}
+
+static int compareValues(const void *a, const void *b)
+{
+    if (IS_INT(*(Value *)a) && IS_INT(*(Value *)b))
+    {
+        return AS_INT(*(Value *)a) - AS_INT(*(Value *)b);
+    }
+    else if (IS_DOUBLE(*(Value *)a) && IS_DOUBLE(*(Value *)b))
+    {
+        return (int)(AS_DOUBLE(*(Value *)a) - AS_DOUBLE(*(Value *)b));
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+void sortArray(ObjArray *array)
+{
+    qsort(array->values, array->count, sizeof(Value), compareValues);
+}
+
+static bool valuesLess(Value a, Value b)
+{
+    if (IS_INT(a) && IS_INT(b))
+    {
+        return AS_INT(a) < AS_INT(b);
+    }
+    else if (IS_DOUBLE(a) && IS_DOUBLE(b))
+    {
+        return AS_DOUBLE(a) < AS_DOUBLE(b);
+    }
+    return false;
+}
+
+int searchArray(ObjArray *array, Value value)
+{
+    int low = 0;
+    int high = array->count - 1;
+
+    while (low <= high)
+    {
+        int mid = (low + high) / 2;
+        Value midValue = array->values[mid];
+
+        if (valuesEqual(midValue, value))
+        {
+            return mid;
+        }
+        else if (valuesLess(midValue, value))
+        {
+            low = mid + 1;
+        }
+        else
+        {
+            high = mid - 1;
+        }
+    }
+    return -1;
+}
+
+void reverseArray(ObjArray *array)
+{
+    int i = 0;
+    int j = array->count - 1;
+    while (i < j)
+    {
+        Value temp = array->values[i];
+        array->values[i] = array->values[j];
+        array->values[j] = temp;
+        i++;
+        j--;
+    }
+}
+
+bool equalArray(ObjArray *a, ObjArray *b)
+{
+    if (a->count != b->count)
+    {
+        return false;
+    }
+    for (int i = 0; i < a->count; i++)
+    {
+        if (!valuesEqual(a->values[i], b->values[i]))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+void freeObjectArray(ObjArray *array)
+{
+    FREE_ARRAY(Value, array->values, array->capacity);
+    FREE(ObjArray, array);
+}
+
+ObjArray *sliceArray(ObjArray *array, int start, int end)
+{
+    ObjArray *sliced = newArrayWithCap(end - start, true);
+    for (int i = start; i < end; i++)
+    {
+        pushArray(sliced, array->values[i]);
+    }
+    return sliced;
+}
+
+ObjArray *addArray(ObjArray *a, ObjArray *b)
+{
+    if (a->count != b->count)
+    {
+        printf("Arrays must have the same length");
+        return NULL;
+    }
+    bool _static = a->_static && b->_static;
+    ObjArray *result = newArrayWithCap(a->count, _static);
+    for (int i = 0; i < a->count; i++)
+    {
+        pushArray(result, add_val(a->values[i], b->values[i]));
+    }
+    return result;
+}
+
+ObjArray *subArray(ObjArray *a, ObjArray *b)
+{
+    if (a->count != b->count)
+    {
+        printf("Arrays must have the same length");
+        return NULL;
+    }
+    bool _static = a->_static && b->_static;
+    ObjArray *result = newArrayWithCap(a->count, _static);
+    for (int i = 0; i < a->count; i++)
+    {
+        pushArray(result, sub_val(a->values[i], b->values[i]));
+    }
+    return result;
+}
+ObjArray *mulArray(ObjArray *a, ObjArray *b)
+{
+    if (a->count != b->count)
+    {
+        printf("Arrays must have the same length");
+        return NULL;
+    }
+    bool _static = a->_static && b->_static;
+    ObjArray *result = newArrayWithCap(a->count, _static);
+    for (int i = 0; i < a->count; i++)
+    {
+        pushArray(result, mul_val(a->values[i], b->values[i]));
+    }
+    return result;
+}
+ObjArray *divArray(ObjArray *a, ObjArray *b)
+{
+    if (a->count != b->count)
+    {
+        printf("Arrays must have the same length");
+        return NULL;
+    }
+    bool _static = a->_static && b->_static;
+    ObjArray *result = newArrayWithCap(a->count, _static);
+    for (int i = 0; i < a->count; i++)
+    {
+        pushArray(result, div_val(a->values[i], b->values[i]));
+    }
+    return result;
+}
+
+/*----------------------------------------------------------------------------*/
+
+/*-------------------------- Linked List Functions ---------------------------*/
+
+ObjLinkedList *newLinkedList()
+{
+    ObjLinkedList *list = ALLOCATE_OBJ(ObjLinkedList, OBJ_LINKED_LIST);
+    list->head = NULL;
+    list->tail = NULL;
+    list->count = 0;
+    return list;
+}
+
+void pushFront(ObjLinkedList *list, Value value)
+{
+    struct Node *node = ALLOCATE(struct Node, 1);
+    node->data = value;
+    node->prev = NULL;
+    node->next = list->head;
+    if (list->head != NULL)
+    {
+        list->head->prev = node;
+    }
+    list->head = node;
+    if (list->tail == NULL)
+    {
+        list->tail = node;
+    }
+    list->count++;
+}
+
+void pushBack(ObjLinkedList *list, Value value)
+{
+    struct Node *node = ALLOCATE(struct Node, 1);
+    node->data = value;
+    node->prev = list->tail;
+    node->next = NULL;
+    if (list->tail != NULL)
+    {
+        list->tail->next = node;
+    }
+    list->tail = node;
+    if (list->head == NULL)
+    {
+        list->head = node;
+    }
+    list->count++;
+}
+
+Value popFront(ObjLinkedList *list)
+{
+    if (list->head == NULL)
+    {
+        return NIL_VAL;
+    }
+    struct Node *node = list->head;
+    Value data = node->data;
+    list->head = node->next;
+    if (list->head != NULL)
+    {
+        list->head->prev = NULL;
+    }
+    if (list->tail == node)
+    {
+        list->tail = NULL;
+    }
+    list->count--;
+    FREE(struct Node, node);
+    return data;
+}
+
+Value popBack(ObjLinkedList *list)
+{
+    if (list->tail == NULL)
+    {
+        return NIL_VAL;
+    }
+    struct Node *node = list->tail;
+    Value data = node->data;
+    list->tail = node->prev;
+    if (list->tail != NULL)
+    {
+        list->tail->next = NULL;
+    }
+    if (list->head == node)
+    {
+        list->head = NULL;
+    }
+    list->count--;
+    FREE(struct Node, node);
+    return data;
+}
+
+bool equalLinkedList(ObjLinkedList *a, ObjLinkedList *b)
+{
+    if (a->count != b->count)
+    {
+        return false;
+    }
+    struct Node *currentA = a->head;
+    struct Node *currentB = b->head;
+    while (currentA != NULL)
+    {
+        if (!valuesEqual(currentA->data, currentB->data))
+        {
+            return false;
+        }
+        currentA = currentA->next;
+        currentB = currentB->next;
+    }
+    return true;
+}
+
+void freeObjectLinkedList(ObjLinkedList *list)
+{
+    struct Node *current = list->head;
+    while (current != NULL)
+    {
+        struct Node *next = current->next;
+        FREE(struct Node, current);
+        current = next;
+    }
+    FREE(ObjLinkedList, list);
+}
+
+static struct Node *merge(struct Node *left, struct Node *right)
+{
+    if (left == NULL)
+        return right;
+    if (right == NULL)
+        return left;
+    if (valueCompare(left->data, right->data) < 0)
+    {
+        left->next = merge(left->next, right);
+        left->next->prev = left;
+        left->prev = NULL;
+        return left;
+    }
+    else
+    {
+        right->next = merge(left, right->next);
+        right->next->prev = right;
+        right->prev = NULL;
+        return right;
+    }
+}
+
+static void split(ObjLinkedList *list, ObjLinkedList *left, ObjLinkedList *right)
+{
+    int count = list->count;
+    int middle = count / 2;
+
+    left->head = list->head;
+    left->count = middle;
+    right->count = count - middle;
+
+    struct Node *current = list->head;
+    for (int i = 0; i < middle - 1; ++i)
+    {
+        current = current->next;
+    }
+
+    left->tail = current;
+    right->head = current->next;
+    current->next = NULL;
+    right->head->prev = NULL;
+}
+
+void mergeSort(ObjLinkedList *list)
+{
+    if (list->count < 2)
+    {
+        return;
+    }
+
+    ObjLinkedList left, right;
+    split(list, &left, &right);
+
+    mergeSort(&left);
+    mergeSort(&right);
+
+    list->head = merge(left.head, right.head);
+
+    struct Node *current = list->head;
+    while (current->next != NULL)
+    {
+        current = current->next;
+    }
+    list->tail = current;
+}
+
+int searchLinkedList(ObjLinkedList *list, Value value)
+{
+    struct Node *current = list->head;
+    int index = 0;
+    while (current != NULL)
+    {
+        if (valuesEqual(current->data, value))
+        {
+            return index;
+        }
+        current = current->next;
+        index++;
+    }
+    return -1;
+}
+
+void reverseLinkedList(ObjLinkedList *list)
+{
+    struct Node *current = list->head;
+    while (current != NULL)
+    {
+        struct Node *temp = current->prev;
+        current->prev = current->next;
+        current->next = temp;
+        current = current->prev;
+    }
+    struct Node *temp = current->prev;
+    if (temp != NULL)
+    {
+        list->head = temp->prev;
+    }
+}
+
+/*------------------------------------------------------------------------------*/
+
+/*-------------------------- Hash Table Functions ------------------------------*/
+
+ObjHashTable *newHashTable()
+{
+    ObjHashTable *htable = ALLOCATE_OBJ(ObjHashTable, OBJ_HASH_TABLE);
+    initTable(&htable->table);
+    return htable;
+}
+
+bool putHashTable(ObjHashTable *table, ObjString *key, Value value)
+{
+    return tableSet(&table->table, key, value);
+}
+
+Value getHashTable(ObjHashTable *table, ObjString *key)
+{
+    Value value;
+    if (tableGet(&table->table, key, &value))
+    {
+        return value;
+    }
+    else
+    {
+        return NIL_VAL;
+    }
+}
+
+bool removeHashTable(ObjHashTable *table, ObjString *key)
+{
+    return tableDelete(&table->table, key);
+}
+
+void freeObjectHashTable(ObjHashTable *table)
+{
+    freeTable(&table->table);
+    FREE(ObjHashTable, table);
+}
+
+/*------------------------------------------------------------------------------*/
+
+/*-------------------------- Matrix Functions ------------------------------------*/
+ObjMatrix *newMatrix(int rows, int cols)
 {
     ObjMatrix *matrix = ALLOCATE_OBJ(ObjMatrix, OBJ_MATRIX);
     matrix->rows = rows;
@@ -732,15 +754,6 @@ ObjMatrix *initMatrix(int rows, int cols)
     }
     return matrix;
 }
-
-// static Value getValue(ObjMatrix *mat, int row, int col)
-// {
-//     if (row >= 0 && row < mat->rows && col >= 0 && col < mat->cols)
-//     {
-//         return mat->data->values[row * mat->cols + col];
-//     }
-//     return NIL_VAL; // Return -1 or any other appropriate value to indicate error
-// }
 
 void printMatrix(ObjMatrix *matrix)
 {
@@ -788,6 +801,7 @@ void setCol(ObjMatrix *matrix, int col, ObjArray *values)
         }
     }
 }
+
 void setMatrix(ObjMatrix *matrix, int row, int col, Value value)
 {
     if (matrix != NULL && row >= 0 && row < matrix->rows && col >= 0 && col < matrix->cols)
@@ -795,6 +809,7 @@ void setMatrix(ObjMatrix *matrix, int row, int col, Value value)
         overWriteArray(matrix->data, row * matrix->cols + col, value);
     }
 }
+
 Value getMatrix(ObjMatrix *matrix, int row, int col)
 {
     if (matrix != NULL && row >= 0 && row < matrix->rows && col >= 0 && col < matrix->cols)
@@ -802,6 +817,98 @@ Value getMatrix(ObjMatrix *matrix, int row, int col)
         return matrix->data->values[row * matrix->cols + col];
     }
     return NIL_VAL;
+}
+
+ObjMatrix *addMatrix(ObjMatrix *a, ObjMatrix *b)
+{
+    if (a->rows != b->rows || a->cols != b->cols)
+    {
+        printf("Matrix dimensions do not match");
+        return NULL;
+    }
+    ObjMatrix *result = newMatrix(a->rows, a->cols);
+    for (int i = 0; i < a->len; i++)
+    {
+        overWriteArray(result->data, i, DOUBLE_VAL(AS_DOUBLE(a->data->values[i]) + AS_DOUBLE(b->data->values[i])));
+    }
+    return result;
+}
+
+ObjMatrix *subMatrix(ObjMatrix *a, ObjMatrix *b)
+{
+    if (a->rows != b->rows || a->cols != b->cols)
+    {
+        printf("Matrix dimensions do not match");
+        return NULL;
+    }
+    ObjMatrix *result = newMatrix(a->rows, a->cols);
+    for (int i = 0; i < a->len; i++)
+    {
+        overWriteArray(result->data, i, DOUBLE_VAL(AS_DOUBLE(a->data->values[i]) - AS_DOUBLE(b->data->values[i])));
+    }
+    return result;
+}
+
+ObjMatrix *mulMatrix(ObjMatrix *a, ObjMatrix *b)
+{
+    if (a->cols != b->rows)
+    {
+        printf("Matrix dimensions do not match");
+        return NULL;
+    }
+    ObjMatrix *result = newMatrix(a->rows, b->cols);
+    for (int i = 0; i < a->rows; i++)
+    {
+        for (int j = 0; j < b->cols; j++)
+        {
+            Value sum = DOUBLE_VAL(0.0);
+            for (int k = 0; k < a->cols; k++)
+            {
+                Value temp = DOUBLE_VAL(AS_DOUBLE(getMatrix(a, i, k)) * AS_DOUBLE(getMatrix(b, k, j)));
+                sum = DOUBLE_VAL(AS_DOUBLE(sum) + AS_DOUBLE(temp));
+            }
+            setMatrix(result, i, j, sum);
+        }
+    }
+    return result;
+}
+
+ObjMatrix *divMatrix(ObjMatrix *a, ObjMatrix *b)
+{
+    if (a->rows != b->rows || a->cols != b->cols)
+    {
+        printf("Matrix dimensions do not match");
+        return NULL;
+    }
+    ObjMatrix *result = newMatrix(a->rows, a->cols);
+    for (int i = 0; i < a->len; i++)
+    {
+        overWriteArray(result->data, i, DOUBLE_VAL(AS_DOUBLE(a->data->values[i]) / AS_DOUBLE(b->data->values[i])));
+    }
+    return result;
+}
+
+ObjMatrix *transposeMatrix(ObjMatrix *matrix)
+{
+    ObjMatrix *result = newMatrix(matrix->cols, matrix->rows);
+    for (int i = 0; i < matrix->rows; i++)
+    {
+        for (int j = 0; j < matrix->cols; j++)
+        {
+            setMatrix(result, j, i, getMatrix(matrix, i, j));
+        }
+    }
+    return result;
+}
+
+ObjMatrix *scaleMatrix(ObjMatrix *matrix, Value scalar)
+{
+    ObjMatrix *result = newMatrix(matrix->rows, matrix->cols);
+    for (int i = 0; i < matrix->len; i++)
+    {
+        overWriteArray(result->data, i, mul_val(matrix->data->values[i], scalar));
+    }
+    return result;
 }
 
 void swapRow(ObjMatrix *matrix, int row1, int row2)
@@ -868,7 +975,7 @@ void rref(ObjMatrix *matrix)
 
 int rank(ObjMatrix *matrix)
 {
-    ObjMatrix *copy = initMatrix(matrix->rows, matrix->cols);
+    ObjMatrix *copy = newMatrix(matrix->rows, matrix->cols);
     for (int i = 0; i < matrix->len; i++)
     {
         copy->data->values[i] = matrix->data->values[i];
@@ -891,91 +998,9 @@ int rank(ObjMatrix *matrix)
     return rank;
 }
 
-ObjMatrix *addMatrix(ObjMatrix *a, ObjMatrix *b)
-{
-    if (a->rows != b->rows || a->cols != b->cols)
-    {
-        printf("Matrix dimensions do not match");
-        return NULL;
-    }
-    ObjMatrix *result = initMatrix(a->rows, a->cols);
-    for (int i = 0; i < a->len; i++)
-    {
-        overWriteArray(result->data, i, DOUBLE_VAL(AS_DOUBLE(a->data->values[i]) + AS_DOUBLE(b->data->values[i])));
-    }
-    return result;
-}
-
-ObjMatrix *subMatrix(ObjMatrix *a, ObjMatrix *b)
-{
-    if (a->rows != b->rows || a->cols != b->cols)
-    {
-        printf("Matrix dimensions do not match");
-        return NULL;
-    }
-    ObjMatrix *result = initMatrix(a->rows, a->cols);
-    for (int i = 0; i < a->len; i++)
-    {
-        overWriteArray(result->data, i, DOUBLE_VAL(AS_DOUBLE(a->data->values[i]) - AS_DOUBLE(b->data->values[i])));
-    }
-    return result;
-}
-
-ObjMatrix *mulMatrix(ObjMatrix *a, ObjMatrix *b)
-{
-    if (a->cols != b->rows)
-    {
-        printf("Matrix dimensions do not match");
-        return NULL;
-    }
-    ObjMatrix *result = initMatrix(a->rows, b->cols);
-    for (int i = 0; i < a->rows; i++)
-    {
-        for (int j = 0; j < b->cols; j++)
-        {
-            Value sum = DOUBLE_VAL(0.0);
-            for (int k = 0; k < a->cols; k++)
-            {
-                Value temp = DOUBLE_VAL(AS_DOUBLE(getMatrix(a, i, k)) * AS_DOUBLE(getMatrix(b, k, j)));
-                sum = DOUBLE_VAL(AS_DOUBLE(sum) + AS_DOUBLE(temp));
-            }
-            setMatrix(result, i, j, sum);
-        }
-    }
-    return result;
-}
-
-ObjMatrix *divMatrix(ObjMatrix *a, ObjMatrix *b)
-{
-    if (a->rows != b->rows || a->cols != b->cols)
-    {
-        printf("Matrix dimensions do not match");
-        return NULL;
-    }
-    ObjMatrix *result = initMatrix(a->rows, a->cols);
-    for (int i = 0; i < a->len; i++)
-    {
-        overWriteArray(result->data, i, DOUBLE_VAL(AS_DOUBLE(a->data->values[i]) / AS_DOUBLE(b->data->values[i])));
-    }
-    return result;
-}
-
-ObjMatrix *transposeMatrix(ObjMatrix *matrix)
-{
-    ObjMatrix *result = initMatrix(matrix->cols, matrix->rows);
-    for (int i = 0; i < matrix->rows; i++)
-    {
-        for (int j = 0; j < matrix->cols; j++)
-        {
-            setMatrix(result, j, i, getMatrix(matrix, i, j));
-        }
-    }
-    return result;
-}
-
 ObjMatrix *identityMatrix(int n)
 {
-    ObjMatrix *result = initMatrix(n, n);
+    ObjMatrix *result = newMatrix(n, n);
     for (int i = 0; i < n; i++)
     {
         setMatrix(result, i, i, DOUBLE_VAL(1.0));
@@ -983,49 +1008,82 @@ ObjMatrix *identityMatrix(int n)
     return result;
 }
 
-double determinant(ObjMatrix *matrix)
+ObjMatrix *lu(ObjMatrix *matrix)
 {
-    if (matrix->rows != matrix->cols)
-    {
-        printf("Matrix is not square");
-        return 0.0;
-    }
-    if (matrix->rows == 1)
-    {
-        return AS_DOUBLE(getMatrix(matrix, 0, 0));
-    }
-    if (matrix->rows == 2)
-    {
-        return AS_DOUBLE(getMatrix(matrix, 0, 0)) * AS_DOUBLE(getMatrix(matrix, 1, 1)) - AS_DOUBLE(getMatrix(matrix, 0, 1)) * AS_DOUBLE(getMatrix(matrix, 1, 0));
-    }
-    double det = 0.0;
+    ObjMatrix *L = newMatrix(matrix->rows, matrix->cols);
+    ObjMatrix *U = newMatrix(matrix->rows, matrix->cols);
     for (int i = 0; i < matrix->rows; i++)
     {
-        ObjMatrix *submatrix = initMatrix(matrix->rows - 1, matrix->cols - 1);
-        int subi = 0;
-        for (int row = 1; row < matrix->rows; row++)
+        for (int j = 0; j < matrix->cols; j++)
         {
-            int subj = 0;
-            for (int col = 0; col < matrix->cols; col++)
+            if (j < i)
             {
-                if (col == i)
-                {
-                    continue;
-                }
-                setMatrix(submatrix, subi, subj, getMatrix(matrix, row, col));
-                subj++;
+                setMatrix(L, i, j, getMatrix(matrix, i, j));
             }
-            subi++;
+            else if (j == i)
+            {
+                setMatrix(L, i, j, DOUBLE_VAL(1.0));
+                setMatrix(U, i, j, getMatrix(matrix, i, j));
+            }
+            else
+            {
+                setMatrix(L, i, j, DOUBLE_VAL(0.0));
+                setMatrix(U, i, j, getMatrix(matrix, i, j));
+            }
         }
-        double sign = (i % 2 == 0) ? 1.0 : -1.0;
-        det += sign * AS_DOUBLE(getMatrix(matrix, 0, i)) * determinant(submatrix);
-        freeObjectArray(submatrix->data);
-        FREE(ObjMatrix, submatrix);
     }
+    for (int i = 0; i < matrix->rows; i++)
+    {
+        for (int j = 0; j < matrix->cols; j++)
+        {
+            if (j < i)
+            {
+                setMatrix(U, i, j, DOUBLE_VAL(0.0));
+            }
+            else if (j == i)
+            {
+                setMatrix(L, i, j, DOUBLE_VAL(1.0));
+            }
+            else
+            {
+                Value sum = DOUBLE_VAL(0.0);
+                for (int k = 0; k < i; k++)
+                {
+                    Value temp = DOUBLE_VAL(AS_DOUBLE(getMatrix(L, i, k)) * AS_DOUBLE(getMatrix(U, k, j)));
+                    sum = DOUBLE_VAL(AS_DOUBLE(sum) + AS_DOUBLE(temp));
+                }
+                setMatrix(U, i, j, sub_val(getMatrix(matrix, i, j), sum));
+            }
+        }
+    }
+    ObjMatrix *result = newMatrix(2, 1);
+    setMatrix(result, 0, 0, OBJ_VAL(L));
+    setMatrix(result, 1, 0, OBJ_VAL(U));
+    return result;
+}
+
+double determinant(ObjMatrix *matrix)
+{
+    double det = 1;
+    ObjMatrix *copy = newMatrix(matrix->rows, matrix->cols);
+    for (int i = 0; i < matrix->len; i++)
+    {
+        copy->data->values[i] = matrix->data->values[i];
+    }
+    lu(copy);
+    for (int i = 0; i < copy->rows; i++)
+    {
+        det *= AS_DOUBLE(getMatrix(copy, i, i));
+    }
+    freeObjectArray(copy->data);
+    FREE(ObjMatrix, copy);
     return det;
 }
 
-FloatVector *initFloatVector(int size)
+/*------------------------------------------------------------------------------*/
+
+/*-------------------------- Float Vector Functions ----------------------------*/
+FloatVector *newFloatVector(int size)
 {
     FloatVector *vector = ALLOCATE_OBJ(FloatVector, OBJ_FVECTOR);
     vector->size = size;
@@ -1051,18 +1109,7 @@ void pushFloatVector(FloatVector *vector, double value)
     vector->count++;
 }
 
-void printFloatVector(FloatVector *vector)
-{
-    printf("[");
-    for (int i = 0; i < vector->count; i++)
-    {
-        printf("%.2f ", vector->data[i]);
-    }
-    printf("]");
-    printf("\n");
-}
-
-void setFloatVector(FloatVector *vector, int index, double value)
+void insertFloatVector(FloatVector *vector, int index, double value)
 {
     if (index < 0 || index >= vector->count)
     {
@@ -1082,6 +1129,43 @@ double getFloatVector(FloatVector *vector, int index)
     return vector->data[index];
 }
 
+double popFloatVector(FloatVector *vector)
+{
+    if (vector->count == 0)
+    {
+        printf("Vector is empty\n");
+        return 0;
+    }
+    return vector->data[--vector->count];
+}
+
+double removeFloatVector(FloatVector *vector, int index)
+{
+    if (index < 0 || index >= vector->count)
+    {
+        printf("Index out of bounds\n");
+        return 0;
+    }
+    double value = vector->data[index];
+    for (int i = index; i < vector->count - 1; i++)
+    {
+        vector->data[i] = vector->data[i + 1];
+    }
+    vector->count--;
+    return value;
+}
+
+void printFloatVector(FloatVector *vector)
+{
+    printf("[");
+    for (int i = 0; i < vector->count; i++)
+    {
+        printf("%.2f ", vector->data[i]);
+    }
+    printf("]");
+    printf("\n");
+}
+
 FloatVector *addFloatVector(FloatVector *vector1, FloatVector *vector2)
 {
     if (vector1->size != vector2->size)
@@ -1089,7 +1173,7 @@ FloatVector *addFloatVector(FloatVector *vector1, FloatVector *vector2)
         printf("Vectors are not of the same size\n");
         return NULL;
     }
-    FloatVector *result = initFloatVector(vector1->size);
+    FloatVector *result = newFloatVector(vector1->size);
 #if defined(__AVX2__)
     size_t simdSize = vector1->count - (vector1->count % 4);
     for (size_t i = 0; i < simdSize; i += 4)
@@ -1123,7 +1207,7 @@ FloatVector *subFloatVector(FloatVector *vector1, FloatVector *vector2)
         printf("Vectors are not of the same size\n");
         return NULL;
     }
-    FloatVector *result = initFloatVector(vector1->size);
+    FloatVector *result = newFloatVector(vector1->size);
 #if defined(__AVX2__)
     size_t simdSize = vector1->count - (vector1->count % 4);
     for (size_t i = 0; i < simdSize; i += 4)
@@ -1157,7 +1241,7 @@ FloatVector *mulFloatVector(FloatVector *vector1, FloatVector *vector2)
         printf("Vectors are not of the same size\n");
         return NULL;
     }
-    FloatVector *result = initFloatVector(vector1->size);
+    FloatVector *result = newFloatVector(vector1->size);
 #if defined(__AVX2__)
     size_t simdSize = vector1->count - (vector1->count % 4);
     for (size_t i = 0; i < simdSize; i += 4)
@@ -1191,7 +1275,7 @@ FloatVector *divFloatVector(FloatVector *vector1, FloatVector *vector2)
         printf("Vectors are not of the same size\n");
         return NULL;
     }
-    FloatVector *result = initFloatVector(vector1->size);
+    FloatVector *result = newFloatVector(vector1->size);
 #if defined(__AVX2__)
     size_t simdSize = vector1->count - (vector1->count % 4);
     for (size_t i = 0; i < simdSize; i += 4)
@@ -1235,7 +1319,7 @@ bool equalFloatVector(FloatVector *a, FloatVector *b)
 }
 FloatVector *scaleFloatVector(FloatVector *vector, double scalar)
 {
-    FloatVector *result = initFloatVector(vector->size);
+    FloatVector *result = newFloatVector(vector->size);
 
 #if defined(__AVX2__)
     size_t simdSize = vector->count - (vector->count % 4);
@@ -1264,7 +1348,7 @@ FloatVector *scaleFloatVector(FloatVector *vector, double scalar)
 
 FloatVector *singleAddFloatVector(FloatVector *a, double b)
 {
-    FloatVector *result = initFloatVector(a->size);
+    FloatVector *result = newFloatVector(a->size);
 
 #if defined(__AVX2__)
     size_t simdSize = a->count - (a->count % 4);
@@ -1292,7 +1376,7 @@ FloatVector *singleAddFloatVector(FloatVector *a, double b)
 }
 FloatVector *singleSubFloatVector(FloatVector *a, double b)
 {
-    FloatVector *result = initFloatVector(a->size);
+    FloatVector *result = newFloatVector(a->size);
 #if defined(__AVX2__)
     size_t simdSize = a->count - (a->count % 4);
     for (size_t i = 0; i < simdSize; i += 4)
@@ -1321,6 +1405,45 @@ FloatVector *singleDivFloatVector(FloatVector *a, double b)
 {
     return scaleFloatVector(a, 1.0 / b);
 }
+
+static int compare_double(const void *a, const void *b)
+{
+    return (*(double *)a - *(double *)b);
+}
+
+void sortFloatVector(FloatVector *vector)
+{
+    qsort(vector->data, vector->count, sizeof(double), compare_double);
+}
+
+int searchFloatVector(FloatVector *vector, double value)
+{
+    int left = 0;
+    int right = vector->count - 1;
+
+    while (left <= right)
+    {
+        int mid = left + (right - left) / 2;
+
+        if (vector->data[mid] == value)
+        {
+            return mid;
+        }
+
+        if (vector->data[mid] < value)
+        {
+            left = mid + 1;
+        }
+        else
+        {
+            right = mid - 1;
+        }
+    }
+
+    return -1;
+}
+
+/*------------------------------------------------------------------------------*/
 
 static void printFunction(ObjFunction *function)
 {
