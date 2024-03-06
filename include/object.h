@@ -50,6 +50,8 @@
 #define AS_MATRIX(value) ((ObjMatrix *)AS_OBJ(value))
 #define AS_FVECTOR(value) ((FloatVector *)AS_OBJ(value))
 
+//> Object Type
+//> An object type is a type of an object in Mufi
 typedef enum
 {
     OBJ_CLOSURE,
@@ -67,8 +69,8 @@ typedef enum
     OBJ_FVECTOR, 
 } ObjType;
 
-
-
+//> Object Structure
+//> An object is a base structure for all objects in Mufi
 struct Obj
 {
     ObjType type;
@@ -76,6 +78,8 @@ struct Obj
     struct Obj *next;
 };
 
+//> Node Object
+//> A node is a single element in a linked list
 struct Node
 {
     Value data;
@@ -83,6 +87,9 @@ struct Node
     struct Node *next;
 };
 
+//> Linked List Object
+//> A doubly linked list is a collection of nodes 
+//> that are connected to each other
 typedef struct
 {
     Obj obj;
@@ -91,12 +98,17 @@ typedef struct
     int count;
 } ObjLinkedList;
 
+//> Hash Table Object
+//> A hash table is a collection of key-value pairs
 typedef struct
 {
     Obj obj;
     struct Table table;
 } ObjHashTable;
 
+//> Array Object
+//> An array is a dynamic array or static array of values
+//> We achieve dynamic or static using a `_static` flag
 typedef struct
 {
     Obj obj;
@@ -106,6 +118,9 @@ typedef struct
     Value *values;
 } ObjArray;
 
+//> Matrix Object
+//> A matrix is a multi-dimensional array of numbers
+//> This type is similar to ObjArray but is used for matrix operations
 typedef struct
 {
     Obj obj;
@@ -115,6 +130,9 @@ typedef struct
     ObjArray *data;
 } ObjMatrix;
 
+//> Float Vector Object
+//> A float vector is a static array of floating point numbers
+//> This type is similar to ObjArray but utilizes SIMD for faster operations
 typedef struct {
     Obj obj;
     bool vec3; // quick check for vec3
@@ -123,6 +141,8 @@ typedef struct {
     double* data;
 }FloatVector;
 
+//> Function Object
+//> A function is a block of code that can be called
 typedef struct
 {
     Obj obj;
@@ -134,12 +154,16 @@ typedef struct
 
 typedef Value (*NativeFn)(int argCount, Value *args);
 
+//> Native Function Object
+//> A native function is a function that is implemented in C
 typedef struct
 {
     Obj obj;
     NativeFn function;
 } ObjNative;
 
+//> String Object
+//> A string is a sequence of characters
 struct ObjString
 {
     Obj obj;
@@ -148,6 +172,8 @@ struct ObjString
     uint64_t hash;
 };
 
+//> Upvalue Object
+//> An upvalue is a variable that is captured by a closure
 typedef struct ObjUpvalue
 {
     Obj obj;
@@ -156,6 +182,8 @@ typedef struct ObjUpvalue
     struct ObjUpvalue *next;
 } ObjUpvalue;
 
+//> Closure Object
+//> A closure is a function with its own environment
 typedef struct
 {
     Obj obj;
@@ -164,6 +192,8 @@ typedef struct
     int upvalueCount;
 } ObjClosure;
 
+//> Class Object
+//> A class is a user-defined type that can have methods and fields
 typedef struct
 {
     Obj obj;
@@ -171,6 +201,8 @@ typedef struct
     struct Table methods;
 } ObjClass;
 
+//> Instance Object
+//> An instance is an object that is an instance of a class
 typedef struct
 {
     Obj obj;
@@ -178,6 +210,8 @@ typedef struct
     struct Table fields;
 } ObjInstance;
 
+//> Bound Method Object
+//> A bound method is a method that is bound to an instance of a class
 typedef struct
 {
     Obj obj;
@@ -358,17 +392,24 @@ void sortFloatVector(FloatVector* vector);
 int searchFloatVector(FloatVector* vector, double value);
 
 /*-------------------------- Float Vec3 Functions --------------------------*/
+//> Calculates the dot product of two float vectors
 double dotProduct(FloatVector* a, FloatVector* b);
+//> Calculates the cross product of two float vectors
 FloatVector* crossProduct(FloatVector* a, FloatVector* b);
+//> Calculates the magnitude of the float vector
 double magnitude(FloatVector* vector);
+//> Normalizes the float vector
 FloatVector* normalize(FloatVector* vector);
+//> Calculates the angle between two float vectors
 FloatVector* projection(FloatVector* a, FloatVector* b);
+//> Calculates the rejection of two float vectors
 FloatVector* rejection(FloatVector* a, FloatVector* b);
+//> Calculates the reflection of two float vectors
 FloatVector* reflection(FloatVector* a, FloatVector* b);
+//> Calculates the refraction of two float vectors
 FloatVector* refraction(FloatVector* a, FloatVector* b, double n1, double n2);
 /*----------------------------------------------------------------------------*/
-
-
+//> Prints the object value
 void printObject(Value value);
 
 static inline bool isObjType(Value value, ObjType type)

@@ -812,25 +812,53 @@ Value merge_nf(int argCount, Value *args)
     return OBJ_VAL(c);
 }
 
-Value entries_instance_nf(int argCount, Value *args)
+Value workspace_nf(int argCount, Value *args)
 {
-    if (!IS_INSTANCE(args[0]))
+    if(argCount != 0)
     {
-        runtimeError("First argument must be an instance.");
+        runtimeError("workspace() takes no arguments.");
         return NIL_VAL;
     }
-    ObjInstance *instance = AS_INSTANCE(args[0]);
-    struct Entry *e = entries_(&instance->fields);
-    for (int i = 0; i < instance->fields.capacity; i++)
+    struct Entry *e = entries_(&vm.globals);
+    printf("Workspace:\n");
+    for (int i = 0; i < vm.globals.capacity; i++)
     {
-        if (e[i].key != NULL)
+        if (e[i].key != NULL && !IS_NATIVE(e[i].value) )
         {
             printf("%s: ", e[i].key->chars);
+            if(IS_MATRIX(e[i].value)){
+                printf("\n");
+            }
             printValue(e[i].value);
             printf("\n");
         }
     }
     return NIL_VAL;
+}
+
+Value lu_nf(int argCount, Value *args)
+{
+    if (!IS_MATRIX(args[0]))
+    {
+        runtimeError("First argument must be a matrix.");
+        return NIL_VAL;
+    }
+    ObjMatrix *m = AS_MATRIX(args[0]);
+    ObjMatrix *result = lu(m);
+    return OBJ_VAL(result);
+}
+
+Value solve_nf(int argCount, Value *args)
+{
+    if (!IS_MATRIX(args[0]) && !IS_ARRAY(args[1]))
+    {
+        runtimeError("First argument must be a matrix and the second argument must be an array.");
+        return NIL_VAL;
+    }
+    ObjMatrix *a = AS_MATRIX(args[0]);
+    ObjMatrix *b = AS_ARRAY(args[1]);
+    ObjMatrix *result = solveMatrix(a, b);
+    return OBJ_VAL(result);
 }
 
 // Initializes the virtual machine
@@ -881,6 +909,9 @@ void initVM(void)
     defineNative("fvec", fvector_nf);
     defineNative("merge", merge_nf);
     defineNative("det", determinant_nf);
+    defineNative("lu", lu_nf);
+    defineNative("solve", solve_nf);
+    defineNative("workspace", workspace_nf);
 }
 
 // Frees the virtual machine

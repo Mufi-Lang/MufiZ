@@ -16,7 +16,7 @@ pub fn build(b: *std.Build) !void {
     if (target.cpu_arch == .x86_64) {
         c_flags = &.{ "-Wall", "-O3", "-ffast-math", "-Wno-unused-variable", "-Wno-unused-function", "-lm", "-mavx2" };
     } else {
-        c_flags = &.{ "-Wall", "-O3", "-ffast-math", "-Werror", "-Wno-unused-variable", "-Wno-unused-function" };
+        c_flags = &.{ "-Wall", "-O3", "-ffast-math", "-Wno-unused-variable", "-Wno-unused-function", "-lm" };
     }
 
     try common(optimize);

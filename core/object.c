@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 #include "../include/object.h"
 #include "../include/memory.h"
@@ -1080,6 +1081,41 @@ double determinant(ObjMatrix *matrix)
     return det;
 }
 
+ObjArray *solveMatrix(ObjMatrix *matrix, ObjArray *vector)
+{
+    ObjMatrix *luResult = lu(matrix);
+    ObjMatrix *L = AS_MATRIX(getMatrix(luResult, 0, 0));
+    ObjMatrix *U = AS_MATRIX(getMatrix(luResult, 1, 0));
+
+    ObjArray *y = newArrayWithCap(vector->count, true);
+    for (int i = 0; i < vector->count; i++)
+    {
+        Value sum = DOUBLE_VAL(0.0);
+        for (int j = 0; j < i; j++)
+        {
+            Value temp = DOUBLE_VAL(AS_DOUBLE(getMatrix(L, i, j)) * AS_DOUBLE(y->values[j]));
+            sum = DOUBLE_VAL(AS_DOUBLE(sum) + AS_DOUBLE(temp));
+        }
+        y->values[i] = sub_val(vector->values[i], sum);
+    }
+
+    ObjArray *x = newArrayWithCap(vector->count, true);
+    for (int i = vector->count - 1; i >= 0; i--)
+    {
+        Value sum = DOUBLE_VAL(0.0);
+        for (int j = i + 1; j < vector->count; j++)
+        {
+            Value temp = DOUBLE_VAL(AS_DOUBLE(getMatrix(U, i, j)) * AS_DOUBLE(x->values[j]));
+            sum = DOUBLE_VAL(AS_DOUBLE(sum) + AS_DOUBLE(temp));
+        }
+        x->values[i] = div_val(sub_val(y->values[i], sum), getMatrix(U, i, i));
+    }
+
+    freeObjectArray(y);
+    freeObjectArray(luResult->data);
+    FREE(ObjMatrix, luResult);
+    return x;
+}
 /*------------------------------------------------------------------------------*/
 
 /*-------------------------- Float Vector Functions ----------------------------*/
@@ -1087,6 +1123,7 @@ FloatVector *newFloatVector(int size)
 {
     FloatVector *vector = ALLOCATE_OBJ(FloatVector, OBJ_FVECTOR);
     vector->size = size;
+    vector->vec3 = size == 3 ? true : false;
     vector->count = 0;
     vector->data = ALLOCATE(double, size);
     return vector;
@@ -1442,6 +1479,96 @@ int searchFloatVector(FloatVector *vector, double value)
 
     return -1;
 }
+
+/*-------------------------- Float Vec3 Functions --------------------------*/
+
+double dotProduct(FloatVector *a, FloatVector *b)
+{
+    if (a->vec3 || b->vec3)
+    {
+        printf("Vectors are not of size 3\n");
+        return 0;
+    }
+    return a->data[0] * b->data[0] + a->data[1] * b->data[1] + a->data[2] * b->data[2];
+}
+
+FloatVector *crossProduct(FloatVector *a, FloatVector *b)
+{
+    if (a->vec3 || b->vec3)
+    {
+        printf("Vectors are not of size 3\n");
+        return NULL;
+    }
+    FloatVector *result = newFloatVector(3);
+    result->data[0] = a->data[1] * b->data[2] - a->data[2] * b->data[1];
+    result->data[1] = a->data[2] * b->data[0] - a->data[0] * b->data[2];
+    result->data[2] = a->data[0] * b->data[1] - a->data[1] * b->data[0];
+    result->count = 3;
+    return result;
+}
+
+double __sqrt(double x)
+{
+    if (x < 0)
+    {
+        printf("Cannot take square root of a negative number\n");
+        return 0;
+    }
+    double result;
+#if defined(__AVX2__)
+    __m256d simd_x = _mm256_set1_pd(x);
+    __m256d simd_result = _mm256_sqrt_pd(simd_x);
+    _mm256_storeu_pd(&result, simd_result);
+    return result;
+#endif
+
+    return sqrt(x);
+}
+
+double magnitude(FloatVector *vector)
+{
+    double sum = 0;
+    for (int i = 0; i < vector->count; i++)
+    {
+        sum += vector->data[i] * vector->data[i];
+    }
+    return __sqrt(sum);
+}
+
+FloatVector *normalize(FloatVector *vector)
+{
+    double mag = magnitude(vector);
+    if (mag == 0)
+    {
+        printf("Cannot normalize a zero vector\n");
+        return NULL;
+    }
+    return scaleFloatVector(vector, 1.0 / mag);
+}
+
+FloatVector* projection(FloatVector* a, FloatVector* b) {
+    return scaleFloatVector(b, dotProduct(a, b) / dotProduct(b, b));
+}
+
+FloatVector* rejection(FloatVector* a, FloatVector* b) {
+    return subFloatVector(a, projection(a, b));
+}
+
+FloatVector* reflection(FloatVector* a, FloatVector* b) {
+    return subFloatVector(scaleFloatVector(projection(a, b), 2), a);
+}   
+
+FloatVector* refraction(FloatVector* a, FloatVector* b, double n1, double n2) {
+    double n = n1 / n2;
+    double cosI = -dotProduct(a, b);
+    double sinT2 = n * n * (1.0 - cosI * cosI);
+    if (sinT2 > 1.0) {
+        return NULL;
+    }
+    double cosT = __sqrt(1.0 - sinT2);
+    return addFloatVector(scaleFloatVector(a, n), scaleFloatVector(b, n * cosI - cosT));
+}
+
 
 /*------------------------------------------------------------------------------*/
 
