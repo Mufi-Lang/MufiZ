@@ -1203,6 +1203,114 @@ void printFloatVector(FloatVector *vector)
     printf("\n");
 }
 
+double sumFloatVector(FloatVector *vector)
+{
+    double sum = 0;
+#if defined(__AVX2__)
+    size_t simdSize = vector->count - (vector->count % 4);
+    __m256 simd_sum = _mm256_setzero_pd(); // Initialize sum to zero
+    for (size_t i = 0; i < simdSize; i += 4)
+    {
+        __m256 simd_arr = _mm256_loadu_pd(&vector->data[i]); // Load 4 double from arr
+        simd_sum = _mm256_add_pd(simd_arr, simd_sum);        // SIMD addition
+    }
+
+    // Handle remaining elements
+    for (size_t i = simdSize; i < vector->count; i++)
+    {
+        sum += vector->data[i];
+    }
+
+    // Sum up SIMD sum
+    double simd_sum_arr[4];
+    _mm256_storeu_pd(simd_sum_arr, simd_sum);
+    for (int i = 0; i < 4; i++)
+    {
+        sum += simd_sum_arr[i];
+    }
+    return sum;
+#else
+    for (int i = 0; i < vector->count; i++)
+    {
+        sum += vector->data[i];
+    }
+    return sum;
+#endif
+}
+
+double meanFloatVector(FloatVector *vector)
+{
+    return sumFloatVector(vector) / vector->count;
+}
+
+double varianceFloatVector(FloatVector *vector)
+{
+    double mean = meanFloatVector(vector);
+    double variance = 0;
+#if defined(__AVX2__)
+    size_t simdSize = vector->count - (vector->count % 4);
+    __m256 simd_variance = _mm256_setzero_pd(); // Initialize variance to zero
+    for (size_t i = 0; i < simdSize; i += 4)
+    {
+        __m256 simd_arr = _mm256_loadu_pd(&vector->data[i]); // Load 4 double from arr
+        __m256 simd_diff = _mm256_sub_pd(simd_arr, _mm256_set1_pd(mean));
+        simd_variance = _mm256_fmadd_pd(simd_diff, simd_diff, simd_variance); // SIMD variance
+    }
+
+    // Handle remaining elements
+    for (size_t i = simdSize; i < vector->count; i++)
+    {
+        variance += (vector->data[i] - mean) * (vector->data[i] - mean);
+    }
+
+    // Sum up SIMD variance
+    double simd_variance_arr[4];
+    _mm256_storeu_pd(simd_variance_arr, simd_variance);
+    for (int i = 0; i < 4; i++)
+    {
+        variance += simd_variance_arr[i];
+    }
+    return variance / vector->count;
+#else
+    for (int i = 0; i < vector->count; i++)
+    {
+        variance += (vector->data[i] - mean) * (vector->data[i] - mean);
+    }
+    return variance / vector->count;
+#endif
+}
+
+double stdDevFloatVector(FloatVector *vector)
+{
+    return __sqrt(varianceFloatVector(vector));
+}
+
+double maxFloatVector(FloatVector *vector)
+{
+    double max = vector->data[0];
+    for (int i = 1; i < vector->count; i++)
+    {
+        if (vector->data[i] > max)
+        {
+            max = vector->data[i];
+        }
+    }
+    return max;
+}
+
+double minFloatVector(FloatVector *vector)
+{
+    double min = vector->data[0];
+    for (int i = 1; i < vector->count; i++)
+    {
+        if (vector->data[i] < min)
+        {
+            min = vector->data[i];
+        }
+    }
+    return min;
+}
+
 FloatVector *addFloatVector(FloatVector *vector1, FloatVector *vector2)
 {
     if (vector1->size != vector2->size)
@@ -1546,29 +1654,33 @@ FloatVector *normalize(FloatVector *vector)
     return scaleFloatVector(vector, 1.0 / mag);
 }
 
-FloatVector* projection(FloatVector* a, FloatVector* b) {
+FloatVector *projection(FloatVector *a, FloatVector *b)
+{
     return scaleFloatVector(b, dotProduct(a, b) / dotProduct(b, b));
 }
 
-FloatVector* rejection(FloatVector* a, FloatVector* b) {
+FloatVector *rejection(FloatVector *a, FloatVector *b)
+{
     return subFloatVector(a, projection(a, b));
 }
 
-FloatVector* reflection(FloatVector* a, FloatVector* b) {
+FloatVector *reflection(FloatVector *a, FloatVector *b)
+{
     return subFloatVector(scaleFloatVector(projection(a, b), 2), a);
-}   
+}
 
-FloatVector* refraction(FloatVector* a, FloatVector* b, double n1, double n2) {
+FloatVector *refraction(FloatVector *a, FloatVector *b, double n1, double n2)
+{
     double n = n1 / n2;
     double cosI = -dotProduct(a, b);
     double sinT2 = n * n * (1.0 - cosI * cosI);
-    if (sinT2 > 1.0) {
+    if (sinT2 > 1.0)
+    {
         return NULL;
     }
     double cosT = __sqrt(1.0 - sinT2);
     return addFloatVector(scaleFloatVector(a, n), scaleFloatVector(b, n * cosI - cosT));
 }
-
 
 /*------------------------------------------------------------------------------*/
 

@@ -366,6 +366,18 @@ double popFloatVector(FloatVector* vector);
 double removeFloatVector(FloatVector* vector, int index);
 //> Prints the float vector
 void printFloatVector(FloatVector* vector);
+//> Sums the float vector
+double sumFloatVector(FloatVector* vector);
+//> Finds the mean of the float vector
+double meanFloatVector(FloatVector* vector);
+//> Finds the variance of the float vector
+double varianceFloatVector(FloatVector* vector);
+//> Finds the standard deviation of the float vector
+double stdDevFloatVector(FloatVector* vector);
+//> Finds the maximum value in the float vector
+double maxFloatVector(FloatVector* vector);
+//> Finds the minimum value in the float vector
+double minFloatVector(FloatVector* vector);
 //> Adds two float vectors together with SIMD if available
 FloatVector* addFloatVector(FloatVector* a, FloatVector* b);
 //> Subtracts two float vectors with SIMD if available
