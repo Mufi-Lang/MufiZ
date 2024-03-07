@@ -66,8 +66,6 @@ void defineNative(const char *name, NativeFn function)
  All native functions defined here will be for the data structures.
 */
 
-
-
 // Initializes the virtual machine
 void initVM(void)
 {
@@ -88,24 +86,30 @@ void initVM(void)
     defineNative("array", array_nf);
     defineNative("linked_list", linkedlist_nf);
     defineNative("hash_table", hashtable_nf);
+    defineNative("matrix", matrix_nf);
+    defineNative("fvec", fvector_nf);
+    defineNative("range", range_nf);
+    defineNative("linspace", linspace_nf);
+
     defineNative("push", push_nf);
-    defineNative("push_front", push_front_nf);
     defineNative("pop", pop_nf);
+    defineNative("push_front", push_front_nf);
     defineNative("pop_front", pop_front_nf);
     defineNative("nth", nth_nf);
-    defineNative("is_empty", is_empty_nf);
     defineNative("sort", sort_nf);
+    defineNative("contains", contains_nf);
+    defineNative("insert", insert_nf);
+    defineNative("len", len_nf);
+    defineNative("search", search_nf);
+    defineNative("is_empty", is_empty_nf);
+    defineNative("equal_list", equal_list_nf);
+    defineNative("reverse", reverse_nf);
+    defineNative("merge", merge_nf);
+
     defineNative("put", put_nf);
     defineNative("get", get_nf);
     defineNative("remove", remove_nf);
-    defineNative("equal_list", equal_list_nf);
-    defineNative("contains", contains_nf);
-    defineNative("len", len_nf);
-    defineNative("insert", insert_nf);
-    defineNative("range", range_nf);
-    defineNative("reverse", reverse_nf);
-    defineNative("search", search_nf);
-    defineNative("matrix", matrix_nf);
+
     defineNative("set_row", set_row_nf);
     defineNative("set_col", set_col_nf);
     defineNative("set", set_nf);
@@ -113,11 +117,11 @@ void initVM(void)
     defineNative("rref", rref_nf);
     defineNative("rank", rank_nf);
     defineNative("transpose", transpose_nf);
-    defineNative("fvec", fvector_nf);
-    defineNative("merge", merge_nf);
     defineNative("det", determinant_nf);
     defineNative("lu", lu_nf);
+
     defineNative("workspace", workspace_nf);
+    defineNative("interp1", interp1_nf);
 }
 
 // Frees the virtual machine

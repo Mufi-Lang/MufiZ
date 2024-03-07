@@ -1,0 +1,49 @@
+var sigma = 0.3;
+var r = 0.05;
+var K = 1.0;
+var T = 0.25;
+var S_max = 3.0;
+var M = 101;
+var N = 201;
+
+var dt = T / double(N-1);
+var dS = S_max / double(M-1);
+var S = linspace(0.0, S_max, M);
+
+var V = matrix(M, N);
+for(var i = 0; i < M; i++){
+    set(V, i, 0, max(nth(S, i) - K, 0.0));
+}
+
+for(var i = 0; i < N; i++){
+    set(V, M, i, S_max - K);
+}
+
+for(var n = 1; n < N; n++){
+    for(var i = 1; i < M-1; i++){
+        var C = 0.5 * pow((sigma * nth(S, i)/dS), 2.0);
+        var D = r * nth(S, i) / (2.0 * dS);
+        // central diff
+        var alpha = C - D;
+        var beta = C + D;
+
+        if(alpha < 0.0){
+            alpha = C;
+            beta = C + 2.0 * D;
+        }
+        var v = nth(V, i, n-1) * (1.0 - (alpha + beta + r)*dt) + nth(V, i-1, n-1)*alpha*dt + nth(V, i+1, n-1) * beta*dt;
+        set(V, i, n, v);
+    }
+}
+
+
+print V;
+
+
+var S_0 = 1.0;
+var v_n = array(M, true);
+for(var i = 0; i < M; i++){
+    push(v_n, nth(V, i, N));
+}
+var V_0 = interp1(S, v_n, S_0);
+print V_0;

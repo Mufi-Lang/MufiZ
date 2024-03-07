@@ -65,5 +65,4 @@ pub fn main() !void {
     } else {
         return clap.help(std.io.getStdErr().writer(), clap.Help, &params, .{});
     }
-
 }

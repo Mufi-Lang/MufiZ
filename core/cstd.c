@@ -749,7 +749,7 @@ Value merge_nf(int argCount, Value *args)
 
 Value workspace_nf(int argCount, Value *args)
 {
-    if(argCount != 0)
+    if (argCount != 0)
     {
         runtimeError("workspace() takes no arguments.");
         return NIL_VAL;
@@ -758,10 +758,11 @@ Value workspace_nf(int argCount, Value *args)
     printf("Workspace:\n");
     for (int i = 0; i < vm.globals.capacity; i++)
     {
-        if (e[i].key != NULL && !IS_NATIVE(e[i].value) )
+        if (e[i].key != NULL && !IS_NATIVE(e[i].value))
         {
             printf("%s: ", e[i].key->chars);
-            if(IS_MATRIX(e[i].value)){
+            if (IS_MATRIX(e[i].value))
+            {
                 printf("\n");
             }
             printValue(e[i].value);
@@ -781,4 +782,66 @@ Value lu_nf(int argCount, Value *args)
     ObjMatrix *m = AS_MATRIX(args[0]);
     ObjMatrix *result = lu(m);
     return OBJ_VAL(result);
+}
+
+Value linspace_nf(int argCount, Value *args)
+{
+    if (argCount != 3)
+    {
+        runtimeError("linspace() takes 3 arguments.");
+        return NIL_VAL;
+    }
+    if (!IS_DOUBLE(args[0]) || !IS_DOUBLE(args[1]) || !IS_INT(args[2]))
+    {
+        runtimeError("First and second arguments must be doubles and the third argument must be an integer.");
+        return NIL_VAL;
+    }
+    double start = AS_DOUBLE(args[0]);
+    double end = AS_DOUBLE(args[1]);
+    int n = AS_INT(args[2]);
+    ObjArray *a = newArrayWithCap(n, true);
+    double step = (end - start) / (n - 1);
+    for (int i = 0; i < n; i++)
+    {
+        pushArray(a, DOUBLE_VAL(start + (double)i * step));
+    }
+    return OBJ_VAL(a);
+}
+
+Value interp1_nf(int argCount, Value *args)
+{
+    if (argCount != 3)
+    {
+        runtimeError("interp1() takes 3 arguments.");
+        return NIL_VAL;
+    }
+    if (!IS_ARRAY(args[0]) || !IS_ARRAY(args[1]) || !IS_DOUBLE(args[2]))
+    {
+        runtimeError("First and second arguments must be arrays and the third argument must be a double.");
+        return NIL_VAL;
+    }
+    ObjArray *x = AS_ARRAY(args[0]);
+    ObjArray *y = AS_ARRAY(args[1]);
+    double x0 = AS_DOUBLE(args[2]);
+
+    if (x->count != y->count)
+    {
+        runtimeError("x and y must have the same length.");
+        return NIL_VAL;
+    }
+    if (x0 < AS_DOUBLE(x->values[0]) || x0 > AS_DOUBLE(x->values[x->count - 1]))
+    {
+        runtimeError("x0 must be within the range of x.");
+        return NIL_VAL;
+    }
+    double y0 = 0;
+    for (int i = 0; i < x->count - 1; i++)
+    {
+        if (AS_DOUBLE(x->values[i]) <= x0 && x0 <= AS_DOUBLE(x->values[i + 1]))
+        {
+            y0 = AS_DOUBLE(y->values[i]) + (x0 - AS_DOUBLE(x->values[i])) * (AS_DOUBLE(y->values[i + 1]) - AS_DOUBLE(y->values[i])) / (AS_DOUBLE(x->values[i + 1]) - AS_DOUBLE(x->values[i]));
+            break;
+        }
+    }
+    return DOUBLE_VAL(y0);
 }

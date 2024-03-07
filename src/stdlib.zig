@@ -5,6 +5,7 @@ const conv = @import("conv.zig");
 const core = @import("core");
 const net = @import("net.zig");
 const GlobalAlloc = @import("main.zig").GlobalAlloc;
+const cstd = core.cstd_h;
 
 pub const math = @import("stdlib/math.zig");
 pub const time = @import("stdlib/time.zig");
@@ -49,6 +50,7 @@ pub const NativeFunctions = struct {
         try self.append("ceil", &math.ceil);
         try self.append("floor", &math.floor);
         try self.append("round", &math.round);
+        try self.append("max", &math.max);
     }
 
     pub fn addFs(self: *Self) !void {

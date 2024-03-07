@@ -116,4 +116,14 @@ Value lu_nf(int argCount, Value *args);
 //> Prints the current global values in the vm
 Value workspace_nf(int argCount, Value *args);
 
+/* TODO */
+//> Returns the inverse of the matrix
+Value inverse_nf(int argCount, Value *args);
+//> Returns the eigenvalues of the matrix
+Value eigenvalues_nf(int argCount, Value *args);
+//> Returns the eigenvectors of the matrix
+Value eigenvectors_nf(int argCount, Value *args);
+Value linspace_nf(int argCount, Value *args);
+Value interp1_nf(int argCount, Value *args);
+
 #endif

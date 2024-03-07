@@ -74,7 +74,7 @@ pub fn build(b: *std.Build) !void {
         "core/debug.c", 
         "core/vm.c", 
         "core/cstd.c",
-    }, &.{ "-Wall", "-O3", "-ffast-math", "-Wno-unused-variable", "-Wno-unused-function"});
+    }, c_flags);
     exe.addIncludePath(.{.path = "include"});
     exe.linkLibrary(lib_core);
 
