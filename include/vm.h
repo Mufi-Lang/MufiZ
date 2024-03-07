@@ -68,5 +68,5 @@ void push(Value value);
 Value pop();
 //> Defines a native function
 void defineNative(const char* name, NativeFn function);
-
+void runtimeError(const char *format, ...);
 #endif
