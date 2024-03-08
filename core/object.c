@@ -1065,19 +1065,20 @@ ObjMatrix *lu(ObjMatrix *matrix)
 
 double determinant(ObjMatrix *matrix)
 {
+    if (matrix->rows != matrix->cols)
+    {
+        printf("Matrix must be square");
+        return 0;
+    }
+    ObjMatrix *luResult = lu(matrix);
+    ObjMatrix *U = AS_MATRIX(getMatrix(luResult, 1, 0));
     double det = 1;
-    ObjMatrix *copy = newMatrix(matrix->rows, matrix->cols);
-    for (int i = 0; i < matrix->len; i++)
+    for (int i = 0; i < matrix->rows; i++)
     {
-        copy->data->values[i] = matrix->data->values[i];
+        det *= AS_DOUBLE(getMatrix(U, i, i));
     }
-    lu(copy);
-    for (int i = 0; i < copy->rows; i++)
-    {
-        det *= AS_DOUBLE(getMatrix(copy, i, i));
-    }
-    freeObjectArray(copy->data);
-    FREE(ObjMatrix, copy);
+    freeObjectArray(luResult->data);
+    FREE(ObjMatrix, luResult);
     return det;
 }
 
@@ -1586,6 +1587,43 @@ int searchFloatVector(FloatVector *vector, double value)
     }
 
     return -1;
+}
+
+FloatVector *linspace(double start, double end, int n)
+{
+    FloatVector *result = newFloatVector(n);
+    double step = (end - start) / (n - 1);
+    for (int i = 0; i < n; i++)
+    {
+        result->data[i] = start + i * step;
+    }
+    result->count = n;
+    return result;
+}
+
+double interp1(FloatVector *x, FloatVector *y, double x0)
+{
+    if (x->count != y->count)
+    {
+        printf("x and y must have the same length\n");
+        return 0;
+    }
+    if (x0 < x->data[0] || x0 > x->data[x->count - 1])
+    {
+        printf("x0 is out of bounds\n");
+        return 0;
+    }
+    int i = 0;
+    while (x0 > x->data[i])
+    {
+        i++;
+    }
+    if (x0 == x->data[i])
+    {
+        return y->data[i];
+    }
+    double slope = (y->data[i] - y->data[i - 1]) / (x->data[i] - x->data[i - 1]);
+    return y->data[i - 1] + slope * (x0 - x->data[i - 1]);
 }
 
 /*-------------------------- Float Vec3 Functions --------------------------*/

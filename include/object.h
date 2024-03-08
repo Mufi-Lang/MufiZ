@@ -402,7 +402,9 @@ FloatVector* singleDivFloatVector(FloatVector* a, double b);
 void sortFloatVector(FloatVector* vector);
 //> Searches for a value in the float vector using binary search
 int searchFloatVector(FloatVector* vector, double value);
-
+//> linearly spaced float vector
+FloatVector* linspace(double start, double end, int n);
+double interp1(FloatVector* x, FloatVector* y, double x0);
 /*-------------------------- Float Vec3 Functions --------------------------*/
 //> Calculates the dot product of two float vectors
 double dotProduct(FloatVector* a, FloatVector* b);

@@ -3,8 +3,8 @@ var r = 0.05;
 var K = 1.0;
 var T = 0.25;
 var S_max = 3.0;
-var M = 101;
-var N = 201;
+var M = 100;
+var N = 200;
 
 var dt = T / double(N-1);
 var dS = S_max / double(M-1);

@@ -1,4 +1,5 @@
 #include "../include/cstd.h"
+#include <math.h>
 
 Value array_nf(int argCount, Value *args)
 {
@@ -799,12 +800,7 @@ Value linspace_nf(int argCount, Value *args)
     double start = AS_DOUBLE(args[0]);
     double end = AS_DOUBLE(args[1]);
     int n = AS_INT(args[2]);
-    ObjArray *a = newArrayWithCap(n, true);
-    double step = (end - start) / (n - 1);
-    for (int i = 0; i < n; i++)
-    {
-        pushArray(a, DOUBLE_VAL(start + (double)i * step));
-    }
+    FloatVector *a = linspace(start, end, n);
     return OBJ_VAL(a);
 }
 
@@ -815,33 +811,55 @@ Value interp1_nf(int argCount, Value *args)
         runtimeError("interp1() takes 3 arguments.");
         return NIL_VAL;
     }
-    if (!IS_ARRAY(args[0]) || !IS_ARRAY(args[1]) || !IS_DOUBLE(args[2]))
+    if (!IS_FVECTOR(args[0]) || !IS_FVECTOR(args[1]) || !IS_DOUBLE(args[2]))
     {
-        runtimeError("First and second arguments must be arrays and the third argument must be a double.");
+        runtimeError("First and second arguments must be vectors and the third argument must be a double.");
         return NIL_VAL;
     }
-    ObjArray *x = AS_ARRAY(args[0]);
-    ObjArray *y = AS_ARRAY(args[1]);
-    double x0 = AS_DOUBLE(args[2]);
 
-    if (x->count != y->count)
+    FloatVector *x = AS_FVECTOR(args[0]);
+    FloatVector *y = AS_FVECTOR(args[1]);
+    double x0 = AS_DOUBLE(args[2]);
+    double result = interp1(x, y, x0);
+    return DOUBLE_VAL(result);
+}
+
+// Cumulative distribution function for the standard normal distribution
+static double cdf(double x)
+{
+    return 0.5 * (1 + erf(x / sqrt(2)));
+}
+
+// Currently has around 8% relative error compared to Matlab's blsprice
+static double blsprice(double s, double x, double r, double t, double v)
+{
+    double d1 = (log(s / x) + (r + v * v / 2) * t) / (v * sqrt(t));
+    double d2 = d1 - v * sqrt(t);
+    double h = 1e-8; // Updated step size for central differences
+    double f1 = s * exp(-r * t) * cdf(d1) - x * exp(-r * t) * cdf(d2);
+    double f2 = s * exp(-r * t) * cdf(d1 + h) - x * exp(-r * t) * cdf(d2 + h);
+    double f3 = s * exp(-r * t) * cdf(d1 - h) - x * exp(-r * t) * cdf(d2 - h);
+    double derivative = (f2 - f3) / (2 * h);
+    return f1 - derivative * v;
+}
+
+Value blsprice_nf(int argCount, Value *args)
+{
+    if (argCount != 5)
     {
-        runtimeError("x and y must have the same length.");
+        runtimeError("blsprice() takes 5 arguments.");
         return NIL_VAL;
     }
-    if (x0 < AS_DOUBLE(x->values[0]) || x0 > AS_DOUBLE(x->values[x->count - 1]))
+    if (!IS_DOUBLE(args[0]) || !IS_DOUBLE(args[1]) || !IS_DOUBLE(args[2]) || !IS_DOUBLE(args[3]) || !IS_DOUBLE(args[4]))
     {
-        runtimeError("x0 must be within the range of x.");
+        runtimeError("All arguments must be doubles.");
         return NIL_VAL;
     }
-    double y0 = 0;
-    for (int i = 0; i < x->count - 1; i++)
-    {
-        if (AS_DOUBLE(x->values[i]) <= x0 && x0 <= AS_DOUBLE(x->values[i + 1]))
-        {
-            y0 = AS_DOUBLE(y->values[i]) + (x0 - AS_DOUBLE(x->values[i])) * (AS_DOUBLE(y->values[i + 1]) - AS_DOUBLE(y->values[i])) / (AS_DOUBLE(x->values[i + 1]) - AS_DOUBLE(x->values[i]));
-            break;
-        }
-    }
-    return DOUBLE_VAL(y0);
+    double s = AS_DOUBLE(args[0]);
+    double x = AS_DOUBLE(args[1]);
+    double r = AS_DOUBLE(args[2]);
+    double t = AS_DOUBLE(args[3]);
+    double v = AS_DOUBLE(args[4]);
+    double result = blsprice(s, x, r, t, v);
+    return DOUBLE_VAL(result);
 }

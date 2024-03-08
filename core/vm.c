@@ -122,6 +122,7 @@ void initVM(void)
 
     defineNative("workspace", workspace_nf);
     defineNative("interp1", interp1_nf);
+    defineNative("blsprice", blsprice_nf);
 }
 
 // Frees the virtual machine
