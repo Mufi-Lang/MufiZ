@@ -14,9 +14,15 @@ pub fn build(b: *std.Build) !void {
 
     var c_flags: []const []const u8 = undefined;
     if (target.cpu_arch == .x86_64) {
-        c_flags = &.{ "-Wall", "-O3", "-ffast-math", "-Wno-unused-variable", "-Wno-unused-function", "-lm", "-mavx2" };
+        c_flags = &.{ "-Wall", "-O3", "-ffast-math", "-Wno-unused-variable", "-Wno-unused-function", "-mavx2" };
     } else {
-        c_flags = &.{ "-Wall", "-O3", "-ffast-math", "-Wno-unused-variable", "-Wno-unused-function", "-lm" };
+        c_flags = &.{
+            "-Wall",
+            "-O3",
+            "-ffast-math",
+            "-Wno-unused-variable",
+            "-Wno-unused-function",
+        };
     }
 
     try common(optimize);
@@ -77,6 +83,7 @@ pub fn build(b: *std.Build) !void {
     }, c_flags);
     exe.addIncludePath(.{.path = "include"});
     exe.linkLibrary(lib_core);
+    exe.linkSystemLibrary("m");
 
     const clap = b.dependency("clap", .{
         .target = target, 
