@@ -1198,38 +1198,54 @@ double determinant(ObjMatrix *matrix)
 
 ObjArray *solveMatrix(ObjMatrix *matrix, ObjArray *vector)
 {
-    ObjMatrix *luResult = lu(matrix);
-    ObjMatrix *L = AS_MATRIX(getMatrix(luResult, 0, 0));
-    ObjMatrix *U = AS_MATRIX(getMatrix(luResult, 1, 0));
-
-    ObjArray *y = newArrayWithCap(vector->count, true);
-    for (int i = 0; i < vector->count; i++)
+    if (matrix->rows != matrix->cols)
     {
-        Value sum = DOUBLE_VAL(0.0);
-        for (int j = 0; j < i; j++)
-        {
-            Value temp = DOUBLE_VAL(AS_DOUBLE(getMatrix(L, i, j)) * AS_DOUBLE(y->values[j]));
-            sum = DOUBLE_VAL(AS_DOUBLE(sum) + AS_DOUBLE(temp));
-        }
-        y->values[i] = sub_val(vector->values[i], sum);
+        printf("Matrix is not square");
+        return NULL;
     }
-
-    ObjArray *x = newArrayWithCap(vector->count, true);
-    for (int i = vector->count - 1; i >= 0; i--)
+    if (matrix->rows != vector->count)
     {
-        Value sum = DOUBLE_VAL(0.0);
-        for (int j = i + 1; j < vector->count; j++)
-        {
-            Value temp = DOUBLE_VAL(AS_DOUBLE(getMatrix(U, i, j)) * AS_DOUBLE(x->values[j]));
-            sum = DOUBLE_VAL(AS_DOUBLE(sum) + AS_DOUBLE(temp));
-        }
-        x->values[i] = div_val(sub_val(y->values[i], sum), getMatrix(U, i, i));
+        printf("Matrix and vector dimensions do not match");
+        return NULL;
     }
-
-    freeObjectArray(y);
-    freeObjectArray(luResult->data);
-    FREE(ObjMatrix, luResult);
-    return x;
+    ObjMatrix *copy = copyMatrix(matrix);
+    ObjArray *result = newArrayWithCap(matrix->rows, true);
+    for (int i = 0; i < copy->rows; i++)
+    {
+        for (int j = 0; j < copy->cols; j++)
+        {
+            if (i == j)
+            {
+                setMatrix(copy, i, j, DOUBLE_VAL(AS_DOUBLE(getMatrix(copy, i, j)) - 1.0));
+            }
+            else
+            {
+                setMatrix(copy, i, j, DOUBLE_VAL(AS_DOUBLE(getMatrix(copy, i, j))));
+            }
+        }
+    }
+    ObjMatrix *augmented = newMatrix(copy->rows, copy->cols + 1);
+    for (int i = 0; i < copy->rows; i++)
+    {
+        for (int j = 0; j < copy->cols; j++)
+        {
+            setMatrix(augmented, i, j, getMatrix(copy, i, j));
+        }
+    }
+    for (int i = 0; i < augmented->rows; i++)
+    {
+        setMatrix(augmented, i, augmented->cols - 1, vector->values[i]);
+    }
+    rref(augmented);
+    for (int i = 0; i < augmented->rows; i++)
+    {
+        pushArray(result, getMatrix(augmented, i, augmented->cols - 1));
+    }
+    freeObjectArray(copy->data);
+    FREE(ObjMatrix, copy);
+    freeObjectArray(augmented->data);
+    FREE(ObjMatrix, augmented);
+    return result;
 }
 /*------------------------------------------------------------------------------*/
 

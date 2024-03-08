@@ -119,6 +119,7 @@ void initVM(void)
     defineNative("transpose", transpose_nf);
     defineNative("det", determinant_nf);
     defineNative("lu", lu_nf);
+    defineNative("solve", solve_nf);
 
     defineNative("workspace", workspace_nf);
     defineNative("interp1", interp1_nf);
