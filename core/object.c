@@ -493,6 +493,85 @@ ObjArray *divArray(ObjArray *a, ObjArray *b)
     return result;
 }
 
+Value sumArray(ObjArray *array)
+{
+    Value sum = DOUBLE_VAL(0.0);
+    for (int i = 0; i < array->count; i++)
+    {
+        sum = add_val(sum, array->values[i]);
+    }
+    return sum;
+}
+
+Value meanArray(ObjArray *array)
+{
+    if (array->count == 0)
+    {
+        return NIL_VAL;
+    }
+    Value sum = array->values[0];
+    for (int i = 1; i < array->count; i++)
+    {
+        sum = add_val(sum, array->values[i]);
+    }
+    return div_val(sum, DOUBLE_VAL(array->count));
+}
+
+Value varianceArray(ObjArray *array)
+{
+    if (array->count == 0)
+    {
+        return NIL_VAL;
+    }
+    Value mean = meanArray(array);
+    Value sum = DOUBLE_VAL(0.0);
+    for (int i = 0; i < array->count; i++)
+    {
+        Value temp = sub_val(array->values[i], mean);
+        sum = add_val(sum, mul_val(temp, temp));
+    }
+    return div_val(sum, DOUBLE_VAL(array->count));
+}
+
+Value stdDevArray(ObjArray *array)
+{
+    return DOUBLE_VAL(sqrt(AS_DOUBLE(varianceArray(array))));
+}
+
+Value maxArray(ObjArray *array)
+{
+    if (array->count == 0)
+    {
+        return NIL_VAL;
+    }
+    Value max = array->values[0];
+    for (int i = 1; i < array->count; i++)
+    {
+        if (valuesLess(max, array->values[i]))
+        {
+            max = array->values[i];
+        }
+    }
+    return max;
+}
+
+Value minArray(ObjArray *array)
+{
+    if (array->count == 0)
+    {
+        return NIL_VAL;
+    }
+    Value min = array->values[0];
+    for (int i = 1; i < array->count; i++)
+    {
+        if (valuesLess(array->values[i], min))
+        {
+            min = array->values[i];
+        }
+    }
+    return min;
+}
+
 /*----------------------------------------------------------------------------*/
 
 /*-------------------------- Linked List Functions ---------------------------*/
@@ -1264,6 +1343,26 @@ void freeFloatVector(FloatVector *vector)
 {
     FREE_ARRAY(float, vector->data, vector->size);
     FREE(FloatVector, vector);
+}
+
+FloatVector* fromArray(ObjArray *array)
+{
+    FloatVector *vector = newFloatVector(array->count);
+    for (int i = 0; i < array->count; i++)
+    {
+        if (IS_DOUBLE(array->values[i]))
+        {
+            pushFloatVector(vector, AS_DOUBLE(array->values[i]));
+        }
+        else if (IS_INT(array->values[i]))
+        {
+            pushFloatVector(vector, (double)AS_INT(array->values[i]));
+        }
+        else{
+            continue;
+        }
+    }
+    return vector;
 }
 
 void pushFloatVector(FloatVector *vector, double value)

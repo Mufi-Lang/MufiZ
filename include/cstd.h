@@ -77,6 +77,13 @@ Value equal_list_nf(int argCount, Value *args);
 Value reverse_nf(int argCount, Value *args);
 //> Merges two collections
 Value merge_nf(int argCount, Value *args);
+Value sum_nf(int argCount, Value *args);
+Value mean_nf(int argCount, Value *args);
+Value std_nf(int argCount, Value *args);
+Value var_nf(int argCount, Value *args);
+Value maxl_nf(int argCount, Value *args);
+Value minl_nf(int argCount, Value *args);
+
 
 /* Hash Table Specific Functions */
 //> Puts a key-value pair in the hashtable

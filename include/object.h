@@ -266,6 +266,18 @@ ObjArray *subArray(ObjArray *a, ObjArray *b);
 ObjArray *mulArray(ObjArray *a, ObjArray *b);
 //> Divides two arrays
 ObjArray *divArray(ObjArray *a, ObjArray *b);
+//> Sums the array
+Value sumArray(ObjArray *array);
+//> Finds the mean of the array
+Value meanArray(ObjArray *array);
+//> Finds the variance of the array
+Value varianceArray(ObjArray *array);
+//> Finds the standard deviation of the array
+Value stdDevArray(ObjArray *array);
+//> Finds the maximum value in the array
+Value maxArray(ObjArray *array);
+//> Finds the minimum value in the array
+Value minArray(ObjArray *array);
 /*----------------------------------------------------------------------------*/
 
 /*-------------------------- Linked List Functions ---------------------------*/
@@ -354,6 +366,8 @@ ObjArray* solveMatrix(ObjMatrix *matrix, ObjArray *vector);
 FloatVector* newFloatVector(int size);
 //> Frees the float vector
 void freeFloatVector(FloatVector* vector);
+//> Creates a new float vector from an array
+FloatVector* fromArray(ObjArray* array);
 //> Pushes a value to the end of the float vector
 void pushFloatVector(FloatVector* vector, double value);
 //> Inserts a value at a given index
