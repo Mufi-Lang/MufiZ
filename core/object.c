@@ -27,6 +27,24 @@ static Obj *allocateObject(size_t size, ObjType type)
     return object;
 }
 
+static double __mufi_sqrt(double x)
+{
+    if (x < 0)
+    {
+        printf("Cannot take square root of a negative number\n");
+        return 0;
+    }
+    double result;
+#if defined(__AVX2__)
+    __m256d simd_x = _mm256_set1_pd(x);
+    __m256d simd_result = _mm256_sqrt_pd(simd_x);
+    _mm256_storeu_pd(&result, simd_result);
+    return result;
+#endif
+
+    return sqrt(x);
+}
+
 static Value add_val(Value a, Value b)
 {
     if (IS_INT(a) && IS_INT(b))
@@ -1063,22 +1081,118 @@ ObjMatrix *lu(ObjMatrix *matrix)
     return result;
 }
 
+static ObjMatrix *subsetMatrix(ObjMatrix *matrix, int startRow, int startCol)
+{
+    int numRows = matrix->rows - startRow;
+    int numCols = matrix->cols - startCol;
+
+    ObjMatrix *submatrix = newMatrix(numRows, numCols);
+
+    for (int i = startRow; i < matrix->rows; i++)
+    {
+        for (int j = startCol; j < matrix->cols; j++)
+        {
+            setMatrix(submatrix, i - startRow, j - startCol, getMatrix(matrix, i, j));
+        }
+    }
+
+    return submatrix;
+}
+
+static ObjMatrix *copyMatrix(ObjMatrix *matrix)
+{
+    ObjMatrix *copy = newMatrix(matrix->rows, matrix->cols);
+    for (int i = 0; i < matrix->len; i++)
+    {
+        copy->data->values[i] = matrix->data->values[i];
+    }
+    return copy;
+}
+
 double determinant(ObjMatrix *matrix)
 {
     if (matrix->rows != matrix->cols)
     {
-        printf("Matrix must be square");
-        return 0;
+        // Matrix is not square, determinant is undefined
+        return 0.0;
     }
-    ObjMatrix *luResult = lu(matrix);
-    ObjMatrix *U = AS_MATRIX(getMatrix(luResult, 1, 0));
-    double det = 1;
-    for (int i = 0; i < matrix->rows; i++)
+
+    int n = matrix->rows;
+    ObjMatrix *copy = copyMatrix(matrix); // Create a copy of the matrix
+    double det = 1.0;
+
+    if (n == 2)
     {
-        det *= AS_DOUBLE(getMatrix(U, i, i));
+        // Quick calculation for 2x2 matrix
+        Value a = getMatrix(copy, 0, 0);
+        Value b = getMatrix(copy, 0, 1);
+        Value c = getMatrix(copy, 1, 0);
+        Value d = getMatrix(copy, 1, 1);
+
+        double det;
+        if (IS_DOUBLE(a) && IS_DOUBLE(b) && IS_DOUBLE(c) && IS_DOUBLE(d))
+        {
+            double a_val = AS_DOUBLE(a);
+            double b_val = AS_DOUBLE(b);
+            double c_val = AS_DOUBLE(c);
+            double d_val = AS_DOUBLE(d);
+            det = a_val * d_val - b_val * c_val;
+        }
+        else
+        {
+            int a_val = AS_INT(a);
+            int b_val = AS_INT(b);
+            int c_val = AS_INT(c);
+            int d_val = AS_INT(d);
+            det = (double)(a_val * d_val - b_val * c_val);
+        }
+        return det;
     }
-    freeObjectArray(luResult->data);
-    FREE(ObjMatrix, luResult);
+
+    for (int i = 0; i < n; i++)
+    {
+        for (int j = i + 1; j < n; j++)
+        {
+            double factor;
+            if (IS_DOUBLE(getMatrix(copy, j, i)) && IS_DOUBLE(getMatrix(copy, i, i)))
+            {
+                factor = AS_DOUBLE(getMatrix(copy, j, i)) / AS_DOUBLE(getMatrix(copy, i, i));
+            }
+            else
+            {
+                int numerator = AS_INT(getMatrix(copy, j, i));
+                int denominator = AS_INT(getMatrix(copy, i, i));
+                factor = (double)(numerator) / (double)(denominator);
+            }
+
+            for (int k = i; k < n; k++)
+            {
+                double newValue;
+                if (IS_DOUBLE(getMatrix(copy, j, k)) && IS_DOUBLE(getMatrix(copy, i, k)))
+                {
+                    newValue = AS_DOUBLE(getMatrix(copy, j, k)) - factor * AS_DOUBLE(getMatrix(copy, i, k));
+                }
+                else
+                {
+                    int value1 = AS_INT(getMatrix(copy, j, k));
+                    int value2 = AS_INT(getMatrix(copy, i, k));
+                    newValue = (double)(value1)-factor * (double)(value2);
+                }
+                setMatrix(copy, j, k, DOUBLE_VAL(newValue));
+            }
+        }
+        if (IS_DOUBLE(getMatrix(copy, i, i)))
+        {
+            det *= AS_DOUBLE(getMatrix(copy, i, i));
+        }
+        else
+        {
+            int value = AS_INT(getMatrix(copy, i, i));
+            det *= (double)(value);
+        }
+    }
+    freeObjectArray(copy->data);
+    FREE(ObjMatrix, copy);
     return det;
 }
 
@@ -1283,7 +1397,7 @@ double varianceFloatVector(FloatVector *vector)
 
 double stdDevFloatVector(FloatVector *vector)
 {
-    return __sqrt(varianceFloatVector(vector));
+    return __mufi_sqrt(varianceFloatVector(vector));
 }
 
 double maxFloatVector(FloatVector *vector)
@@ -1653,24 +1767,6 @@ FloatVector *crossProduct(FloatVector *a, FloatVector *b)
     return result;
 }
 
-double __sqrt(double x)
-{
-    if (x < 0)
-    {
-        printf("Cannot take square root of a negative number\n");
-        return 0;
-    }
-    double result;
-#if defined(__AVX2__)
-    __m256d simd_x = _mm256_set1_pd(x);
-    __m256d simd_result = _mm256_sqrt_pd(simd_x);
-    _mm256_storeu_pd(&result, simd_result);
-    return result;
-#endif
-
-    return sqrt(x);
-}
-
 double magnitude(FloatVector *vector)
 {
     double sum = 0;
@@ -1678,7 +1774,7 @@ double magnitude(FloatVector *vector)
     {
         sum += vector->data[i] * vector->data[i];
     }
-    return __sqrt(sum);
+    return __mufi_sqrt(sum);
 }
 
 FloatVector *normalize(FloatVector *vector)
@@ -1716,7 +1812,7 @@ FloatVector *refraction(FloatVector *a, FloatVector *b, double n1, double n2)
     {
         return NULL;
     }
-    double cosT = __sqrt(1.0 - sinT2);
+    double cosT = __mufi_sqrt(1.0 - sinT2);
     return addFloatVector(scaleFloatVector(a, n), scaleFloatVector(b, n * cosI - cosT));
 }
 

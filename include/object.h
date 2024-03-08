@@ -339,7 +339,7 @@ int rank(ObjMatrix *matrix);
 ObjMatrix *identityMatrix(int n);
 //> Finds the LU decomposition of the matrix
 ObjMatrix* lu(ObjMatrix *matrix);
-//> Finds the determinant of the matrix (BROKEN)
+//> Finds the determinant of the matrix
 double determinant(ObjMatrix *matrix);
 //> TODO: Inverse of the matrix
 ObjMatrix *inverseMatrix(ObjMatrix *matrix);
