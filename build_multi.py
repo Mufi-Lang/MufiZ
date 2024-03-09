@@ -40,7 +40,7 @@ class PackageBuilder:
         if target != "wasm32-wasi":
             command = f"zig build -Doptimize=ReleaseSafe -Dtarget={target}"
         else:
-            command = f"zig build -Doptimize=ReleaseSmall -Dtarget={target} -Denable_net=false"
+            command = f"zig build -Doptimize=ReleaseSmall -Dtarget={target} -Denable_net=false -Denable_fs=false"
         subprocess.run(command, shell=True, text=True)
         if "x86_64-windows" in target or "aarch64-windows" in target:
             windows_zip = f"mufiz_{self.version}_{target}.zip"

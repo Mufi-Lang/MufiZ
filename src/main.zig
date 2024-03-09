@@ -4,6 +4,7 @@ const stdlib = @import("stdlib.zig");
 const system = @import("system.zig");
 const clap = @import("clap");
 const core = @import("core");
+const features = @import("features");
 const heap = std.heap;
 
 var Global = heap.GeneralPurposeAllocator(.{}){};
@@ -42,7 +43,9 @@ pub fn main() !void {
     try natives.addTime();
     try natives.addTypes();
     try natives.addOthers();
-    try natives.addFs();
+    if (features.enable_fs) {
+        try natives.addFs();
+    }
     natives.define();
 
     if (res.args.help != 0) {
