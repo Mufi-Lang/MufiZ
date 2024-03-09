@@ -124,6 +124,12 @@ void initVM(void)
     defineNative("workspace", workspace_nf);
     defineNative("interp1", interp1_nf);
     defineNative("blsprice", blsprice_nf);
+    defineNative("sum", sum_nf);
+    defineNative("mean", mean_nf);
+    defineNative("std", std_nf);
+    defineNative("var", var_nf);
+    defineNative("maxl", maxl_nf);
+    defineNative("minl", minl_nf);
 }
 
 // Frees the virtual machine

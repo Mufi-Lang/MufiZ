@@ -748,6 +748,127 @@ Value merge_nf(int argCount, Value *args)
     return OBJ_VAL(c);
 }
 
+Value sum_nf(int argCount, Value *args)
+{
+    if (!IS_ARRAY(args[0]) && !IS_FVECTOR(args[0]))
+    {
+        runtimeError("First argument must be an array or vector.");
+        return NIL_VAL;
+    }
+
+    if (IS_ARRAY(args[0]))
+    {
+        ObjArray *a = AS_ARRAY(args[0]);
+        return sumArray(a);
+    }
+    else
+    {
+        FloatVector *f = AS_FVECTOR(args[0]);
+        return DOUBLE_VAL(sumFloatVector(f));
+    }
+}
+
+Value mean_nf(int argCount, Value *args)
+{
+    if (!IS_ARRAY(args[0]) && !IS_FVECTOR(args[0]))
+    {
+        runtimeError("First argument must be an array or vector.");
+        return NIL_VAL;
+    }
+
+    if (IS_ARRAY(args[0]))
+    {
+        ObjArray *a = AS_ARRAY(args[0]);
+        return meanArray(a);
+    }
+    else
+    {
+        FloatVector *f = AS_FVECTOR(args[0]);
+        return DOUBLE_VAL(meanFloatVector(f));
+    }
+}
+
+Value std_nf(int argCount, Value *args)
+{
+    if (!IS_ARRAY(args[0]) && !IS_FVECTOR(args[0]))
+    {
+        runtimeError("First argument must be an array or vector.");
+        return NIL_VAL;
+    }
+
+    if (IS_ARRAY(args[0]))
+    {
+        ObjArray *a = AS_ARRAY(args[0]);
+        return stdDevArray(a);
+    }
+    else
+    {
+        FloatVector *f = AS_FVECTOR(args[0]);
+        return DOUBLE_VAL(stdDevFloatVector(f));
+    }
+}
+
+Value var_nf(int argCount, Value *args)
+{
+    if (!IS_ARRAY(args[0]) && !IS_FVECTOR(args[0]))
+    {
+        runtimeError("First argument must be an array or vector.");
+        return NIL_VAL;
+    }
+
+    if (IS_ARRAY(args[0]))
+    {
+        ObjArray *a = AS_ARRAY(args[0]);
+        return varianceArray(a);
+    }
+    else
+    {
+        FloatVector *f = AS_FVECTOR(args[0]);
+        return DOUBLE_VAL(varianceFloatVector(f));
+    }
+}
+
+Value maxl_nf(int argCount, Value *args)
+{
+    if (!IS_ARRAY(args[0]) && !IS_FVECTOR(args[0]))
+    {
+        runtimeError("First argument must be an array or vector.");
+        return NIL_VAL;
+    }
+
+    if (IS_ARRAY(args[0]))
+    {
+        ObjArray *a = AS_ARRAY(args[0]);
+        return maxArray(a);
+    }
+    else
+    {
+        FloatVector *f = AS_FVECTOR(args[0]);
+        return DOUBLE_VAL(maxFloatVector(f));
+    }
+}
+
+Value minl_nf(int argCount, Value *args)
+{
+    if (!IS_ARRAY(args[0]) && !IS_FVECTOR(args[0]))
+    {
+        runtimeError("First argument must be an array or vector.");
+        return NIL_VAL;
+    }
+
+    if (IS_ARRAY(args[0]))
+    {
+        ObjArray *a = AS_ARRAY(args[0]);
+        return minArray(a);
+    }
+    else
+    {
+        FloatVector *f = AS_FVECTOR(args[0]);
+        return DOUBLE_VAL(minFloatVector(f));
+    }
+}
+
+
 Value workspace_nf(int argCount, Value *args)
 {
     if (argCount != 0)

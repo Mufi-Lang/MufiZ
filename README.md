@@ -83,17 +83,7 @@ $ mv mufiz /usr/local/bin
 
 ## Goal
 
-- [X] Replace `pre` with Zig so we can perform `repl/scripts` with guaranteed memory safety.
-  - Such cases as avoiding buffer overflow
-- [X] Optional standard library (ability to be ran with `nostd`)
-  - Use the option: `-Dnostd`
-- [X] Standard Libary
-- [X] Documentation
-  - [X] Standard Library documentation
-- [X] Language reference
-- [X] Website: `mufiz.mustafif.com`
-- [ ] Installation Guide
-- [ ] Code documentation with comments in `core/src`
+> View [MufiZ Project Roadmap](https://github.com/users/Mustafif/projects/1) to see current goals I am currently working on or planning to implement for the current or next versions. 
 
 ---
 
