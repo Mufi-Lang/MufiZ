@@ -3,7 +3,8 @@ const Value = core.value_h.Value;
 const vm = @cImport(@cInclude("vm.h"));
 const conv = @import("conv.zig");
 const core = @import("core");
-const net = @import("net.zig");
+const enable_net = @import("features").enable_net;
+const net = if (enable_net) @import("net.zig") else {};
 const GlobalAlloc = @import("main.zig").GlobalAlloc;
 const cstd = core.cstd_h;
 
@@ -76,10 +77,12 @@ pub const NativeFunctions = struct {
 
     pub fn addOthers(self: *Self) !void {
         try self.append("what_is", &what_is);
-        try self.append("get_req", &get);
-        try self.append("post_req", &post);
-        try self.append("put_req", &put);
-        try self.append("del_req", &delete);
+        if (enable_net) {
+            try self.append("get_req", &net_funs.get);
+            try self.append("post_req", &net_funs.post);
+            try self.append("put_req", &net_funs.put);
+            try self.append("del_req", &net_funs.delete);
+        }
     }
 
     pub fn names(self: Self) []const []const u8 {
@@ -104,79 +107,81 @@ pub fn what_is(argc: c_int, args: [*c]Value) callconv(.C) Value {
     return conv.nil_val();
 }
 
-pub fn get(argc: c_int, args: [*c]Value) callconv(.C) Value {
-    // expects `(url, method)`
-    if (argc < 2) return stdlib_error("get() expects at least 2 arguments!", .{ .argn = argc });
-    const url = conv.as_zstring(args[0]);
-    const method: u8 = @intCast(conv.as_int(args[1]));
-    var options = net.Options{};
+const net_funs = if (enable_net) struct {
+    pub fn get(argc: c_int, args: [*c]Value) callconv(.C) Value {
+        // expects `(url, method)`
+        if (argc < 2) return stdlib_error("get() expects at least 2 arguments!", .{ .argn = argc });
+        const url = conv.as_zstring(args[0]);
+        const method: u8 = @intCast(conv.as_int(args[1]));
+        var options = net.Options{};
 
-    if (argc >= 3) {
-        options.user_agent = conv.as_zstring(args[2]);
-    }
-    if (argc == 4) {
-        options.authorization_token = conv.as_zstring(args[3]);
-    }
+        if (argc >= 3) {
+            options.user_agent = conv.as_zstring(args[2]);
+        }
+        if (argc == 4) {
+            options.authorization_token = conv.as_zstring(args[3]);
+        }
 
-    var data = net.get(url, @enumFromInt(method), options) catch return conv.nil_val();
-    return conv.string_val(data);
-}
-
-pub fn post(argc: c_int, args: [*c]Value) callconv(.C) Value {
-    // expects `(url, method)`
-    if (argc < 3) return stdlib_error("get() expects at least 2 arguments!", .{ .argn = argc });
-    const url = conv.as_zstring(args[0]);
-    const data = conv.as_zstring(args[1]);
-    const method: u8 = @intCast(conv.as_int(args[2]));
-    var options = net.Options{};
-
-    if (argc >= 4) {
-        options.user_agent = conv.as_zstring(args[3]);
-    }
-    if (argc == 5) {
-        options.authorization_token = conv.as_zstring(args[4]);
+        var data = net.get(url, @enumFromInt(method), options) catch return conv.nil_val();
+        return conv.string_val(data);
     }
 
-    const resp = net.post(url, data, @enumFromInt(method), options) catch return conv.nil_val();
-    return conv.string_val(resp);
-}
+    pub fn post(argc: c_int, args: [*c]Value) callconv(.C) Value {
+        // expects `(url, method)`
+        if (argc < 3) return stdlib_error("get() expects at least 2 arguments!", .{ .argn = argc });
+        const url = conv.as_zstring(args[0]);
+        const data = conv.as_zstring(args[1]);
+        const method: u8 = @intCast(conv.as_int(args[2]));
+        var options = net.Options{};
 
-pub fn put(argc: c_int, args: [*c]Value) callconv(.C) Value {
-    // expects `(url, method)`
-    if (argc < 3) return stdlib_error("get() expects at least 2 arguments!", .{ .argn = argc });
-    const url = conv.as_zstring(args[0]);
-    const data = conv.as_zstring(args[1]);
-    const method: u8 = @intCast(conv.as_int(args[2]));
-    var options = net.Options{};
+        if (argc >= 4) {
+            options.user_agent = conv.as_zstring(args[3]);
+        }
+        if (argc == 5) {
+            options.authorization_token = conv.as_zstring(args[4]);
+        }
 
-    if (argc >= 4) {
-        options.user_agent = conv.as_zstring(args[3]);
-    }
-    if (argc == 5) {
-        options.authorization_token = conv.as_zstring(args[4]);
-    }
-
-    const resp = net.put(url, data, @enumFromInt(method), options) catch return conv.nil_val();
-    return conv.string_val(resp);
-}
-
-pub fn delete(argc: c_int, args: [*c]Value) callconv(.C) Value {
-    // expects `(url, method)`
-    if (argc < 2) return stdlib_error("get() expects at least 2 arguments!", .{ .argn = argc });
-    const url = conv.as_zstring(args[0]);
-    const method: u8 = @intCast(conv.as_int(args[1]));
-    var options = net.Options{};
-
-    if (argc >= 3) {
-        options.user_agent = conv.as_zstring(args[2]);
-    }
-    if (argc == 4) {
-        options.authorization_token = conv.as_zstring(args[3]);
+        const resp = net.post(url, data, @enumFromInt(method), options) catch return conv.nil_val();
+        return conv.string_val(resp);
     }
 
-    var data = net.delete(url, @enumFromInt(method), options) catch return conv.nil_val();
-    return conv.string_val(data);
-}
+    pub fn put(argc: c_int, args: [*c]Value) callconv(.C) Value {
+        // expects `(url, method)`
+        if (argc < 3) return stdlib_error("get() expects at least 2 arguments!", .{ .argn = argc });
+        const url = conv.as_zstring(args[0]);
+        const data = conv.as_zstring(args[1]);
+        const method: u8 = @intCast(conv.as_int(args[2]));
+        var options = net.Options{};
+
+        if (argc >= 4) {
+            options.user_agent = conv.as_zstring(args[3]);
+        }
+        if (argc == 5) {
+            options.authorization_token = conv.as_zstring(args[4]);
+        }
+
+        const resp = net.put(url, data, @enumFromInt(method), options) catch return conv.nil_val();
+        return conv.string_val(resp);
+    }
+
+    pub fn delete(argc: c_int, args: [*c]Value) callconv(.C) Value {
+        // expects `(url, method)`
+        if (argc < 2) return stdlib_error("get() expects at least 2 arguments!", .{ .argn = argc });
+        const url = conv.as_zstring(args[0]);
+        const method: u8 = @intCast(conv.as_int(args[1]));
+        var options = net.Options{};
+
+        if (argc >= 3) {
+            options.user_agent = conv.as_zstring(args[2]);
+        }
+        if (argc == 4) {
+            options.authorization_token = conv.as_zstring(args[3]);
+        }
+
+        var data = net.delete(url, @enumFromInt(method), options) catch return conv.nil_val();
+        return conv.string_val(data);
+    }
+};
 
 const Got = union(enum) {
     value_type: []const u8,

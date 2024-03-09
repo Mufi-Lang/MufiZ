@@ -23,6 +23,7 @@
     "x86_64-linux-musl",
     "x86_64-macos",
     "x86_64-windows",
-    "x86_64-windows-gnu"
+    "x86_64-windows-gnu",
+    "wasm32-wasi"
   ]
 }

@@ -92,7 +92,7 @@ $ mv mufiz /usr/local/bin
   - [X] Standard Library documentation
 - [X] Language reference
 - [X] Website: `mufiz.mustafif.com`
-- [ ] Installation Guide
+- [X] Installation Guide
 - [ ] Code documentation with comments in `core/src`
 
 ---
