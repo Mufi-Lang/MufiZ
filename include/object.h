@@ -15,6 +15,7 @@
 #include "chunk.h"
 #include "value.h"
 #include "table.h"
+#include <stdbool.h>
 
 #ifdef __AVX2__
 #include <immintrin.h>

@@ -36,6 +36,10 @@ pub fn build(b: *std.Build) !void {
         .link_libc = true,
     });
 
+    if (target.cpu_arch == .wasm32) {
+        b.enable_wasmtime = true;
+    }
+
     const lib_scanner = b.addStaticLibrary(.{
         .name = "libmufiz_scanner",
         .root_source_file = .{ .path = "src/scanner.zig" },
@@ -94,9 +98,13 @@ pub fn build(b: *std.Build) !void {
     exe.addModule("core", b.createModule(.{.source_file = .{.path = "src/core.zig"}}));
 
     const options = b.addOptions();
-    const nostd = b.option(bool, "nostd", "Run Mufi without Standard Library") orelse false;
-    options.addOption(bool, "nostd", nostd);
-    exe.addOptions("build_opts", options);
+    // const nostd = b.option(bool, "nostd", "Run Mufi without Standard Library") orelse false;
+    // options.addOption(bool, "nostd", nostd);
+    const net = b.option(bool, "enable_net", "Enable Network features") orelse true;
+    const fs = b.option(bool, "enable_fs", "Enable File System features") orelse true;
+    options.addOption(bool, "enable_net", net);
+    options.addOption(bool, "enable_fs", fs);
+    exe.addOptions("features", options);
 
     // zig fmt: on
     b.installArtifact(exe);

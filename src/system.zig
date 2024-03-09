@@ -1,5 +1,4 @@
 const std = @import("std");
-const nostd = @import("build_opts").nostd;
 const core = @import("core");
 const vm_h = core.vm_h;
 const conv = @import("conv.zig");
@@ -11,20 +10,14 @@ const MINOR: u8 = 6;
 const PATCH: u8 = 0;
 const CODENAME: []const u8 = "Mars";
 
-pub const vopt = if (nostd) struct {
-    pub inline fn version() void {
-        std.debug.print("Version {d}.{d}.{d} ({s} Release [nostd])\n", .{ MAJOR, MINOR, PATCH, CODENAME });
-    }
-} else struct {
-    pub inline fn version() void {
-        std.debug.print("Version {d}.{d}.{d} ({s} Release)\n", .{ MAJOR, MINOR, PATCH, CODENAME });
-    }
-};
+pub inline fn version() void {
+    std.debug.print("Version {d}.{d}.{d} ({s} Release)\n", .{ MAJOR, MINOR, PATCH, CODENAME });
+}
 
 pub fn repl() !void {
     var buffer: [1024]u8 = undefined;
     var streamer = std.io.FixedBufferStream([]u8){ .buffer = &buffer, .pos = 0 };
-    vopt.version();
+    version();
     while (true) {
         std.debug.print("(mufi) >> ", .{});
         try std.io.getStdIn().reader().streamUntilDelimiter(streamer.writer(), '\n', 1024);
