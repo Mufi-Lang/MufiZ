@@ -123,7 +123,6 @@ void initVM(void)
 
     defineNative("workspace", workspace_nf);
     defineNative("interp1", interp1_nf);
-    defineNative("blsprice", blsprice_nf);
     defineNative("sum", sum_nf);
     defineNative("mean", mean_nf);
     defineNative("std", std_nf);
@@ -404,26 +403,26 @@ static InterpretResult run()
     (frame->closure->function->chunk.constants.values[READ_BYTE()])
 
 #define READ_STRING() AS_STRING(READ_CONSTANT())
-#define BINARY_OP(op)                                                                     \
-    do                                                                                    \
-    {                                                                                     \
-        if (IS_INT(peek(0)) && IS_INT(peek(1)))                                           \
-        {                                                                                 \
-            int b = AS_INT(pop());                                                        \
-            int a = AS_INT(pop());                                                        \
-            push(INT_VAL(a op b));                                                        \
-        }                                                                                 \
-        else if (IS_DOUBLE(peek(0)) && IS_DOUBLE(peek(1)))                                \
-        {                                                                                 \
-            double b = AS_DOUBLE(pop());                                                  \
-            double a = AS_DOUBLE(pop());                                                  \
-            push(DOUBLE_VAL(a op b));                                                     \
-        }                                                                                 \
-        else                                                                              \
-        {                                                                                 \
-            runtimeError("Operands must be either both integer or both double numbers."); \
-            return INTERPRET_RUNTIME_ERROR;                                               \
-        }                                                                                 \
+#define BINARY_OP(op)                                      \
+    do                                                     \
+    {                                                      \
+        if (IS_INT(peek(0)) && IS_INT(peek(1)))            \
+        {                                                  \
+            int b = AS_INT(pop());                         \
+            int a = AS_INT(pop());                         \
+            push(INT_VAL(a op b));                         \
+        }                                                  \
+        else if (IS_DOUBLE(peek(0)) && IS_DOUBLE(peek(1))) \
+        {                                                  \
+            double b = AS_DOUBLE(pop());                   \
+            double a = AS_DOUBLE(pop());                   \
+            push(DOUBLE_VAL(a op b));                      \
+        }                                                  \
+        else                                               \
+        {                                                  \
+            runtimeError("Invalid Binary Operation.");     \
+            return INTERPRET_RUNTIME_ERROR;                \
+        }                                                  \
     } while (false)
 #define BINARY_OP_COMPARISON(op)                                                 \
     do                                                                           \
@@ -782,6 +781,38 @@ static InterpretResult run()
             else
             {
                 runtimeError("Operands must be integers.");
+                return INTERPRET_RUNTIME_ERROR;
+            }
+            break;
+        }
+        case OP_EXPONENT:
+        {
+            if (IS_INT(peek(0)) && IS_INT(peek(1)))
+            {
+                int b = AS_INT(pop());
+                int a = AS_INT(pop());
+                push(INT_VAL(pow(a, b)));
+            }
+            else if (IS_DOUBLE(peek(0)) && IS_DOUBLE(peek(1)))
+            {
+                double b = AS_DOUBLE(pop());
+                double a = AS_DOUBLE(pop());
+                push(DOUBLE_VAL(pow(a, b)));
+            }
+            else if (IS_COMPLEX(peek(0)) && IS_DOUBLE(peek(1)))
+            {
+                double b = AS_DOUBLE(pop());
+                Complex a = AS_COMPLEX(pop());
+                Complex result;
+                double r = sqrt(a.r * a.r + a.i * a.i);
+                double theta = atan2(a.i, a.r);
+                result.r = pow(r, b) * cos(b * theta);
+                result.i = pow(r, b) * sin(b * theta);
+                push(COMPLEX_VAL(result));
+            }
+            else
+            {
+                runtimeError("Operands must be numeric type.");
                 return INTERPRET_RUNTIME_ERROR;
             }
             break;

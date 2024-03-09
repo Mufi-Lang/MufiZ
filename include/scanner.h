@@ -67,6 +67,7 @@ enum TokenType
     TOKEN_SLASH_EQUAL,
     TOKEN_PLUS_PLUS,
     TOKEN_MINUS_MINUS,
+    TOKEN_HAT, // Exponent
 };
 
 struct Token
