@@ -149,3 +149,40 @@ $ mv mufiz /usr/local/bin
 > current version specified in the snapcraft.yaml file. This is an issue that is way too time-consuming to fix
 > and is not worth the effort. We will be focusing on the deb and rpm packages for now, and will look for packaging 
 > options for other platforms such as `brew` and `winget` in the future.
+
+---
+
+## Features
+
+To support various toolchains, we have added the following features to the project, which can be enabled or disabled using the `zig build` command:
+
+- `-Denable_net` - Enables the `net` module for the MufiZ standard library.
+- `-Denable_fs` - Enables the `fs` module for the MufiZ standard library.
+
+| Target                 | Enable_Net Feature | Enable_FS Feature  |
+| ---------------------- | ------------------ | ------------------ |
+| aarch64-linux-gnu      | :white_check_mark: | :white_check_mark: |
+| aarch64-linux-musl     | :white_check_mark: | :white_check_mark: |
+| aarch64-macos          | :white_check_mark: | :white_check_mark: |
+| aarch64-windows        | :white_check_mark: | :white_check_mark: |
+| aarch64-windows-gnu    | :white_check_mark: | :white_check_mark: |
+| arm-linux-gnueabi      | :white_check_mark: | :white_check_mark: |
+| arm-linux-gnueabihf    | :white_check_mark: | :white_check_mark: |
+| arm-linux-musleabi     | :white_check_mark: | :white_check_mark: |
+| arm-linux-musleabihf   | :white_check_mark: | :white_check_mark: |
+| mips64-linux-musl      | :white_check_mark: | :white_check_mark: |
+| mips64el-linux-musl    | :white_check_mark: | :white_check_mark: |
+| mipsel-linux-musl      | :white_check_mark: | :white_check_mark: |
+| mips-linux-musl        | :white_check_mark: | :white_check_mark: |
+| powerpc64-linux-gnu    | :white_check_mark: | :white_check_mark: |
+| powerpc64-linux-musl   | :white_check_mark: | :white_check_mark: |
+| powerpc-linux-musl     | :white_check_mark: | :white_check_mark: |
+| powerpc64le-linux-gnu  | :white_check_mark: | :white_check_mark: |
+| powerpc64le-linux-musl | :white_check_mark: | :white_check_mark: |
+| riscv64-linux-musl     | :white_check_mark: | :white_check_mark: |
+| x86_64-linux-gnu       | :white_check_mark: | :white_check_mark: |
+| x86_64-linux-musl      | :white_check_mark: | :white_check_mark: |
+| x86_64-macos           | :white_check_mark: | :white_check_mark: |
+| x86_64-windows         | :white_check_mark: | :white_check_mark: |
+| x86_64-windows-gnu     | :white_check_mark: | :white_check_mark: |
+| wasm32-wasi            | :x:                | :x:                |
