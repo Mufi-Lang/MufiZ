@@ -245,6 +245,8 @@ ObjArray *mergeArrays(ObjArray *a, ObjArray *b);
 void pushArray(ObjArray *array, Value value);
 //> Inserts a value at a given index
 void insertArray(ObjArray *array, int index, Value value);
+//> TODO: Removes a value at a given index from the array
+Value removeArray(ObjArray *array, int index);
 //> Removes a value at the end of the array
 Value popArray(ObjArray *array);
 //> Sorts the array using quick sort
@@ -302,6 +304,8 @@ void mergeSort(ObjLinkedList *list);
 int searchLinkedList(ObjLinkedList *list, Value value);
 //> Reverses the linked list
 void reverseLinkedList(ObjLinkedList *list);
+//> TODO: Merges two linked lists into a new linked list
+ObjLinkedList *mergeLinkedList(ObjLinkedList *a, ObjLinkedList *b);
 /*----------------------------------------------------------------------------*/
 
 /*-------------------------- Hash Table Functions ----------------------------*/
@@ -315,6 +319,12 @@ Value getHashTable(ObjHashTable *table, ObjString *key);
 bool removeHashTable(ObjHashTable *table, ObjString *key);
 //> Frees the hash table
 void freeObjectHashTable(ObjHashTable *table);
+//> TODO: Merges two hash tables into a new hash table
+ObjHashTable *mergeHashTable(ObjHashTable *a, ObjHashTable *b);
+//> TODO: Returns the keys of the hash table
+ObjArray *keysHashTable(ObjHashTable *table);
+//> TODO: Returns the values of the hash table
+ObjArray *valuesHashTable(ObjHashTable *table);
 /*----------------------------------------------------------------------------*/
 
 /*-------------------------- Matrix Functions --------------------------------*/
@@ -381,6 +391,10 @@ double popFloatVector(FloatVector* vector);
 double removeFloatVector(FloatVector* vector, int index);
 //> Prints the float vector
 void printFloatVector(FloatVector* vector);
+//> TODO: Merges two float vectors into a new float vector
+FloatVector* mergeFloatVector(FloatVector* a, FloatVector* b);
+//> TODO: Slices the float vector from start to end
+FloatVector* sliceFloatVector(FloatVector* vector, int start, int end);
 //> Sums the float vector
 double sumFloatVector(FloatVector* vector);
 //> Finds the mean of the float vector

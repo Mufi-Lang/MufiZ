@@ -117,33 +117,33 @@ $ mv mufiz /usr/local/bin
 
 ## Supported Platforms
 
-| Target                 | Deb Package        | RPM Package        | Enable_Net Feature | Enable_FS Feature  |
-| ---------------------- | ------------------ | ------------------ | ------------------ | ------------------ |
-| aarch64-linux-gnu      | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| aarch64-linux-musl     | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| aarch64-macos          | :x:                | :x:                | :white_check_mark: | :white_check_mark: |
-| aarch64-windows        | :x:                | :x:                | :white_check_mark: | :white_check_mark: |
-| aarch64-windows-gnu    | :x:                | :x:                | :white_check_mark: | :white_check_mark: |
-| arm-linux-gnueabi      | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| arm-linux-gnueabihf    | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| arm-linux-musleabi     | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| arm-linux-musleabihf   | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| mips64-linux-musl      | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| mips64el-linux-musl    | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| mipsel-linux-musl      | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| mips-linux-musl        | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| powerpc64-linux-gnu    | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| powerpc64-linux-musl   | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| powerpc-linux-musl     | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| powerpc64le-linux-gnu  | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| powerpc64le-linux-musl | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| riscv64-linux-musl     | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| x86_64-linux-gnu       | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| x86_64-linux-musl      | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| x86_64-macos           | :x:                | :x:                | :white_check_mark: | :white_check_mark: |
-| x86_64-windows         | :x:                | :x:                | :white_check_mark: | :white_check_mark: |
-| x86_64-windows-gnu     | :x:                | :x:                | :white_check_mark: | :white_check_mark: |
-| wasm32-wasi            | :x:                | :x:                | :x:                | :x:                |
+| Target                 | Deb Package        | RPM Package        |
+| ---------------------- | ------------------ | ------------------ |
+| aarch64-linux-gnu      | :white_check_mark: | :white_check_mark: |
+| aarch64-linux-musl     | :white_check_mark: | :white_check_mark: |
+| aarch64-macos          | :x:                | :x:                |
+| aarch64-windows        | :x:                | :x:                |
+| aarch64-windows-gnu    | :x:                | :x:                |
+| arm-linux-gnueabi      | :white_check_mark: | :white_check_mark: |
+| arm-linux-gnueabihf    | :white_check_mark: | :white_check_mark: |
+| arm-linux-musleabi     | :white_check_mark: | :white_check_mark: |
+| arm-linux-musleabihf   | :white_check_mark: | :white_check_mark: |
+| mips64-linux-musl      | :white_check_mark: | :white_check_mark: |
+| mips64el-linux-musl    | :white_check_mark: | :white_check_mark: |
+| mipsel-linux-musl      | :white_check_mark: | :white_check_mark: |
+| mips-linux-musl        | :white_check_mark: | :white_check_mark: |
+| powerpc64-linux-gnu    | :white_check_mark: | :white_check_mark: |
+| powerpc64-linux-musl   | :white_check_mark: | :white_check_mark: |
+| powerpc-linux-musl     | :white_check_mark: | :white_check_mark: |
+| powerpc64le-linux-gnu  | :white_check_mark: | :white_check_mark: |
+| powerpc64le-linux-musl | :white_check_mark: | :white_check_mark: |
+| riscv64-linux-musl     | :white_check_mark: | :white_check_mark: |
+| x86_64-linux-gnu       | :white_check_mark: | :white_check_mark: |
+| x86_64-linux-musl      | :white_check_mark: | :white_check_mark: |
+| x86_64-macos           | :x:                | :x:                |
+| x86_64-windows         | :x:                | :x:                |
+| x86_64-windows-gnu     | :x:                | :x:                |
+| wasm32-wasi            | :x:                | :x:                |
 
 > Snaps have been removed due to issues involving the `mufiz` binary not being able to be built for the 
 > current version specified in the snapcraft.yaml file. This is an issue that is way too time-consuming to fix

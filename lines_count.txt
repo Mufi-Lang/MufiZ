@@ -1,3 +1,4 @@
+   171 build.zig
     46 core/chunk.c
   1202 core/compiler.c
    963 core/cstd.c
@@ -7,7 +8,7 @@
    146 core/value.c
    995 core/vm.c
     76 include/chunk.h
-    32 include/common.h
+    28 include/common.h
     19 include/compiler.h
    137 include/cstd.h
     21 include/debug.h
@@ -31,4 +32,4 @@
    170 src/stdlib/math.zig
     28 src/stdlib/time.zig
     70 src/stdlib/types.zig
-  9356 total
+  9523 total
