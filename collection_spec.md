@@ -53,7 +53,7 @@
   - [X] Pop an element from a float vector
 - Merge
   - [X] Merge two arrays
-  - [ ] Merge two linked lists
+  - [X] Merge two linked lists
   - [ ] Merge two hash tables
   - [ ] Merge two float vectors
 - Slice

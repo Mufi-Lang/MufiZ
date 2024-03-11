@@ -796,6 +796,37 @@ void reverseLinkedList(ObjLinkedList *list)
     }
 }
 
+ObjLinkedList *mergeLinkedList(ObjLinkedList *a, ObjLinkedList *b)
+{
+    ObjLinkedList *result = newLinkedList();
+    struct Node *currentA = a->head;
+    struct Node *currentB = b->head;
+    while (currentA != NULL && currentB != NULL)
+    {
+        if (valueCompare(currentA->data, currentB->data) < 0)
+        {
+            pushBack(result, currentA->data);
+            currentA = currentA->next;
+        }
+        else
+        {
+            pushBack(result, currentB->data);
+            currentB = currentB->next;
+        }
+    }
+    while (currentA != NULL)
+    {
+        pushBack(result, currentA->data);
+        currentA = currentA->next;
+    }
+    while (currentB != NULL)
+    {
+        pushBack(result, currentB->data);
+        currentB = currentB->next;
+    }
+    return result;
+}
+
 /*------------------------------------------------------------------------------*/
 
 /*-------------------------- Hash Table Functions ------------------------------*/
@@ -1275,7 +1306,7 @@ double determinant(ObjMatrix *matrix)
     return det;
 }
 
-ObjArray *solveMatrix(ObjMatrix *matrix, ObjArray *vector)
+ObjArray *backSubstitution(ObjMatrix *matrix, ObjArray *vector)
 {
     if (matrix->rows != matrix->cols)
     {
@@ -1287,44 +1318,25 @@ ObjArray *solveMatrix(ObjMatrix *matrix, ObjArray *vector)
         printf("Matrix and vector dimensions do not match");
         return NULL;
     }
-    ObjMatrix *copy = copyMatrix(matrix);
     ObjArray *result = newArrayWithCap(matrix->rows, true);
-    for (int i = 0; i < copy->rows; i++)
+    for (int i = matrix->rows - 1; i >= 0; i--)
     {
-        for (int j = 0; j < copy->cols; j++)
+        double sum = 0;
+        for (int j = i + 1; j < matrix->cols; j++)
         {
-            if (i == j)
-            {
-                setMatrix(copy, i, j, DOUBLE_VAL(AS_DOUBLE(getMatrix(copy, i, j)) - 1.0));
-            }
-            else
-            {
-                setMatrix(copy, i, j, DOUBLE_VAL(AS_DOUBLE(getMatrix(copy, i, j))));
-            }
+            sum += AS_DOUBLE(getMatrix(matrix, i, j)) * AS_DOUBLE(result->values[j]);
         }
+        double value = (AS_DOUBLE(vector->values[i]) - sum) / AS_DOUBLE(getMatrix(matrix, i, i));
+        pushArray(result, DOUBLE_VAL(value));
     }
-    ObjMatrix *augmented = newMatrix(copy->rows, copy->cols + 1);
-    for (int i = 0; i < copy->rows; i++)
-    {
-        for (int j = 0; j < copy->cols; j++)
-        {
-            setMatrix(augmented, i, j, getMatrix(copy, i, j));
-        }
-    }
-    for (int i = 0; i < augmented->rows; i++)
-    {
-        setMatrix(augmented, i, augmented->cols - 1, vector->values[i]);
-    }
-    rref(augmented);
-    for (int i = 0; i < augmented->rows; i++)
-    {
-        pushArray(result, getMatrix(augmented, i, augmented->cols - 1));
-    }
-    freeObjectArray(copy->data);
-    FREE(ObjMatrix, copy);
-    freeObjectArray(augmented->data);
-    FREE(ObjMatrix, augmented);
+    reverseArray(result);
     return result;
+}
+
+
+ObjArray *solveMatrix(ObjMatrix *matrix, ObjArray *vector)
+{
+
 }
 /*------------------------------------------------------------------------------*/
 
@@ -1345,7 +1357,7 @@ void freeFloatVector(FloatVector *vector)
     FREE(FloatVector, vector);
 }
 
-FloatVector* fromArray(ObjArray *array)
+FloatVector *fromArray(ObjArray *array)
 {
     FloatVector *vector = newFloatVector(array->count);
     for (int i = 0; i < array->count; i++)
@@ -1358,7 +1370,8 @@ FloatVector* fromArray(ObjArray *array)
         {
             pushFloatVector(vector, (double)AS_INT(array->values[i]));
         }
-        else{
+        else
+        {
             continue;
         }
     }

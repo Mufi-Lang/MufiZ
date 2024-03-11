@@ -304,7 +304,7 @@ void mergeSort(ObjLinkedList *list);
 int searchLinkedList(ObjLinkedList *list, Value value);
 //> Reverses the linked list
 void reverseLinkedList(ObjLinkedList *list);
-//> TODO: Merges two linked lists into a new linked list
+//> Merges two linked lists into a new linked list
 ObjLinkedList *mergeLinkedList(ObjLinkedList *a, ObjLinkedList *b);
 /*----------------------------------------------------------------------------*/
 
@@ -368,7 +368,7 @@ double determinant(ObjMatrix *matrix);
 ObjMatrix *inverseMatrix(ObjMatrix *matrix);
 //> TODO: Checks if two matrices are equal
 bool equalMatrix(ObjMatrix *a, ObjMatrix *b);
-//> TODO: Solves the matrix with a given vector
+//> Solves the matrix with a given vector (Broken)
 ObjArray* solveMatrix(ObjMatrix *matrix, ObjArray *vector);
 /*----------------------------------------------------------------------------*/
 
