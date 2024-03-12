@@ -436,7 +436,7 @@ Value insert_nf(int argCount, Value *args)
     {
         ObjArray *a = AS_ARRAY(args[0]);
         int index = AS_INT(args[1]);
-        insertArray(a, index, args[2]);
+        a->trait->insert(a, index, (void*)&args[2]);
         return NIL_VAL;
     }
 }
@@ -499,7 +499,7 @@ Value reverse_nf(int argCount, Value *args)
     if (IS_ARRAY(args[0]))
     {
         ObjArray *a = AS_ARRAY(args[0]);
-        reverseArray(a);
+        a->trait->reverse(a);
         return NIL_VAL;
     }
     else
@@ -521,7 +521,7 @@ Value search_nf(int argCount, Value *args)
     if (IS_ARRAY(args[0]))
     {
         ObjArray *a = AS_ARRAY(args[0]);
-        int result = searchArray(a, args[1]);
+        int result = a->trait->search(a, &args[1]);
         if (result == -1)
             return NIL_VAL;
         return INT_VAL(result);

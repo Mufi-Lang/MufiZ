@@ -227,26 +227,6 @@ ObjUpvalue *newUpvalue(Value *slot)
 /*------------------------------------------------------------------------------*/
 
 /*-------------------------- Array Functions --------------------------------*/
-ObjArray *newArray()
-{
-    ObjArray *array = ALLOCATE_OBJ(ObjArray, OBJ_ARRAY);
-    array->capacity = 0;
-    array->count = 0;
-    array->values = NULL;
-    array->_static = false;
-    return array;
-}
-
-ObjArray *newArrayWithCap(int capacity, bool _static)
-{
-    ObjArray *array = ALLOCATE_OBJ(ObjArray, OBJ_ARRAY);
-    array->capacity = capacity;
-    array->count = 0;
-    array->values = ALLOCATE(Value, capacity);
-    array->_static = _static;
-    return array;
-}
-
 ObjArray *mergeArrays(ObjArray *a, ObjArray *b)
 {
     bool _static = a->_static && b->_static;
@@ -260,6 +240,15 @@ ObjArray *mergeArrays(ObjArray *a, ObjArray *b)
         pushArray(newArray, b->values[i]);
     }
     return newArray;
+}
+
+void clearArray(void *array)
+{
+    ObjArray* arr = (ObjArray*)array;
+    int cap = arr->capacity;
+    bool _static = arr->_static;
+    freeObjectArray(arr);
+    arr = newArrayWithCap(cap, _static);
 }
 
 void pushArray(ObjArray *array, Value value)
@@ -289,31 +278,62 @@ static void overWriteArray(ObjArray *array, int index, Value value)
     array->values[index] = value;
 }
 
-void insertArray(ObjArray *array, int index, Value value)
+void insertArray(void *array, int index, void* value)
 {
-    if (index < 0 || index > array->count)
+    ObjArray* arr = (ObjArray*)array;
+    Value v = *(Value*)value;
+
+    if (index < 0 || index > arr->count)
     {
         printf("Index out of bounds");
         return;
     }
-    if (array->capacity < array->count + 1 && !array->_static)
+    if (arr->capacity < arr->count + 1 && !arr->_static)
     {
-        int oldCapacity = array->capacity;
-        array->capacity = GROW_CAPACITY(oldCapacity);
-        array->values = GROW_ARRAY(Value, array->values, oldCapacity, array->capacity);
+        int oldCapacity = arr->capacity;
+        arr->capacity = GROW_CAPACITY(oldCapacity);
+        arr->values = GROW_ARRAY(Value, arr->values, oldCapacity, arr->capacity);
     }
-    else if (array->capacity < array->count + 1 && array->_static)
+    else if (arr->capacity < arr->count + 1 && arr->_static)
     {
         printf("Array is full");
         return;
     }
 
-    for (int i = array->count; i > index; i--)
+    for (int i = arr->count; i > index; i--)
     {
-        array->values[i] = array->values[i - 1];
+        arr->values[i] = arr->values[i - 1];
     }
-    array->values[index] = value;
-    array->count++;
+    arr->values[index] = v;
+    arr->count++;
+}
+
+void* removeArray(void *array, int index)
+{
+    ObjArray* arr = (ObjArray*)array;
+    if (index < 0 || index >= arr->count)
+    {
+        printf("Index out of bounds");
+        return NULL;
+    }
+    Value v = arr->values[index];
+    for (int i = index; i < arr->count - 1; i++)
+    {
+        arr->values[i] = arr->values[i + 1];
+    }
+    arr->count--;
+    return &v;
+}
+
+void* getArray(void *array, int index)
+{
+    ObjArray* arr = (ObjArray*)array;
+    if (index < 0 || index >= arr->count)
+    {
+        printf("Index out of bounds");
+        return NULL;
+    }
+    return &arr->values[index];
 }
 
 Value popArray(ObjArray *array)
@@ -341,8 +361,9 @@ static int compareValues(const void *a, const void *b)
     }
 }
 
-void sortArray(ObjArray *array)
+void sortArray(void *arr)
 {
+    ObjArray* array = (ObjArray*)arr;
     qsort(array->values, array->count, sizeof(Value), compareValues);
 }
 
@@ -359,8 +380,10 @@ static bool valuesLess(Value a, Value b)
     return false;
 }
 
-int searchArray(ObjArray *array, Value value)
+int searchArray(void *arr, void* val)
 {
+    ObjArray* array = (ObjArray*)arr;
+    Value value = *(Value*)val;
     int low = 0;
     int high = array->count - 1;
 
@@ -385,8 +408,9 @@ int searchArray(ObjArray *array, Value value)
     return -1;
 }
 
-void reverseArray(ObjArray *array)
+void reverseArray(void *arr)
 {
+    ObjArray* array = (ObjArray*)arr;
     int i = 0;
     int j = array->count - 1;
     while (i < j)
@@ -570,6 +594,51 @@ Value minArray(ObjArray *array)
         }
     }
     return min;
+}
+
+
+ObjArray *newArrayWithCap(int capacity, bool _static)
+{
+    ObjArray *array = ALLOCATE_OBJ(ObjArray, OBJ_ARRAY);
+    array->capacity = capacity;
+    array->count = 0;
+    array->values = ALLOCATE(Value, capacity);
+    array->_static = _static;
+    CollectionTrait trait = {
+        insertArray, 
+        removeArray, 
+        searchArray, 
+        getArray,
+        sortArray, 
+        reverseArray,
+        clearArray,
+        NULL,
+        NULL,
+        NULL, 
+        NULL, 
+        NULL, 
+        NULL, 
+        NULL, 
+        NULL, 
+        NULL, 
+        NULL, 
+        NULL, 
+        NULL, 
+        NULL, 
+        NULL, 
+        NULL, 
+        NULL, 
+        NULL, 
+        NULL, 
+        NULL, 
+    };
+    array->trait = &trait;
+    return array;
+}
+
+ObjArray *newArray()
+{
+    return newArrayWithCap(0, false);
 }
 
 /*----------------------------------------------------------------------------*/

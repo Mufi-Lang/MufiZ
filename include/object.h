@@ -15,6 +15,7 @@
 #include "chunk.h"
 #include "value.h"
 #include "table.h"
+#include "trait.h"
 #include <stdbool.h>
 
 #ifdef __AVX2__
@@ -112,6 +113,7 @@ typedef struct
 //> We achieve dynamic or static using a `_static` flag
 typedef struct
 {
+    CollectionTrait* trait;
     Obj obj;
     int capacity;
     int count;
@@ -235,26 +237,26 @@ ObjUpvalue *newUpvalue(Value *slot);
 /*----------------------------------------------------------------------------*/
 
 /*-------------------------- Array Functions --------------------------------*/
-//> Creates a new empty array
-ObjArray *newArray();
-//> Creates a new array with a given capacity and static flag
-ObjArray *newArrayWithCap(int capacity, bool _static);
 //> Merges two arrays into a new array
 ObjArray *mergeArrays(ObjArray *a, ObjArray *b);
+//> Clears the array
+void clearArray(void *array);
 //> Pushes a value to the end of the array
 void pushArray(ObjArray *array, Value value);
 //> Inserts a value at a given index
-void insertArray(ObjArray *array, int index, Value value);
-//> TODO: Removes a value at a given index from the array
-Value removeArray(ObjArray *array, int index);
+void insertArray(void *array, int index, void* value);
+//> Removes a value at a given index from the array
+void* removeArray(void *array, int index);
+//> Gets a value from the array at a given index
+void* getArray(void *array, int index);
 //> Removes a value at the end of the array
 Value popArray(ObjArray *array);
 //> Sorts the array using quick sort
-void sortArray(ObjArray *array);
+void sortArray(void *array);
 //> Searches for a value in the array
-int searchArray(ObjArray *array, Value value);
+int searchArray(void *array, void* value);
 //> Reverses the array
-void reverseArray(ObjArray *array);
+void reverseArray(void *array);
 //> Checks if two arrays are equal
 bool equalArray(ObjArray *a, ObjArray *b);
 //> Frees the array
@@ -281,6 +283,10 @@ Value stdDevArray(ObjArray *array);
 Value maxArray(ObjArray *array);
 //> Finds the minimum value in the array
 Value minArray(ObjArray *array);
+//> Creates a new empty array
+ObjArray *newArray();
+//> Creates a new array with a given capacity and static flag
+ObjArray *newArrayWithCap(int capacity, bool _static);
 /*----------------------------------------------------------------------------*/
 
 /*-------------------------- Linked List Functions ---------------------------*/
