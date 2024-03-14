@@ -14,7 +14,7 @@ Value array_nf(int argCount, Value *args)
         ObjArray *a = newArrayWithCap(f->size, true);
         for (int i = 0; i < f->count; i++)
         {
-            pushArray(a, DOUBLE_VAL(f->data[i]));
+            pushArray(a, &DOUBLE_VAL(f->data[i]));
         }
         return OBJ_VAL(a);
     }
@@ -119,7 +119,7 @@ Value push_nf(int argCount, Value *args)
         ObjArray *a = AS_ARRAY(args[0]);
         for (int i = 1; i < argCount; i++)
         {
-            pushArray(a, args[i]);
+            pushArray(a, &args[i]);
         }
         return NIL_VAL;
     }
@@ -175,7 +175,7 @@ Value pop_nf(int argCount, Value *args)
     {
 
         ObjArray *a = AS_ARRAY(args[0]);
-        return popArray(a);
+        return *(Value*)a->trait->pop(a);
     }
     else
     {
@@ -483,7 +483,7 @@ Value range_nf(int argCount, Value *args)
     ObjArray *a = newArray();
     for (int i = start; i < end; i++)
     {
-        pushArray(a, INT_VAL(i));
+        pushArray(a, &INT_VAL(i));
     }
     return OBJ_VAL(a);
 }

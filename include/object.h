@@ -242,7 +242,7 @@ ObjArray *mergeArrays(ObjArray *a, ObjArray *b);
 //> Clears the array
 void clearArray(void *array);
 //> Pushes a value to the end of the array
-void pushArray(ObjArray *array, Value value);
+void pushArray(void *array, void* value);
 //> Inserts a value at a given index
 void insertArray(void *array, int index, void* value);
 //> Removes a value at a given index from the array
@@ -250,7 +250,7 @@ void* removeArray(void *array, int index);
 //> Gets a value from the array at a given index
 void* getArray(void *array, int index);
 //> Removes a value at the end of the array
-Value popArray(ObjArray *array);
+void* popArray(void *array);
 //> Sorts the array using quick sort
 void sortArray(void *array);
 //> Searches for a value in the array
@@ -283,6 +283,10 @@ Value stdDevArray(ObjArray *array);
 Value maxArray(ObjArray *array);
 //> Finds the minimum value in the array
 Value minArray(ObjArray *array);
+//> Returns the length of the array
+int lenArray(void *array);
+//> Prints the array
+void printArray(void *array);
 //> Creates a new empty array
 ObjArray *newArray();
 //> Creates a new array with a given capacity and static flag
