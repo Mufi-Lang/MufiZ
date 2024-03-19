@@ -12,6 +12,7 @@ pub const math = @import("stdlib/math.zig");
 pub const time = @import("stdlib/time.zig");
 pub const types = @import("stdlib/types.zig");
 pub const fs = @import("stdlib/fs.zig");
+pub const io = @import("stdlib/io.zig");
 
 pub const NativeFn = *const fn (c_int, [*c]Value) callconv(.C) Value;
 
@@ -77,6 +78,7 @@ pub const NativeFunctions = struct {
 
     pub fn addOthers(self: *Self) !void {
         try self.append("what_is", &what_is);
+        try self.append("input", &io.input);
         if (enable_net) {
             try self.append("get_req", &net_funs.get);
             try self.append("post_req", &net_funs.post);
