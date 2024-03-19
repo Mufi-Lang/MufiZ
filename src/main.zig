@@ -19,47 +19,6 @@ const params = clap.parseParamsComptime(
     \\
 );
 
-inline fn cli() !void {
-    var diag = clap.Diagnostic{};
-    var res = clap.parse(clap.Help, &params, clap.parsers.default, .{
-        .allocator = GlobalAlloc,
-        .diagnostic = &diag,
-    }) catch |err| {
-        try diag.report(std.io.getStdErr().writer(), err);
-        return err;
-    };
-    defer res.deinit();
-
-    var natives = stdlib.NativeFunctions.init(GlobalAlloc);
-    defer natives.deinit();
-    try natives.addMath();
-    try natives.addTime();
-    try natives.addTypes();
-    try natives.addOthers();
-    if (features.enable_fs) {
-        try natives.addFs();
-    }
-    natives.define();
-
-    if (res.args.help != 0) {
-        return clap.help(std.io.getStdErr().writer(), clap.Help, &params, .{});
-    } else if (res.args.version != 0) {
-        system.version();
-    } else if (res.args.run) |s| {
-        var runner = system.Runner.init(GlobalAlloc);
-        defer runner.deinit();
-        try runner.setMain(@constCast(s));
-        if (res.args.link) |l| {
-            try runner.setLink(@constCast(l));
-        }
-        try runner.runFile();
-    } else if (res.args.repl != 0) {
-        try system.repl();
-    } else {
-        return clap.help(std.io.getStdErr().writer(), clap.Help, &params, .{});
-    }
-}
-
 pub fn main() !void {
     core.vm_h.initVM();
     defer core.vm_h.freeVM();
@@ -67,5 +26,46 @@ pub fn main() !void {
         const check = Global.deinit();
         if (check == .leak) @panic("memory leak!");
     }
-    if (features.sandbox) try system.repl() else try cli();
+    if (features.sandbox) {
+        try system.repl();
+    } else {
+        var diag = clap.Diagnostic{};
+        var res = clap.parse(clap.Help, &params, clap.parsers.default, .{
+            .allocator = GlobalAlloc,
+            .diagnostic = &diag,
+        }) catch |err| {
+            try diag.report(std.io.getStdErr().writer(), err);
+            return err;
+        };
+        defer res.deinit();
+
+        var natives = stdlib.NativeFunctions.init(GlobalAlloc);
+        defer natives.deinit();
+        try natives.addMath();
+        try natives.addTime();
+        try natives.addTypes();
+        try natives.addOthers();
+        if (features.enable_fs) {
+            try natives.addFs();
+        }
+        natives.define();
+
+        if (res.args.help != 0) {
+            return clap.help(std.io.getStdErr().writer(), clap.Help, &params, .{});
+        } else if (res.args.version != 0) {
+            system.version();
+        } else if (res.args.run) |s| {
+            var runner = system.Runner.init(GlobalAlloc);
+            defer runner.deinit();
+            try runner.setMain(@constCast(s));
+            if (res.args.link) |l| {
+                try runner.setLink(@constCast(l));
+            }
+            try runner.runFile();
+        } else if (res.args.repl != 0) {
+            try system.repl();
+        } else {
+            return clap.help(std.io.getStdErr().writer(), clap.Help, &params, .{});
+        }
+    }
 }
