@@ -21,7 +21,7 @@ static Obj *allocateObject(size_t size, ObjType type)
     vm.objects = object;
 
 #ifdef DEBUG_LOG_GC
-    printf("%p allocate %zu for %d\n", (void *)object, size, type);
+    printf("%p allocate %zu for %d\n", (ObjArray *)object, size, type);
 #endif
 
     return object;
@@ -227,34 +227,41 @@ ObjUpvalue *newUpvalue(Value *slot)
 /*------------------------------------------------------------------------------*/
 
 /*-------------------------- Array Functions --------------------------------*/
-ObjArray *mergeArrays(ObjArray *a, ObjArray *b)
+ObjArray* mergeArrays(ObjArray *a, ObjArray *b)
 {
-    bool _static = a->_static && b->_static;
-    ObjArray *newArray = newArrayWithCap(a->count + b->count, _static);
+    ObjArray *result = newArrayWithCap(a->count + b->count, false);
     for (int i = 0; i < a->count; i++)
     {
-        newArray->trait->push(newArray, &a->values[i]);
+        pushArray(result, a->values[i]);
     }
     for (int i = 0; i < b->count; i++)
     {
-        newArray->trait->push(newArray, &b->values[i]);
+        pushArray(result, b->values[i]);
+    }
+    return result;
+}
+
+ObjArray *cloneArray(ObjArray *arr)
+{
+    bool _static = arr->_static;
+    ObjArray *newArray = newArrayWithCap(arr->count, _static);
+    for (int i = 0; i < arr->count; i++)
+    {
+        pushArray(newArray, arr->values[i]);
     }
     return newArray;
 }
 
-void clearArray(void *array)
+void clearArray(ObjArray *arr)
 {
-    ObjArray *arr = (ObjArray *)array;
     int cap = arr->capacity;
     bool _static = arr->_static;
     freeObjectArray(arr);
     arr = newArrayWithCap(cap, _static);
 }
 
-void pushArray(void *arr, void* val)
+void pushArray(ObjArray *array, Value val)
 {
-    ObjArray *array = (ObjArray *)arr;
-    Value value = *(Value *)val;
     if (array->capacity < array->count + 1 && !array->_static)
     {
         int oldCapacity = array->capacity;
@@ -267,7 +274,7 @@ void pushArray(void *arr, void* val)
         return;
     }
 
-    array->values[array->count++] = value;
+    array->values[array->count++] = val;
 }
 
 static void overWriteArray(ObjArray *array, int index, Value value)
@@ -280,11 +287,8 @@ static void overWriteArray(ObjArray *array, int index, Value value)
     array->values[index] = value;
 }
 
-void insertArray(void *array, int index, void *value)
+void insertArray(ObjArray *arr, int index, Value value)
 {
-    ObjArray *arr = (ObjArray *)array;
-    Value v = *(Value *)value;
-
     if (index < 0 || index > arr->count)
     {
         printf("Index out of bounds");
@@ -306,17 +310,17 @@ void insertArray(void *array, int index, void *value)
     {
         arr->values[i] = arr->values[i - 1];
     }
-    arr->values[index] = v;
+    arr->values[index] = value;
     arr->count++;
 }
 
-void *removeArray(void *array, int index)
+Value removeArray(ObjArray *arr, int index)
 {
-    ObjArray *arr = (ObjArray *)array;
+
     if (index < 0 || index >= arr->count)
     {
         printf("Index out of bounds");
-        return NULL;
+        return NIL_VAL;
     }
     Value v = arr->values[index];
     for (int i = index; i < arr->count - 1; i++)
@@ -324,28 +328,28 @@ void *removeArray(void *array, int index)
         arr->values[i] = arr->values[i + 1];
     }
     arr->count--;
-    return &v;
+    return v;
 }
 
-void *getArray(void *array, int index)
+Value getArray(ObjArray *arr, int index)
 {
-    ObjArray *arr = (ObjArray *)array;
+
     if (index < 0 || index >= arr->count)
     {
         printf("Index out of bounds");
-        return NULL;
+        return NIL_VAL;
     }
-    return &arr->values[index];
+    return arr->values[index];
 }
 
-void* popArray(void* arr)
+Value popArray(ObjArray *array)
 {
-    ObjArray *array = (ObjArray *)arr;
+
     if (array->count == 0)
     {
-        return &NIL_VAL;
+        return NIL_VAL;
     }
-    return &array->values[--array->count];
+    return array->values[--array->count];
 }
 
 static int compareValues(const void *a, const void *b)
@@ -364,9 +368,9 @@ static int compareValues(const void *a, const void *b)
     }
 }
 
-void sortArray(void *arr)
+void sortArray(ObjArray *array)
 {
-    ObjArray *array = (ObjArray *)arr;
+
     qsort(array->values, array->count, sizeof(Value), compareValues);
 }
 
@@ -383,10 +387,8 @@ static bool valuesLess(Value a, Value b)
     return false;
 }
 
-int searchArray(void *arr, void *val)
+int searchArray(ObjArray *array, Value value)
 {
-    ObjArray *array = (ObjArray *)arr;
-    Value value = *(Value *)val;
     int low = 0;
     int high = array->count - 1;
 
@@ -411,9 +413,9 @@ int searchArray(void *arr, void *val)
     return -1;
 }
 
-void reverseArray(void *arr)
+void reverseArray(ObjArray *array)
 {
-    ObjArray *array = (ObjArray *)arr;
+
     int i = 0;
     int j = array->count - 1;
     while (i < j)
@@ -450,16 +452,33 @@ void freeObjectArray(ObjArray *array)
 
 ObjArray *sliceArray(ObjArray *array, int start, int end)
 {
+
     ObjArray *sliced = newArrayWithCap(end - start, true);
     for (int i = start; i < end; i++)
     {
-        array->trait->push(sliced, &array->values[i]);
+        pushArray(sliced, array->values[i]);
     }
     return sliced;
 }
 
+ObjArray *spliceArray(ObjArray *array, int start, int end)
+{
+    ObjArray *spliced = newArrayWithCap(end - start, false);
+    for (int i = start; i < end; i++)
+    {
+        pushArray(spliced, array->values[i]);
+    }
+    for (int i = start; i < array->count - (end - start); i++)
+    {
+        array->values[i] = array->values[i + (end - start)];
+    }
+    array->count -= (end - start);
+    return spliced;
+}
+
 ObjArray *addArray(ObjArray *a, ObjArray *b)
 {
+
     if (a->count != b->count)
     {
         printf("Arrays must have the same length");
@@ -470,13 +489,14 @@ ObjArray *addArray(ObjArray *a, ObjArray *b)
     for (int i = 0; i < a->count; i++)
     {
         Value res = add_val(a->values[i], b->values[i]);
-        result->trait->push(result, &res);
+        pushArray(result, res);
     }
     return result;
 }
 
 ObjArray *subArray(ObjArray *a, ObjArray *b)
 {
+
     if (a->count != b->count)
     {
         printf("Arrays must have the same length");
@@ -487,12 +507,14 @@ ObjArray *subArray(ObjArray *a, ObjArray *b)
     for (int i = 0; i < a->count; i++)
     {
         Value res = sub_val(a->values[i], b->values[i]);
-        pushArray(result, &res);
+        pushArray(result, res);
     }
     return result;
 }
+
 ObjArray *mulArray(ObjArray *a, ObjArray *b)
 {
+
     if (a->count != b->count)
     {
         printf("Arrays must have the same length");
@@ -503,12 +525,14 @@ ObjArray *mulArray(ObjArray *a, ObjArray *b)
     for (int i = 0; i < a->count; i++)
     {
         Value res = mul_val(a->values[i], b->values[i]);
-        pushArray(result, &res);
+        pushArray(result, res);
     }
     return result;
 }
+
 ObjArray *divArray(ObjArray *a, ObjArray *b)
 {
+
     if (a->count != b->count)
     {
         printf("Arrays must have the same length");
@@ -519,13 +543,14 @@ ObjArray *divArray(ObjArray *a, ObjArray *b)
     for (int i = 0; i < a->count; i++)
     {
         Value res = div_val(a->values[i], b->values[i]);
-        pushArray(result, &res);
+        pushArray(result, res);
     }
     return result;
 }
 
 Value sumArray(ObjArray *array)
 {
+
     Value sum = DOUBLE_VAL(0.0);
     for (int i = 0; i < array->count; i++)
     {
@@ -536,6 +561,7 @@ Value sumArray(ObjArray *array)
 
 Value meanArray(ObjArray *array)
 {
+
     if (array->count == 0)
     {
         return NIL_VAL;
@@ -545,11 +571,13 @@ Value meanArray(ObjArray *array)
     {
         sum = add_val(sum, array->values[i]);
     }
-    return div_val(sum, DOUBLE_VAL(array->count));
+    Value mean = div_val(sum, DOUBLE_VAL(array->count));
+    return mean;
 }
 
 Value varianceArray(ObjArray *array)
 {
+
     if (array->count == 0)
     {
         return NIL_VAL;
@@ -561,57 +589,60 @@ Value varianceArray(ObjArray *array)
         Value temp = sub_val(array->values[i], mean);
         sum = add_val(sum, mul_val(temp, temp));
     }
-    return div_val(sum, DOUBLE_VAL(array->count));
+    Value variance = div_val(sum, DOUBLE_VAL(array->count));
+    return variance;
 }
 
 Value stdDevArray(ObjArray *array)
 {
-    return DOUBLE_VAL(sqrt(AS_DOUBLE(varianceArray(array))));
+    Value variance = varianceArray(array);
+    return DOUBLE_VAL(sqrt(AS_DOUBLE(variance)));
 }
 
 Value maxArray(ObjArray *array)
 {
+
     if (array->count == 0)
     {
         return NIL_VAL;
     }
-    Value max = array->values[0];
+    Value _max = array->values[0];
     for (int i = 1; i < array->count; i++)
     {
-        if (valuesLess(max, array->values[i]))
+        if (valuesLess(_max, array->values[i]))
         {
-            max = array->values[i];
+            _max = array->values[i];
         }
     }
-    return max;
+    return _max;
 }
 
 Value minArray(ObjArray *array)
 {
+
     if (array->count == 0)
     {
         return NIL_VAL;
     }
-    Value min = array->values[0];
+    Value _min = array->values[0];
     for (int i = 1; i < array->count; i++)
     {
-        if (valuesLess(array->values[i], min))
+        if (valuesLess(array->values[i], _min))
         {
-            min = array->values[i];
+            _min = array->values[i];
         }
     }
-    return min;
+    return _min;
 }
 
-int lenArray(void *array)
+int lenArray(ObjArray *array)
 {
-    ObjArray *arr = (ObjArray *)array;
-    return arr->count;
+
+    return array->count;
 }
 
-void printArray(void *array)
+void printArray(ObjArray *arr)
 {
-    ObjArray *arr = (ObjArray *)array;
     printf("[");
     for (int i = 0; i < arr->count; i++)
     {
@@ -631,35 +662,6 @@ ObjArray *newArrayWithCap(int capacity, bool _static)
     array->count = 0;
     array->values = ALLOCATE(Value, capacity);
     array->_static = _static;
-    CollectionTrait trait = {
-        insertArray,
-        removeArray,
-        searchArray,
-        getArray,
-        sortArray,
-        reverseArray,
-        clearArray,
-        lenArray,
-        printArray,
-        pushArray,
-        popArray,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-    };
-    array->trait = &trait;
     return array;
 }
 
@@ -975,7 +977,7 @@ ObjMatrix *newMatrix(int rows, int cols)
     matrix->data = newArrayWithCap(matrix->len, true);
     for (int i = 0; i < matrix->len; i++)
     {
-        matrix->data->trait->push(matrix->data, &DOUBLE_VAL(0.0));
+        pushArray(matrix->data, DOUBLE_VAL(0.0));
     }
     return matrix;
 }
@@ -1005,7 +1007,7 @@ void printMatrix(ObjMatrix *matrix)
     }
 }
 
-void setRow(ObjMatrix *matrix, int row, ObjArray *values)
+void setRow(ObjMatrix *matrix, int row, ObjArray* values)
 {
     if (matrix != NULL && values != NULL && row >= 0 && row < matrix->rows)
     {
@@ -1016,7 +1018,7 @@ void setRow(ObjMatrix *matrix, int row, ObjArray *values)
     }
 }
 
-void setCol(ObjMatrix *matrix, int col, ObjArray *values)
+void setCol(ObjMatrix *matrix, int col, ObjArray* values)
 {
     if (matrix != NULL && values != NULL && col >= 0 && col < matrix->cols)
     {
@@ -1423,7 +1425,7 @@ ObjArray *backSubstitution(ObjMatrix *matrix, ObjArray *vector)
             sum += AS_DOUBLE(getMatrix(matrix, i, j)) * AS_DOUBLE(result->values[j]);
         }
         double value = (AS_DOUBLE(vector->values[i]) - sum) / AS_DOUBLE(getMatrix(matrix, i, i));
-        result->trait->push(result, &DOUBLE_VAL(value));
+        pushArray(result, DOUBLE_VAL(value));
     }
     reverseArray(result);
     return result;
@@ -1624,15 +1626,15 @@ double stdDevFloatVector(FloatVector *vector)
 
 double maxFloatVector(FloatVector *vector)
 {
-    double max = vector->data[0];
+    double _max = vector->data[0];
     for (int i = 1; i < vector->count; i++)
     {
-        if (vector->data[i] > max)
+        if (vector->data[i] > _max)
         {
-            max = vector->data[i];
+            _max = vector->data[i];
         }
     }
-    return max;
+    return _max;
 }
 
 double minFloatVector(FloatVector *vector)
@@ -2082,7 +2084,16 @@ void printObject(Value value)
     case OBJ_ARRAY:
     {
         ObjArray *array = AS_ARRAY(value);
-        array->trait->print(array);
+        printf("[");
+        for (int i = 0; i < array->count; i++)
+        {
+            printValue(array->values[i]);
+            if (i != array->count - 1)
+            {
+                printf(", ");
+            }
+        }
+        printf("]");
         break;
     }
     case OBJ_FVECTOR:

@@ -15,7 +15,6 @@
 #include "chunk.h"
 #include "value.h"
 #include "table.h"
-#include "trait.h"
 #include <stdbool.h>
 
 #ifdef __AVX2__
@@ -113,7 +112,6 @@ typedef struct
 //> We achieve dynamic or static using a `_static` flag
 typedef struct
 {
-    CollectionTrait* trait;
     Obj obj;
     int capacity;
     int count;
@@ -239,30 +237,34 @@ ObjUpvalue *newUpvalue(Value *slot);
 /*-------------------------- Array Functions --------------------------------*/
 //> Merges two arrays into a new array
 ObjArray *mergeArrays(ObjArray *a, ObjArray *b);
+//> Clones an array into a new array
+ObjArray *cloneArray(ObjArray *array);
 //> Clears the array
-void clearArray(void *array);
+void clearArray(ObjArray *array);
 //> Pushes a value to the end of the array
-void pushArray(void *array, void* value);
+void pushArray(ObjArray *array, Value value);
 //> Inserts a value at a given index
-void insertArray(void *array, int index, void* value);
+void insertArray(ObjArray *array, int index, Value value);
 //> Removes a value at a given index from the array
-void* removeArray(void *array, int index);
+Value removeArray(ObjArray *array, int index);
 //> Gets a value from the array at a given index
-void* getArray(void *array, int index);
+Value getArray(ObjArray *array, int index);
 //> Removes a value at the end of the array
-void* popArray(void *array);
+Value popArray(ObjArray *array);
 //> Sorts the array using quick sort
-void sortArray(void *array);
+void sortArray(ObjArray *array);
 //> Searches for a value in the array
-int searchArray(void *array, void* value);
+int searchArray(ObjArray *array, Value value);
 //> Reverses the array
-void reverseArray(void *array);
+void reverseArray(ObjArray *array);
 //> Checks if two arrays are equal
 bool equalArray(ObjArray *a, ObjArray *b);
 //> Frees the array
 void freeObjectArray(ObjArray *array);
 //> Slices the array from start to end
 ObjArray *sliceArray(ObjArray *array, int start, int end);
+//> Splices the array from start to end
+ObjArray *spliceArray(ObjArray *array, int start, int end);
 //> Adds two arrays together
 ObjArray *addArray(ObjArray *a, ObjArray *b);
 //> Subtracts two arrays
@@ -273,20 +275,20 @@ ObjArray *mulArray(ObjArray *a, ObjArray *b);
 ObjArray *divArray(ObjArray *a, ObjArray *b);
 //> Sums the array
 Value sumArray(ObjArray *array);
+//> Finds the minimum value in the array
+Value minArray(ObjArray *array);
+//> Finds the maximum value in the array
+Value maxArray(ObjArray *array);
 //> Finds the mean of the array
 Value meanArray(ObjArray *array);
 //> Finds the variance of the array
 Value varianceArray(ObjArray *array);
 //> Finds the standard deviation of the array
 Value stdDevArray(ObjArray *array);
-//> Finds the maximum value in the array
-Value maxArray(ObjArray *array);
-//> Finds the minimum value in the array
-Value minArray(ObjArray *array);
 //> Returns the length of the array
-int lenArray(void *array);
+int lenArray(ObjArray* array);
 //> Prints the array
-void printArray(void *array);
+void printArray(ObjArray* array);
 //> Creates a new empty array
 ObjArray *newArray();
 //> Creates a new array with a given capacity and static flag

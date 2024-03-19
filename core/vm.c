@@ -636,7 +636,7 @@ static InterpretResult run()
                 FloatVector *result = addFloatVector(a, b);
                 push(OBJ_VAL(result));
             }
-            else if (IS_FVECTOR(peek(0)) && IS_DOUBLE(peek(1)))
+            else if (IS_FVECTOR(peek(1)) && IS_DOUBLE(peek(0)))
             {
                 double b = AS_DOUBLE(pop());
                 FloatVector *a = AS_FVECTOR(pop());

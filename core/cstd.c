@@ -14,7 +14,7 @@ Value array_nf(int argCount, Value *args)
         ObjArray *a = newArrayWithCap(f->size, true);
         for (int i = 0; i < f->count; i++)
         {
-            pushArray(a, &DOUBLE_VAL(f->data[i]));
+            pushArray(a, DOUBLE_VAL(f->data[i]));
         }
         return OBJ_VAL(a);
     }
@@ -119,7 +119,7 @@ Value push_nf(int argCount, Value *args)
         ObjArray *a = AS_ARRAY(args[0]);
         for (int i = 1; i < argCount; i++)
         {
-            pushArray(a, &args[i]);
+            pushArray(a, args[i]);
         }
         return NIL_VAL;
     }
@@ -175,7 +175,7 @@ Value pop_nf(int argCount, Value *args)
     {
 
         ObjArray *a = AS_ARRAY(args[0]);
-        return *(Value*)a->trait->pop(a);
+        return popArray(a);
     }
     else
     {
@@ -436,7 +436,7 @@ Value insert_nf(int argCount, Value *args)
     {
         ObjArray *a = AS_ARRAY(args[0]);
         int index = AS_INT(args[1]);
-        a->trait->insert(a, index, (void*)&args[2]);
+        insertArray(a, index, args[2]);
         return NIL_VAL;
     }
 }
@@ -480,10 +480,10 @@ Value range_nf(int argCount, Value *args)
     }
     int start = AS_INT(args[0]);
     int end = AS_INT(args[1]);
-    ObjArray *a = newArray();
+    ObjArray *a = newArrayWithCap(end-start, true);
     for (int i = start; i < end; i++)
     {
-        pushArray(a, &INT_VAL(i));
+        pushArray(a, INT_VAL(i));
     }
     return OBJ_VAL(a);
 }
@@ -499,7 +499,7 @@ Value reverse_nf(int argCount, Value *args)
     if (IS_ARRAY(args[0]))
     {
         ObjArray *a = AS_ARRAY(args[0]);
-        a->trait->reverse(a);
+        reverseArray(a);
         return NIL_VAL;
     }
     else
@@ -521,7 +521,7 @@ Value search_nf(int argCount, Value *args)
     if (IS_ARRAY(args[0]))
     {
         ObjArray *a = AS_ARRAY(args[0]);
-        int result = a->trait->search(a, &args[1]);
+        int result = searchArray(a, args[1]);
         if (result == -1)
             return NIL_VAL;
         return INT_VAL(result);
