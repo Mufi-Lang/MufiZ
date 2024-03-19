@@ -102,8 +102,10 @@ pub fn build(b: *std.Build) !void {
     // options.addOption(bool, "nostd", nostd);
     const net = b.option(bool, "enable_net", "Enable Network features") orelse true;
     const fs = b.option(bool, "enable_fs", "Enable File System features") orelse true;
+    const sandbox = b.option(bool, "sandbox", "Enable Sandbox Mode (REPL only)") orelse true;
     options.addOption(bool, "enable_net", net);
     options.addOption(bool, "enable_fs", fs);
+    options.addOption(bool, "sandbox", sandbox);
     exe.addOptions("features", options);
 
     // zig fmt: on

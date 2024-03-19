@@ -19,14 +19,7 @@ const params = clap.parseParamsComptime(
     \\
 );
 
-pub fn main() !void {
-    core.vm_h.initVM();
-    defer core.vm_h.freeVM();
-    defer {
-        const check = Global.deinit();
-        if (check == .leak) @panic("memory leak!");
-    }
-
+inline fn cli() !void {
     var diag = clap.Diagnostic{};
     var res = clap.parse(clap.Help, &params, clap.parsers.default, .{
         .allocator = GlobalAlloc,
@@ -65,4 +58,14 @@ pub fn main() !void {
     } else {
         return clap.help(std.io.getStdErr().writer(), clap.Help, &params, .{});
     }
+}
+
+pub fn main() !void {
+    core.vm_h.initVM();
+    defer core.vm_h.freeVM();
+    defer {
+        const check = Global.deinit();
+        if (check == .leak) @panic("memory leak!");
+    }
+    if (features.sandbox) try system.repl() else try cli();
 }

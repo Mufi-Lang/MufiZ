@@ -5,6 +5,11 @@ const stdlib_error = @import("../stdlib.zig").stdlib_error;
 const type_check = conv.type_check;
 const GlobalAlloc = @import("../main.zig").GlobalAlloc;
 const fs = std.fs;
+const builtin = @import("builtin");
+
+inline fn is_wasm() bool {
+    return builtin.target.isWasm();
+}
 
 // Unable to do string type check
 pub fn create_file(argc: c_int, args: [*c]Value) callconv(.C) Value {
