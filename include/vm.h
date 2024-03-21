@@ -60,6 +60,8 @@ extern VM vm;
 void initVM(void);
 //> Deallocates the VM's resources
 void freeVM(void);
+//> Imports the collection types and their methods
+void importCollections(void);
 //> Interprets and runs the code
 InterpretResult interpret(const char* source);
 //> Pushes a value to the stack

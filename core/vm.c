@@ -60,29 +60,7 @@ void defineNative(const char *name, NativeFn function)
     pop();
 }
 
-/*
- Native functions will be suffixed with _nf on the C side
- to avoid any name conflicts.
- All native functions defined here will be for the data structures.
-*/
-
-// Initializes the virtual machine
-void initVM(void)
-{
-    resetStack();
-    vm.objects = NULL;
-    vm.bytesAllocated = 0;
-    vm.nextGC = 1024 * 1024;
-    vm.grayCount = 0;
-    vm.grayCapacity = 0;
-    vm.grayStack = NULL;
-
-    initTable(&vm.globals);
-    initTable(&vm.strings);
-
-    vm.initString = NULL;
-    vm.initString = copyString("init", 4);
-
+void importCollections(void){
     defineNative("array", array_nf);
     defineNative("linked_list", linkedlist_nf);
     defineNative("hash_table", hashtable_nf);
@@ -129,6 +107,24 @@ void initVM(void)
     defineNative("var", var_nf);
     defineNative("maxl", maxl_nf);
     defineNative("minl", minl_nf);
+}
+
+// Initializes the virtual machine
+void initVM(void)
+{
+    resetStack();
+    vm.objects = NULL;
+    vm.bytesAllocated = 0;
+    vm.nextGC = 1024 * 1024;
+    vm.grayCount = 0;
+    vm.grayCapacity = 0;
+    vm.grayStack = NULL;
+
+    initTable(&vm.globals);
+    initTable(&vm.strings);
+
+    vm.initString = NULL;
+    vm.initString = copyString("init", 4);
 }
 
 // Frees the virtual machine

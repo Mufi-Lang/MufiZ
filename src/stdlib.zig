@@ -4,6 +4,7 @@ const vm = @cImport(@cInclude("vm.h"));
 const conv = @import("conv.zig");
 const core = @import("core");
 const enable_net = @import("features").enable_net;
+const enable_fs = @import("features").enable_fs;
 const net = if (enable_net) @import("net.zig") else {};
 const GlobalAlloc = @import("main.zig").GlobalAlloc;
 const cstd = core.cstd_h;
@@ -16,89 +17,65 @@ pub const io = @import("stdlib/io.zig");
 
 pub const NativeFn = *const fn (c_int, [*c]Value) callconv(.C) Value;
 
-pub const NativeFunctions = struct {
-    map: std.StringArrayHashMap(NativeFn),
+pub fn prelude() void {
+    vm.defineNative(@ptrCast("what_is"), @ptrCast(&what_is));
+    vm.defineNative(@ptrCast("input"), @ptrCast(&io.input));
+    vm.defineNative(@ptrCast("double"), @ptrCast(&types.double));
+    vm.defineNative(@ptrCast("int"), @ptrCast(&types.int));
+    vm.defineNative(@ptrCast("str"), @ptrCast(&types.str));
+}
 
-    const Self = @This();
+pub fn addMath() void {
+    vm.defineNative(@ptrCast("log2"), @ptrCast(&math.log2));
+    vm.defineNative(@ptrCast("log10"), @ptrCast(&math.log10));
+    vm.defineNative(@ptrCast("pi"), @ptrCast(&math.pi));
+    vm.defineNative(@ptrCast("sin"), @ptrCast(&math.sin));
+    vm.defineNative(@ptrCast("cos"), @ptrCast(&math.cos));
+    vm.defineNative(@ptrCast("tan"), @ptrCast(&math.tan));
+    vm.defineNative(@ptrCast("asin"), @ptrCast(&math.asin));
+    vm.defineNative(@ptrCast("acos"), @ptrCast(&math.acos));
+    vm.defineNative(@ptrCast("atan"), @ptrCast(&math.atan));
+    vm.defineNative(@ptrCast("complex"), @ptrCast(&math.complex));
+    vm.defineNative(@ptrCast("abs"), @ptrCast(&math.abs));
+    vm.defineNative(@ptrCast("phase"), @ptrCast(&math.phase));
+    vm.defineNative(@ptrCast("rand"), @ptrCast(&math.rand));
+    vm.defineNative(@ptrCast("pow"), @ptrCast(&math.pow));
+    vm.defineNative(@ptrCast("sqrt"), @ptrCast(&math.sqrt));
+    vm.defineNative(@ptrCast("ceil"), @ptrCast(&math.ceil));
+    vm.defineNative(@ptrCast("floor"), @ptrCast(&math.floor));
+    vm.defineNative(@ptrCast("round"), @ptrCast(&math.round));
+    vm.defineNative(@ptrCast("max"), @ptrCast(&math.max));
+}
 
-    pub fn init(allocator: std.mem.Allocator) Self {
-        return .{ .map = std.StringArrayHashMap(NativeFn).init(allocator) };
+pub fn addFs() void {
+    if (enable_fs) {
+        vm.defineNative(@ptrCast("create_file"), @ptrCast(&fs.create_file));
+        vm.defineNative(@ptrCast("read_file"), @ptrCast(&fs.read_file));
+        vm.defineNative(@ptrCast("write_file"), @ptrCast(&fs.write_file));
+        vm.defineNative(@ptrCast("delete_file"), @ptrCast(&fs.delete_file));
+        vm.defineNative(@ptrCast("create_dir"), @ptrCast(&fs.create_dir));
+        vm.defineNative(@ptrCast("delete_dir"), @ptrCast(&fs.delete_dir));
+    } else {
+        std.log.warn("Filesystem functions are disabled!");
     }
+}
 
-    pub fn deinit(self: *Self) void {
-        self.map.deinit();
-    }
+pub fn addTime() void {
+    vm.defineNative(@ptrCast("now"), @ptrCast(&time.now));
+    vm.defineNative(@ptrCast("now_ns"), @ptrCast(&time.now_ns));
+    vm.defineNative(@ptrCast("now_ms"), @ptrCast(&time.now_ms));
+}
 
-    pub fn append(self: *Self, name: []const u8, comptime func: NativeFn) !void {
-        try self.map.put(name, func);
+pub fn addNet() void {
+    if (enable_net) {
+        vm.defineNative(@ptrCast("get_req"), @ptrCast(&net_funs.get));
+        vm.defineNative(@ptrCast("post_req"), @ptrCast(&net_funs.post));
+        vm.defineNative(@ptrCast("put_req"), @ptrCast(&net_funs.put));
+        vm.defineNative(@ptrCast("del_req"), @ptrCast(&net_funs.delete));
+    } else {
+        return std.log.warn("Network functions are disabled!");
     }
-
-    pub fn addMath(self: *Self) !void {
-        try self.append("log2", &math.log2);
-        try self.append("log10", &math.log10);
-        try self.append("pi", &math.pi);
-        try self.append("sin", &math.sin);
-        try self.append("cos", &math.cos);
-        try self.append("tan", &math.tan);
-        try self.append("asin", &math.asin);
-        try self.append("acos", &math.acos);
-        try self.append("atan", &math.atan);
-        try self.append("complex", &math.complex);
-        try self.append("abs", &math.abs);
-        try self.append("phase", &math.phase);
-        try self.append("rand", &math.rand);
-        try self.append("pow", &math.pow);
-        try self.append("sqrt", &math.sqrt);
-        try self.append("ceil", &math.ceil);
-        try self.append("floor", &math.floor);
-        try self.append("round", &math.round);
-        try self.append("max", &math.max);
-    }
-
-    pub fn addFs(self: *Self) !void {
-        try self.append("create_file", &fs.create_file);
-        try self.append("read_file", &fs.read_file);
-        try self.append("write_file", &fs.write_file);
-        try self.append("delete_file", &fs.delete_file);
-        try self.append("create_dir", &fs.create_dir);
-        try self.append("delete_dir", &fs.delete_dir);
-    }
-
-    pub fn addTypes(self: *Self) !void {
-        try self.append("double", &types.double);
-        try self.append("int", &types.int);
-        try self.append("str", &types.str);
-    }
-
-    pub fn addTime(self: *Self) !void {
-        try self.append("now", &time.now);
-        try self.append("now_ns", &time.now_ns);
-        try self.append("now_ms", &time.now_ms);
-    }
-
-    pub fn addOthers(self: *Self) !void {
-        try self.append("what_is", &what_is);
-        try self.append("input", &io.input);
-        if (enable_net) {
-            try self.append("get_req", &net_funs.get);
-            try self.append("post_req", &net_funs.post);
-            try self.append("put_req", &net_funs.put);
-            try self.append("del_req", &net_funs.delete);
-        }
-    }
-
-    pub fn names(self: Self) []const []const u8 {
-        return self.map.keys();
-    }
-    pub fn functions(self: Self) []const NativeFn {
-        return self.map.values();
-    }
-    pub fn define(self: Self) void {
-        for (self.names(), self.functions()) |n, f| {
-            vm.defineNative(@ptrCast(n), @ptrCast(f));
-        }
-    }
-};
+}
 
 pub fn what_is(argc: c_int, args: [*c]Value) callconv(.C) Value {
     if (argc != 1) return stdlib_error("what_is() expects 1 argument!", .{ .argn = argc });

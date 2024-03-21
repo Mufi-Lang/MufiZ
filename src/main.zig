@@ -22,6 +22,11 @@ const params = clap.parseParamsComptime(
 pub fn main() !void {
     core.vm_h.initVM();
     defer core.vm_h.freeVM();
+    stdlib.prelude();
+    stdlib.addMath();
+    stdlib.addTime();
+    stdlib.addFs();
+    stdlib.addNet();
     defer {
         const check = Global.deinit();
         if (check == .leak) @panic("memory leak!");
@@ -38,17 +43,6 @@ pub fn main() !void {
             return err;
         };
         defer res.deinit();
-
-        var natives = stdlib.NativeFunctions.init(GlobalAlloc);
-        defer natives.deinit();
-        try natives.addMath();
-        try natives.addTime();
-        try natives.addTypes();
-        try natives.addOthers();
-        if (features.enable_fs) {
-            try natives.addFs();
-        }
-        natives.define();
 
         if (res.args.help != 0) {
             return clap.help(std.io.getStdErr().writer(), clap.Help, &params, .{});
