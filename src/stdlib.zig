@@ -17,61 +17,65 @@ pub const io = @import("stdlib/io.zig");
 
 pub const NativeFn = *const fn (c_int, [*c]Value) callconv(.C) Value;
 
+fn defineNative(name: []const u8, fun: NativeFn) void {
+    vm.defineNative(conv.cstr(name), @ptrCast(fun));
+}
+
 pub fn prelude() void {
-    vm.defineNative(@ptrCast("what_is"), @ptrCast(&what_is));
-    vm.defineNative(@ptrCast("input"), @ptrCast(&io.input));
-    vm.defineNative(@ptrCast("double"), @ptrCast(&types.double));
-    vm.defineNative(@ptrCast("int"), @ptrCast(&types.int));
-    vm.defineNative(@ptrCast("str"), @ptrCast(&types.str));
+    defineNative("what_is", &what_is);
+    defineNative("input", &io.input);
+    defineNative("double", &types.double);
+    defineNative("int", &types.int);
+    defineNative("str", &types.str);
 }
 
 pub fn addMath() void {
-    vm.defineNative(@ptrCast("log2"), @ptrCast(&math.log2));
-    vm.defineNative(@ptrCast("log10"), @ptrCast(&math.log10));
-    vm.defineNative(@ptrCast("pi"), @ptrCast(&math.pi));
-    vm.defineNative(@ptrCast("sin"), @ptrCast(&math.sin));
-    vm.defineNative(@ptrCast("cos"), @ptrCast(&math.cos));
-    vm.defineNative(@ptrCast("tan"), @ptrCast(&math.tan));
-    vm.defineNative(@ptrCast("asin"), @ptrCast(&math.asin));
-    vm.defineNative(@ptrCast("acos"), @ptrCast(&math.acos));
-    vm.defineNative(@ptrCast("atan"), @ptrCast(&math.atan));
-    vm.defineNative(@ptrCast("complex"), @ptrCast(&math.complex));
-    vm.defineNative(@ptrCast("abs"), @ptrCast(&math.abs));
-    vm.defineNative(@ptrCast("phase"), @ptrCast(&math.phase));
-    vm.defineNative(@ptrCast("rand"), @ptrCast(&math.rand));
-    vm.defineNative(@ptrCast("pow"), @ptrCast(&math.pow));
-    vm.defineNative(@ptrCast("sqrt"), @ptrCast(&math.sqrt));
-    vm.defineNative(@ptrCast("ceil"), @ptrCast(&math.ceil));
-    vm.defineNative(@ptrCast("floor"), @ptrCast(&math.floor));
-    vm.defineNative(@ptrCast("round"), @ptrCast(&math.round));
-    vm.defineNative(@ptrCast("max"), @ptrCast(&math.max));
+    defineNative("log2", &math.log2);
+    defineNative("log10", &math.log10);
+    defineNative("pi", &math.pi);
+    defineNative("sin", &math.sin);
+    defineNative("cos", &math.cos);
+    defineNative("tan", &math.tan);
+    defineNative("asin", &math.asin);
+    defineNative("acos", &math.acos);
+    defineNative("atan", &math.atan);
+    defineNative("complex", &math.complex);
+    defineNative("abs", &math.abs);
+    defineNative("phase", &math.phase);
+    defineNative("rand", &math.rand);
+    defineNative("pow", &math.pow);
+    defineNative("sqrt", &math.sqrt);
+    defineNative("ceil", &math.ceil);
+    defineNative("floor", &math.floor);
+    defineNative("round", &math.round);
+    defineNative("max", &math.max);
 }
 
 pub fn addFs() void {
     if (enable_fs) {
-        vm.defineNative(@ptrCast("create_file"), @ptrCast(&fs.create_file));
-        vm.defineNative(@ptrCast("read_file"), @ptrCast(&fs.read_file));
-        vm.defineNative(@ptrCast("write_file"), @ptrCast(&fs.write_file));
-        vm.defineNative(@ptrCast("delete_file"), @ptrCast(&fs.delete_file));
-        vm.defineNative(@ptrCast("create_dir"), @ptrCast(&fs.create_dir));
-        vm.defineNative(@ptrCast("delete_dir"), @ptrCast(&fs.delete_dir));
+        defineNative("create_file", &fs.create_file);
+        defineNative("read_file", &fs.read_file);
+        defineNative("write_file", &fs.write_file);
+        defineNative("delete_file", &fs.delete_file);
+        defineNative("create_dir", &fs.create_dir);
+        defineNative("delete_dir", &fs.delete_dir);
     } else {
         std.log.warn("Filesystem functions are disabled!");
     }
 }
 
 pub fn addTime() void {
-    vm.defineNative(@ptrCast("now"), @ptrCast(&time.now));
-    vm.defineNative(@ptrCast("now_ns"), @ptrCast(&time.now_ns));
-    vm.defineNative(@ptrCast("now_ms"), @ptrCast(&time.now_ms));
+    defineNative("now", &time.now);
+    defineNative("now_ns", &time.now_ns);
+    defineNative("now_ms", &time.now_ms);
 }
 
 pub fn addNet() void {
     if (enable_net) {
-        vm.defineNative(@ptrCast("get_req"), @ptrCast(&net_funs.get));
-        vm.defineNative(@ptrCast("post_req"), @ptrCast(&net_funs.post));
-        vm.defineNative(@ptrCast("put_req"), @ptrCast(&net_funs.put));
-        vm.defineNative(@ptrCast("del_req"), @ptrCast(&net_funs.delete));
+        defineNative("get_req", &net_funs.get);
+        defineNative("post_req", &net_funs.post);
+        defineNative("put_req", &net_funs.put);
+        defineNative("del_req", &net_funs.delete);
     } else {
         return std.log.warn("Network functions are disabled!");
     }
