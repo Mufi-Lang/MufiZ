@@ -18,7 +18,7 @@ pub const io = @import("stdlib/io.zig");
 pub const NativeFn = *const fn (c_int, [*c]Value) callconv(.C) Value;
 
 fn defineNative(name: []const u8, fun: NativeFn) void {
-    vm.defineNative(conv.cstr(name), @ptrCast(fun));
+    vm.defineNative(conv.cstr(@constCast(name)), @ptrCast(fun));
 }
 
 pub fn prelude() void {
@@ -42,7 +42,9 @@ pub fn addMath() void {
     defineNative("complex", &math.complex);
     defineNative("abs", &math.abs);
     defineNative("phase", &math.phase);
+    defineNative("sfc", &math.sfc);
     defineNative("rand", &math.rand);
+    defineNative("randn", &math.randn);
     defineNative("pow", &math.pow);
     defineNative("sqrt", &math.sqrt);
     defineNative("ceil", &math.ceil);

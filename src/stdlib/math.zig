@@ -112,13 +112,31 @@ pub fn phase(argc: c_int, args: [*c]Value) callconv(.C) Value {
     return conv.double_val(std.math.atan2(f64, c.i, c.r));
 }
 
-pub fn rand(argc: c_int, args: [*c]Value) callconv(.C) Value {
+pub fn sfc(argc: c_int, args: [*c]Value) callconv(.C) Value {
     _ = args;
     if (argc != 0) return stdlib_error("rand() expects no arguments!", .{ .argn = argc });
     const seed: u64 = @intCast(std.time.milliTimestamp());
     var gen = std.rand.Sfc64.init(seed);
     const random = gen.random().int(i32);
     return conv.int_val(random);
+}
+
+pub fn rand(argc: c_int, args: [*c]Value) callconv(.C) Value {
+    _ = args;
+    if (argc != 0) return stdlib_error("rand() expects no arguments!", .{ .argn = argc });
+    var pcg = std.rand.Pcg.init(@intCast(std.time.microTimestamp()));
+    var random = pcg.random();
+    const r = random.float(f64);
+    return conv.double_val(r);
+}
+
+pub fn randn(argc: c_int, args: [*c]Value) callconv(.C) Value {
+    _ = args;
+    if (argc != 0) return stdlib_error("randn() expects no arguments!", .{ .argn = argc });
+    var pcg = std.rand.Pcg.init(@intCast(std.time.microTimestamp()));
+    var random = pcg.random();
+    const r = random.floatNorm(f64);
+    return conv.double_val(r);
 }
 
 pub fn pow(argc: c_int, args: [*c]Value) callconv(.C) Value {
