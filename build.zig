@@ -36,6 +36,10 @@ pub fn build(b: *std.Build) !void {
         .link_libc = true,
     });
 
+    if(target.os_tag != .windows) {
+        exe.linkSystemLibrary("curl");
+    }
+
     if (target.cpu_arch == .wasm32) {
         b.enable_wasmtime = true;
     }
@@ -116,6 +120,7 @@ pub fn build(b: *std.Build) !void {
     if (b.args) |args| {
         run_cmd.addArgs(args);
     }
+
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
 }

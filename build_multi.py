@@ -14,7 +14,7 @@ bin = "zig-out/bin/mufiz"
 wasm_bin = "zig-out/bin/mufiz.wasm"
 
 class PackageBuilder:
-    def __init__(self, version="0.6.0", out_path="zig-out/bin/"):
+    def __init__(self, version, out_path):
         self.version = version
         self.out_path = out_path
         self.data = self.load_targets()
@@ -24,10 +24,7 @@ class PackageBuilder:
             return json.load(file)['targets']
 
     def command_str(self, arch, target, pkg):
-        if pkg == "snap":
-            return f"fpm -v {self.version} -a {arch} -s zip -t {pkg} --prefix /snap/bin --snap-confinement strict --snap-grade stable -m 'Mustafif0929@gmail.com' --description 'The Mufi Programming Language' -n mufiz ./zig-out/bin/mufiz_{self.version}_{target}.zip"
-        else:
-            return f"fpm -v {self.version} -a {arch} -s zip -t {pkg} --prefix /usr/bin -m 'Mustafif0929@gmail.com' --description 'The Mufi Programming Language' -n mufiz ./zig-out/bin/mufiz_{self.version}_{target}.zip "
+        return f"fpm -v {self.version} -a {arch} -s zip -t {pkg} --prefix /usr/bin -m 'Mustafif0929@gmail.com' --description 'The Mufi Programming Language' -n mufiz ./zig-out/bin/mufiz_{self.version}_{target}.zip "
 
     def build_package(self, arch, target, pkg):
         command = self.command_str(arch, target, pkg)
@@ -59,7 +56,6 @@ class PackageBuilder:
                 z.write(bin, os.path.basename(bin))
             os.remove(bin)
             print(f"Zipped successfully {zipper}")
-
         time.sleep(5)
 
     def build_linux_pkg(self, target):
@@ -103,5 +99,5 @@ class PackageBuilder:
 
 
 if __name__ == "__main__":
-    builder = PackageBuilder()
+    builder = PackageBuilder(version, out_path)
     builder.build_packages()

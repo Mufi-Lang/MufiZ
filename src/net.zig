@@ -5,6 +5,7 @@ const http = std.http;
 const Headers = http.Headers;
 const Client = http.Client;
 const GlobalAlloc = @import("main.zig").GlobalAlloc;
+const builtin = @import("builtin");
 
 pub const ContentType = enum(u8) {
     PlainText = 0,
@@ -14,7 +15,7 @@ pub const ContentType = enum(u8) {
     PDF = 4,
     JPEG = 5,
     PNG = 6,
-    
+
     const Self = @This();
 
     pub fn to_str(self: Self) []const u8 {

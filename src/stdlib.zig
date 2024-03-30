@@ -62,7 +62,7 @@ pub fn addFs() void {
         defineNative("create_dir", &fs.create_dir);
         defineNative("delete_dir", &fs.delete_dir);
     } else {
-        std.log.warn("Filesystem functions are disabled!");
+        std.log.warn("Filesystem functions are disabled!", .{});
     }
 }
 
@@ -79,7 +79,7 @@ pub fn addNet() void {
         defineNative("put_req", &net_funs.put);
         defineNative("del_req", &net_funs.delete);
     } else {
-        return std.log.warn("Network functions are disabled!");
+        return std.log.warn("Network functions are disabled!", .{});
     }
 }
 
