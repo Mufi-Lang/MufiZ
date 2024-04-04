@@ -1,6 +1,6 @@
 const std = @import("std");
 const JValue = std.json.Value;
-const core = @import("core");
+const core = @import("core.zig");
 const Value = core.Value;
 const Obj = core.Obj;
 const ObjType = core.ObjType;
@@ -32,7 +32,7 @@ pub fn what_is(val: Value) []const u8 {
 
 /// Checks if the given range has the correct type
 pub fn type_check(n: usize, values: [*c]Value, val_type: i32) bool {
-    var check_fn = switch (val_type) {
+    const check_fn = switch (val_type) {
         VAL_INT => &is_int,
         VAL_DOUBLE => &is_double,
         VAL_BOOL => &is_bool,
@@ -172,7 +172,7 @@ pub fn json_val(val: Value) JValue {
         VAL_NIL => return JValue{ .integer = 0 },
         VAL_OBJ => {
             if (is_string(val)) {
-                var s = as_zstring(val);
+                const s = as_zstring(val);
                 return JValue{ .string = s };
             } else {
                 return JValue{.null};

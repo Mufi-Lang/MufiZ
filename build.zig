@@ -1,19 +1,20 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
-comptime {
-    const supported_version = std.SemanticVersion.parse("0.11.0") catch unreachable;
-    if (builtin.zig_version.order(supported_version) != .eq) {
-        @compileError(std.fmt.comptimePrint("Unsupported Zig version ({}). Required Zig version 0.11.0.", .{builtin.zig_version}));
-    }
-}
+// comptime {
+//     const supported_version = std.SemanticVersion.parse("0.11.0") catch unreachable;
+//     if (builtin.zig_version.order(supported_version) != .eq) {
+//         @compileError(std.fmt.comptimePrint("Unsupported Zig version ({}). Required Zig version 0.11.0.", .{builtin.zig_version}));
+//     }
+// }
 
 pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
     var c_flags: []const []const u8 = undefined;
-    if (target.cpu_arch == .x86_64) {
+    const query = target.query;
+    if (query.cpu_arch == .x86_64) {
         c_flags = &.{ "-Wall", "-O3", "-ffast-math", "-Wno-unused-variable", "-Wno-unused-function", "-mavx2" };
     } else {
         c_flags = &.{
@@ -36,11 +37,11 @@ pub fn build(b: *std.Build) !void {
         .link_libc = true,
     });
 
-    if(target.os_tag != .windows) {
+    if (query.os_tag != .windows) {
         exe.linkSystemLibrary("curl");
     }
 
-    if (target.cpu_arch == .wasm32) {
+    if (query.cpu_arch == .wasm32) {
         b.enable_wasmtime = true;
     }
 
@@ -60,37 +61,31 @@ pub fn build(b: *std.Build) !void {
         .root_source_file = .{ .path = "src/table.zig" },
     });
 
-    lib_table.addCSourceFiles(&.{
+    lib_table.addCSourceFiles(.{ .files = &.{
         "core/value.c",
         "core/memory.c",
         "core/object.c",
-    }, c_flags);
+    }, .flags = c_flags });
 
-    lib_table.addIncludePath(.{ .path = "include" });
+    lib_table.addIncludePath(.{ .path = "include/" });
 
-    const lib_core = b.addStaticLibrary(.{
-        .name = "libmufiz_core",
-        .root_source_file = .{ .path = "src/core.zig" },
-        .target = target,
-        .optimize = .ReleaseFast,
-        .link_libc = true,
-    });
+    exe.linkLibrary(lib_table);
 
-    lib_core.linkLibrary(lib_table);
-
-    lib_core.linkLibrary(lib_scanner);
+    exe.linkLibrary(lib_scanner);
 
     // zig fmt: off
-    lib_core.addCSourceFiles(&.{ 
+    exe.addCSourceFiles(.{ 
+        .files = &.{
         "core/object.c",
         "core/chunk.c", 
         "core/compiler.c", 
         "core/debug.c", 
         "core/vm.c", 
         "core/cstd.c",
-    }, c_flags);
-    exe.addIncludePath(.{.path = "include"});
-    exe.linkLibrary(lib_core);
+        },
+        .flags = c_flags
+    });
+    exe.addIncludePath(.{.path = "include/"});
     exe.linkSystemLibrary("m");
 
     const clap = b.dependency("clap", .{
@@ -98,8 +93,7 @@ pub fn build(b: *std.Build) !void {
         .optimize = .ReleaseSafe
     });
 
-    exe.addModule("clap", clap.module("clap"));
-    exe.addModule("core", b.createModule(.{.source_file = .{.path = "src/core.zig"}}));
+    exe.root_module.addImport("clap", clap.module("clap"));
 
     const options = b.addOptions();
     // const nostd = b.option(bool, "nostd", "Run Mufi without Standard Library") orelse false;
@@ -110,7 +104,7 @@ pub fn build(b: *std.Build) !void {
     options.addOption(bool, "enable_net", net);
     options.addOption(bool, "enable_fs", fs);
     options.addOption(bool, "sandbox", sandbox);
-    exe.addOptions("features", options);
+    exe.root_module.addOptions("features", options);
 
     // zig fmt: on
     b.installArtifact(exe);

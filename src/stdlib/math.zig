@@ -1,6 +1,6 @@
 const std = @import("std");
 const conv = @import("../conv.zig");
-const Value = @import("core").value_h.Value;
+const Value = @import("../core.zig").value_h.Value;
 const stdlib_error = @import("../stdlib.zig").stdlib_error;
 const NativeFn = @import("../stdlib.zig").NativeFn;
 const type_check = conv.type_check;
@@ -95,11 +95,11 @@ pub fn abs(argc: c_int, args: [*c]Value) callconv(.C) Value {
         },
         conv.VAL_DOUBLE => {
             const d = conv.as_double(args[0]);
-            return conv.double_val(@fabs(d));
+            return conv.double_val(@abs(d));
         },
         conv.VAL_INT => {
             const i = conv.as_int(args[0]);
-            return conv.int_val(std.math.absInt(i) catch 0);
+            return conv.int_val(@intCast(@abs(i)));
         },
         else => return stdlib_error("abs() expects a Numeric Type!", .{ .value_type = conv.what_is(args[0]) }),
     }
@@ -109,7 +109,7 @@ pub fn phase(argc: c_int, args: [*c]Value) callconv(.C) Value {
     if (argc != 1) return stdlib_error("phase() expects one argument!", .{ .argn = argc });
     if (!type_check(1, args, conv.VAL_COMPLEX)) return stdlib_error("phase() expects a Complex!", .{ .value_type = conv.what_is(args[0]) });
     const c = conv.as_complex(args[0]);
-    return conv.double_val(std.math.atan2(f64, c.i, c.r));
+    return conv.double_val(std.math.atan2(c.i, c.r));
 }
 
 pub fn sfc(argc: c_int, args: [*c]Value) callconv(.C) Value {

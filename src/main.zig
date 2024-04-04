@@ -6,6 +6,7 @@ const clap = @import("clap");
 const core = @import("core");
 const features = @import("features");
 const heap = std.heap;
+pub const vm_h = @cImport(@cInclude("vm.h"));
 
 var Global = heap.GeneralPurposeAllocator(.{}){};
 pub const GlobalAlloc = if (builtin.target.isWasm()) heap.page_allocator else Global.allocator();
@@ -20,13 +21,13 @@ const params = clap.parseParamsComptime(
 );
 
 pub fn main() !void {
-    core.vm_h.initVM();
-    defer core.vm_h.freeVM();
+    vm_h.initVM();
+    defer vm_h.freeVM();
     stdlib.prelude();
     stdlib.addMath();
     stdlib.addTime();
     stdlib.addFs();
-    stdlib.addNet();
+   // stdlib.addNet();
     defer {
         const check = Global.deinit();
         if (check == .leak) @panic("memory leak!");

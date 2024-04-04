@@ -2,7 +2,7 @@
 const std = @import("std");
 const Uri = std.Uri;
 const http = std.http;
-const Headers = http.Headers;
+const Header = http.Header;
 const Client = http.Client;
 const GlobalAlloc = @import("main.zig").GlobalAlloc;
 const builtin = @import("builtin");
@@ -30,8 +30,8 @@ pub const ContentType = enum(u8) {
         };
     }
 
-    pub fn addToHeaders(self: Self, headers: *Headers) !void {
-        try headers.append("Content-Type", self.to_str());
+    pub fn header(self: Self) Header {
+        return .{ .name = "Content-Type", .value = self.to_str() };
     }
 };
 
@@ -41,13 +41,12 @@ pub const Options = struct {
 
     const Self = @This();
 
-    pub fn addToHeaders(self: Self, headers: *Headers) !void {
-        if (self.user_agent) |ua| {
-            try headers.append("User-Agent", ua);
-        }
-        if (self.authorization_token) |a| {
-            try headers.append("Authorization", a);
-        }
+    pub fn ua(self: Self) []const u8 {
+        return self.user_agent orelse "Zig HTTP Client";
+    }
+
+    pub fn auth(self: Self) []const u8 {
+        return self.authorization_token orelse "";
     }
 };
 
@@ -55,13 +54,13 @@ pub fn get(url: []const u8, ct: ContentType, op: Options) ![]u8 {
     var client = Client{ .allocator = GlobalAlloc };
     defer client.deinit();
     const method = http.Method.GET;
-    const uri = try Uri.parse(url);
-    var headers = Headers.init(GlobalAlloc);
-    defer headers.deinit();
-    try ct.addToHeaders(&headers);
-    try op.addToHeaders(&headers);
 
-    var req = try client.request(method, uri, headers, .{});
+    var req = try client.fetch(.{ .method = method, .headers = .{
+        .host = .{ .override = url },
+        .authorization = .{ .override = op.auth() },
+        .user_agent = .{ .override = op.ua() },
+        .content_type = .{ .override = ct.to_str() },
+    } });
     defer req.deinit();
     try req.start();
     try req.wait();
@@ -76,13 +75,12 @@ pub fn post(url: []const u8, data: []const u8, ct: ContentType, op: Options) ![]
     var client = Client{ .allocator = GlobalAlloc };
     defer client.deinit();
     const method = http.Method.POST;
-    const uri = try Uri.parse(url);
-    var headers = Headers.init(GlobalAlloc);
-    defer headers.deinit();
-    try ct.addToHeaders(&headers);
-    try op.addToHeaders(&headers);
-
-    var req = try client.request(method, uri, headers, .{});
+    var req = try client.fetch(.{ .method = method, .headers = .{
+        .host = .{ .override = url },
+        .authorization = .{ .override = op.auth() },
+        .user_agent = .{ .override = op.ua() },
+        .content_type = .{ .override = ct.to_str() },
+    } });
     defer req.deinit();
 
     req.transfer_encoding = .chunked;
@@ -103,13 +101,12 @@ pub fn put(url: []const u8, data: []const u8, ct: ContentType, op: Options) ![]u
     var client = Client{ .allocator = GlobalAlloc };
     defer client.deinit();
     const method = http.Method.PUT;
-    const uri = try Uri.parse(url);
-    var headers = Headers.init(GlobalAlloc);
-    defer headers.deinit();
-    try ct.addToHeaders(&headers);
-    try op.addToHeaders(&headers);
-
-    var req = try client.request(method, uri, headers, .{});
+    var req = try client.fetch(.{ .method = method, .headers = .{
+        .host = .{ .override = url },
+        .authorization = .{ .override = op.auth() },
+        .user_agent = .{ .override = op.ua() },
+        .content_type = .{ .override = ct.to_str() },
+    } });
     defer req.deinit();
 
     req.transfer_encoding = .chunked;
@@ -130,13 +127,12 @@ pub fn delete(url: []const u8, ct: ContentType, op: Options) ![]u8 {
     var client = Client{ .allocator = GlobalAlloc };
     defer client.deinit();
     const method = http.Method.DELETE;
-    const uri = try Uri.parse(url);
-    var headers = Headers.init(GlobalAlloc);
-    defer headers.deinit();
-    try ct.addToHeaders(&headers);
-    try op.addToHeaders(&headers);
-
-    var req = try client.request(method, uri, headers, .{});
+    var req = try client.fetch(.{ .method = method, .headers = .{
+        .host = .{ .override = url },
+        .authorization = .{ .override = op.auth() },
+        .user_agent = .{ .override = op.ua() },
+        .content_type = .{ .override = ct.to_str() },
+    } });
     defer req.deinit();
 
     try req.start();

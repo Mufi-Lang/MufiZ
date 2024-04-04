@@ -1,7 +1,7 @@
 const std = @import("std");
 const conv = @import("../conv.zig");
 const stdlib = @import("../stdlib.zig");
-const Value = @import("core").value_h.Value;
+const Value = @import("../core.zig").value_h.Value;
 
 pub fn now(argc: c_int, args: [*c]Value) callconv(.C) Value {
     _ = args;

@@ -1,5 +1,5 @@
 const std = @import("std");
-const core = @import("core");
+const core = @import("../core.zig");
 const conv = @import("../conv.zig");
 const stdlib_error = @import("../stdlib.zig").stdlib_error;
 const value_h = core.value_h;

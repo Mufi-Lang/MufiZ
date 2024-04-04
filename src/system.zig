@@ -1,6 +1,6 @@
 const std = @import("std");
 const core = @import("core");
-const vm_h = core.vm_h;
+const vm_h = @import("main.zig").vm_h;
 const conv = @import("conv.zig");
 const builtin = @import("builtin");
 const GlobalAlloc = @import("main.zig").GlobalAlloc;
@@ -21,7 +21,7 @@ pub fn repl() !void {
     while (true) {
         std.debug.print("(mufi) >> ", .{});
         try std.io.getStdIn().reader().streamUntilDelimiter(streamer.writer(), '\n', 1024);
-        var input = streamer.getWritten();
+        const input = streamer.getWritten();
         _ = vm_h.interpret(conv.cstr(input));
         streamer.reset();
     }
@@ -53,8 +53,8 @@ pub const Runner = struct {
 
     fn run(str: []u8) void {
         const result = vm_h.interpret(conv.cstr(str));
-        if (result == vm_h.INTERPRET_COMPILE_ERROR) std.os.exit(65);
-        if (result == vm_h.INTERPRET_RUNTIME_ERROR) std.os.exit(70);
+        if (result == vm_h.INTERPRET_COMPILE_ERROR) std.process.exit(65);
+        if (result == vm_h.INTERPRET_RUNTIME_ERROR) std.process.exit(70);
     }
 
     pub fn setMain(self: *Self, main: []u8) !void {
