@@ -28,6 +28,7 @@ pub fn main() !void {
     stdlib.addTime();
     stdlib.addFs();
     stdlib.addNet();
+    vm_h.importCollections();
     defer {
         const check = Global.deinit();
         if (check == .leak) @panic("memory leak!");
