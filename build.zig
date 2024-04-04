@@ -37,7 +37,7 @@ pub fn build(b: *std.Build) !void {
         .link_libc = true,
     });
 
-    if (query.os_tag != .windows) {
+    if (query.os_tag != .windows and query.os_tag != .wasi) {
         exe.linkSystemLibrary("curl");
     }
 
