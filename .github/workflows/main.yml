@@ -22,10 +22,21 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+      
+      # Install curl on Ubuntu
+      - name: Install curl on Ubuntu
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y curl
+      
+      # Install curl on macOS
+      - name: Install curl on macOS
+        if: matrix.os == 'macos-latest'
+        run: brew install curl
+      
+      # Install Zig and build/run tests
       - name: Setup Zig
         uses: goto-bus-stop/setup-zig@v2
         with:
           version: 0.12.0-dev.3522+b88ae8dbd
       - name: Build and run tests
         run: zig build run -Doptimize=ReleaseSafe -- --run tests/class.mufi
-
