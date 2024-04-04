@@ -183,6 +183,6 @@ To support various toolchains, we have added the following features to the proje
 | x86_64-linux-gnu       | :white_check_mark: | :white_check_mark: |
 | x86_64-linux-musl      | :white_check_mark: | :white_check_mark: |
 | x86_64-macos           | :white_check_mark: | :white_check_mark: |
-| x86_64-windows         | :white_check_mark: | :white_check_mark: |
-| x86_64-windows-gnu     | :white_check_mark: | :white_check_mark: |
+| x86_64-windows         | :x:                | :white_check_mark: |
+| x86_64-windows-gnu     | :x:                | :white_check_mark: |
 | wasm32-wasi            | :x:                | :x:                |

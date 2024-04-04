@@ -27,7 +27,7 @@ pub fn main() !void {
     stdlib.addMath();
     stdlib.addTime();
     stdlib.addFs();
-   // stdlib.addNet();
+    stdlib.addNet();
     defer {
         const check = Global.deinit();
         if (check == .leak) @panic("memory leak!");
