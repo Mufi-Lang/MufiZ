@@ -8,3 +8,4 @@ web/target
 snap.py
 t
 apt-repo
+include/common.h
