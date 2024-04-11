@@ -55,14 +55,15 @@ pub fn get(url: []const u8, ct: ContentType, op: Options) ![]u8 {
     defer client.deinit();
     const method = http.Method.GET;
 
-    var req = try client.fetch(.{ .method = method, .headers = .{
-        .host = .{ .override = url },
+    const server_buffer = try GlobalAlloc.alloc(u8, 10000);
+    defer GlobalAlloc.free(server_buffer);
+    var req = try client.open(method, try Uri.parse(url), .{ .headers = .{
         .authorization = .{ .override = op.auth() },
         .user_agent = .{ .override = op.ua() },
         .content_type = .{ .override = ct.to_str() },
-    } });
+    }, .server_header_buffer = server_buffer });
     defer req.deinit();
-    try req.start();
+    try req.send();
     try req.wait();
 
     var buffer: [100000]u8 = undefined;
@@ -75,17 +76,18 @@ pub fn post(url: []const u8, data: []const u8, ct: ContentType, op: Options) ![]
     var client = Client{ .allocator = GlobalAlloc };
     defer client.deinit();
     const method = http.Method.POST;
-    var req = try client.fetch(.{ .method = method, .headers = .{
-        .host = .{ .override = url },
+    const server_buffer = try GlobalAlloc.alloc(u8, 10000);
+    defer GlobalAlloc.free(server_buffer);
+    var req = try client.open(method, try Uri.parse(url), .{ .headers = .{
         .authorization = .{ .override = op.auth() },
         .user_agent = .{ .override = op.ua() },
         .content_type = .{ .override = ct.to_str() },
-    } });
+    }, .server_header_buffer = server_buffer });
     defer req.deinit();
 
     req.transfer_encoding = .chunked;
 
-    try req.start();
+    try req.send();
 
     try req.writer().writeAll(data);
     try req.finish();
@@ -101,17 +103,18 @@ pub fn put(url: []const u8, data: []const u8, ct: ContentType, op: Options) ![]u
     var client = Client{ .allocator = GlobalAlloc };
     defer client.deinit();
     const method = http.Method.PUT;
-    var req = try client.fetch(.{ .method = method, .headers = .{
-        .host = .{ .override = url },
+    const server_buffer = try GlobalAlloc.alloc(u8, 10000);
+    defer GlobalAlloc.free(server_buffer);
+    var req = try client.open(method, try Uri.parse(url), .{ .headers = .{
         .authorization = .{ .override = op.auth() },
         .user_agent = .{ .override = op.ua() },
         .content_type = .{ .override = ct.to_str() },
-    } });
+    }, .server_header_buffer = server_buffer });
     defer req.deinit();
 
     req.transfer_encoding = .chunked;
 
-    try req.start();
+    try req.send();
 
     try req.writer().writeAll(data);
     try req.finish();
@@ -127,15 +130,16 @@ pub fn delete(url: []const u8, ct: ContentType, op: Options) ![]u8 {
     var client = Client{ .allocator = GlobalAlloc };
     defer client.deinit();
     const method = http.Method.DELETE;
-    var req = try client.fetch(.{ .method = method, .headers = .{
-        .host = .{ .override = url },
+    const server_buffer = try GlobalAlloc.alloc(u8, 10000);
+    defer GlobalAlloc.free(server_buffer);
+    var req = try client.open(method, try Uri.parse(url), .{ .headers = .{
         .authorization = .{ .override = op.auth() },
         .user_agent = .{ .override = op.ua() },
         .content_type = .{ .override = ct.to_str() },
-    } });
+    }, .server_header_buffer = server_buffer });
     defer req.deinit();
 
-    try req.start();
+    try req.send();
     try req.wait();
     var buffer: [100000]u8 = undefined;
 
