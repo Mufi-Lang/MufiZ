@@ -945,20 +945,20 @@ Value interp1_nf(int argCount, Value *args)
     return DOUBLE_VAL(result);
 }
 
-Value solve_nf(int argCount, Value *args)
-{
-    if (argCount != 2)
-    {
-        runtimeError("solve() takes 2 arguments.");
-        return NIL_VAL;
-    }
-    if (!IS_MATRIX(args[0]) || !IS_ARRAY(args[1]))
-    {
-        runtimeError("First argument must be a matrix and the second argument must be an array.");
-        return NIL_VAL;
-    }
-    ObjMatrix *a = AS_MATRIX(args[0]);
-    ObjMatrix *b = AS_ARRAY(args[1]);
-    ObjMatrix *result = solveMatrix(a, b);
-    return OBJ_VAL(result);
-}
+// Value solve_nf(int argCount, Value *args)
+// {
+//     if (argCount != 2)
+//     {
+//         runtimeError("solve() takes 2 arguments.");
+//         return NIL_VAL;
+//     }
+//     if (!IS_MATRIX(args[0]) || !IS_ARRAY(args[1]))
+//     {
+//         runtimeError("First argument must be a matrix and the second argument must be an array.");
+//         return NIL_VAL;
+//     }
+//     ObjMatrix *a = AS_MATRIX(args[0]);
+//     ObjMatrix *b = AS_ARRAY(args[1]);
+//     ObjMatrix *result = solveMatrix(a, b);
+//     return OBJ_VAL(result);
+// }

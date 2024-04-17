@@ -133,6 +133,6 @@ Value eigenvectors_nf(int argCount, Value *args);
 Value linspace_nf(int argCount, Value *args);
 Value interp1_nf(int argCount, Value *args);
 // Value blsprice_nf(int argCount, Value *args);
-Value solve_nf(int argCount, Value *args);
+//Value solve_nf(int argCount, Value *args);
 
 #endif
