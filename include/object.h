@@ -407,6 +407,7 @@ void printFloatVector(FloatVector* vector);
 FloatVector* mergeFloatVector(FloatVector* a, FloatVector* b);
 //> TODO: Slices the float vector from start to end
 FloatVector* sliceFloatVector(FloatVector* vector, int start, int end);
+
 //> Sums the float vector
 double sumFloatVector(FloatVector* vector);
 //> Finds the mean of the float vector

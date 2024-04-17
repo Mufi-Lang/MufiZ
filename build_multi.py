@@ -62,30 +62,29 @@ class PackageBuilder:
         arch_map = {
             "x86_64-linux": "amd64",
             "aarch64-linux": "arm64",
-            "arm-linux": "arm",
-            "mips64-linux": "mips64",
-            "mips64el-linux": "mips64el",
-            "mipsel-linux": "mipsel",
-            "mips-linux": "mips",
+           # "arm-linux": "arm",
+            "mips64-linux-musl": "mips64",
+            "mips64el-linux-musl": "mips64el",
+            "mipsel-linux-musl": "mipsel",
+            "mips-linux-musl": "mips",
             "powerpc64-linux": "powerpc64",
             "powerpc64le-linux": "powerpc64le",
             "powerpc-linux": "powerpc",
             "riscv64-linux": "riscv64"
         }
-
-        if target.startswith(tuple(arch_map.keys())):
+        if target in (tuple(arch_map.keys())):
             arch = arch_map[target]
             self.build_package(arch, target, "deb")
             self.build_package(arch, target, "rpm")
 
     def build_packages(self):
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            executor.map(self.build_target, self.data)
+        for target in self.data:
+            self.build_target(target)
 
         os.remove(self.out_path + "mufiz.pdb")
 
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            executor.map(self.build_linux_pkg, self.data)
+        for target in self.data:
+            self.build_linux_pkg(target)
 
         deb = glob.glob("*.deb")
         for d in deb:
