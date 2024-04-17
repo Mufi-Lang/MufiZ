@@ -1,3 +1,4 @@
+// Unused!
 const std = @import("std");
 const enable_net = @import("features").enable_net;
 const cURL = if (enable_net) @cImport(@cInclude("curl/curl.h")) else {};
@@ -63,10 +64,7 @@ pub fn post(url: []const u8, data: []const u8) !Value {
     defer response_buffer.deinit();
 
     // setup curl options
-    if (cURL.curl_easy_setopt(handle, cURL.CURLOPT_URL, conv.cstr(@constCast(url))) != cURL.CURLE_OK
-        or cURL.curl_easy_setopt(handle, cURL.CURLOPT_POSTFIELDS, conv.cstr(@constCast(data))) != cURL.CURLE_OK
-        or cURL.curl_easy_setopt(handle, cURL.CURLOPT_POSTFIELDSIZE, @intCast(data.len)) != cURL.CURLE_OK)
-    {
+    if (cURL.curl_easy_setopt(handle, cURL.CURLOPT_URL, conv.cstr(@constCast(url))) != cURL.CURLE_OK or cURL.curl_easy_setopt(handle, cURL.CURLOPT_POSTFIELDS, conv.cstr(@constCast(data))) != cURL.CURLE_OK or cURL.curl_easy_setopt(handle, cURL.CURLOPT_POSTFIELDSIZE, @intCast(data.len)) != cURL.CURLE_OK) {
         return error.CouldNotSetURL;
     }
 
@@ -101,11 +99,7 @@ pub fn put(url: []const u8, data: []const u8) !Value {
     defer response_buffer.deinit();
 
     // setup curl options
-    if (cURL.curl_easy_setopt(handle, cURL.CURLOPT_URL, conv.cstr(@constCast(url))) != cURL.CURLE_OK
-        or cURL.curl_easy_setopt(handle, cURL.CURLOPT_CUSTOMREQUEST, conv.cstr("PUT")) != cURL.CURLE_OK
-        or cURL.curl_easy_setopt(handle, cURL.CURLOPT_POSTFIELDS, conv.cstr(@constCast(data))) != cURL.CURLE_OK
-        or cURL.curl_easy_setopt(handle, cURL.CURLOPT_POSTFIELDSIZE, @intCast(data.len)) != cURL.CURLE_OK)
-    {
+    if (cURL.curl_easy_setopt(handle, cURL.CURLOPT_URL, conv.cstr(@constCast(url))) != cURL.CURLE_OK or cURL.curl_easy_setopt(handle, cURL.CURLOPT_CUSTOMREQUEST, conv.cstr("PUT")) != cURL.CURLE_OK or cURL.curl_easy_setopt(handle, cURL.CURLOPT_POSTFIELDS, conv.cstr(@constCast(data))) != cURL.CURLE_OK or cURL.curl_easy_setopt(handle, cURL.CURLOPT_POSTFIELDSIZE, @intCast(data.len)) != cURL.CURLE_OK) {
         return error.CouldNotSetURL;
     }
 
@@ -140,9 +134,7 @@ pub fn delete(url: []const u8) !Value {
     defer response_buffer.deinit();
 
     // setup curl options
-    if (cURL.curl_easy_setopt(handle, cURL.CURLOPT_URL, conv.cstr(@constCast(url))) != cURL.CURLE_OK
-        or cURL.curl_easy_setopt(handle, cURL.CURLOPT_CUSTOMREQUEST, conv.cstr("DELETE")) != cURL.CURLE_OK)
-    {
+    if (cURL.curl_easy_setopt(handle, cURL.CURLOPT_URL, conv.cstr(@constCast(url))) != cURL.CURLE_OK or cURL.curl_easy_setopt(handle, cURL.CURLOPT_CUSTOMREQUEST, conv.cstr("DELETE")) != cURL.CURLE_OK) {
         return error.CouldNotSetURL;
     }
 
