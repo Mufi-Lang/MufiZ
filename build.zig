@@ -73,7 +73,6 @@ pub fn build(b: *std.Build) !void {
     // zig fmt: off
     exe.addCSourceFiles(.{ 
         .files = &.{
-        "core/object.c",
         "core/chunk.c", 
         "core/compiler.c", 
         "core/debug.c", 
