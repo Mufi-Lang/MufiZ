@@ -101,9 +101,11 @@ pub fn build(b: *std.Build) !void {
     const options = b.addOptions();
     // const nostd = b.option(bool, "nostd", "Run Mufi without Standard Library") orelse false;
     // options.addOption(bool, "nostd", nostd);
-    const net = b.option(bool, "enable_net", "Enable Network features") orelse curl_default or true;
+    const curl = b.option(bool, "enable_curl", "Enable cURL Network features") orelse curl_default;
+    const net  = b.option(bool, "enable_net", "Enable Network features") orelse true;
     const fs = b.option(bool, "enable_fs", "Enable File System features") orelse true;
     const sandbox = b.option(bool, "sandbox", "Enable Sandbox Mode (REPL only)") orelse false;
+    options.addOption(bool, "enable_curl", curl);
     options.addOption(bool, "enable_net", net);
     options.addOption(bool, "enable_fs", fs);
     options.addOption(bool, "sandbox", sandbox);

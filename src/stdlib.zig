@@ -4,8 +4,10 @@ const vm = @cImport(@cInclude("vm.h"));
 const conv = @import("conv.zig");
 const core = @import("core.zig");
 const enable_net = @import("features").enable_net;
+const enable_curl = @import("features").enable_curl;
 const enable_fs = @import("features").enable_fs;
 const net = if (enable_net) @import("net.zig") else {};
+const curl = if (enable_curl) @import("net_curl.zig") else {};
 const GlobalAlloc = @import("main.zig").GlobalAlloc;
 const cstd = core.cstd_h;
 
@@ -74,10 +76,13 @@ pub fn addTime() void {
 
 pub fn addNet() void {
     if (enable_net) {
-        defineNative("get_curl", &net_funs.get_curl);
-        defineNative("post_curl", &net_funs.post_curl);
-        defineNative("put_curl", &net_funs.put_curl);
-        defineNative("del_curl", &net_funs.delete_curl);
+        if (enable_curl) {
+            defineNative("get_curl", &curl_funs.get_curl);
+            defineNative("post_curl", &curl_funs.post_curl);
+            defineNative("put_curl", &curl_funs.put_curl);
+            defineNative("del_curl", &curl_funs.delete_curl);
+        }
+
         defineNative("get_req", &net_funs.get);
         defineNative("post_req", &net_funs.post);
         defineNative("put_req", &net_funs.put);
@@ -96,8 +101,8 @@ pub fn what_is(argc: c_int, args: [*c]Value) callconv(.C) Value {
     return conv.nil_val();
 }
 
-const net_funs = if (enable_net) struct {
-    pub fn get_curl(argc: c_int, args: [*c]Value) callconv(.C) Value {
+const curl_funs = if (enable_curl) struct {
+    fn get_curl(argc: c_int, args: [*c]Value) callconv(.C) Value {
         _ = argc;
         const url = conv.as_zstring(args[0]);
         const data = @import("net_curl.zig").get(url) catch return conv.nil_val();
@@ -126,7 +131,9 @@ const net_funs = if (enable_net) struct {
         const data = @import("net_curl.zig").delete(url) catch return conv.nil_val();
         return conv.string_val(data);
     }
+};
 
+const net_funs = if (enable_net) struct {
     pub fn get(argc: c_int, args: [*c]Value) callconv(.C) Value {
         // expects `(url, method)`
         if (argc < 2) return stdlib_error("get() expects at least 2 arguments!", .{ .argn = argc });
