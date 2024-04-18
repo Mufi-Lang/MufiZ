@@ -66,8 +66,8 @@ typedef enum
     OBJ_ARRAY,
     OBJ_LINKED_LIST,
     OBJ_HASH_TABLE,
-    OBJ_MATRIX, 
-    OBJ_FVECTOR, 
+    OBJ_MATRIX,
+    OBJ_FVECTOR,
 } ObjType;
 
 //> Object Structure
@@ -89,7 +89,7 @@ struct Node
 };
 
 //> Linked List Object
-//> A doubly linked list is a collection of nodes 
+//> A doubly linked list is a collection of nodes
 //> that are connected to each other
 typedef struct
 {
@@ -134,13 +134,14 @@ typedef struct
 //> Float Vector Object
 //> A float vector is a static array of floating point numbers
 //> This type is similar to ObjArray but utilizes SIMD for faster operations
-typedef struct {
+typedef struct
+{
     Obj obj;
     bool vec3; // quick check for vec3
     int size;
     int count;
-    double* data;
-}FloatVector;
+    double *data;
+} FloatVector;
 
 //> Function Object
 //> A function is a block of code that can be called
@@ -286,9 +287,9 @@ Value varianceArray(ObjArray *array);
 //> Finds the standard deviation of the array
 Value stdDevArray(ObjArray *array);
 //> Returns the length of the array
-int lenArray(ObjArray* array);
+int lenArray(ObjArray *array);
 //> Prints the array
-void printArray(ObjArray* array);
+void printArray(ObjArray *array);
 //> Creates a new empty array
 ObjArray *newArray();
 //> Creates a new array with a given capacity and static flag
@@ -363,7 +364,7 @@ ObjMatrix *divMatrix(ObjMatrix *a, ObjMatrix *b);
 //> Transposes the matrix
 ObjMatrix *transposeMatrix(ObjMatrix *matrix);
 //> Scales the matrix with a given scalar
-ObjMatrix* scaleMatrix(ObjMatrix *matrix, Value scalar);
+ObjMatrix *scaleMatrix(ObjMatrix *matrix, Value scalar);
 //> Swaps two rows in the matrix
 void swapRows(ObjMatrix *matrix, int row1, int row2);
 //> Finds the reduced row echelon form of the matrix
@@ -373,7 +374,7 @@ int rank(ObjMatrix *matrix);
 //> Finds the identity matrix of the given size
 ObjMatrix *identityMatrix(int n);
 //> Finds the LU decomposition of the matrix
-ObjMatrix* lu(ObjMatrix *matrix);
+ObjMatrix *lu(ObjMatrix *matrix);
 //> Finds the determinant of the matrix
 double determinant(ObjMatrix *matrix);
 //> TODO: Inverse of the matrix
@@ -381,89 +382,90 @@ ObjMatrix *inverseMatrix(ObjMatrix *matrix);
 //> TODO: Checks if two matrices are equal
 bool equalMatrix(ObjMatrix *a, ObjMatrix *b);
 //> Solves the matrix with a given vector (Broken)
-ObjArray* solveMatrix(ObjMatrix *matrix, ObjArray *vector);
+ObjArray *solveMatrix(ObjMatrix *matrix, ObjArray *vector);
 /*----------------------------------------------------------------------------*/
 
 /*-------------------------- Float Vector Functions --------------------------*/
 //> Creates a new empty float vector with a given size
-FloatVector* newFloatVector(int size);
+FloatVector *newFloatVector(int size);
 //> Frees the float vector
-void freeFloatVector(FloatVector* vector);
+void freeFloatVector(FloatVector *vector);
 //> Creates a new float vector from an array
-FloatVector* fromArray(ObjArray* array);
+FloatVector *fromArray(ObjArray *array);
 //> Pushes a value to the end of the float vector
-void pushFloatVector(FloatVector* vector, double value);
+void pushFloatVector(FloatVector *vector, double value);
 //> Inserts a value at a given index
-void insertFloatVector(FloatVector* vector, int index, double value);
+void insertFloatVector(FloatVector *vector, int index, double value);
 //> Gets a value from the float vector at a given index
-double getFloatVector(FloatVector* vector, int index);
+double getFloatVector(FloatVector *vector, int index);
 //> Removes a value at the end of the float vector
-double popFloatVector(FloatVector* vector);
+double popFloatVector(FloatVector *vector);
 //> Removes a value at a given index from the float vector
-double removeFloatVector(FloatVector* vector, int index);
+double removeFloatVector(FloatVector *vector, int index);
 //> Prints the float vector
-void printFloatVector(FloatVector* vector);
-//> TODO: Merges two float vectors into a new float vector
-FloatVector* mergeFloatVector(FloatVector* a, FloatVector* b);
-//> TODO: Slices the float vector from start to end
-FloatVector* sliceFloatVector(FloatVector* vector, int start, int end);
-
+void printFloatVector(FloatVector *vector);
+//> Merges two float vectors into a new float vector
+FloatVector *mergeFloatVector(FloatVector *a, FloatVector *b);
+//> Slices the float vector from start to end
+FloatVector *sliceFloatVector(FloatVector *vector, int start, int end);
+//> Splices the float vector from start to end
+FloatVector *spliceFloatVector(FloatVector *vector, int start, int end);
 //> Sums the float vector
-double sumFloatVector(FloatVector* vector);
+double sumFloatVector(FloatVector *vector);
 //> Finds the mean of the float vector
-double meanFloatVector(FloatVector* vector);
+double meanFloatVector(FloatVector *vector);
 //> Finds the variance of the float vector
-double varianceFloatVector(FloatVector* vector);
+double varianceFloatVector(FloatVector *vector);
 //> Finds the standard deviation of the float vector
-double stdDevFloatVector(FloatVector* vector);
+double stdDevFloatVector(FloatVector *vector);
 //> Finds the maximum value in the float vector
-double maxFloatVector(FloatVector* vector);
+double maxFloatVector(FloatVector *vector);
 //> Finds the minimum value in the float vector
-double minFloatVector(FloatVector* vector);
+double minFloatVector(FloatVector *vector);
 //> Adds two float vectors together with SIMD if available
-FloatVector* addFloatVector(FloatVector* a, FloatVector* b);
+FloatVector *addFloatVector(FloatVector *a, FloatVector *b);
 //> Subtracts two float vectors with SIMD if available
-FloatVector* subFloatVector(FloatVector* a, FloatVector* b);
+FloatVector *subFloatVector(FloatVector *a, FloatVector *b);
 //> Multiplies two float vectors with SIMD if available
-FloatVector* mulFloatVector(FloatVector* a, FloatVector* b);
+FloatVector *mulFloatVector(FloatVector *a, FloatVector *b);
 //> Divides two float vectors with SIMD if available
-FloatVector* divFloatVector(FloatVector* a, FloatVector* b);
+FloatVector *divFloatVector(FloatVector *a, FloatVector *b);
 //> Checks if two float vectors are equal
-bool equalFloatVector(FloatVector* a, FloatVector* b);
+bool equalFloatVector(FloatVector *a, FloatVector *b);
 //> Scales the float vector with a given scalar with SIMD if available
-FloatVector* scaleFloatVector(FloatVector* vector, double scalar);
+FloatVector *scaleFloatVector(FloatVector *vector, double scalar);
 //> Adds the float vector with a given value with SIMD if available
-FloatVector* singleAddFloatVector(FloatVector* a, double b);
+FloatVector *singleAddFloatVector(FloatVector *a, double b);
 //> Subtracts the float vector with a given value with SIMD if available
-FloatVector* singleSubFloatVector(FloatVector* a, double b);
+FloatVector *singleSubFloatVector(FloatVector *a, double b);
 //> Multiplies the float vector with a given value with SIMD if available
-FloatVector* singleMulFloatVector(FloatVector* a, double b);
+FloatVector *singleMulFloatVector(FloatVector *a, double b);
 //> Divides the float vector with a given value with SIMD if available
-FloatVector* singleDivFloatVector(FloatVector* a, double b);
+FloatVector *singleDivFloatVector(FloatVector *a, double b);
 //> Sorts the float vector using quick sort
-void sortFloatVector(FloatVector* vector);
+void sortFloatVector(FloatVector *vector);
 //> Searches for a value in the float vector using binary search
-int searchFloatVector(FloatVector* vector, double value);
+int searchFloatVector(FloatVector *vector, double value);
 //> linearly spaced float vector
-FloatVector* linspace(double start, double end, int n);
-double interp1(FloatVector* x, FloatVector* y, double x0);
+FloatVector *linspace(double start, double end, int n);
+double interp1(FloatVector *x, FloatVector *y, double x0);
 /*-------------------------- Float Vec3 Functions --------------------------*/
 //> Calculates the dot product of two float vectors
-double dotProduct(FloatVector* a, FloatVector* b);
+double dotProduct(FloatVector *a, FloatVector *b);
 //> Calculates the cross product of two float vectors
-FloatVector* crossProduct(FloatVector* a, FloatVector* b);
+FloatVector *crossProduct(FloatVector *a, FloatVector *b);
 //> Calculates the magnitude of the float vector
-double magnitude(FloatVector* vector);
+double magnitude(FloatVector *vector);
 //> Normalizes the float vector
-FloatVector* normalize(FloatVector* vector);
+FloatVector *normalize(FloatVector *vector);
 //> Calculates the angle between two float vectors
-FloatVector* projection(FloatVector* a, FloatVector* b);
+FloatVector *projection(FloatVector *a, FloatVector *b);
 //> Calculates the rejection of two float vectors
-FloatVector* rejection(FloatVector* a, FloatVector* b);
+FloatVector *rejection(FloatVector *a, FloatVector *b);
 //> Calculates the reflection of two float vectors
-FloatVector* reflection(FloatVector* a, FloatVector* b);
+FloatVector *reflection(FloatVector *a, FloatVector *b);
 //> Calculates the refraction of two float vectors
-FloatVector* refraction(FloatVector* a, FloatVector* b, double n1, double n2);
+FloatVector *refraction(FloatVector *a, FloatVector *b, double n1, double n2);
 /*----------------------------------------------------------------------------*/
 //> Prints the object value
 void printObject(Value value);

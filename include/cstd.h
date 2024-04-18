@@ -34,6 +34,8 @@ Value matrix_nf(int argCount, Value *args);
 Value fvector_nf(int argCount, Value *args);
 //> Creates a new array with range [a, b)
 Value range_nf(int argCount, Value *args);
+Value slice_nf(int argCount, Value *args);
+Value splie_nf(int argCount, Value *args);
 
 /* Operations */
 //> Pushes value(s) to a collection
@@ -77,12 +79,27 @@ Value equal_list_nf(int argCount, Value *args);
 Value reverse_nf(int argCount, Value *args);
 //> Merges two collections
 Value merge_nf(int argCount, Value *args);
+//> Sums the list
 Value sum_nf(int argCount, Value *args);
+//> Averages the list
 Value mean_nf(int argCount, Value *args);
+//> Standard deviation of the list
 Value std_nf(int argCount, Value *args);
+//> Variance of the list
 Value var_nf(int argCount, Value *args);
+//> Maximum value in the list
 Value maxl_nf(int argCount, Value *args);
+//> Minimum value in the list
 Value minl_nf(int argCount, Value *args);
+
+/* Vec3 Specific Functions */
+Value dot_nf(int argCount, Value *args);
+Value cross_nf(int argCount, Value *args);
+Value norm_nf(int argCount, Value *args);
+Value proj_nf(int argCount, Value *args);
+Value reject_nf(int argCount, Value *args);
+Value reflect_nf(int argCount, Value *args);
+Value refract_nf(int argCount, Value *args);
 
 
 /* Hash Table Specific Functions */

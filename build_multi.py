@@ -29,7 +29,10 @@ class PackageBuilder:
     def build_package(self, arch, target, pkg):
         command = self.command_str(arch, target, pkg)
         subprocess.run(command, shell=True, text=True)
-        shutil.move(f"mufiz_{self.version}_{target}.{pkg}", f"mufiz_{self.version}_{target}.{pkg}")
+        if pkg == "deb":
+            shutil.move(f"mufiz_{self.version}_{arch}.{pkg}", f"mufiz_{self.version}_{target}.{pkg}")
+        elif pkg == "rpm":
+            shutil.move(f"mufiz-{self.version}-1.{arch}.{pkg}", f"mufiz_{self.version}_{target}.{pkg}")
         print(f"Built {pkg} package for {target}")
 
     def build_target(self, target):
@@ -59,7 +62,7 @@ class PackageBuilder:
         time.sleep(5)
 
     def build_linux_pkg(self, target):
-        arch_map = {
+        arch_map_deb = {
             "x86_64-linux": "amd64",
             "aarch64-linux": "arm64",
            # "arm-linux": "arm",
@@ -72,10 +75,26 @@ class PackageBuilder:
             "powerpc-linux": "powerpc",
             "riscv64-linux": "riscv64"
         }
-        if target in (tuple(arch_map.keys())):
-            arch = arch_map[target]
-            self.build_package(arch, target, "deb")
-            self.build_package(arch, target, "rpm")
+        
+        arch_map_rpm = {
+            "x86_64-linux": "x86_64",
+            "aarch64-linux": "aarch64",
+           # "arm-linux": "arm",
+            "mips64-linux-musl": "mips64",
+            "mips64el-linux-musl": "mips64el",
+            "mipsel-linux-musl": "mipsel",
+            "mips-linux-musl": "mips",
+            "powerpc64-linux": "ppc64",
+            "powerpc64le-linux": "ppc64le",
+            "powerpc-linux": "ppc",
+            "riscv64-linux": "riscv64"
+        }
+        
+        if target in (tuple(arch_map_deb.keys())):
+            deb_arch = arch_map_deb[target]
+            rpm_arch = arch_map_rpm[target]
+            self.build_package(deb_arch, target, "deb")
+            self.build_package(rpm_arch, target, "rpm")
 
     def build_packages(self):
         for target in self.data:

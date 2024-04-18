@@ -1542,6 +1542,54 @@ void printFloatVector(FloatVector *vector)
     printf("\n");
 }
 
+FloatVector* mergeFloatVector(FloatVector *a, FloatVector *b)
+{
+    FloatVector *result = newFloatVector(a->size + b->size);
+    for (int i = 0; i < a->count; i++)
+    {
+        pushFloatVector(result, a->data[i]);
+    }
+    for (int i = 0; i < b->count; i++)
+    {
+        pushFloatVector(result, b->data[i]);
+    }
+    return result;
+}
+
+FloatVector* sliceFloatVector(FloatVector *vector, int start, int end)
+{
+    if (start < 0 || start >= vector->count || end < 0 || end >= vector->count)
+    {
+        printf("Index out of bounds\n");
+        return NULL;
+    }
+    FloatVector *result = newFloatVector(end - start + 1);
+    for (int i = start; i <= end; i++)
+    {
+        pushFloatVector(result, vector->data[i]);
+    }
+    return result;
+}
+
+FloatVector* spliceFloatVector(FloatVector *vector, int start, int end)
+{
+    if (start < 0 || start >= vector->count || end < 0 || end >= vector->count)
+    {
+        printf("Index out of bounds\n");
+        return NULL;
+    }
+    FloatVector *result = newFloatVector(vector->size);
+    for (int i = 0; i < start; i++)
+    {
+        pushFloatVector(result, vector->data[i]);
+    }
+    for (int i = end + 1; i < vector->count; i++)
+    {
+        pushFloatVector(result, vector->data[i]);
+    }
+    return result;
+}
+
 double sumFloatVector(FloatVector *vector)
 {
     double sum = 0;
