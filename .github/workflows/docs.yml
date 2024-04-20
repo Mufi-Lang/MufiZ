@@ -19,8 +19,10 @@ jobs:
          - name: Create .nojekyll
            run: touch zig-out/docs/.nojekyll
          - name: Move to docs
-           run: mv zig-out/docs docs
-         - name: Commit and push
-           uses: actions-js/push@master
+           run: mv zig-out/docs/* docs
+         - name: Commit book to Gh-Pages
+           uses: JamesIves/github-pages-deploy-action@3.7.1
            with:
-            github_token: ${{ secrets.SECRET }} 
+             GITHUB_TOKEN: ${{secrets.SECRET}}
+             BRANCH: gh-pages
+             FOLDER: docs/
