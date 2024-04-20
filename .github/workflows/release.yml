@@ -8,9 +8,6 @@ on:
     branches:
       - next
 
-env:
-  codename: 'mars'
-
 jobs:
   build:
     name: Create Release

@@ -59,6 +59,31 @@ the other `Release*` optimize modes with command `zig build -Doptimize=`.
 $ sudo dpkg -i mufiz_{version}_{target}.deb
 ```
 
+## APT
+
+We host our official APT repository on Github on the [MufiZ-APT](https://github.com/Mustafif/MufiZ-APT) repository. To install using `apt` follow the instructions below:
+
+```bash
+$ echo "deb [arch= {arch}, trusted=yes] https://mustafif.github.io/Mufi-APT mufiz main" | sudo tee /etc/apt/sources.list.d/mufiz.list
+$ sudo apt update && sudo apt upgrade
+$ sudo apt install mufiz
+```
+
+Where `{arch}` is the architecture of your system.
+
+Supported architectures are:
+
+- amd64
+- arm64
+- mipsel
+- mips64el
+- mips64
+- mips
+- powerpc
+- powerpc64
+- powerpc64le
+- riscv64
+
 ### RPM Package
 
 ```shell
@@ -87,21 +112,6 @@ $ mv mufiz /usr/local/bin
 
 ---
 
-## Ziggified
-
-- **Scanner**
-  - The scanner which is responsible for tokenizing a string is now completely written in Zig, and exported to C.
-  - Is built as a shared library `libmufiz_scanner` and linked before the C files.
-  - The reason this was moved first, as its the least dependent part of the compiler, so there is not
-  too much breakage when moving it (only had to care about `compiler.c`).
-  - Any function that would interfere with another function, was prefixed with `__scanner__`
-    - Might consider prefixing all functions of scanner with this.
-
-- **Table**  
-  - The table is the hashtable implementation that is used in Mufi-Lang. It is now completely written in Zig, and exported to C.
-
----
-
 ## Releases
 
 | Version | Codename                                                                 | Status      |
@@ -113,16 +123,6 @@ $ mv mufiz /usr/local/bin
 | 0.5.0   | [Luna](https://github.com/Mustafif/MufiZ/releases/tag/v0.5.0)            | Released    |
 | 0.6.0   | [Mars](https://github.com/Mustafif/MufiZ/releases/tag/next-experimental) | In Progress |
 
----
-
-## Supported Platforms
-
-All supported architectures are defined in [targets.json](./targets.json), and all come packaged in a ZIP file.
-
-Linux binaries are also available in DEB and RPM packages,
-where for Debian based systems, you can use our official APT repository. Instructions can be found in the [MufiZ APT Repository](https://github.com/Mustafif/MufiZ-APT). 
-
-> Note: The only targets not supported are the `arm-linux-musleabihf` and `arm-linux-gnueabihf` for DEB and RPM packages.
 ---
 
 ## Features
