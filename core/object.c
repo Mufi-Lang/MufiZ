@@ -179,8 +179,7 @@ ObjString *allocateString(char *chars, int length, uint64_t hash)
     return string;
 }
 
-// FNV-1a hashing algorithm
-uint64_t hashString(const char *key, int length)
+static uint64_t fnv1a(const char *key, int length)
 {
     uint64_t hash = 2166136261u;
     for (int i = 0; i < length; i++)
@@ -189,6 +188,48 @@ uint64_t hashString(const char *key, int length)
         hash *= 16777619;
     }
     return hash;
+}
+
+uint64_t CityHash64(const char *buf, size_t len) {
+    uint64_t seed = 0x9ae16a3b2f90404fULL; // A constant seed value
+    const uint64_t m = 0xc6a4a7935bd1e995ULL;
+    const int r = 47;
+
+    uint64_t h = seed ^ (len * m);
+
+    const uint64_t *data = (const uint64_t *)buf;
+    const uint64_t *end = data + (len/8);
+
+    while (data != end) {
+        uint64_t k = *data++;
+        k *= m;
+        k ^= k >> r;
+        k *= m;
+        h ^= k;
+        h *= m;
+    }
+
+    const unsigned char *data2 = (const unsigned char *)data;
+    switch (len & 7) {
+        case 7: h ^= (uint64_t)data2[6] << 48;
+        case 6: h ^= (uint64_t)data2[5] << 40;
+        case 5: h ^= (uint64_t)data2[4] << 32;
+        case 4: h ^= (uint64_t)data2[3] << 24;
+        case 3: h ^= (uint64_t)data2[2] << 16;
+        case 2: h ^= (uint64_t)data2[1] << 8;
+        case 1: h ^= (uint64_t)data2[0];
+                h *= m;
+    }
+
+    h ^= h >> r;
+    h *= m;
+    h ^= h >> r;
+    return h;
+}
+
+uint64_t hashString(const char *key, int length)
+{
+    return CityHash64(key, length);
 }
 
 ObjString *takeString(char *chars, int length)
@@ -227,7 +268,7 @@ ObjUpvalue *newUpvalue(Value *slot)
 /*------------------------------------------------------------------------------*/
 
 /*-------------------------- Array Functions --------------------------------*/
-ObjArray* mergeArrays(ObjArray *a, ObjArray *b)
+ObjArray *mergeArrays(ObjArray *a, ObjArray *b)
 {
     ObjArray *result = newArrayWithCap(a->count + b->count, false);
     for (int i = 0; i < a->count; i++)
@@ -1007,7 +1048,7 @@ void printMatrix(ObjMatrix *matrix)
     }
 }
 
-void setRow(ObjMatrix *matrix, int row, ObjArray* values)
+void setRow(ObjMatrix *matrix, int row, ObjArray *values)
 {
     if (matrix != NULL && values != NULL && row >= 0 && row < matrix->rows)
     {
@@ -1018,7 +1059,7 @@ void setRow(ObjMatrix *matrix, int row, ObjArray* values)
     }
 }
 
-void setCol(ObjMatrix *matrix, int col, ObjArray* values)
+void setCol(ObjMatrix *matrix, int col, ObjArray *values)
 {
     if (matrix != NULL && values != NULL && col >= 0 && col < matrix->cols)
     {
@@ -1542,7 +1583,7 @@ void printFloatVector(FloatVector *vector)
     printf("\n");
 }
 
-FloatVector* mergeFloatVector(FloatVector *a, FloatVector *b)
+FloatVector *mergeFloatVector(FloatVector *a, FloatVector *b)
 {
     FloatVector *result = newFloatVector(a->size + b->size);
     for (int i = 0; i < a->count; i++)
@@ -1556,7 +1597,7 @@ FloatVector* mergeFloatVector(FloatVector *a, FloatVector *b)
     return result;
 }
 
-FloatVector* sliceFloatVector(FloatVector *vector, int start, int end)
+FloatVector *sliceFloatVector(FloatVector *vector, int start, int end)
 {
     if (start < 0 || start >= vector->count || end < 0 || end >= vector->count)
     {
@@ -1571,7 +1612,7 @@ FloatVector* sliceFloatVector(FloatVector *vector, int start, int end)
     return result;
 }
 
-FloatVector* spliceFloatVector(FloatVector *vector, int start, int end)
+FloatVector *spliceFloatVector(FloatVector *vector, int start, int end)
 {
     if (start < 0 || start >= vector->count || end < 0 || end >= vector->count)
     {
