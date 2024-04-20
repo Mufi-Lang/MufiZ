@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <time.h>
 
 #include "../include/object.h"
 #include "../include/memory.h"
@@ -8,6 +9,12 @@
 #include "../include/vm.h"
 #include "../include/table.h"
 #include "../include/wyhash.h"
+
+#define PRIME64_1 11400714785074694791ULL
+#define PRIME64_2 14029467366897019727ULL
+#define PRIME64_3 1609587929392839161ULL
+#define PRIME64_4 9650029242287828579ULL
+#define PRIME64_5 2870177450012600261ULL
 
 #define ALLOCATE_OBJ(type, objectType) \
     ((type *)allocateObject(sizeof(type), objectType))
@@ -190,7 +197,8 @@ static uint64_t fnv1a(const char *key, int length)
     return hash;
 }
 
-uint64_t CityHash64(const char *buf, size_t len) {
+uint64_t cityhash64(const char *buf, size_t len)
+{
     uint64_t seed = 0x9ae16a3b2f90404fULL; // A constant seed value
     const uint64_t m = 0xc6a4a7935bd1e995ULL;
     const int r = 47;
@@ -198,9 +206,10 @@ uint64_t CityHash64(const char *buf, size_t len) {
     uint64_t h = seed ^ (len * m);
 
     const uint64_t *data = (const uint64_t *)buf;
-    const uint64_t *end = data + (len/8);
+    const uint64_t *end = data + (len / 8);
 
-    while (data != end) {
+    while (data != end)
+    {
         uint64_t k = *data++;
         k *= m;
         k ^= k >> r;
@@ -210,15 +219,23 @@ uint64_t CityHash64(const char *buf, size_t len) {
     }
 
     const unsigned char *data2 = (const unsigned char *)data;
-    switch (len & 7) {
-        case 7: h ^= (uint64_t)data2[6] << 48;
-        case 6: h ^= (uint64_t)data2[5] << 40;
-        case 5: h ^= (uint64_t)data2[4] << 32;
-        case 4: h ^= (uint64_t)data2[3] << 24;
-        case 3: h ^= (uint64_t)data2[2] << 16;
-        case 2: h ^= (uint64_t)data2[1] << 8;
-        case 1: h ^= (uint64_t)data2[0];
-                h *= m;
+    switch (len & 7)
+    {
+    case 7:
+        h ^= (uint64_t)data2[6] << 48;
+    case 6:
+        h ^= (uint64_t)data2[5] << 40;
+    case 5:
+        h ^= (uint64_t)data2[4] << 32;
+    case 4:
+        h ^= (uint64_t)data2[3] << 24;
+    case 3:
+        h ^= (uint64_t)data2[2] << 16;
+    case 2:
+        h ^= (uint64_t)data2[1] << 8;
+    case 1:
+        h ^= (uint64_t)data2[0];
+        h *= m;
     }
 
     h ^= h >> r;
@@ -227,9 +244,137 @@ uint64_t CityHash64(const char *buf, size_t len) {
     return h;
 }
 
+// This function calculates the xxhash64 hash value for the given input data.
+// It takes the input data, its length, and a seed value as parameters.
+uint64_t xxhash64(const void *input, size_t len, uint64_t seed)
+{
+    const uint8_t *p = (const uint8_t *)input;
+    const uint8_t *end = p + len;
+    uint64_t h64;
+
+    // If the length of the input data is greater than or equal to 32 bytes,
+    // perform the xxhash64 algorithm on the data.
+    if (len >= 32)
+    {
+        const uint8_t *limit = end - 32;
+        uint64_t v1 = seed + PRIME64_1 + PRIME64_2;
+        uint64_t v2 = seed + PRIME64_2;
+        uint64_t v3 = seed + 0;
+        uint64_t v4 = seed - PRIME64_1;
+
+        // Process the input data in 32-byte chunks.
+        do
+        {
+            uint64_t k1 = *(const uint64_t *)p;
+            p += 8;
+            uint64_t k2 = *(const uint64_t *)p;
+            p += 8;
+
+            // Update the four internal state variables v1, v2, v3, and v4.
+            v1 += k1 * PRIME64_2;
+            v1 = (v1 << 31) | (v1 >> (64 - 31));
+            v1 *= PRIME64_1;
+            v2 += k2 * PRIME64_2;
+            v2 = (v2 << 31) | (v2 >> (64 - 31));
+            v2 *= PRIME64_1;
+
+            v3 += k1 * PRIME64_2;
+            v3 = (v3 << 31) | (v3 >> (64 - 31));
+            v3 *= PRIME64_1;
+            v4 += k2 * PRIME64_2;
+            v4 = (v4 << 31) | (v4 >> (64 - 31));
+            v4 *= PRIME64_1;
+
+        } while (p <= limit);
+
+        // Finalize the hash value using the four internal state variables.
+        h64 = ((v1 << 1) | (v1 >> 63)) +
+              ((v2 << 7) | (v2 >> 57)) +
+              ((v3 << 12) | (v3 >> 52)) +
+              ((v4 << 18) | (v4 >> 46));
+
+        v1 *= PRIME64_2;
+        v1 = (v1 << 31) | (v1 >> (64 - 31));
+        v1 *= PRIME64_1;
+        h64 ^= v1;
+        h64 = (h64 * PRIME64_1) + PRIME64_4;
+
+        v2 *= PRIME64_2;
+        v2 = (v2 << 31) | (v2 >> (64 - 31));
+        v2 *= PRIME64_1;
+        h64 ^= v2;
+        h64 = (h64 * PRIME64_1) + PRIME64_4;
+
+        v3 *= PRIME64_2;
+        v3 = (v3 << 31) | (v3 >> (64 - 31));
+        v3 *= PRIME64_1;
+        h64 ^= v3;
+        h64 = (h64 * PRIME64_1) + PRIME64_4;
+
+        v4 *= PRIME64_2;
+        v4 = (v4 << 31) | (v4 >> (64 - 31));
+        v4 *= PRIME64_1;
+        h64 ^= v4;
+        h64 = (h64 * PRIME64_1) + PRIME64_4;
+    }
+    else
+    {
+        // If the length of the input data is less than 32 bytes,
+        // set the initial hash value to the seed value plus a constant.
+        h64 = seed + PRIME64_5;
+    }
+
+    // Update the hash value with the length of the input data.
+    h64 += len;
+
+    // Process the remaining bytes of the input data.
+    while (p + 8 <= end)
+    {
+        uint64_t k1 = *(const uint64_t *)p;
+        p += 8;
+        k1 *= PRIME64_2;
+        k1 = (k1 << 31) | (k1 >> (64 - 31));
+        k1 *= PRIME64_1;
+        h64 ^= k1;
+        h64 = ((h64 << 27) | (h64 >> (64 - 27))) * PRIME64_1 + PRIME64_4;
+    }
+
+    if (p + 4 <= end)
+    {
+        uint32_t k1 = *(const uint32_t *)p;
+        p += 4;
+        k1 *= PRIME64_1;
+        k1 = (k1 << 23) | (k1 >> (32 - 23));
+        k1 *= PRIME64_2;
+        h64 ^= k1;
+        h64 = ((h64 << 33) | (h64 >> (64 - 33))) * PRIME64_1 + PRIME64_4;
+    }
+
+    while (p < end)
+    {
+        uint8_t k1 = *p++;
+        k1 *= PRIME64_5;
+        k1 = (k1 << 11) | (k1 >> (64 - 11));
+        k1 *= PRIME64_1;
+        h64 ^= k1;
+        h64 = ((h64 << 17) | (h64 >> (64 - 17))) * PRIME64_1 + PRIME64_4;
+    }
+
+    // Finalize the hash value by performing some additional operations.
+    h64 ^= h64 >> 33;
+    h64 *= PRIME64_2;
+    h64 ^= h64 >> 29;
+    h64 *= PRIME64_3;
+    h64 ^= h64 >> 32;
+
+    // Return the calculated hash value.
+    return h64;
+}
+
 uint64_t hashString(const char *key, int length)
 {
-    return CityHash64(key, length);
+    uint64_t seed = 0x9ae16a3b2f90404fULL; // A constant seed value
+    return xxhash64(key, length, seed);
 }
 
 ObjString *takeString(char *chars, int length)
