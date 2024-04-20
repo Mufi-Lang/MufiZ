@@ -1,18 +1,20 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
-// comptime {
-//     const supported_version = std.SemanticVersion.parse("0.11.0") catch unreachable;
-//     if (builtin.zig_version.order(supported_version) != .eq) {
-//         @compileError(std.fmt.comptimePrint("Unsupported Zig version ({}). Required Zig version 0.11.0.", .{builtin.zig_version}));
-//     }
-// }
+comptime {
+    const supported_version = std.SemanticVersion.parse("0.12.0") catch unreachable;
+    if (builtin.zig_version.order(supported_version) != .eq) {
+        @compileError(std.fmt.comptimePrint("Unsupported Zig version ({}). Required Zig version 0.12.0.", .{builtin.zig_version}));
+    }
+}
 
 // zig fmt: off
 const targets: []const std.Target.Query = &.{
     .{ .cpu_arch = .aarch64, .os_tag = .linux, .abi = .gnu },
     .{ .cpu_arch = .aarch64, .os_tag = .linux, .abi = .musl },
     .{ .cpu_arch = .aarch64, .os_tag = .linux },
+    .{.cpu_arch = .arm , .os_tag = .linux, .abi = .gnueabihf},
+    .{.cpu_arch = .arm , .os_tag = .linux, .abi = .musleabihf},
     .{ .cpu_arch = .aarch64, .os_tag = .macos },
     .{ .cpu_arch = .aarch64, .os_tag = .windows },
     .{.cpu_arch = .aarch64, .os_tag = .windows, .abi = .gnu},
@@ -70,7 +72,7 @@ pub fn build(b: *std.Build) !void {
             .root_source_file = .{ .path = "src/main.zig" },
             .version = .{ .major = 0, .minor = 6, .patch = 0 },
             .target = b.resolveTargetQuery(target),
-            .optimize = .ReleaseSafe,
+            .optimize = if (target.cpu_arch != .arm) .ReleaseSafe else .Debug,
             .link_libc = true,
         });
 

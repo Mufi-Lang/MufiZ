@@ -1,12 +1,12 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
-// comptime {
-//     const supported_version = std.SemanticVersion.parse("0.11.0") catch unreachable;
-//     if (builtin.zig_version.order(supported_version) != .eq) {
-//         @compileError(std.fmt.comptimePrint("Unsupported Zig version ({}). Required Zig version 0.11.0.", .{builtin.zig_version}));
-//     }
-// }
+comptime {
+    const supported_version = std.SemanticVersion.parse("0.12.0") catch unreachable;
+    if (builtin.zig_version.order(supported_version) != .eq) {
+        @compileError(std.fmt.comptimePrint("Unsupported Zig version ({}). Required Zig version 0.12.0.", .{builtin.zig_version}));
+    }
+}
 
 pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
@@ -36,7 +36,6 @@ pub fn build(b: *std.Build) !void {
         .optimize = optimize,
         .link_libc = true,
     });
-
 
     if (query.cpu_arch == .wasm32) {
         b.enable_wasmtime = true;
@@ -104,6 +103,15 @@ pub fn build(b: *std.Build) !void {
 
     // zig fmt: on
     b.installArtifact(exe);
+
+    const install_docs = b.addInstallDirectory(.{
+        .source_dir = exe.getEmittedDocs(),
+        .install_dir = .prefix,
+        .install_subdir = "docs",
+    });
+
+    const docs_step = b.step("docs", "Copy documentation artifacts to prefix path");
+    docs_step.dependOn(&install_docs.step);
 
     const run_cmd = b.addRunArtifact(exe);
     run_cmd.step.dependOn(b.getInstallStep());

@@ -26,6 +26,7 @@ import time
 import concurrent.futures
 
 out_path = "zig-out/"
+pkg_path = "pkg/"
 version = "0.6.0"
 
 arch_map_deb = {
@@ -63,14 +64,14 @@ def load_targets():
 
 
 def command_str(arch, target, pkg):
-    return f"fpm -v {version} -a {arch} -s zip -t {pkg} --prefix /usr/bin -m 'Mustafif0929@gmail.com' --description 'The Mufi Programming Language' -n mufiz ./zig-out/mufiz_{version}_{target}.zip "
+    return f"fpm -v {version} -a {arch} -s zip -t {pkg} --prefix /usr/bin -m 'Mustafif0929@gmail.com' --description 'The Mufi Programming Language' -n mufiz ./pkg/mufiz_{version}_{target}.zip "
 
 
 def zipper():
     targets = load_targets()
     for target in targets:
         zip_file = f"mufiz_{version}_{target}.zip"
-        with zipfile.ZipFile(out_path + zip_file, "w", zipfile.ZIP_DEFLATED) as z:
+        with zipfile.ZipFile(pkg_path + zip_file, "w", zipfile.ZIP_DEFLATED) as z:
             target_path = out_path + target
             for root, _, files in os.walk(target_path):
                 for file in files:
@@ -87,17 +88,19 @@ def build_package(arch, target, pkg):
     if pkg == "deb":
         shutil.move(
             f"mufiz_{version}_{arch}.{pkg}",
-            f"{out_path}mufiz_{version}_{target}.{pkg}",
+            f"{pkg_path}mufiz_{version}_{arch}.{pkg}",
         )
     elif pkg == "rpm":
         shutil.move(
             f"mufiz-{version}-1.{arch}.{pkg}",
-            f"{out_path}mufiz_{version}_{target}.{pkg}",
+            f"{pkg_path}mufiz-{version}-1.{arch}.{pkg}",
         )
     print(f"Built {pkg} package for {target}")
 
 
 if __name__ == "__main__":
+    if not os.path.exists(pkg_path):
+        os.makedirs(pkg_path)
     zipper()
     for target in load_targets():
         if target in tuple(arch_map_deb.keys()):
