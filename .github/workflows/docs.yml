@@ -1,8 +1,19 @@
 name: Docs
 
-on: 
-    push: 
-        branches: [next]
+on:
+  push:
+    branches:
+      - next
+  pull_request:
+    branches:
+      - next
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs: 
     docs: 
         runs-on: ubuntu-latest
