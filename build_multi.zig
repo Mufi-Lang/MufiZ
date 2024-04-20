@@ -9,15 +9,16 @@ comptime {
 }
 
 // zig fmt: off
+
 const targets: []const std.Target.Query = &.{
     .{ .cpu_arch = .aarch64, .os_tag = .linux, .abi = .gnu },
     .{ .cpu_arch = .aarch64, .os_tag = .linux, .abi = .musl },
     .{ .cpu_arch = .aarch64, .os_tag = .linux },
-    .{.cpu_arch = .arm , .os_tag = .linux, .abi = .gnueabihf},
-    .{.cpu_arch = .arm , .os_tag = .linux, .abi = .musleabihf},
+    .{ .cpu_arch = .arm, .os_tag = .linux, .abi = .gnueabihf },
+    .{ .cpu_arch = .arm, .os_tag = .linux, .abi = .musleabihf },
     .{ .cpu_arch = .aarch64, .os_tag = .macos },
     .{ .cpu_arch = .aarch64, .os_tag = .windows },
-    .{.cpu_arch = .aarch64, .os_tag = .windows, .abi = .gnu},
+    .{ .cpu_arch = .aarch64, .os_tag = .windows, .abi = .gnu },
     .{ .cpu_arch = .mips64, .os_tag = .linux, .abi = .musl },
     .{ .cpu_arch = .mips64el, .os_tag = .linux, .abi = .musl },
     .{ .cpu_arch = .mipsel, .os_tag = .linux, .abi = .musl },
@@ -35,10 +36,14 @@ const targets: []const std.Target.Query = &.{
     .{ .cpu_arch = .x86_64, .os_tag = .linux, .abi = .gnu },
     .{ .cpu_arch = .x86_64, .os_tag = .linux, .abi = .musl },
     .{ .cpu_arch = .x86_64, .os_tag = .linux },
+    .{ .cpu_arch = .x86_64, .os_tag = .linux, .abi = .gnux32 },
+    .{.cpu_arch = .x86, .os_tag = .linux, .abi = .gnu},
+    .{.cpu_arch = .x86, .os_tag = .linux, .abi = .musl},
+    .{.cpu_arch = .x86, .os_tag = .linux},
+    .{.cpu_arch = .x86, .os_tag = .windows, .abi = .gnu},
     .{ .cpu_arch = .x86_64, .os_tag = .macos },
     .{ .cpu_arch = .x86_64, .os_tag = .windows },
     .{ .cpu_arch = .x86_64, .os_tag = .windows, .abi = .gnu },
-   // .{ .cpu_arch = .wasm32, .os_tag = .wasi }
 };
 
 // zig fmt: on

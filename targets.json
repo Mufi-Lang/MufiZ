@@ -3,6 +3,8 @@
     "aarch64-linux-gnu",
     "aarch64-linux-musl",
     "aarch64-linux",
+    "arm-linux-gnueabihf",
+    "arm-linux-musleabihf",
     "aarch64-macos",
     "aarch64-windows",
     "aarch64-windows-gnu",
@@ -13,7 +15,7 @@
     "powerpc64-linux-gnu",
     "powerpc64-linux-musl",
     "powerpc64-linux",
-    "powerpc-linux-musl", 
+    "powerpc-linux-musl",
     "powerpc-linux",
     "powerpc64le-linux-gnu",
     "powerpc64le-linux-musl",
@@ -22,10 +24,14 @@
     "riscv64-linux",
     "x86_64-linux-gnu",
     "x86_64-linux-musl",
-    "x86_64-linux", 
+    "x86_64-linux",
+    "x86_64-linux-gnux32",
+    "x86-linux-gnu",
+    "x86-linux-musl",
+    "x86-linux",
+    "x86-windows-gnu",
     "x86_64-macos",
     "x86_64-windows",
-    "x86_64-windows-gnu",
-    "wasm32-wasi"
+    "x86_64-windows-gnu"
   ]
 }

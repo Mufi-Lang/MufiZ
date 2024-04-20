@@ -31,6 +31,7 @@ version = "0.6.0"
 
 arch_map_deb = {
     "x86_64-linux": "amd64",
+    "x86-linux": "i386",
     "aarch64-linux": "arm64",
     # "arm-linux": "arm",
     "mips64-linux-musl": "mips64",
@@ -45,6 +46,7 @@ arch_map_deb = {
 
 arch_map_rpm = {
     "x86_64-linux": "x86_64",
+    "x86-linux": "i386", 
     "aarch64-linux": "aarch64",
     # "arm-linux": "arm",
     "mips64-linux-musl": "mips64",
