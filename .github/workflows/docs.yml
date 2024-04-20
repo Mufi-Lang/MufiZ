@@ -1,0 +1,26 @@
+name: Docs
+
+on: 
+    push: 
+        branches: [next]
+jobs: 
+    docs: 
+        runs-on: ubuntu-latest
+        steps: 
+         - name: Checkout code
+           uses: actions/checkout@v2
+
+         - name: Setup Zig
+           uses: goto-bus-stop/setup-zig@v2
+           with:
+                version: 0.12.0
+         - name: Run Build Docs
+           run: | 
+            zig build docs 
+            touch zig-out/docs/.nojekyll
+         - name: Commit to GH Pages
+           uses: JamesIves/github-pages-deploy-action@3.7.1
+           with:
+             GITHUB_TOKEN: ${{secrets.SECRET}}
+             BRANCH: gh-pages
+             FOLDER: zig-out/docs
