@@ -35,7 +35,7 @@ Value fvector_nf(int argCount, Value *args);
 //> Creates a new array with range [a, b)
 Value range_nf(int argCount, Value *args);
 Value slice_nf(int argCount, Value *args);
-Value splie_nf(int argCount, Value *args);
+Value splice_nf(int argCount, Value *args);
 
 /* Operations */
 //> Pushes value(s) to a collection

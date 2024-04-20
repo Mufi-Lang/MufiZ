@@ -488,6 +488,74 @@ Value range_nf(int argCount, Value *args)
     return OBJ_VAL(a);
 }
 
+Value slice_nf(int argCount, Value *args)
+{
+    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]) && !IS_FVECTOR(args[0]))
+    {
+        runtimeError("First argument must be an array, linked list or vector.");
+        return NIL_VAL;
+    }
+    if (!IS_INT(args[1]) || !IS_INT(args[2]))
+    {
+        runtimeError("Second and third arguments must be integers.");
+        return NIL_VAL;
+    }
+
+    if (IS_ARRAY(args[0]))
+    {
+        ObjArray *a = AS_ARRAY(args[0]);
+        int start = AS_INT(args[1]);
+        int end = AS_INT(args[2]);
+        ObjArray *s = sliceArray(a, start, end);
+        return OBJ_VAL(s);
+    }
+    else if (IS_FVECTOR(args[0]))
+    {
+        FloatVector *f = AS_FVECTOR(args[0]);
+        int start = AS_INT(args[1]);
+        int end = AS_INT(args[2]);
+        FloatVector *s = sliceFloatVector(f, start, end);
+        return OBJ_VAL(s);
+    }
+    else {
+        runtimeError("Unsupported type to slice.");
+    }
+}
+
+Value splice_nf(int argCount, Value *args)
+{
+    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]) && !IS_FVECTOR(args[0]))
+    {
+        runtimeError("First argument must be an array, linked list or vector.");
+        return NIL_VAL;
+    }
+    if (!IS_INT(args[1]) || !IS_INT(args[2]))
+    {
+        runtimeError("Second and third arguments must be integers.");
+        return NIL_VAL;
+    }
+
+    if (IS_ARRAY(args[0]))
+    {
+        ObjArray *a = AS_ARRAY(args[0]);
+        int start = AS_INT(args[1]);
+        int end = AS_INT(args[2]);
+        ObjArray *s = spliceArray(a, start, end);
+        return OBJ_VAL(s);
+    }
+    else if (IS_FVECTOR(args[0]))
+    {
+        FloatVector *f = AS_FVECTOR(args[0]);
+        int start = AS_INT(args[1]);
+        int end = AS_INT(args[2]);
+        FloatVector *s = spliceFloatVector(f, start, end);
+        return OBJ_VAL(s);
+    }
+    else {
+        runtimeError("Unsupported type to splice.");
+    }
+}
+
 Value reverse_nf(int argCount, Value *args)
 {
     if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]))

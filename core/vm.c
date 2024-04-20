@@ -68,6 +68,8 @@ void importCollections(void){
     defineNative("fvec", fvector_nf);
     defineNative("range", range_nf);
     defineNative("linspace", linspace_nf);
+    defineNative("slice", slice_nf);
+    defineNative("splice", splice_nf);
 
     defineNative("push", push_nf);
     defineNative("pop", pop_nf);
