@@ -10,3 +10,5 @@ t
 apt-repo
 include/common.h
 pkg
+manifests
+MufiZ.json

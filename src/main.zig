@@ -19,7 +19,7 @@ const params = clap.parseParamsComptime(
     \\--repl                 Runs Mufi Repl system
     \\
 );
-
+/// Main function
 pub fn main() !void {
     vm_h.initVM();
     defer vm_h.freeVM();
