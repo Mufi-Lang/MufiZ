@@ -18,13 +18,32 @@ pub const VAL_COMPLEX = core.VAL_COMPLEX;
 pub const Complex = core.Complex;
 pub const OBJ_INSTANCE = core.OBJ_INSTANCE;
 
+/// Returns the type of the given value
 pub fn what_is(val: Value) []const u8 {
     switch (val.type) {
         VAL_INT => return "Integer",
         VAL_DOUBLE => return "Double",
         VAL_BOOL => return "Boolean",
         VAL_NIL => return "NIL",
-        VAL_OBJ => return "Object",
+        VAL_OBJ => {
+            const obj = as_obj(val);
+            switch (obj.?.type) {
+                core.OBJ_CLOSURE => return "Closure",
+                core.OBJ_FUNCTION => return "Function",
+                core.OBJ_INSTANCE => return "Instance",
+                core.OBJ_NATIVE => return "Native",
+                core.OBJ_STRING => return "String",
+                core.OBJ_UPVALUE => return "Upvalue",
+                core.OBJ_BOUND_METHOD => return "Bound Method",
+                core.OBJ_CLASS => return "Class",
+                core.OBJ_ARRAY => return "Array",
+                core.OBJ_LINKED_LIST => return "Linked List",
+                core.OBJ_HASH_TABLE => return "Hash Table",
+                core.OBJ_MATRIX => return "Matrix",
+                core.OBJ_FVECTOR => return "Float Vector",
+                else => return "Unknown Object Type", 
+            }
+        },
         VAL_COMPLEX => return "Complex",
         else => return "Unknown",
     }
@@ -54,105 +73,130 @@ pub fn cstr(s: []u8) [*c]u8 {
     return ptr;
 }
 
+/// Checks if the given value is a bool
 pub fn is_bool(val: Value) bool {
     return val.type == VAL_BOOL;
 }
 
+/// Checks if the given value is nil
 pub fn is_nil(val: Value) bool {
     return val.type == VAL_NIL;
 }
 
+/// Checks if the given value is an integer
 pub fn is_int(val: Value) bool {
     return val.type == VAL_INT;
 }
 
+/// Checks if the given value is a double
 pub fn is_double(val: Value) bool {
     return val.type == VAL_DOUBLE;
 }
 
+/// Checks if the given value is an object
 pub fn is_obj(val: Value) bool {
     return val.type == VAL_OBJ;
 }
 
+/// Checks if the given value is a complex number
 pub fn is_complex(val: Value) bool {
     return val.type == VAL_COMPLEX;
 }
 
-pub fn as_obj(val: Value) ?*Obj {
-    return @ptrCast(@alignCast(val.as.obj));
+/// Checks if the given object is of the given type
+pub fn is_obj_type(val: Value, ty: ObjType) bool {
+    return is_obj(val) and as_obj(val).?.type == ty;
 }
 
-pub fn as_bool(val: Value) bool {
-    return val.as.boolean;
+/// Checks if the given object is a string
+pub fn is_string(val: Value) bool {
+    return is_obj(val) and is_obj_type(val, OBJ_STRING);
 }
 
-pub fn as_int(val: Value) i32 {
-    return val.as.num_int;
+/// Checks if the given object is a class
+pub fn is_class(val: Value) bool {
+    return is_obj(val) and is_obj_type(val, OBJ_CLASS);
 }
 
-pub fn as_double(val: Value) f64 {
-    return val.as.num_double;
+/// Checks if the given object is an instance
+pub fn is_instance(val: Value) bool {
+    return is_obj(val) and is_obj_type(val, OBJ_INSTANCE);
 }
 
-pub fn as_complex(val: Value) Complex {
-    return val.as.complex;
-}
-
+/// Casts a value to a boolean
 pub fn bool_val(b: bool) Value {
     return .{ .type = VAL_BOOL, .as = .{ .boolean = b } };
 }
 
+/// Casts a value to an integer
 pub fn int_val(i: i32) Value {
     return .{ .type = VAL_INT, .as = .{ .num_int = i } };
 }
 
+/// Casts a value to a complex number
 pub fn complex_val(r: f64, i: f64) Value {
     const complex = Complex{ .r = r, .i = i };
     return .{ .type = VAL_COMPLEX, .as = .{ .complex = complex } };
 }
 
+/// Returns a nil value
 pub fn nil_val() Value {
     return int_val(0);
 }
 
+/// Returns a double value
 pub fn double_val(f: f64) Value {
     return .{ .type = VAL_DOUBLE, .as = .{ .num_double = f } };
 }
 
+/// Returns an object value
 pub fn obj_val(o: ?*Obj) Value {
     return .{ .type = VAL_OBJ, .as = .{ .obj = @ptrCast(o) } };
 }
 
-pub fn is_obj_type(val: Value, ty: ObjType) bool {
-    return is_obj(val) and as_obj(val).?.type == ty;
+/// Casts a value to an object
+pub fn as_obj(val: Value) ?*Obj {
+    return @ptrCast(@alignCast(val.as.obj));
 }
 
-pub fn is_string(val: Value) bool {
-    return is_obj(val) and is_obj_type(val, OBJ_STRING);
+/// Casts a value to a boolean
+pub fn as_bool(val: Value) bool {
+    return val.as.boolean;
 }
 
-pub fn is_class(val: Value) bool {
-    return is_obj(val) and is_obj_type(val, OBJ_CLASS);
+/// Casts a value to an integer
+pub fn as_int(val: Value) i32 {
+    return val.as.num_int;
 }
 
-pub fn is_instance(val: Value) bool {
-    return is_obj(val) and is_obj_type(val, OBJ_INSTANCE);
+/// Casts a value to a double
+pub fn as_double(val: Value) f64 {
+    return val.as.num_double;
 }
 
+/// Casts a value to a complex number
+pub fn as_complex(val: Value) Complex {
+    return val.as.complex;
+}
+
+/// Casts a value to a string
 pub fn as_string(val: Value) ?*ObjString {
     return @ptrCast(@alignCast(val.as.obj));
 }
 
+/// Casts a value to a class
 pub fn as_class(val: Value) ?*ObjClass {
     return @ptrCast(@alignCast(val.as.obj));
 }
 
+/// Casts a value to a string (zig string)
 pub fn as_zstring(val: Value) []u8 {
     const objstr = as_string(val);
     const len: usize = @intCast(objstr.?.length);
     return @ptrCast(@alignCast(objstr.?.chars[0..len]));
 }
 
+/// Returns a string value
 pub fn string_val(s: []u8) Value {
     const chars: [*c]const u8 = @ptrCast(@alignCast(s.ptr));
     const length: c_int = @intCast(s.len);
@@ -160,24 +204,7 @@ pub fn string_val(s: []u8) Value {
     return .{ .type = VAL_OBJ, .as = .{ .obj = @ptrCast(obj_str) } };
 }
 
+/// Casts a value to an instance
 pub fn as_instance(val: Value) [*c]ObjInstance {
     return @ptrCast(@alignCast(val.as.obj));
-}
-
-pub fn json_val(val: Value) JValue {
-    switch (val.type) {
-        VAL_INT => return JValue{ .integer = @as(i64, @intCast(as_int(val))) },
-        VAL_DOUBLE => return JValue{ .float = as_double(val) },
-        VAL_BOOL => return JValue{ .bool = as_bool(val) },
-        VAL_NIL => return JValue{ .integer = 0 },
-        VAL_OBJ => {
-            if (is_string(val)) {
-                const s = as_zstring(val);
-                return JValue{ .string = s };
-            } else {
-                return JValue{.null};
-            }
-        },
-        else => return JValue{.null},
-    }
 }

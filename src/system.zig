@@ -1,6 +1,5 @@
 const std = @import("std");
-const core = @import("core");
-const vm_h = @import("main.zig").vm_h;
+const vm_h = @import("core.zig").vm_h;
 const conv = @import("conv.zig");
 const builtin = @import("builtin");
 const GlobalAlloc = @import("main.zig").GlobalAlloc;

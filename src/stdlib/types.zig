@@ -6,6 +6,7 @@ const value_h = core.value_h;
 const Value = value_h.Value;
 const GlobalAlloc = @import("../main.zig").GlobalAlloc;
 
+/// Convert a value to an integer.
 pub fn int(argc: c_int, args: [*c]Value) callconv(.C) Value {
     if (argc != 1) return stdlib_error("int() expects one argument!", .{ .argn = argc });
 
@@ -28,6 +29,7 @@ pub fn int(argc: c_int, args: [*c]Value) callconv(.C) Value {
     }
 }
 
+/// Convert a value to a double.
 pub fn double(argc: c_int, args: [*c]Value) callconv(.C) Value {
     if (argc != 1) return stdlib_error("double() expects one argument!", .{ .argn = argc });
 
@@ -50,6 +52,7 @@ pub fn double(argc: c_int, args: [*c]Value) callconv(.C) Value {
     }
 }
 
+/// Convert a value to a string.
 pub fn str(argc: c_int, args: [*c]Value) callconv(.C) Value {
     if (argc != 1) return stdlib_error("str() expects one argument!", .{ .argn = argc });
     const value = args[0];
@@ -62,6 +65,10 @@ pub fn str(argc: c_int, args: [*c]Value) callconv(.C) Value {
         conv.VAL_DOUBLE => {
             const d = conv.as_double(value);
             s = std.fmt.allocPrint(GlobalAlloc, "{}", .{d}) catch return conv.nil_val();
+        },
+        conv.VAL_COMPLEX => {
+            const c = conv.as_complex(value);
+            s = std.fmt.allocPrint(GlobalAlloc, "{}+{}i", .{c.r, c.i}) catch return conv.nil_val();
         },
         else => return conv.nil_val(),
     }
