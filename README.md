@@ -74,6 +74,7 @@ Where `{arch}` is the architecture of your system.
 Supported architectures are:
 
 - amd64
+- i386
 - arm64
 - mipsel
 - mips64el
@@ -121,7 +122,7 @@ $ mv mufiz /usr/local/bin
 | 0.3.0   | [Iris](https://github.com/Mustafif/MufiZ/releases/tag/v0.3.0)            | Released    |
 | 0.4.0   | [Voxl](https://github.com/Mustafif/MufiZ/releases/tag/v0.4.0)            | Released    |
 | 0.5.0   | [Luna](https://github.com/Mustafif/MufiZ/releases/tag/v0.5.0)            | Released    |
-| 0.6.0   | [Mars](https://github.com/Mustafif/MufiZ/releases/tag/next-experimental) | In Progress |
+| 0.6.0   | [Mars](https://github.com/Mustafif/MufiZ/releases/tag/v0.6.0) | Latest |
 
 ---
 
