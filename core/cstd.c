@@ -936,6 +936,111 @@ Value minl_nf(int argCount, Value *args)
     }
 }
 
+Value dot_nf(int argCount, Value *args)
+{
+    if (!IS_FVECTOR(args[0]) || !IS_FVECTOR(args[1]))
+    {
+        runtimeError("Both arguments must be vectors.");
+        return NIL_VAL;
+    }
+    FloatVector *a = AS_FVECTOR(args[0]);
+    FloatVector *b = AS_FVECTOR(args[1]);
+    double result = dotProduct(a, b);
+    return DOUBLE_VAL(result);
+}
+
+Value cross_nf(int argCount, Value *args)
+{
+    if (!IS_FVECTOR(args[0]) || !IS_FVECTOR(args[1]))
+    {
+        runtimeError("Both arguments must be vectors.");
+        return NIL_VAL;
+    }
+    FloatVector *a = AS_FVECTOR(args[0]);
+    FloatVector *b = AS_FVECTOR(args[1]);
+    FloatVector *result = crossProduct(a, b);
+    return OBJ_VAL(result);
+}
+
+Value norm_nf(int argCount, Value *args)
+{
+    if (!IS_FVECTOR(args[0]))
+    {
+        runtimeError("First argument must be a vector.");
+        return NIL_VAL;
+    }
+    FloatVector *a = AS_FVECTOR(args[0]);
+    FloatVector* result = normalize(a);
+    return OBJ_VAL(result);
+}
+
+Value proj_nf(int argCount, Value *args)
+{
+    if (!IS_FVECTOR(args[0]) || !IS_FVECTOR(args[1]))
+    {
+        runtimeError("Both arguments must be vectors.");
+        return NIL_VAL;
+    }
+    FloatVector *a = AS_FVECTOR(args[0]);
+    FloatVector *b = AS_FVECTOR(args[1]);
+    FloatVector *result = projection(a, b);
+    return OBJ_VAL(result);
+}
+
+Value reflect_nf(int argCount, Value *args)
+{
+    if (!IS_FVECTOR(args[0]) || !IS_FVECTOR(args[1]))
+    {
+        runtimeError("Both arguments must be vectors.");
+        return NIL_VAL;
+    }
+    FloatVector *a = AS_FVECTOR(args[0]);
+    FloatVector *b = AS_FVECTOR(args[1]);
+    FloatVector *result = reflection(a, b);
+    return OBJ_VAL(result);
+}
+
+Value reject_nf(int argCount, Value *args)
+{
+    if (!IS_FVECTOR(args[0]) || !IS_FVECTOR(args[1]))
+    {
+        runtimeError("Both arguments must be vectors.");
+        return NIL_VAL;
+    }
+    FloatVector *a = AS_FVECTOR(args[0]);
+    FloatVector *b = AS_FVECTOR(args[1]);
+    FloatVector *result = rejection(a, b);
+    return OBJ_VAL(result);
+}
+
+Value refract_nf(int argCount, Value *args)
+{
+    if (!IS_FVECTOR(args[0]) || !IS_FVECTOR(args[1]) || !IS_DOUBLE(args[2]) || !IS_DOUBLE(args[3]))
+    {
+        runtimeError("First and second arguments must be vectors and the third and fourth arguments must be doubles.");
+        return NIL_VAL;
+    }
+    FloatVector *a = AS_FVECTOR(args[0]);
+    FloatVector *b = AS_FVECTOR(args[1]);
+    double n1 = AS_DOUBLE(args[2]);
+    double n2 = AS_DOUBLE(args[3]);
+    FloatVector *result = refraction(a, b, n1, n2);
+    return OBJ_VAL(result);
+}
+
+Value angle_nf(int argCount, Value *args)
+{
+    if (!IS_FVECTOR(args[0]) || !IS_FVECTOR(args[1]))
+    {
+        runtimeError("Both arguments must be vectors.");
+        return NIL_VAL;
+    }
+    FloatVector *a = AS_FVECTOR(args[0]);
+    FloatVector *b = AS_FVECTOR(args[1]);
+    double result = angle(a, b);
+    return DOUBLE_VAL(result);
+}
+
 
 Value workspace_nf(int argCount, Value *args)
 {

@@ -93,14 +93,22 @@ Value maxl_nf(int argCount, Value *args);
 Value minl_nf(int argCount, Value *args);
 
 /* Vec3 Specific Functions */
+//> Dot product of two vectors
 Value dot_nf(int argCount, Value *args);
+//> Cross product of two vectors
 Value cross_nf(int argCount, Value *args);
+//> Normalizes the vector
 Value norm_nf(int argCount, Value *args);
+//> Projects one vector onto another
 Value proj_nf(int argCount, Value *args);
+//> Rejects one vector from another
 Value reject_nf(int argCount, Value *args);
+//> Reflects one vector from another
 Value reflect_nf(int argCount, Value *args);
+//> Refracts one vector from another
 Value refract_nf(int argCount, Value *args);
-
+//> Returns the angle between two vectors
+Value angle_nf(int argCount, Value *args);
 
 /* Hash Table Specific Functions */
 //> Puts a key-value pair in the hashtable

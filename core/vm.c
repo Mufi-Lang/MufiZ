@@ -60,7 +60,8 @@ void defineNative(const char *name, NativeFn function)
     pop();
 }
 
-void importCollections(void){
+void importCollections(void)
+{
     defineNative("array", array_nf);
     defineNative("linked_list", linkedlist_nf);
     defineNative("hash_table", hashtable_nf);
@@ -99,7 +100,7 @@ void importCollections(void){
     defineNative("transpose", transpose_nf);
     defineNative("det", determinant_nf);
     defineNative("lu", lu_nf);
-   // defineNative("solve", solve_nf);
+    // defineNative("solve", solve_nf);
 
     defineNative("workspace", workspace_nf);
     defineNative("interp1", interp1_nf);
@@ -109,6 +110,15 @@ void importCollections(void){
     defineNative("var", var_nf);
     defineNative("maxl", maxl_nf);
     defineNative("minl", minl_nf);
+
+    defineNative("dot", dot_nf);
+    defineNative("cross", cross_nf);
+    defineNative("norm", norm_nf);
+    defineNative("angle", angle_nf);
+    defineNative("proj", proj_nf);
+    defineNative("reflect", reflect_nf);
+    defineNative("reject", reject_nf);
+    defineNative("refract", refract_nf);
 }
 
 // Initializes the virtual machine

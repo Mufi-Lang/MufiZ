@@ -16,6 +16,8 @@ const targets: []const std.Target.Query = &.{
     .{ .cpu_arch = .aarch64, .os_tag = .linux },
     .{ .cpu_arch = .arm, .os_tag = .linux, .abi = .gnueabihf },
     .{ .cpu_arch = .arm, .os_tag = .linux, .abi = .musleabihf },
+    .{ .cpu_arch = .arm, .os_tag = .linux, .abi = .gnueabi },
+    .{ .cpu_arch = .arm, .os_tag = .linux, .abi = .musleabi },
     .{ .cpu_arch = .aarch64, .os_tag = .macos },
     .{ .cpu_arch = .aarch64, .os_tag = .windows },
     .{ .cpu_arch = .aarch64, .os_tag = .windows, .abi = .gnu },
@@ -56,96 +58,7 @@ pub fn build(b: *std.Build) !void {
     options.addOption(bool, "sandbox", sandbox);
 
     for (targets) |target| {
-        var c_flags: []const []const u8 = undefined;
-        if (target.cpu_arch == .x86_64) {
-            c_flags = &.{ "-Wall", "-O3", "-ffast-math", "-Wno-unused-variable", "-Wno-unused-function", "-mavx2" };
-        } else {
-            c_flags = &.{
-                "-Wall",
-                "-O3",
-                "-ffast-math",
-                "-Wno-unused-variable",
-                "-Wno-unused-function",
-            };
-        }
-
-        try common(.ReleaseSafe);
-
-        const exe = b.addExecutable(.{
-            .name = "mufiz",
-            .root_source_file = .{ .path = "src/main.zig" },
-            .version = .{ .major = 0, .minor = 6, .patch = 0 },
-            .target = b.resolveTargetQuery(target),
-            .optimize = if (target.cpu_arch != .arm) .ReleaseSafe else .Debug,
-            .link_libc = true,
-        });
-
-        if (target.cpu_arch == .wasm32) {
-            b.enable_wasmtime = true;
-        }
-
-        const lib_scanner = b.addStaticLibrary(.{
-            .name = "libmufiz_scanner",
-            .root_source_file = .{ .path = "src/scanner.zig" },
-            .target = b.resolveTargetQuery(target),
-            .optimize = .ReleaseFast,
-            .link_libc = true,
-        });
-
-        const lib_table = b.addStaticLibrary(.{
-            .name = "libmufiz_table",
-            .target = b.resolveTargetQuery(target),
-            .optimize = .ReleaseFast,
-            .link_libc = true,
-            .root_source_file = .{ .path = "src/table.zig" },
-        });
-
-        lib_table.addCSourceFiles(.{ .files = &.{
-            "core/value.c",
-            "core/memory.c",
-            "core/object.c",
-        }, .flags = c_flags });
-
-        lib_table.addIncludePath(.{ .path = "include/" });
-
-        exe.linkLibrary(lib_table);
-
-        exe.linkLibrary(lib_scanner);
-
-        // zig fmt: off
-    exe.addCSourceFiles(.{ 
-        .files = &.{
-        "core/chunk.c", 
-        "core/compiler.c", 
-        "core/debug.c", 
-        "core/vm.c", 
-        "core/cstd.c",
-        },
-        .flags = c_flags
-    });
-    exe.addIncludePath(.{.path = "include/"});
-    exe.linkSystemLibrary("m");
-
-    const clap = b.dependency("clap", .{
-        .target = b.resolveTargetQuery(target), 
-        .optimize = .ReleaseSafe
-    });
-
-    exe.root_module.addImport("clap", clap.module("clap"));
-
-
-    exe.root_module.addOptions("features", options);
-
-        const target_output = b.addInstallArtifact(exe, .{
-            .dest_dir = .{
-                .override = .{
-                    .custom = try target.zigTriple(b.allocator),
-                },
-            },
-        });
-            // zig fmt: on
-        b.installArtifact(exe);
-        b.getInstallStep().dependOn(&target_output.step);
+        try build_target(b, target, options);
     }
 }
 
@@ -199,4 +112,97 @@ fn common(optimize: std.builtin.OptimizeMode) !void {
     } else {
         try file.writeAll(common_release);
     }
+}
+
+fn build_target(b: *std.Build, target: std.Target.Query, options: *std.Build.Step.Options) !void {
+    var c_flags: []const []const u8 = undefined;
+    if (target.cpu_arch == .x86_64) {
+        c_flags = &.{ "-Wall", "-O3", "-ffast-math", "-Wno-unused-variable", "-Wno-unused-function", "-mavx2" };
+    } else {
+        c_flags = &.{
+            "-Wall",
+            "-O3",
+            "-ffast-math",
+            "-Wno-unused-variable",
+            "-Wno-unused-function",
+        };
+    }
+
+    try common(.ReleaseSafe);
+
+    const exe = b.addExecutable(.{
+        .name = "mufiz",
+        .root_source_file = .{ .path = "src/main.zig" },
+        .version = .{ .major = 0, .minor = 6, .patch = 0 },
+        .target = b.resolveTargetQuery(target),
+        .optimize = if (target.cpu_arch != .arm) .ReleaseSafe else .Debug,
+        .link_libc = true,
+    });
+
+    if (target.cpu_arch == .wasm32) {
+        b.enable_wasmtime = true;
+    }
+
+    const lib_scanner = b.addStaticLibrary(.{
+        .name = "libmufiz_scanner",
+        .root_source_file = .{ .path = "src/scanner.zig" },
+        .target = b.resolveTargetQuery(target),
+        .optimize = .ReleaseFast,
+        .link_libc = true,
+    });
+
+    const lib_table = b.addStaticLibrary(.{
+        .name = "libmufiz_table",
+        .target = b.resolveTargetQuery(target),
+        .optimize = .ReleaseFast,
+        .link_libc = true,
+        .root_source_file = .{ .path = "src/table.zig" },
+    });
+
+    lib_table.addCSourceFiles(.{ .files = &.{
+        "core/value.c",
+        "core/memory.c",
+        "core/object.c",
+    }, .flags = c_flags });
+
+    lib_table.addIncludePath(.{ .path = "include/" });
+
+    exe.linkLibrary(lib_table);
+
+    exe.linkLibrary(lib_scanner);
+
+    // zig fmt: off
+    exe.addCSourceFiles(.{ 
+        .files = &.{
+        "core/chunk.c", 
+        "core/compiler.c", 
+        "core/debug.c", 
+        "core/vm.c", 
+        "core/cstd.c",
+        },
+        .flags = c_flags
+    });
+    exe.addIncludePath(.{.path = "include/"});
+    exe.linkSystemLibrary("m");
+
+    const clap = b.dependency("clap", .{
+        .target = b.resolveTargetQuery(target), 
+        .optimize = .ReleaseSafe
+    });
+
+    exe.root_module.addImport("clap", clap.module("clap"));
+
+
+    exe.root_module.addOptions("features", options);
+
+        const target_output = b.addInstallArtifact(exe, .{
+            .dest_dir = .{
+                .override = .{
+                    .custom = try target.zigTriple(b.allocator),
+                },
+            },
+        });
+            // zig fmt: on
+    b.installArtifact(exe);
+    b.getInstallStep().dependOn(&target_output.step);
 }

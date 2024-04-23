@@ -2274,6 +2274,11 @@ FloatVector *refraction(FloatVector *a, FloatVector *b, double n1, double n2)
     return addFloatVector(scaleFloatVector(a, n), scaleFloatVector(b, n * cosI - cosT));
 }
 
+double angle(FloatVector *a, FloatVector *b)
+{
+    return acos(dotProduct(a, b) / (magnitude(a) * magnitude(b)));
+}
+
 /*------------------------------------------------------------------------------*/
 
 static void printFunction(ObjFunction *function)

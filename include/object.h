@@ -466,6 +466,8 @@ FloatVector *rejection(FloatVector *a, FloatVector *b);
 FloatVector *reflection(FloatVector *a, FloatVector *b);
 //> Calculates the refraction of two float vectors
 FloatVector *refraction(FloatVector *a, FloatVector *b, double n1, double n2);
+//> Calculates the angle between two float vectors
+double angle(FloatVector *a, FloatVector *b);
 /*----------------------------------------------------------------------------*/
 //> Prints the object value
 void printObject(Value value);
