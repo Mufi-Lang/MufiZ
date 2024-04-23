@@ -42,7 +42,10 @@ jobs:
           gem install fpm
 
       - name: Run Build Multi
-        run: python build_multi.py
+        run: zig build --build-file build_multi.zig
+      
+      - name: Run Package Man
+        run: python3 pkgman.py
 
       - name: Create release
         id: create_release
@@ -54,4 +57,4 @@ jobs:
           generate_release_notes: true
           draft: true
           prerelease: false
-          files: "zig-out/bin/*"
+          files: "pkg/*"
