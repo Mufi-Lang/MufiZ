@@ -103,6 +103,14 @@ $ mv mufiz /usr/local/bin
 - Add the directory to your PATH environment variable.
 - Open a new terminal and run `mufiz --version` to verify the installation.
 
+### Scoop
+You can also install on Windows for 64/32 bit and `arm64` using the Scoop package manager: 
+
+```pwsh
+scoop bucket add mufi-bucket https://github.com/mustafif/mufi-bucket
+scoop install mufi-bucket/MufiZ
+```
+
 ---
 
 ## Goal
