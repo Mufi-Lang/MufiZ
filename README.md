@@ -44,8 +44,6 @@ the other `Release*` optimize modes with command `zig build -Doptimize=`.
 >   - Since this library doesn't involve memory management on the Zig side, we can prioritize performance.
 > - `libmufiz_table`: `ReleaseFast`
 >   - Since this library doesn't involve memory management on the Zig side, we can prioritize performance.
-> - `libmufiz_core`: `ReleaseFast`
->   - Since this library contains all of the C code, we can prioritize performance.
 > - `clap`: `ReleaseSafe`
 >   - Since this library involves components that require allocations, we prioritize safety.
 
