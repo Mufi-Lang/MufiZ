@@ -1,6 +1,6 @@
 const std = @import("std");
 const conv = @import("../conv.zig");
-const Value = @import("core").value_h.Value;
+const Value = @import("../core.zig").value_h.Value;
 const stdlib_error = @import("../stdlib.zig").stdlib_error;
 const NativeFn = @import("../stdlib.zig").NativeFn;
 const type_check = conv.type_check;
@@ -95,11 +95,11 @@ pub fn abs(argc: c_int, args: [*c]Value) callconv(.C) Value {
         },
         conv.VAL_DOUBLE => {
             const d = conv.as_double(args[0]);
-            return conv.double_val(@fabs(d));
+            return conv.double_val(@abs(d));
         },
         conv.VAL_INT => {
             const i = conv.as_int(args[0]);
-            return conv.int_val(std.math.absInt(i) catch 0);
+            return conv.int_val(@intCast(@abs(i)));
         },
         else => return stdlib_error("abs() expects a Numeric Type!", .{ .value_type = conv.what_is(args[0]) }),
     }
@@ -107,18 +107,36 @@ pub fn abs(argc: c_int, args: [*c]Value) callconv(.C) Value {
 
 pub fn phase(argc: c_int, args: [*c]Value) callconv(.C) Value {
     if (argc != 1) return stdlib_error("phase() expects one argument!", .{ .argn = argc });
-    if (!type_check(1, args, 4)) return stdlib_error("phase() expects a Complex!", .{ .value_type = conv.what_is(args[0]) });
+    if (!type_check(1, args, conv.VAL_COMPLEX)) return stdlib_error("phase() expects a Complex!", .{ .value_type = conv.what_is(args[0]) });
     const c = conv.as_complex(args[0]);
-    return conv.double_val(std.math.atan2(f64, c.i, c.r));
+    return conv.double_val(std.math.atan2(c.i, c.r));
 }
 
-pub fn rand(argc: c_int, args: [*c]Value) callconv(.C) Value {
+pub fn sfc(argc: c_int, args: [*c]Value) callconv(.C) Value {
     _ = args;
     if (argc != 0) return stdlib_error("rand() expects no arguments!", .{ .argn = argc });
     const seed: u64 = @intCast(std.time.milliTimestamp());
     var gen = std.rand.Sfc64.init(seed);
     const random = gen.random().int(i32);
     return conv.int_val(random);
+}
+
+pub fn rand(argc: c_int, args: [*c]Value) callconv(.C) Value {
+    _ = args;
+    if (argc != 0) return stdlib_error("rand() expects no arguments!", .{ .argn = argc });
+    var pcg = std.rand.Pcg.init(@intCast(std.time.microTimestamp()));
+    var random = pcg.random();
+    const r = random.float(f64);
+    return conv.double_val(r);
+}
+
+pub fn randn(argc: c_int, args: [*c]Value) callconv(.C) Value {
+    _ = args;
+    if (argc != 0) return stdlib_error("randn() expects no arguments!", .{ .argn = argc });
+    var pcg = std.rand.Pcg.init(@intCast(std.time.microTimestamp()));
+    var random = pcg.random();
+    const r = random.floatNorm(f64);
+    return conv.double_val(r);
 }
 
 pub fn pow(argc: c_int, args: [*c]Value) callconv(.C) Value {
@@ -155,6 +173,14 @@ pub fn round(argc: c_int, args: [*c]Value) callconv(.C) Value {
     if (!type_check(1, args, 3)) return stdlib_error("round() expects a Double!", .{ .value_type = conv.what_is(args[0]) });
     const double = conv.as_double(args[0]);
     return conv.int_val(@intFromFloat(@round(double)));
+}
+
+pub fn max(argc: c_int, args: [*c]Value) callconv(.C) Value {
+    if (argc != 2) return stdlib_error("max() expects two arguments!", .{ .argn = argc });
+    if (!type_check(2, args, 3)) return stdlib_error("max() expects 2 Double!", .{ .value_type = conv.what_is(args[0]) });
+    const a = conv.as_double(args[0]);
+    const b = conv.as_double(args[1]);
+    return conv.double_val(@max(a, b));
 }
 
 // complex numbers:

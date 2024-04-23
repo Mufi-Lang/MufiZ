@@ -1,0 +1,22 @@
+var m = matrix(3, 3);
+
+var row1 = array(3, true);
+push(row1, 1.0, 2.0, 3.0);
+
+var row2 = array(3, true);
+push(row2, 4.0, 5.0, 6.0);
+
+var row3 = array(3, true);
+push(row3, 7.0, 2.0, 9.0);
+
+set_row(m, 0, row1);
+set_row(m, 1, row2);
+set_row(m, 2, row3);
+
+print m;
+
+var b = array(3, true);
+push(b, 3.0, 4.0, 5.0);
+
+var x = solve(m, b);
+print x;

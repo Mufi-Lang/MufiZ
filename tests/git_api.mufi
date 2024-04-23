@@ -1,0 +1,2 @@
+var result = get_req("https://api.github.com/search/repositories?q=topic:awesome&page=1", 2, "Awesome-App");
+print result;

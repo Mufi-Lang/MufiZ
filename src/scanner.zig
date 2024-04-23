@@ -13,7 +13,7 @@ fn memcmp(s1: ?*const anyopaque, s2: ?*const anyopaque, n: usize) c_int {
 }
 
 fn strlen(s: [*c]const u8) usize {
-    var str: *[]u8 = @constCast(@ptrCast(@alignCast(s)));
+    const str: *[]u8 = @constCast(@ptrCast(@alignCast(s)));
     return str.*.len;
 }
 
@@ -72,6 +72,7 @@ pub const TokenType = enum(c_int) {
     TOKEN_SLASH_EQUAL = 46,
     TOKEN_PLUS_PLUS = 47,
     TOKEN_MINUS_MINUS = 48,
+    TOKEN_HAT = 49,
 };
 
 pub const Token = extern struct {
@@ -164,10 +165,10 @@ pub export fn skipWhitespace() callconv(.C) void {
 }
 /// TODO: need to simply without converting so much
 pub export fn checkKeyword(arg_start: c_int, arg_length: c_int, arg_rest: [*c]const u8, arg_type: TokenType) callconv(.C) TokenType {
-    var start = arg_start;
-    var length = arg_length;
-    var rest = arg_rest;
-    var @"type" = arg_type;
+    const start = arg_start;
+    const length = arg_length;
+    const rest = arg_rest;
+    const @"type" = arg_type;
     if (@intFromPtr(scanner.current) - @intFromPtr(scanner.start) == start + length and memcmp(@ptrCast(@as([*c]u8, @ptrFromInt(@intFromPtr(scanner.start) + @as(usize, @intCast(start))))), @ptrCast(rest), @intCast(length)) == 0) {
         return @"type";
     }
@@ -175,7 +176,7 @@ pub export fn checkKeyword(arg_start: c_int, arg_length: c_int, arg_rest: [*c]co
 }
 /// TODO: need to simply without converting so much
 pub export fn __scanner__match(arg_expected: u8) callconv(.C) bool {
-    var expected = arg_expected;
+    const expected = arg_expected;
     if (isAtEnd()) return @as(c_int, 0) != 0;
     if (@as(c_int, @bitCast(@as(c_uint, scanner.current.*))) != @as(c_int, @bitCast(@as(c_uint, expected)))) return @as(c_int, 0) != 0;
     scanner.current += 1;
@@ -305,6 +306,7 @@ pub export fn scanToken() Token {
             if (__scanner__match('=')) return makeToken(.TOKEN_GREATER_EQUAL) else return makeToken(.TOKEN_GREATER);
         },
         '%' => return makeToken(.TOKEN_PERCENT),
+        '^' => return makeToken(.TOKEN_HAT),
         '"' => return __scanner__string(),
         else => {},
     }

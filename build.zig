@@ -2,9 +2,9 @@ const std = @import("std");
 const builtin = @import("builtin");
 
 comptime {
-    const supported_version = std.SemanticVersion.parse("0.11.0") catch unreachable;
+    const supported_version = std.SemanticVersion.parse("0.12.0") catch unreachable;
     if (builtin.zig_version.order(supported_version) != .eq) {
-        @compileError(std.fmt.comptimePrint("Unsupported Zig version ({}). Required Zig version 0.11.0.", .{builtin.zig_version}));
+        @compileError(std.fmt.comptimePrint("Unsupported Zig version ({}). Required Zig version 0.12.0.", .{builtin.zig_version}));
     }
 }
 
@@ -12,18 +12,34 @@ pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    var c_flags: []const []const u8 = undefined;
+    const query = target.query;
+    if (query.cpu_arch == .x86_64) {
+        c_flags = &.{ "-Wall", "-O3", "-ffast-math", "-Wno-unused-variable", "-Wno-unused-function", "-mavx2" };
+    } else {
+        c_flags = &.{
+            "-Wall",
+            "-O3",
+            "-ffast-math",
+            "-Wno-unused-variable",
+            "-Wno-unused-function",
+        };
+    }
+
     try common(optimize);
 
     const exe = b.addExecutable(.{
         .name = "mufiz",
         .root_source_file = .{ .path = "src/main.zig" },
-        .version = .{ .major = 0, .minor = 5, .patch = 0 },
+        .version = .{ .major = 0, .minor = 6, .patch = 0 },
         .target = target,
         .optimize = optimize,
         .link_libc = true,
     });
 
-    const c_flags = &.{ "-Wall", "-O3", "-ffast-math", "-Werror" };
+    if (query.cpu_arch == .wasm32) {
+        b.enable_wasmtime = true;
+    }
 
     const lib_scanner = b.addStaticLibrary(.{
         .name = "libmufiz_scanner",
@@ -41,58 +57,68 @@ pub fn build(b: *std.Build) !void {
         .root_source_file = .{ .path = "src/table.zig" },
     });
 
-    lib_table.addCSourceFiles(&.{
+    lib_table.addCSourceFiles(.{ .files = &.{
         "core/value.c",
         "core/memory.c",
         "core/object.c",
-    }, c_flags);
+    }, .flags = c_flags });
 
-    lib_table.addIncludePath(.{ .path = "include" });
+    lib_table.addIncludePath(.{ .path = "include/" });
 
-    const lib_core = b.addStaticLibrary(.{
-        .name = "libmufiz_core",
-        .root_source_file = .{ .path = "src/core.zig" },
-        .target = target,
-        .optimize = .ReleaseFast,
-        .link_libc = true,
-    });
+    exe.linkLibrary(lib_table);
 
-    lib_core.linkLibrary(lib_table);
-
-    lib_core.linkLibrary(lib_scanner);
+    exe.linkLibrary(lib_scanner);
 
     // zig fmt: off
-    lib_core.addCSourceFiles(&.{ 
+    exe.addCSourceFiles(.{ 
+        .files = &.{
         "core/chunk.c", 
         "core/compiler.c", 
         "core/debug.c", 
         "core/vm.c", 
-    }, c_flags);
-
-    exe.addIncludePath(.{.path = "include"});
-    exe.linkLibrary(lib_core);
+        "core/cstd.c",
+        },
+        .flags = c_flags
+    });
+    exe.addIncludePath(.{.path = "include/"});
+    exe.linkSystemLibrary("m");
 
     const clap = b.dependency("clap", .{
         .target = target, 
         .optimize = .ReleaseSafe
     });
 
-    exe.addModule("clap", clap.module("clap"));
-    exe.addModule("core", b.createModule(.{.source_file = .{.path = "src/core.zig"}}));
+    exe.root_module.addImport("clap", clap.module("clap"));
 
     const options = b.addOptions();
-    const nostd = b.option(bool, "nostd", "Run Mufi without Standard Library") orelse false;
-    options.addOption(bool, "nostd", nostd);
-    exe.addOptions("build_opts", options);
+    // const nostd = b.option(bool, "nostd", "Run Mufi without Standard Library") orelse false;
+    // options.addOption(bool, "nostd", nostd);
+    const net  = b.option(bool, "enable_net", "Enable Network features") orelse true;
+    const fs = b.option(bool, "enable_fs", "Enable File System features") orelse true;
+    const sandbox = b.option(bool, "sandbox", "Enable Sandbox Mode (REPL only)") orelse false;
+    options.addOption(bool, "enable_net", net);
+    options.addOption(bool, "enable_fs", fs);
+    options.addOption(bool, "sandbox", sandbox);
+    exe.root_module.addOptions("features", options);
 
     // zig fmt: on
     b.installArtifact(exe);
+
+    const install_docs = b.addInstallDirectory(.{
+        .source_dir = exe.getEmittedDocs(),
+        .install_dir = .prefix,
+        .install_subdir = "docs",
+    });
+
+    const docs_step = b.step("docs", "Copy documentation artifacts to prefix path");
+    docs_step.dependOn(&install_docs.step);
 
     const run_cmd = b.addRunArtifact(exe);
     run_cmd.step.dependOn(b.getInstallStep());
     if (b.args) |args| {
         run_cmd.addArgs(args);
     }
+
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
 }
@@ -116,6 +142,7 @@ const common_debug =
     \\#include <stdbool.h>
     \\#include <stddef.h>
     \\#include<stdint.h>
+    \\
     \\#include <stdlib.h>
     \\
     \\#define DEBUG_PRINT_CODE

@@ -154,3 +154,17 @@
   - Return Type: integer
   - Parameters: array, linked_list
 
+## Net
+
+- [X] `get_req`
+  - Return Type: string
+  - Parameters: string, int, string, string
+- [ ] `post_req`
+  - Return Type: string
+  - Parameters: string, int, string, string
+- [ ] `put_req`
+  - Return Type: string
+  - Parameters: string, int, string, string
+- [ ] `delete_req`
+  - Return Type: string
+  - Parameters: string, int, string, string

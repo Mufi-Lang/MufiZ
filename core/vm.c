@@ -8,39 +8,11 @@
 #include "../include/vm.h"
 #include "../include/debug.h"
 #include "../include/memory.h"
-#include "../include/object.h"
 #include "../include/value.h"
+#include "../include/cstd.h"
 
 // Global vm
 VM vm;
-
-// Initializes the history
-void initHistory(History* history)
-{
-    history->capacity = 0;
-    history->count = 0;
-    history->items = NULL;
-}
-
-// Frees the history
-void freeHistory(History* history)
-{
-    FREE_ARRAY(char *, history->items, history->capacity);
-    initHistory(history);
-}
-
-// Adds a line to the history
-void writeHistory(History* history, char *line)
-{
-    if (history->capacity < history->count + 1)
-    {
-        int oldCapacity = history->capacity;
-        history->capacity = GROW_CAPACITY(oldCapacity);
-        history->items = GROW_ARRAY(char *, history->items, oldCapacity, history->capacity);
-    }
-    history->items[history->count] = line;
-    history->count++;
-}
 
 // Resets the stack
 static void resetStack()
@@ -51,7 +23,7 @@ static void resetStack()
 }
 
 // returns runtime errors
-static void runtimeError(const char *format, ...)
+void runtimeError(const char *format, ...)
 {
     va_list args;
     va_start(args, format);
@@ -88,433 +60,65 @@ void defineNative(const char *name, NativeFn function)
     pop();
 }
 
-/*
- Native functions will be suffixed with _nf on the C side
- to avoid any name conflicts.
- All native functions defined here will be for the data structures.
-*/
-
-Value array_nf(int argCount, Value *args)
+void importCollections(void)
 {
-    ObjArray *a = newArray();
-    return OBJ_VAL(a);
-}
+    defineNative("array", array_nf);
+    defineNative("linked_list", linkedlist_nf);
+    defineNative("hash_table", hashtable_nf);
+    defineNative("matrix", matrix_nf);
+    defineNative("fvec", fvector_nf);
+    defineNative("range", range_nf);
+    defineNative("linspace", linspace_nf);
+    defineNative("slice", slice_nf);
+    defineNative("splice", splice_nf);
 
-Value linkedlist_nf(int argCount, Value *args)
-{
-    ObjLinkedList *l = newLinkedList();
-    return OBJ_VAL(l);
-}
+    defineNative("push", push_nf);
+    defineNative("pop", pop_nf);
+    defineNative("push_front", push_front_nf);
+    defineNative("pop_front", pop_front_nf);
+    defineNative("nth", nth_nf);
+    defineNative("sort", sort_nf);
+    defineNative("contains", contains_nf);
+    defineNative("insert", insert_nf);
+    defineNative("len", len_nf);
+    defineNative("search", search_nf);
+    defineNative("is_empty", is_empty_nf);
+    defineNative("equal_list", equal_list_nf);
+    defineNative("reverse", reverse_nf);
+    defineNative("merge", merge_nf);
 
-Value hashtable_nf(int argCount, Value *args)
-{
-    ObjHashTable *h = newHashTable();
-    return OBJ_VAL(h);
-}
+    defineNative("put", put_nf);
+    defineNative("get", get_nf);
+    defineNative("remove", remove_nf);
 
-Value put_nf(int argCount, Value *args)
-{
-    if (!IS_HASH_TABLE(args[0]))
-    {
-        runtimeError("First argument must be a hash table.");
-        return NIL_VAL;
-    }
-    if (!IS_STRING(args[1]))
-    {
-        runtimeError("Second argument must be a string.");
-        return NIL_VAL;
-    }
-    ObjHashTable *h = AS_HASH_TABLE(args[0]);
-    ObjString *key = AS_STRING(args[1]);
-    return BOOL_VAL(putHashTable(h, key, args[2]));
-}
+    defineNative("set_row", set_row_nf);
+    defineNative("set_col", set_col_nf);
+    defineNative("set", set_nf);
+    defineNative("kolasa", kolasa_nf);
+    defineNative("rref", rref_nf);
+    defineNative("rank", rank_nf);
+    defineNative("transpose", transpose_nf);
+    defineNative("det", determinant_nf);
+    defineNative("lu", lu_nf);
+    // defineNative("solve", solve_nf);
 
-Value get_nf(int argCount, Value *args)
-{
-    if (!IS_HASH_TABLE(args[0]))
-    {
-        runtimeError("First argument must be a hash table.");
-        return NIL_VAL;
-    }
-    if (!IS_STRING(args[1]))
-    {
-        runtimeError("Second argument must be a string.");
-        return NIL_VAL;
-    }
-    ObjHashTable *h = AS_HASH_TABLE(args[0]);
-    ObjString *key = AS_STRING(args[1]);
-    return getHashTable(h, key);
-}
+    defineNative("workspace", workspace_nf);
+    defineNative("interp1", interp1_nf);
+    defineNative("sum", sum_nf);
+    defineNative("mean", mean_nf);
+    defineNative("std", std_nf);
+    defineNative("var", var_nf);
+    defineNative("maxl", maxl_nf);
+    defineNative("minl", minl_nf);
 
-Value remove_nf(int argCount, Value *args)
-{
-    if (!IS_HASH_TABLE(args[0]))
-    {
-        runtimeError("First argument must be a hash table.");
-        return NIL_VAL;
-    }
-    if (!IS_STRING(args[1]))
-    {
-        runtimeError("Second argument must be a string.");
-        return NIL_VAL;
-    }
-    ObjHashTable *h = AS_HASH_TABLE(args[0]);
-    ObjString *key = AS_STRING(args[1]);
-    return BOOL_VAL(removeHashTable(h, key));
-}
-
-Value push_nf(int argCount, Value *args)
-{
-    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]))
-    {
-        runtimeError("First argument must be an array or linked list.");
-        return NIL_VAL;
-    }
-
-    if (IS_ARRAY(args[0]))
-    {
-
-        ObjArray *a = AS_ARRAY(args[0]);
-        for (int i = 1; i < argCount; i++)
-        {
-            pushArray(a, args[i]);
-        }
-        return NIL_VAL;
-    }
-    else
-    {
-        ObjLinkedList *l = AS_LINKED_LIST(args[0]);
-        for (int i = 1; i < argCount; i++)
-        {
-            pushBack(l, args[i]);
-        }
-        return NIL_VAL;
-    }
-}
-
-Value push_front_nf(int argCount, Value *args)
-{
-    if (!IS_LINKED_LIST(args[0]))
-    {
-        runtimeError("First argument must be a linked list.");
-        return NIL_VAL;
-    }
-    ObjLinkedList *l = AS_LINKED_LIST(args[0]);
-    for (int i = 1; i < argCount; i++)
-    {
-        pushFront(l, args[i]);
-    }
-    return NIL_VAL;
-}
-
-Value pop_nf(int argCount, Value *args)
-{
-    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]))
-    {
-        runtimeError("First argument must be an array or linked list.");
-        return NIL_VAL;
-    }
-
-    if (IS_ARRAY(args[0]))
-    {
-
-        ObjArray *a = AS_ARRAY(args[0]);
-        return popArray(a);
-    }
-    else
-    {
-        ObjLinkedList *l = AS_LINKED_LIST(args[0]);
-        return popBack(l);
-    }
-}
-
-Value pop_front_nf(int argCount, Value *args)
-{
-    if (!IS_LINKED_LIST(args[0]))
-    {
-        runtimeError("First argument must be a linked list.");
-        return NIL_VAL;
-    }
-    ObjLinkedList *l = AS_LINKED_LIST(args[0]);
-    return popFront(l);
-}
-
-Value nth_nf(int argCount, Value *args)
-{
-    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]))
-    {
-        runtimeError("First argument must be an array or linked list.");
-        return NIL_VAL;
-    }
-    if (!IS_INT(args[1]))
-    {
-        runtimeError("Second argument must be an integer.");
-        return NIL_VAL;
-    }
-
-    if (IS_ARRAY(args[0]))
-    {
-        ObjArray *a = AS_ARRAY(args[0]);
-        int index = AS_INT(args[1]);
-        if (index < 0 || index >= a->count)
-        {
-            runtimeError("Index out of bounds.");
-            return NIL_VAL;
-        }
-        return a->values[index];
-    }
-    else
-    {
-        ObjLinkedList *l = AS_LINKED_LIST(args[0]);
-        int index = AS_INT(args[1]);
-        if (index < 0 || index >= l->count)
-        {
-            runtimeError("Index out of bounds.");
-            return NIL_VAL;
-        }
-        struct Node *node = l->head;
-        for (int i = 0; i < index; i++)
-        {
-            node = node->next;
-        }
-
-        return node->data;
-    }
-}
-
-Value is_empty_nf(int argCount, Value *args)
-{
-    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]) && !IS_HASH_TABLE(args[0]))
-    {
-        runtimeError("First argument must be an array, linked list or hash table.");
-        return NIL_VAL;
-    }
-
-    if (IS_ARRAY(args[0]))
-    {
-        ObjArray *a = AS_ARRAY(args[0]);
-        return BOOL_VAL(a->count == 0);
-    }
-    else if (IS_HASH_TABLE(args[0]))
-    {
-        ObjHashTable *h = AS_HASH_TABLE(args[0]);
-        return BOOL_VAL(h->table.count == 0);
-    }
-    else
-    {
-        ObjLinkedList *l = AS_LINKED_LIST(args[0]);
-        return BOOL_VAL(l->count == 0);
-    }
-}
-
-Value sort_nf(int argCount, Value *args)
-{
-    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]))
-    {
-        runtimeError("First argument must be an array or linked list.");
-        return NIL_VAL;
-    }
-
-    if (IS_ARRAY(args[0]))
-    {
-
-        ObjArray *a = AS_ARRAY(args[0]);
-        sortArray(a);
-        return NIL_VAL;
-    }
-    else
-    {
-        ObjLinkedList *l = AS_LINKED_LIST(args[0]);
-        mergeSort(l);
-        return NIL_VAL;
-    }
-}
-
-Value equal_list_nf(int argCount, Value *args)
-{
-    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]))
-    {
-        runtimeError("First argument must be an array or linked list.");
-        return NIL_VAL;
-    }
-
-    if (IS_ARRAY(args[0]))
-    {
-        if (!IS_ARRAY(args[1]))
-        {
-            runtimeError("Second argument must be an array.");
-            return NIL_VAL;
-        }
-        ObjArray *a = AS_ARRAY(args[0]);
-        ObjArray *b = AS_ARRAY(args[1]);
-        return BOOL_VAL(equalArray(a, b));
-    }
-    else
-    {
-        if (!IS_LINKED_LIST(args[1]))
-        {
-            runtimeError("Second argument must be a linked list.");
-            return NIL_VAL;
-        }
-        ObjLinkedList *a = AS_LINKED_LIST(args[0]);
-        ObjLinkedList *b = AS_LINKED_LIST(args[1]);
-        return BOOL_VAL(equalLinkedList(a, b));
-    }
-}
-
-Value contains_nf(int argCount, Value *args)
-{
-    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]) && !IS_HASH_TABLE(args[0]))
-    {
-        runtimeError("First argument must be an array, linked list or hash table.");
-        return NIL_VAL;
-    }
-
-    if (IS_ARRAY(args[0]))
-    {
-        ObjArray *a = AS_ARRAY(args[0]);
-        for (int i = 0; i < a->count; i++)
-        {
-            if (valuesEqual(a->values[i], args[1]))
-            {
-                return BOOL_VAL(true);
-            }
-        }
-        return BOOL_VAL(false);
-    }
-    else if (IS_HASH_TABLE(args[0]))
-    {
-        ObjHashTable *h = AS_HASH_TABLE(args[0]);
-        if (!valuesEqual(getHashTable(h, AS_STRING(args[1])), NIL_VAL))
-        {
-            return BOOL_VAL(true);
-        }
-        else
-        {
-            return BOOL_VAL(false);
-        }
-    }
-    else
-    {
-        ObjLinkedList *l = AS_LINKED_LIST(args[0]);
-        struct Node *current = l->head;
-        while (current != NULL)
-        {
-            if (valuesEqual(current->data, args[1]))
-            {
-                return BOOL_VAL(true);
-            }
-            current = current->next;
-        }
-        return BOOL_VAL(false);
-    }
-}
-
-Value len_nf(int argCount, Value *args)
-{
-    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]) && !IS_HASH_TABLE(args[0]))
-    {
-        runtimeError("First argument must be an array, linked list or hash table.");
-        return NIL_VAL;
-    }
-
-    if (IS_ARRAY(args[0]))
-    {
-        ObjArray *a = AS_ARRAY(args[0]);
-        return INT_VAL(a->count);
-    }
-    else if (IS_HASH_TABLE(args[0]))
-    {
-        ObjHashTable *h = AS_HASH_TABLE(args[0]);
-        return INT_VAL(h->table.count);
-    }
-    else
-    {
-        ObjLinkedList *l = AS_LINKED_LIST(args[0]);
-        return INT_VAL(l->count);
-    }
-}
-
-Value range_nf(int argCount, Value *args)
-{
-    if (!IS_INT(args[0]) || !IS_INT(args[1]))
-    {
-        runtimeError("Both arguments must be integers.");
-        return NIL_VAL;
-    }
-    int start = AS_INT(args[0]);
-    int end = AS_INT(args[1]);
-    ObjArray *a = newArray();
-    for (int i = start; i < end; i++)
-    {
-        pushArray(a, INT_VAL(i));
-    }
-    return OBJ_VAL(a);
-}
-
-Value reverse_nf(int argCount, Value *args)
-{
-    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]))
-    {
-        runtimeError("First argument must be an array or linked list.");
-        return NIL_VAL;
-    }
-
-    if (IS_ARRAY(args[0]))
-    {
-        ObjArray *a = AS_ARRAY(args[0]);
-        reverseArray(a);
-        return NIL_VAL;
-    }
-    else
-    {
-        ObjLinkedList *l = AS_LINKED_LIST(args[0]);
-        reverseLinkedList(l);
-        return NIL_VAL;
-    }
-}
-
-Value search_nf(int argCount, Value *args)
-{
-    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]))
-    {
-        runtimeError("First argument must be an array or linked list.");
-        return NIL_VAL;
-    }
-
-    if (IS_ARRAY(args[0]))
-    {
-        ObjArray *a = AS_ARRAY(args[0]);
-        int result = searchArray(a, args[1]);
-        if (result == -1)
-            return NIL_VAL;
-        return INT_VAL(result);
-    }
-    else
-    {
-        ObjLinkedList *l = AS_LINKED_LIST(args[0]);
-        int result = searchLinkedList(l, args[1]);
-        if (result == -1)
-            return NIL_VAL;
-        return INT_VAL(result);
-    }
-}
-
-Value history_nf(int argCount, Value *args)
-{
-    if (argCount == 0)
-    {
-        for (int i = 0; i < vm.history.count; i++)
-        {
-            printf("[%d]: %s\n", i + 1, vm.history.items[i]);
-        }
-        return NIL_VAL;
-    }
-    else
-    {
-        runtimeError("history() takes no arguments.");
-        return NIL_VAL;
-    }
+    defineNative("dot", dot_nf);
+    defineNative("cross", cross_nf);
+    defineNative("norm", norm_nf);
+    defineNative("angle", angle_nf);
+    defineNative("proj", proj_nf);
+    defineNative("reflect", reflect_nf);
+    defineNative("reject", reject_nf);
+    defineNative("refract", refract_nf);
 }
 
 // Initializes the virtual machine
@@ -530,31 +134,9 @@ void initVM(void)
 
     initTable(&vm.globals);
     initTable(&vm.strings);
-    initHistory(&vm.history);
 
     vm.initString = NULL;
     vm.initString = copyString("init", 4);
-
-    defineNative("array", array_nf);
-    defineNative("linked_list", linkedlist_nf);
-    defineNative("hash_table", hashtable_nf);
-    defineNative("push", push_nf);
-    defineNative("push_front", push_front_nf);
-    defineNative("pop", pop_nf);
-    defineNative("pop_front", pop_front_nf);
-    defineNative("nth", nth_nf);
-    defineNative("is_empty", is_empty_nf);
-    defineNative("sort", sort_nf);
-    defineNative("put", put_nf);
-    defineNative("get", get_nf);
-    defineNative("remove", remove_nf);
-    defineNative("equal_list", equal_list_nf);
-    defineNative("contains", contains_nf);
-    defineNative("len", len_nf);
-    defineNative("range", range_nf);
-    defineNative("reverse", reverse_nf);
-    defineNative("search", search_nf);
-    defineNative("history", history_nf);
 }
 
 // Frees the virtual machine
@@ -564,7 +146,6 @@ void freeVM(void)
     freeTable(&vm.strings);
     vm.initString = NULL;
     freeObjects();
-    freeHistory(&vm.history);
 }
 
 // Pops value off of the stack
@@ -830,26 +411,26 @@ static InterpretResult run()
     (frame->closure->function->chunk.constants.values[READ_BYTE()])
 
 #define READ_STRING() AS_STRING(READ_CONSTANT())
-#define BINARY_OP(op)                                                                     \
-    do                                                                                    \
-    {                                                                                     \
-        if (IS_INT(peek(0)) && IS_INT(peek(1)))                                           \
-        {                                                                                 \
-            int b = AS_INT(pop());                                                        \
-            int a = AS_INT(pop());                                                        \
-            push(INT_VAL(a op b));                                                        \
-        }                                                                                 \
-        else if (IS_DOUBLE(peek(0)) && IS_DOUBLE(peek(1)))                                \
-        {                                                                                 \
-            double b = AS_DOUBLE(pop());                                                  \
-            double a = AS_DOUBLE(pop());                                                  \
-            push(DOUBLE_VAL(a op b));                                                     \
-        }                                                                                 \
-        else                                                                              \
-        {                                                                                 \
-            runtimeError("Operands must be either both integer or both double numbers."); \
-            return INTERPRET_RUNTIME_ERROR;                                               \
-        }                                                                                 \
+#define BINARY_OP(op)                                      \
+    do                                                     \
+    {                                                      \
+        if (IS_INT(peek(0)) && IS_INT(peek(1)))            \
+        {                                                  \
+            int b = AS_INT(pop());                         \
+            int a = AS_INT(pop());                         \
+            push(INT_VAL(a op b));                         \
+        }                                                  \
+        else if (IS_DOUBLE(peek(0)) && IS_DOUBLE(peek(1))) \
+        {                                                  \
+            double b = AS_DOUBLE(pop());                   \
+            double a = AS_DOUBLE(pop());                   \
+            push(DOUBLE_VAL(a op b));                      \
+        }                                                  \
+        else                                               \
+        {                                                  \
+            runtimeError("Invalid Binary Operation.");     \
+            return INTERPRET_RUNTIME_ERROR;                \
+        }                                                  \
     } while (false)
 #define BINARY_OP_COMPARISON(op)                                                 \
     do                                                                           \
@@ -1012,9 +593,25 @@ static InterpretResult run()
         }
         case OP_EQUAL:
         {
-            Value b = pop();
-            Value a = pop();
-            push(BOOL_VAL(valuesEqual(a, b)));
+            if (IS_ARRAY(peek(0)) && IS_ARRAY(peek(1)))
+            {
+                ObjArray *b = AS_ARRAY(pop());
+                ObjArray *a = AS_ARRAY(pop());
+                push(BOOL_VAL(equalArray(a, b)));
+            }
+            else if (IS_LINKED_LIST(peek(0)) && IS_LINKED_LIST(peek(1)))
+            {
+                ObjLinkedList *b = AS_LINKED_LIST(pop());
+                ObjLinkedList *a = AS_LINKED_LIST(pop());
+                push(BOOL_VAL(equalLinkedList(a, b)));
+            }
+            else
+            {
+                Value b = pop();
+                Value a = pop();
+                push(BOOL_VAL(valuesEqual(a, b)));
+            }
+
             break;
         }
         case OP_GREATER:
@@ -1033,6 +630,34 @@ static InterpretResult run()
             {
                 complex_add();
             }
+            else if (IS_ARRAY(peek(0)) && IS_ARRAY(peek(1)))
+            {
+                ObjArray *b = AS_ARRAY(pop());
+                ObjArray *a = AS_ARRAY(pop());
+                ObjArray *result = addArray(a, b);
+                push(OBJ_VAL(result));
+            }
+            else if (IS_FVECTOR(peek(0)) && IS_FVECTOR(peek(1)))
+            {
+                FloatVector *b = AS_FVECTOR(pop());
+                FloatVector *a = AS_FVECTOR(pop());
+                FloatVector *result = addFloatVector(a, b);
+                push(OBJ_VAL(result));
+            }
+            else if (IS_FVECTOR(peek(1)) && IS_DOUBLE(peek(0)))
+            {
+                double b = AS_DOUBLE(pop());
+                FloatVector *a = AS_FVECTOR(pop());
+                FloatVector *result = singleAddFloatVector(a, b);
+                push(OBJ_VAL(result));
+            }
+            else if (IS_MATRIX(peek(0)) && IS_MATRIX(peek(1)))
+            {
+                ObjMatrix *b = AS_MATRIX(pop());
+                ObjMatrix *a = AS_MATRIX(pop());
+                ObjMatrix *result = addMatrix(a, b);
+                push(OBJ_VAL(result));
+            }
             else
             {
                 BINARY_OP(+);
@@ -1044,6 +669,34 @@ static InterpretResult run()
             {
                 complex_sub();
             }
+            else if (IS_MATRIX(peek(0)) && IS_MATRIX(peek(1)))
+            {
+                ObjMatrix *b = AS_MATRIX(pop());
+                ObjMatrix *a = AS_MATRIX(pop());
+                ObjMatrix *merged = subMatrix(a, b);
+                push(OBJ_VAL(merged));
+            }
+            else if (IS_ARRAY(peek(0)) && IS_ARRAY(peek(1)))
+            {
+                ObjArray *b = AS_ARRAY(pop());
+                ObjArray *a = AS_ARRAY(pop());
+                ObjArray *result = subArray(a, b);
+                push(OBJ_VAL(result));
+            }
+            else if (IS_FVECTOR(peek(0)) && IS_FVECTOR(peek(1)))
+            {
+                FloatVector *b = AS_FVECTOR(pop());
+                FloatVector *a = AS_FVECTOR(pop());
+                FloatVector *result = subFloatVector(a, b);
+                push(OBJ_VAL(result));
+            }
+            else if (IS_FVECTOR(peek(0)) && IS_DOUBLE(peek(1)))
+            {
+                double b = AS_DOUBLE(pop());
+                FloatVector *a = AS_FVECTOR(pop());
+                FloatVector *result = singleSubFloatVector(a, b);
+                push(OBJ_VAL(result));
+            }
             else
             {
                 BINARY_OP(-);
@@ -1053,6 +706,34 @@ static InterpretResult run()
             if (IS_COMPLEX(peek(0)) && IS_COMPLEX(peek(1)))
             {
                 complex_mul();
+            }
+            else if (IS_MATRIX(peek(0)) && IS_MATRIX(peek(1)))
+            {
+                ObjMatrix *b = AS_MATRIX(pop());
+                ObjMatrix *a = AS_MATRIX(pop());
+                ObjMatrix *merged = mulMatrix(a, b);
+                push(OBJ_VAL(merged));
+            }
+            else if (IS_ARRAY(peek(0)) && IS_ARRAY(peek(1)))
+            {
+                ObjArray *b = AS_ARRAY(pop());
+                ObjArray *a = AS_ARRAY(pop());
+                ObjArray *result = mulArray(a, b);
+                push(OBJ_VAL(result));
+            }
+            else if (IS_FVECTOR(peek(0)) && IS_FVECTOR(peek(1)))
+            {
+                FloatVector *b = AS_FVECTOR(pop());
+                FloatVector *a = AS_FVECTOR(pop());
+                FloatVector *result = mulFloatVector(a, b);
+                push(OBJ_VAL(result));
+            }
+            else if (IS_FVECTOR(peek(0)) && IS_DOUBLE(peek(1)))
+            {
+                double b = AS_DOUBLE(pop());
+                FloatVector *a = AS_FVECTOR(pop());
+                FloatVector *result = scaleFloatVector(a, b);
+                push(OBJ_VAL(result));
             }
             else
             {
@@ -1064,12 +745,40 @@ static InterpretResult run()
             {
                 complex_div();
             }
+            else if (IS_MATRIX(peek(0)) && IS_MATRIX(peek(1)))
+            {
+                ObjMatrix *b = AS_MATRIX(pop());
+                ObjMatrix *a = AS_MATRIX(pop());
+                ObjMatrix *merged = divMatrix(a, b);
+                push(OBJ_VAL(merged));
+            }
+            else if (IS_FVECTOR(peek(0)) && IS_FVECTOR(peek(1)))
+            {
+                FloatVector *b = AS_FVECTOR(pop());
+                FloatVector *a = AS_FVECTOR(pop());
+                FloatVector *result = divFloatVector(a, b);
+                push(OBJ_VAL(result));
+            }
+            else if (IS_ARRAY(peek(0)) && IS_ARRAY(peek(1)))
+            {
+                ObjArray *b = AS_ARRAY(pop());
+                ObjArray *a = AS_ARRAY(pop());
+                ObjArray *result = divArray(a, b);
+                push(OBJ_VAL(result));
+            }
+            else if (IS_FVECTOR(peek(0)) && IS_DOUBLE(peek(1)))
+            {
+                double b = AS_DOUBLE(pop());
+                FloatVector *a = AS_FVECTOR(pop());
+                FloatVector *result = singleDivFloatVector(a, b);
+                push(OBJ_VAL(result));
+            }
             else
             {
                 BINARY_OP(/);
             }
             break;
-        case OP_MODULO: 
+        case OP_MODULO:
         {
             if (IS_INT(peek(0)) && IS_INT(peek(1)))
             {
@@ -1080,6 +789,38 @@ static InterpretResult run()
             else
             {
                 runtimeError("Operands must be integers.");
+                return INTERPRET_RUNTIME_ERROR;
+            }
+            break;
+        }
+        case OP_EXPONENT:
+        {
+            if (IS_INT(peek(0)) && IS_INT(peek(1)))
+            {
+                int b = AS_INT(pop());
+                int a = AS_INT(pop());
+                push(INT_VAL(pow(a, b)));
+            }
+            else if (IS_DOUBLE(peek(0)) && IS_DOUBLE(peek(1)))
+            {
+                double b = AS_DOUBLE(pop());
+                double a = AS_DOUBLE(pop());
+                push(DOUBLE_VAL(pow(a, b)));
+            }
+            else if (IS_COMPLEX(peek(0)) && IS_DOUBLE(peek(1)))
+            {
+                double b = AS_DOUBLE(pop());
+                Complex a = AS_COMPLEX(pop());
+                Complex result;
+                double r = sqrt(a.r * a.r + a.i * a.i);
+                double theta = atan2(a.i, a.r);
+                result.r = pow(r, b) * cos(b * theta);
+                result.i = pow(r, b) * sin(b * theta);
+                push(COMPLEX_VAL(result));
+            }
+            else
+            {
+                runtimeError("Operands must be numeric type.");
                 return INTERPRET_RUNTIME_ERROR;
             }
             break;
@@ -1248,7 +989,6 @@ static InterpretResult run()
 // Interprets the chunks
 InterpretResult interpret(const char *source)
 {
-    writeHistory(&vm.history, (char*)source);
     ObjFunction *function = compile(source);
     if (function == NULL)
         return INTERPRET_COMPILE_ERROR;

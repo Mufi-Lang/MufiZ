@@ -1,14 +1,15 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const nostd = @import("build_opts").nostd;
 const stdlib = @import("stdlib.zig");
 const system = @import("system.zig");
 const clap = @import("clap");
 const core = @import("core");
+const features = @import("features");
 const heap = std.heap;
+pub const vm_h = @cImport(@cInclude("vm.h"));
 
 var Global = heap.GeneralPurposeAllocator(.{}){};
-pub const GlobalAlloc = Global.allocator();
+pub const GlobalAlloc = if (builtin.target.isWasm()) heap.page_allocator else Global.allocator();
 
 const params = clap.parseParamsComptime(
     \\-h, --help             Displays this help and exit.
@@ -18,46 +19,49 @@ const params = clap.parseParamsComptime(
     \\--repl                 Runs Mufi Repl system
     \\
 );
-
+/// Main function
 pub fn main() !void {
-    core.vm_h.initVM();
-    defer core.vm_h.freeVM();
+    vm_h.initVM();
+    defer vm_h.freeVM();
+    stdlib.prelude();
+    stdlib.addMath();
+    stdlib.addTime();
+    stdlib.addFs();
+    stdlib.addNet();
+    vm_h.importCollections();
     defer {
         const check = Global.deinit();
         if (check == .leak) @panic("memory leak!");
     }
+    if (features.sandbox) {
+        try system.repl();
+    } else {
+        var diag = clap.Diagnostic{};
+        var res = clap.parse(clap.Help, &params, clap.parsers.default, .{
+            .allocator = GlobalAlloc,
+            .diagnostic = &diag,
+        }) catch |err| {
+            try diag.report(std.io.getStdErr().writer(), err);
+            return err;
+        };
+        defer res.deinit();
 
-    var diag = clap.Diagnostic{};
-    var res = clap.parse(clap.Help, &params, clap.parsers.default, .{
-        .allocator = GlobalAlloc,
-        .diagnostic = &diag,
-    }) catch |err| {
-        try diag.report(std.io.getStdErr().writer(), err);
-        return err;
-    };
-    defer res.deinit();
-
-    if (!nostd) {
-        var natives = stdlib.NativeFunctions.init(GlobalAlloc);
-        defer natives.deinit();
-        try natives.addMath();
-        try natives.addTime();
-        try natives.addTypes();
-        try natives.addOthers();
-        try natives.addFs();
-        natives.define();
-    }
-
-    if (res.args.help != 0) return clap.help(std.io.getStdErr().writer(), clap.Help, &params, .{});
-    if (res.args.version != 0) system.vopt.version();
-    if (res.args.run) |s| {
-        var runner = system.Runner.init(GlobalAlloc);
-        defer runner.deinit();
-        try runner.setMain(@constCast(s));
-        if (res.args.link) |l| {
-            try runner.setLink(@constCast(l));
+        if (res.args.help != 0) {
+            return clap.help(std.io.getStdErr().writer(), clap.Help, &params, .{});
+        } else if (res.args.version != 0) {
+            system.version();
+        } else if (res.args.run) |s| {
+            var runner = system.Runner.init(GlobalAlloc);
+            defer runner.deinit();
+            try runner.setMain(@constCast(s));
+            if (res.args.link) |l| {
+                try runner.setLink(@constCast(l));
+            }
+            try runner.runFile();
+        } else if (res.args.repl != 0) {
+            try system.repl();
+        } else {
+            return clap.help(std.io.getStdErr().writer(), clap.Help, &params, .{});
         }
-        try runner.runFile();
     }
-    if (res.args.repl != 0) try system.repl();
 }

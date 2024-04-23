@@ -1,34 +1,26 @@
 const std = @import("std");
-const nostd = @import("build_opts").nostd;
-const core = @import("core");
-const vm_h = core.vm_h;
+const vm_h = @import("core.zig").vm_h;
 const conv = @import("conv.zig");
 const builtin = @import("builtin");
 const GlobalAlloc = @import("main.zig").GlobalAlloc;
 
 const MAJOR: u8 = 0;
-const MINOR: u8 = 5;
+const MINOR: u8 = 6;
 const PATCH: u8 = 0;
-const CODENAME: []const u8 = "Luna";
+const CODENAME: []const u8 = "Mars";
 
-pub const vopt = if (nostd) struct {
-    pub inline fn version() void {
-        std.debug.print("Version {d}.{d}.{d} ({s} Release [nostd])\n", .{ MAJOR, MINOR, PATCH, CODENAME });
-    }
-} else struct {
-    pub inline fn version() void {
-        std.debug.print("Version {d}.{d}.{d} ({s} Release)\n", .{ MAJOR, MINOR, PATCH, CODENAME });
-    }
-};
+pub inline fn version() void {
+    std.debug.print("Version {d}.{d}.{d} ({s} Release)\n", .{ MAJOR, MINOR, PATCH, CODENAME });
+}
 
 pub fn repl() !void {
     var buffer: [1024]u8 = undefined;
     var streamer = std.io.FixedBufferStream([]u8){ .buffer = &buffer, .pos = 0 };
-    vopt.version();
+    version();
     while (true) {
         std.debug.print("(mufi) >> ", .{});
         try std.io.getStdIn().reader().streamUntilDelimiter(streamer.writer(), '\n', 1024);
-        var input = streamer.getWritten();
+        const input = streamer.getWritten();
         _ = vm_h.interpret(conv.cstr(input));
         streamer.reset();
     }
@@ -60,8 +52,8 @@ pub const Runner = struct {
 
     fn run(str: []u8) void {
         const result = vm_h.interpret(conv.cstr(str));
-        if (result == vm_h.INTERPRET_COMPILE_ERROR) std.os.exit(65);
-        if (result == vm_h.INTERPRET_RUNTIME_ERROR) std.os.exit(70);
+        if (result == vm_h.INTERPRET_COMPILE_ERROR) std.process.exit(65);
+        if (result == vm_h.INTERPRET_RUNTIME_ERROR) std.process.exit(70);
     }
 
     pub fn setMain(self: *Self, main: []u8) !void {

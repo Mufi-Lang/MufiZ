@@ -504,6 +504,9 @@ static void binary(bool canAssign)
     case TOKEN_PERCENT:
         emitByte(OP_MODULO);
         break;
+    case TOKEN_HAT:
+        emitByte(OP_EXPONENT);
+        break;
     default:
         return; // Unreachable.
     }
@@ -750,6 +753,7 @@ ParseRule rules[] = {
     [TOKEN_STAR] = {NULL, binary, PREC_FACTOR},
     [TOKEN_SLASH] = {NULL, binary, PREC_FACTOR},
     [TOKEN_PERCENT] = {NULL, binary, PREC_FACTOR},
+    [TOKEN_HAT] = {NULL, binary, PREC_FACTOR},
     [TOKEN_BANG] = {unary, NULL, PREC_NONE},
     [TOKEN_BANG_EQUAL] = {NULL, binary, PREC_EQUALITY},
     [TOKEN_EQUAL] = {NULL, NULL, PREC_NONE},
@@ -866,6 +870,8 @@ static void function(FunctionType type)
         emitByte(compiler.upvalues[i].index);
     }
 }
+
+
 
 static void method()
 {

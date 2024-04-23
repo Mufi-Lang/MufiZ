@@ -7,3 +7,8 @@ web/target
 *.snap
 snap.py
 t
+apt-repo
+include/common.h
+pkg
+manifests
+MufiZ.json
