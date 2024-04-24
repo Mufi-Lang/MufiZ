@@ -137,7 +137,6 @@ typedef struct
 typedef struct
 {
     Obj obj;
-    bool vec3; // quick check for vec3
     int size;
     int count;
     double *data;

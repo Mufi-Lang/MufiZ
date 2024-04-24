@@ -1627,7 +1627,6 @@ FloatVector *newFloatVector(int size)
 {
     FloatVector *vector = ALLOCATE_OBJ(FloatVector, OBJ_FVECTOR);
     vector->size = size;
-    vector->vec3 = size == 3 ? true : false;
     vector->count = 0;
     vector->data = ALLOCATE(double, size);
     return vector;
@@ -2035,6 +2034,7 @@ bool equalFloatVector(FloatVector *a, FloatVector *b)
     }
     return true;
 }
+
 FloatVector *scaleFloatVector(FloatVector *vector, double scalar)
 {
     FloatVector *result = newFloatVector(vector->size);
@@ -2092,6 +2092,7 @@ FloatVector *singleAddFloatVector(FloatVector *a, double b)
     result->count = a->count;
     return result;
 }
+
 FloatVector *singleSubFloatVector(FloatVector *a, double b)
 {
     FloatVector *result = newFloatVector(a->size);
@@ -2202,7 +2203,7 @@ double interp1(FloatVector *x, FloatVector *y, double x0)
 
 double dotProduct(FloatVector *a, FloatVector *b)
 {
-    if (a->vec3 || b->vec3)
+    if (a->size != 3 && b->size != 3)
     {
         printf("Vectors are not of size 3\n");
         return 0;
@@ -2212,7 +2213,7 @@ double dotProduct(FloatVector *a, FloatVector *b)
 
 FloatVector *crossProduct(FloatVector *a, FloatVector *b)
 {
-    if (a->vec3 || b->vec3)
+    if (a->size != 3 && b->size != 3)
     {
         printf("Vectors are not of size 3\n");
         return NULL;
@@ -2227,12 +2228,8 @@ FloatVector *crossProduct(FloatVector *a, FloatVector *b)
 
 double magnitude(FloatVector *vector)
 {
-    double sum = 0;
-    for (int i = 0; i < vector->count; i++)
-    {
-        sum += vector->data[i] * vector->data[i];
-    }
-    return __mufi_sqrt(sum);
+    double sum = pow(vector->data[0], 2) + pow(vector->data[1], 2) + pow(vector->data[2], 2);
+    return sqrt(sum);
 }
 
 FloatVector *normalize(FloatVector *vector)
@@ -2263,19 +2260,26 @@ FloatVector *reflection(FloatVector *a, FloatVector *b)
 
 FloatVector *refraction(FloatVector *a, FloatVector *b, double n1, double n2)
 {
-    double n = n1 / n2;
-    double cosI = -dotProduct(a, b);
-    double sinT2 = n * n * (1.0 - cosI * cosI);
-    if (sinT2 > 1.0)
+    double dot = dotProduct(a, b);
+    double mag_a = magnitude(a);
+    double mag_b = magnitude(b);
+    double theta = acos(dot / (mag_a * mag_b));
+
+    double sin_theta_r = (n1 / n2) * sin(theta);
+    if (sin_theta_r > 1)
     {
+        printf("Total internal reflection\n");
         return NULL;
     }
-    double cosT = __mufi_sqrt(1.0 - sinT2);
-    return addFloatVector(scaleFloatVector(a, n), scaleFloatVector(b, n * cosI - cosT));
+    double cos_theta_r = sqrt(1 - pow(sin_theta_r, 2));
+    FloatVector *result = scaleFloatVector(a, n1 / n2);
+    FloatVector *temp = scaleFloatVector(b, (n1 / n2) * cos_theta_r - sqrt(1 - pow(sin_theta_r, 2)));
+    return addFloatVector(result, temp);
 }
 
 double angle(FloatVector *a, FloatVector *b)
 {
+    // this returns the angle in radians
     return acos(dotProduct(a, b) / (magnitude(a) * magnitude(b)));
 }
 
