@@ -9,7 +9,7 @@ on:
       - main
 
 env:
-  codename: 'mars'
+  codename: 'Jade'
 
 jobs:
   build:
@@ -52,7 +52,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           token: ${{secrets.SECRET}}
-          tag_name: v0.6.0
+          tag_name: v0.7.0
           name: v0.6.0 ${{env.codename}} Release
           generate_release_notes: true
           draft: true

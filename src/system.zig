@@ -5,9 +5,9 @@ const builtin = @import("builtin");
 const GlobalAlloc = @import("main.zig").GlobalAlloc;
 
 const MAJOR: u8 = 0;
-const MINOR: u8 = 6;
+const MINOR: u8 = 7;
 const PATCH: u8 = 0;
-const CODENAME: []const u8 = "Mars";
+const CODENAME: []const u8 = "Jade";
 
 pub inline fn version() void {
     std.debug.print("Version {d}.{d}.{d} ({s} Release)\n", .{ MAJOR, MINOR, PATCH, CODENAME });

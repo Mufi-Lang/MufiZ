@@ -133,7 +133,7 @@ fn build_target(b: *std.Build, target: std.Target.Query, options: *std.Build.Ste
     const exe = b.addExecutable(.{
         .name = "mufiz",
         .root_source_file = .{ .path = "src/main.zig" },
-        .version = .{ .major = 0, .minor = 6, .patch = 0 },
+        .version = .{ .major = 0, .minor = 7, .patch = 0 },
         .target = b.resolveTargetQuery(target),
         .optimize = if (target.cpu_arch != .arm) .ReleaseSafe else .Debug,
         .link_libc = true,

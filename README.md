@@ -128,7 +128,8 @@ scoop install mufi-bucket/MufiZ
 | 0.3.0   | [Iris](https://github.com/Mustafif/MufiZ/releases/tag/v0.3.0)            | Released    |
 | 0.4.0   | [Voxl](https://github.com/Mustafif/MufiZ/releases/tag/v0.4.0)            | Released    |
 | 0.5.0   | [Luna](https://github.com/Mustafif/MufiZ/releases/tag/v0.5.0)            | Released    |
-| 0.6.0   | [Mars](https://github.com/Mustafif/MufiZ/releases/tag/v0.6.0) | Latest |
+| 0.6.0   | [Mars](https://github.com/Mustafif/MufiZ/releases/tag/v0.6.0)            | Latest      |
+| 0.7.0   | [Jade](https://github.com/Mustafif/MufiZ/releases/tag/next-experimental) | In Progress |
 
 ---
 

@@ -22,12 +22,10 @@ import os
 import json
 import shutil
 import zipfile
-import time
-import concurrent.futures
 
 out_path = "zig-out/"
 pkg_path = "pkg/"
-version = "0.6.0"
+version = "0.7.0"
 
 arch_map_deb = {
     "x86_64-linux": "amd64",
