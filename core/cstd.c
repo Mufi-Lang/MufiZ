@@ -480,7 +480,7 @@ Value range_nf(int argCount, Value *args)
     }
     int start = AS_INT(args[0]);
     int end = AS_INT(args[1]);
-    ObjArray *a = newArrayWithCap(end-start, true);
+    ObjArray *a = newArrayWithCap(end - start, true);
     for (int i = start; i < end; i++)
     {
         pushArray(a, INT_VAL(i));
@@ -517,7 +517,8 @@ Value slice_nf(int argCount, Value *args)
         FloatVector *s = sliceFloatVector(f, start, end);
         return OBJ_VAL(s);
     }
-    else {
+    else
+    {
         runtimeError("Unsupported type to slice.");
     }
 }
@@ -551,7 +552,8 @@ Value splice_nf(int argCount, Value *args)
         FloatVector *s = spliceFloatVector(f, start, end);
         return OBJ_VAL(s);
     }
-    else {
+    else
+    {
         runtimeError("Unsupported type to splice.");
     }
 }
@@ -580,7 +582,7 @@ Value reverse_nf(int argCount, Value *args)
 
 Value search_nf(int argCount, Value *args)
 {
-    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]))
+    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]) && !IS_FVECTOR(args[0]))
     {
         runtimeError("First argument must be an array or linked list.");
         return NIL_VAL;
@@ -590,6 +592,14 @@ Value search_nf(int argCount, Value *args)
     {
         ObjArray *a = AS_ARRAY(args[0]);
         int result = searchArray(a, args[1]);
+        if (result == -1)
+            return NIL_VAL;
+        return INT_VAL(result);
+    }
+    else if (IS_FVECTOR(args[0]))
+    {
+        FloatVector *f = AS_FVECTOR(args[0]);
+        int result = searchFloatVector(f, AS_DOUBLE(args[1]));
         if (result == -1)
             return NIL_VAL;
         return INT_VAL(result);
@@ -970,7 +980,7 @@ Value norm_nf(int argCount, Value *args)
         return NIL_VAL;
     }
     FloatVector *a = AS_FVECTOR(args[0]);
-    FloatVector* result = normalize(a);
+    FloatVector *result = normalize(a);
     return OBJ_VAL(result);
 }
 
@@ -1040,7 +1050,6 @@ Value angle_nf(int argCount, Value *args)
     double result = angle(a, b);
     return DOUBLE_VAL(result);
 }
-
 
 Value workspace_nf(int argCount, Value *args)
 {

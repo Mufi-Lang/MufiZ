@@ -26,6 +26,11 @@ pub fn repl() !void {
     }
 }
 
+pub const InterpreterError = error{
+    CompileError,
+    RuntimeError,
+};
+
 pub const Runner = struct {
     main: []u8 = &.{},
     link: ?[]u8 = null,
@@ -50,10 +55,10 @@ pub const Runner = struct {
         return try std.fs.cwd().readFileAlloc(self.allocator, path, max_bytes);
     }
 
-    fn run(str: []u8) void {
+    fn run(str: []u8) InterpreterError!void {
         const result = vm_h.interpret(conv.cstr(str));
-        if (result == vm_h.INTERPRET_COMPILE_ERROR) std.process.exit(65);
-        if (result == vm_h.INTERPRET_RUNTIME_ERROR) std.process.exit(70);
+        if (result == vm_h.INTERPRET_COMPILE_ERROR) return InterpreterError.CompileError;
+        if (result == vm_h.INTERPRET_RUNTIME_ERROR) return InterpreterError.RuntimeError;
     }
 
     pub fn setMain(self: *Self, main: []u8) !void {
@@ -78,9 +83,9 @@ pub const Runner = struct {
             defer self.allocator.free(str);
             @memcpy(str[0..l.len], l[0..]);
             @memcpy(str[l.len..], self.main[0..]);
-            run(str);
+            try run(str);
         } else {
-            run(self.main);
+            try run(self.main);
         }
     }
 };
