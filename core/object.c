@@ -1885,19 +1885,19 @@ double varianceFloatVector(FloatVector *vector)
     {
         variance += simd_variance_arr[i];
     }
-    return variance / vector->count;
+    return variance / (vector->count - 1);
 #else
     for (int i = 0; i < vector->count; i++)
     {
         variance += (vector->data[i] - mean) * (vector->data[i] - mean);
     }
-    return variance / vector->count;
+    return variance / (vector->count - 1);
 #endif
 }
 
 double stdDevFloatVector(FloatVector *vector)
 {
-    return __mufi_sqrt(varianceFloatVector(vector));
+    return sqrt(varianceFloatVector(vector));
 }
 
 double maxFloatVector(FloatVector *vector)

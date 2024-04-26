@@ -1,0 +1,6 @@
+var a = fvec(4);
+var b = linspace(1.0, 4.0, 4);
+
+push(a, 2.0, 1.0, 3.0, 4.0);
+sort(a);
+assert(a, b);

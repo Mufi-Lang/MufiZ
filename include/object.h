@@ -19,6 +19,7 @@
 
 #ifdef __AVX2__
 #include <immintrin.h>
+#include <avx2intrin.h>
 #endif
 
 #define OBJ_TYPE(value) (AS_OBJ(value)->type)
@@ -220,7 +221,6 @@ typedef struct
     Value receiver;
     ObjClosure *method;
 } ObjBoundMethod;
-
 
 /*-------------------------- Object Functions --------------------------------*/
 ObjBoundMethod *newBoundMethod(Value receiver, ObjClosure *method);

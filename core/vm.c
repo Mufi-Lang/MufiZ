@@ -108,7 +108,7 @@ void importCollections(void)
     defineNative("sum", sum_nf);
     defineNative("mean", mean_nf);
     defineNative("std", std_nf);
-    defineNative("var", var_nf);
+    defineNative("vari", var_nf);
     defineNative("maxl", maxl_nf);
     defineNative("minl", minl_nf);
 
