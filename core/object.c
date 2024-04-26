@@ -1668,16 +1668,37 @@ void pushFloatVector(FloatVector *vector, double value)
     }
     vector->data[vector->count] = value;
     vector->count++;
+
+    // Check if the vector is still sorted after insertion
+    if (vector->count > 1 && vector->data[vector->count - 2] > value)
+    {
+        vector->sorted = false; // Vector is no longer sorted
+    }
 }
 
 void insertFloatVector(FloatVector *vector, int index, double value)
 {
-    if (index < 0 || index >= vector->count)
+    if (index < 0 || index >= vector->size)
     {
         printf("Index out of bounds\n");
         return;
     }
+
+    // Shift elements to the right to make space for the new element
+    for (int i = vector->count; i > index; i--)
+    {
+        vector->data[i] = vector->data[i - 1];
+    }
+
+    // Insert the new element at the specified index
     vector->data[index] = value;
+    vector->count++;
+
+    // Check if the vector is still sorted after insertion
+    if (vector->count > 1 && vector->data[index] < vector->data[index - 1])
+    {
+        vector->sorted = false; // Vector is no longer sorted
+    }
 }
 
 double getFloatVector(FloatVector *vector, int index)
@@ -1695,9 +1716,19 @@ double popFloatVector(FloatVector *vector)
     if (vector->count == 0)
     {
         printf("Vector is empty\n");
-        return 0;
+        return 0; // Return a default value indicating failure
     }
-    return vector->data[--vector->count];
+
+    // Decrement the count to remove the last element
+    double poppedValue = vector->data[--vector->count];
+
+    // Check if the vector is now empty
+    if (vector->count == 0)
+    {
+        vector->sorted = true; // Vector becomes sorted when empty
+    }
+
+    return poppedValue;
 }
 
 double removeFloatVector(FloatVector *vector, int index)
@@ -1705,15 +1736,27 @@ double removeFloatVector(FloatVector *vector, int index)
     if (index < 0 || index >= vector->count)
     {
         printf("Index out of bounds\n");
-        return 0;
+        return 0; // Return a default value indicating failure
     }
-    double value = vector->data[index];
+
+    double removedValue = vector->data[index];
+
+    // Shift elements to the left to fill the gap created by removing the element
     for (int i = index; i < vector->count - 1; i++)
     {
         vector->data[i] = vector->data[i + 1];
     }
+
+    // Decrement the count to reflect the removal of the element
     vector->count--;
-    return value;
+
+    // Check if the vector is still sorted after removal
+    if (vector->sorted && index > 0 && vector->data[index] < vector->data[index - 1])
+    {
+        vector->sorted = false; // Vector is no longer sorted
+    }
+
+    return removedValue;
 }
 
 void printFloatVector(FloatVector *vector)
@@ -2132,10 +2175,12 @@ static int compare_double(const void *a, const void *b)
 
 void sortFloatVector(FloatVector *vector)
 {
+    if (vector->sorted)
+        return;
     qsort(vector->data, vector->count, sizeof(double), compare_double);
 }
 
-int searchFloatVector(FloatVector *vector, double value)
+static int binarySearchFloatVector(FloatVector *vector, double value)
 {
     int left = 0;
     int right = vector->count - 1;
@@ -2143,23 +2188,38 @@ int searchFloatVector(FloatVector *vector, double value)
     while (left <= right)
     {
         int mid = left + (right - left) / 2;
-
         if (vector->data[mid] == value)
         {
-            return mid;
+            return mid; // Return the index if found
         }
-
         if (vector->data[mid] < value)
         {
-            left = mid + 1;
+            left = mid + 1; // Search the right half
         }
         else
         {
-            right = mid - 1;
+            right = mid - 1; // Search the left half
         }
     }
+    return -1; // Return -1 if not found
+}
 
-    return -1;
+int searchFloatVector(FloatVector *vector, double value)
+{
+    if (vector->sorted)
+    {
+        return binarySearchFloatVector(vector, value);
+    }
+    else
+    {
+        for (int i = 0; i < vector->count; i++)
+        {
+            if (vector->data[i] == value)
+            {
+                return i;
+            }
+        }
+    }
 }
 
 FloatVector *linspace(double start, double end, int n)

@@ -1,0 +1,17 @@
+var f = fvec(5);
+var r = linspace(1.0, 5.0, 5);
+push(f, 1.0, 2.0, 3.0, 4.0, 5.0);
+
+assert(f, r); // test push
+
+var five = pop(f);
+
+assert(five, 5.0); // test pop 
+
+assert(1.0, nth(f, 0)); // test get
+insert(f, 4, 5.0);
+print f;
+assert(f, r); // test insert 
+
+var four = remove(f, 3);
+assert(four, 4.0);

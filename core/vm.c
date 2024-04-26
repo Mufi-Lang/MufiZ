@@ -652,6 +652,13 @@ static InterpretResult run()
                 FloatVector *result = singleAddFloatVector(a, b);
                 push(OBJ_VAL(result));
             }
+            else if (IS_DOUBLE(peek(1)) && IS_FVECTOR(peek(0)))
+            {
+                FloatVector *b = AS_FVECTOR(pop());
+                double a = AS_DOUBLE(pop());
+                FloatVector *result = singleAddFloatVector(b, a);
+                push(OBJ_VAL(result));
+            }
             else if (IS_MATRIX(peek(0)) && IS_MATRIX(peek(1)))
             {
                 ObjMatrix *b = AS_MATRIX(pop());
@@ -691,11 +698,18 @@ static InterpretResult run()
                 FloatVector *result = subFloatVector(a, b);
                 push(OBJ_VAL(result));
             }
-            else if (IS_FVECTOR(peek(0)) && IS_DOUBLE(peek(1)))
+            else if (IS_FVECTOR(peek(1)) && IS_DOUBLE(peek(0)))
             {
                 double b = AS_DOUBLE(pop());
                 FloatVector *a = AS_FVECTOR(pop());
                 FloatVector *result = singleSubFloatVector(a, b);
+                push(OBJ_VAL(result));
+            }
+            else if (IS_DOUBLE(peek(1)) && IS_FVECTOR(peek(0)))
+            {
+                FloatVector *b = AS_FVECTOR(pop());
+                double a = AS_DOUBLE(pop());
+                FloatVector *result = singleSubFloatVector(b, a);
                 push(OBJ_VAL(result));
             }
             else
@@ -729,11 +743,18 @@ static InterpretResult run()
                 FloatVector *result = mulFloatVector(a, b);
                 push(OBJ_VAL(result));
             }
-            else if (IS_FVECTOR(peek(0)) && IS_DOUBLE(peek(1)))
+            else if (IS_FVECTOR(peek(1)) && IS_DOUBLE(peek(0)))
             {
                 double b = AS_DOUBLE(pop());
                 FloatVector *a = AS_FVECTOR(pop());
                 FloatVector *result = scaleFloatVector(a, b);
+                push(OBJ_VAL(result));
+            }
+            else if (IS_DOUBLE(peek(1)) && IS_FVECTOR(peek(0)))
+            {
+                FloatVector *b = AS_FVECTOR(pop());
+                double a = AS_DOUBLE(pop());
+                FloatVector *result = scaleFloatVector(b, a);
                 push(OBJ_VAL(result));
             }
             else
@@ -767,11 +788,18 @@ static InterpretResult run()
                 ObjArray *result = divArray(a, b);
                 push(OBJ_VAL(result));
             }
-            else if (IS_FVECTOR(peek(0)) && IS_DOUBLE(peek(1)))
+            else if (IS_FVECTOR(peek(1)) && IS_DOUBLE(peek(0)))
             {
                 double b = AS_DOUBLE(pop());
                 FloatVector *a = AS_FVECTOR(pop());
                 FloatVector *result = singleDivFloatVector(a, b);
+                push(OBJ_VAL(result));
+            }
+            else if (IS_DOUBLE(peek(1)) && IS_FVECTOR(peek(0)))
+            {
+                FloatVector *b = AS_FVECTOR(pop());
+                double a = AS_DOUBLE(pop());
+                FloatVector *result = singleDivFloatVector(b, a);
                 push(OBJ_VAL(result));
             }
             else

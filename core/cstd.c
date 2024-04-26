@@ -2,7 +2,7 @@
 #include <math.h>
 
 #define IS_NOT_LIST(x, y) (!IS_ARRAY(x) && !IS_ARRAY(y)) && (!IS_LINKED_LIST(x) && !IS_LINKED_LIST(y)) && (!IS_FVECTOR(x) && !IS_FVECTOR(y))
-
+#define IS_NOT_LIST_SINGLE(x) (!IS_ARRAY(x)) && (!IS_LINKED_LIST(x)) && (!IS_FVECTOR(x))
 Value assert_nf(int argCount, Value *args)
 {
     if (argCount != 2)
@@ -110,19 +110,30 @@ Value get_nf(int argCount, Value *args)
 
 Value remove_nf(int argCount, Value *args)
 {
-    if (!IS_HASH_TABLE(args[0]))
+    if (!IS_HASH_TABLE(args[0]) && !IS_ARRAY(args[0]) && !IS_FVECTOR(args[0]))
     {
-        runtimeError("First argument must be a hash table.");
+        runtimeError("First argument must be a hash table, array, or float vector.");
         return NIL_VAL;
     }
-    if (!IS_STRING(args[1]))
+    if (!IS_STRING(args[1]) && !IS_INT(args[1]))
     {
-        runtimeError("Second argument must be a string.");
+        runtimeError("Second argument must be a string or integer.");
         return NIL_VAL;
     }
-    ObjHashTable *h = AS_HASH_TABLE(args[0]);
-    ObjString *key = AS_STRING(args[1]);
-    return BOOL_VAL(removeHashTable(h, key));
+    if (IS_HASH_TABLE(args[0]))
+    {
+        ObjHashTable *h = AS_HASH_TABLE(args[0]);
+        ObjString *key = AS_STRING(args[1]);
+        return BOOL_VAL(removeHashTable(h, key));
+    }
+    else if (IS_ARRAY(args[0]))
+    {
+        return removeArray(AS_ARRAY(args[0]), AS_INT(args[1]));
+    }
+    else if (IS_FVECTOR(args[0]))
+    {
+        return DOUBLE_VAL(removeFloatVector(AS_FVECTOR(args[0]), AS_INT(args[1])));
+    }
 }
 
 Value push_nf(int argCount, Value *args)
@@ -185,9 +196,15 @@ Value push_front_nf(int argCount, Value *args)
 
 Value pop_nf(int argCount, Value *args)
 {
-    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]))
+    if (argCount != 1)
     {
-        runtimeError("First argument must be an array or linked list.");
+        runtimeError("pop() takes 1 argument.");
+        return NIL_VAL;
+    }
+
+    if (IS_NOT_LIST_SINGLE(args[0]))
+    {
+        runtimeError("First argument must be a list type.");
         return NIL_VAL;
     }
 
@@ -196,6 +213,11 @@ Value pop_nf(int argCount, Value *args)
 
         ObjArray *a = AS_ARRAY(args[0]);
         return popArray(a);
+    }
+    else if (IS_FVECTOR(args[0]))
+    {
+        FloatVector *f = AS_FVECTOR(args[0]);
+        return DOUBLE_VAL(popFloatVector(f));
     }
     else
     {
@@ -311,9 +333,9 @@ Value is_empty_nf(int argCount, Value *args)
 
 Value sort_nf(int argCount, Value *args)
 {
-    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]))
+    if (IS_NOT_LIST_SINGLE(args[0]))
     {
-        runtimeError("First argument must be an array or linked list.");
+        runtimeError("First argument must be a list type.");
         return NIL_VAL;
     }
 
@@ -322,6 +344,12 @@ Value sort_nf(int argCount, Value *args)
 
         ObjArray *a = AS_ARRAY(args[0]);
         sortArray(a);
+        return NIL_VAL;
+    }
+    else if (IS_FVECTOR(args[0]))
+    {
+        FloatVector *f = AS_FVECTOR(args[0]);
+        sortFloatVector(f);
         return NIL_VAL;
     }
     else

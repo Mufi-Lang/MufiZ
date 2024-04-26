@@ -140,6 +140,7 @@ typedef struct
     int size;
     int count;
     double *data;
+    bool sorted;
 } FloatVector;
 
 //> Function Object
