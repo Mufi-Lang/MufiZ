@@ -220,6 +220,7 @@ typedef struct
     ObjClosure *method;
 } ObjBoundMethod;
 
+
 /*-------------------------- Object Functions --------------------------------*/
 ObjBoundMethod *newBoundMethod(Value receiver, ObjClosure *method);
 ObjClass *newClass(ObjString *name);

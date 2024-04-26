@@ -79,5 +79,6 @@ void writeValueArray(ValueArray* array, Value value);
 void freeValueArray(ValueArray* array);
 //> Prints a value
 void printValue(Value value);
+char* valueToString(Value value);
 
 #endif

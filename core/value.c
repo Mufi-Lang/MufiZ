@@ -92,7 +92,62 @@ bool valuesEqual(Value a, Value b)
         return AS_DOUBLE(a) == AS_DOUBLE(b);
     case VAL_OBJ:
     {
-        return AS_OBJ(a) == AS_OBJ(b);
+        Obj *obj_a = AS_OBJ(a);
+        Obj *obj_b = AS_OBJ(b);
+        if (obj_a->type != obj_b->type)
+            return false;
+        switch (obj_a->type)
+        {
+        case OBJ_STRING:
+        {
+            ObjString *str_a = AS_STRING(a);
+            ObjString *str_b = AS_STRING(b);
+            return str_a->length == str_b->length && memcmp(str_a->chars, str_b->chars, str_a->length) == 0;
+        }
+        case OBJ_ARRAY:
+        {
+            ObjArray *arr_a = AS_ARRAY(a);
+            ObjArray *arr_b = AS_ARRAY(b);
+            if (arr_a->count != arr_b->count)
+                return false;
+            for (int i = 0; i < arr_a->count; i++)
+            {
+                if (!valuesEqual(arr_a->values[i], arr_b->values[i]))
+                    return false;
+            }
+            return true;
+        }
+        case OBJ_LINKED_LIST:
+        {
+            ObjLinkedList *list_a = AS_LINKED_LIST(a);
+            ObjLinkedList *list_b = AS_LINKED_LIST(b);
+            if (list_a->count != list_b->count)
+                return false;
+            struct Node *node_a = list_a->head;
+            struct Node *node_b = list_b->head;
+            while (node_a != NULL)
+            {
+                if (!valuesEqual(node_a->data, node_b->data))
+                    return false;
+                node_a = node_a->next;
+                node_b = node_b->next;
+            }
+            return true;
+        }
+        case OBJ_FVECTOR:
+        {
+            FloatVector *vec_a = AS_FVECTOR(a);
+            FloatVector *vec_b = AS_FVECTOR(b);
+            if (vec_a->count != vec_b->count)
+                return false;
+            for (int i = 0; i < vec_a->count; i++)
+            {
+                if (vec_a->data[i] != vec_b->data[i])
+                    return false;
+            }
+            return true;
+        }
+        }
     }
     case VAL_COMPLEX:
     {
@@ -144,4 +199,41 @@ int valueCompare(Value a, Value b)
         return -1; // unreachable
     }
     return -1;
+}
+
+char *valueToString(Value value)
+{
+    switch (value.type)
+    {
+    case VAL_BOOL:
+        return AS_BOOL(value) ? "true" : "false";
+    case VAL_NIL:
+        return "nil";
+    case VAL_INT:
+    {
+        char *str = ALLOCATE(char, 100);
+        sprintf(str, "%d", AS_INT(value));
+        return str;
+    }
+    case VAL_DOUBLE:
+    {
+        char *str = ALLOCATE(char, 100);
+        sprintf(str, "%g", AS_DOUBLE(value));
+        return str;
+    }
+    case VAL_COMPLEX:
+    {
+        char *str = ALLOCATE(char, 100);
+        Complex c = AS_COMPLEX(value);
+        sprintf(str, "%g + (%g)i", c.r, c.i);
+        return str;
+    }
+    case VAL_OBJ:
+    {
+        return "Object";
+    }
+    default:
+        return NULL; // unreachable
+    }
+    return NULL;
 }

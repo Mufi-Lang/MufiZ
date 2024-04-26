@@ -16,6 +16,8 @@
 #include "vm.h"
 #include <stdio.h>
 
+Value assert_nf(int argCount, Value *args);
+
 /* Collection Initializations  */
 //> Initializes a new array 
 //> Options: 

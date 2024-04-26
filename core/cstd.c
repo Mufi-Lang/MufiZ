@@ -1,6 +1,26 @@
 #include "../include/cstd.h"
 #include <math.h>
 
+#define IS_NOT_LIST(x, y) (!IS_ARRAY(x) && !IS_ARRAY(y)) && (!IS_LINKED_LIST(x) && !IS_LINKED_LIST(y)) && (!IS_FVECTOR(x) && !IS_FVECTOR(y))
+
+Value assert_nf(int argCount, Value *args)
+{
+    if (argCount != 2)
+    {
+        runtimeError("assert() takes 1 argument.");
+        return NIL_VAL;
+    }
+    if (valuesEqual(args[0], args[1]))
+    {
+        return NIL_VAL;
+    }
+    else
+    {
+        runtimeError("Assertion failed %s != %s", valueToString(args[0]), valueToString(args[1]));
+        return NIL_VAL;
+    }
+}
+
 Value array_nf(int argCount, Value *args)
 {
     if (argCount == 0)
@@ -815,15 +835,34 @@ Value merge_nf(int argCount, Value *args)
         runtimeError("merge() takes 2 arguments.");
         return NIL_VAL;
     }
-    if (!IS_ARRAY(args[0]) || !IS_ARRAY(args[1]))
+    if (IS_NOT_LIST(args[0], args[1]))
     {
-        runtimeError("Both arguments must be arrays.");
+        runtimeError("Both arguments must be the same list type.");
         return NIL_VAL;
     }
-    ObjArray *a = AS_ARRAY(args[0]);
-    ObjArray *b = AS_ARRAY(args[1]);
-    ObjArray *c = mergeArrays(a, b);
-    return OBJ_VAL(c);
+
+    if (IS_ARRAY(args[0]))
+    {
+        ObjArray *a = AS_ARRAY(args[0]);
+        ObjArray *b = AS_ARRAY(args[1]);
+        ObjArray *c = mergeArrays(a, b);
+        return OBJ_VAL(c);
+    }
+    else if (IS_LINKED_LIST(args[0]))
+    {
+        ObjLinkedList *a = AS_LINKED_LIST(args[0]);
+        ObjLinkedList *b = AS_LINKED_LIST(args[1]);
+        ObjLinkedList *c = mergeLinkedList(a, b);
+        return OBJ_VAL(c);
+    }
+    else
+    {
+        FloatVector *a = AS_FVECTOR(args[0]);
+        FloatVector *b = AS_FVECTOR(args[1]);
+        FloatVector *c = mergeFloatVector(a, b);
+        return OBJ_VAL(c);
+    }
+    return NIL_VAL;
 }
 
 Value sum_nf(int argCount, Value *args)

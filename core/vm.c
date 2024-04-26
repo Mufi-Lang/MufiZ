@@ -62,6 +62,7 @@ void defineNative(const char *name, NativeFn function)
 
 void importCollections(void)
 {
+    defineNative("assert", assert_nf);
     defineNative("array", array_nf);
     defineNative("linked_list", linkedlist_nf);
     defineNative("hash_table", hashtable_nf);
