@@ -30,7 +30,7 @@ pub fn build(b: *std.Build) !void {
 
     const exe = b.addExecutable(.{
         .name = "mufiz",
-        .root_source_file = .{ .path = "src/main.zig" },
+        .root_source_file = b.path("src/main.zig"),
         .version = .{ .major = 0, .minor = 7, .patch = 0 },
         .target = target,
         .optimize = optimize,
@@ -43,7 +43,7 @@ pub fn build(b: *std.Build) !void {
 
     const lib_scanner = b.addStaticLibrary(.{
         .name = "libmufiz_scanner",
-        .root_source_file = .{ .path = "src/scanner.zig" },
+        .root_source_file = b.path("src/scanner.zig"),
         .target = target,
         .optimize = .ReleaseFast,
         .link_libc = true,
@@ -54,16 +54,16 @@ pub fn build(b: *std.Build) !void {
         .target = target,
         .optimize = .ReleaseFast,
         .link_libc = true,
-        .root_source_file = .{ .path = "src/table.zig" },
+        .root_source_file = b.path("src/table.zig"),
     });
 
-    lib_table.addCSourceFiles(.{ .files = &.{
-        "core/value.c",
-        "core/memory.c",
-        "core/object.c",
+    lib_table.addCSourceFiles(.{ .root = b.path("core"), .files = &.{
+        "value.c",
+        "memory.c",
+        "object.c",
     }, .flags = c_flags });
 
-    lib_table.addIncludePath(.{ .path = "include/" });
+    lib_table.addIncludePath(b.path("include"));
 
     exe.linkLibrary(lib_table);
 
@@ -71,16 +71,17 @@ pub fn build(b: *std.Build) !void {
 
     // zig fmt: off
     exe.addCSourceFiles(.{ 
+        .root = b.path("core"),
         .files = &.{
-        "core/chunk.c", 
-        "core/compiler.c", 
-        "core/debug.c", 
-        "core/vm.c", 
-        "core/cstd.c",
+        "chunk.c", 
+        "compiler.c", 
+        "debug.c", 
+        "vm.c", 
+        "cstd.c",
         },
         .flags = c_flags
     });
-    exe.addIncludePath(.{.path = "include/"});
+    exe.addIncludePath(b.path("include"));
     exe.linkSystemLibrary("m");
 
     const clap = b.dependency("clap", .{
@@ -91,8 +92,6 @@ pub fn build(b: *std.Build) !void {
     exe.root_module.addImport("clap", clap.module("clap"));
 
     const options = b.addOptions();
-    // const nostd = b.option(bool, "nostd", "Run Mufi without Standard Library") orelse false;
-    // options.addOption(bool, "nostd", nostd);
     const net  = b.option(bool, "enable_net", "Enable Network features") orelse true;
     const fs = b.option(bool, "enable_fs", "Enable File System features") orelse true;
     const sandbox = b.option(bool, "sandbox", "Enable Sandbox Mode (REPL only)") orelse false;
@@ -121,6 +120,23 @@ pub fn build(b: *std.Build) !void {
 
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
+
+    const exe_test = b.addTest(.{ .root_source_file = b.path("src/main.zig"), .target = target, .optimize = optimize });
+    exe_test.linkLibC();
+    exe_test.addCSourceFiles(.{ .root = b.path("core"), .files = &.{
+        "chunk.c",
+        "compiler.c",
+        "debug.c",
+        "vm.c",
+        "cstd.c",
+    }, .flags = c_flags });
+    exe_test.linkLibrary(lib_scanner);
+    exe_test.linkLibrary(lib_table);
+    exe_test.addIncludePath(b.path("include"));
+    const run_exe_test = b.addRunArtifact(exe_test);
+
+    const test_step = b.step("test", "Run Test Suite");
+    test_step.dependOn(&run_exe_test.step);
 }
 
 const common_path = "include/common.h";

@@ -3,10 +3,18 @@ const builtin = @import("builtin");
 const stdlib = @import("stdlib.zig");
 const system = @import("system.zig");
 const clap = @import("clap");
-const core = @import("core");
+const core = @import("core.zig");
 const features = @import("features");
+const conv = @import("conv.zig");
 const heap = std.heap;
-pub const vm_h = @cImport(@cInclude("vm.h"));
+pub const vm_h = core.vm_h;
+const testing = std.testing;
+const fs = std.fs;
+const InterpreterError = system.InterpreterError;
+
+pub const OK: u8 = core.vm_h.INTERPRET_OK;
+pub const COMPILE_ERROR: u8 = core.vm_h.INTERPRET_COMPILE_ERROR;
+pub const RUNTIME_ERROR: u8 = core.vm_h.INTERPRET_RUNTIME_ERROR;
 
 var Global = heap.GeneralPurposeAllocator(.{}){};
 pub const GlobalAlloc = if (builtin.target.isWasm()) heap.page_allocator else Global.allocator();
@@ -65,3 +73,29 @@ pub fn main() !void {
         }
     }
 }
+
+// fn c2ir(ir: u8) InterpreterError {
+//     switch (ir) {
+//         core.vm_h.INTERPRET_OK => return InterpreterError.OK,
+//         core.vm_h.INTERPRET_COMPILE_ERROR => return InterpreterError.CompileError,
+//         core.vm_h.INTERPRET_RUNTIME_ERROR => return InterpreterError.RuntimeError,
+//         else => unreachable,
+//     }
+// }
+
+// fn test_run(path: []const u8, ir: u8) anyerror!void {
+//     const error_type = c2ir(ir);
+//     const str = try fs.cwd().readFileAlloc(GlobalAlloc, path, @intCast(std.math.maxInt(u16)));
+//     defer GlobalAlloc.free(str);
+//     const cstr = conv.cstr(str);
+//     const result = core.vm_h.interpret(cstr);
+//     if (result != ir) return error_type;
+// }
+
+// test "vector-slice" {
+//     var runner = system.Runner.init(testing.allocator);
+//     defer runner.deinit();
+
+//     try runner.setMain(@constCast("test_suite/vec/slice.mufi"));
+//     try runner.runFile();
+// }

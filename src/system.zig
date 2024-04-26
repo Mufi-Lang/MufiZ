@@ -27,6 +27,9 @@ pub fn repl() !void {
 }
 
 pub const InterpreterError = error{
+    // this might confuse you, but what if something that isn't supposed to happen happens?
+    // then by definition its an error because it's not expected.
+    OK,
     CompileError,
     RuntimeError,
 };

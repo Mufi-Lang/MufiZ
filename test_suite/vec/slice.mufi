@@ -1,0 +1,7 @@
+var a = linspace(0.0, 40.0, 10);
+var b = slice(a, 0, 4);
+var c = slice(a, 5, 9);
+
+print a;
+print b;
+print c;
