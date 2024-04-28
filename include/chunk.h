@@ -31,6 +31,8 @@ typedef enum {
     OP_GET_PROPERTY,
     OP_SET_PROPERTY,
     OP_GET_SUPER,
+    OP_INDEX_GET, 
+    OP_INDEX_SET,
     OP_EQUAL,
     OP_GREATER,
     OP_LESS,

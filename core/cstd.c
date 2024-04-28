@@ -3,6 +3,7 @@
 
 #define IS_NOT_LIST(x, y) (!IS_ARRAY(x) && !IS_ARRAY(y)) && (!IS_LINKED_LIST(x) && !IS_LINKED_LIST(y)) && (!IS_FVECTOR(x) && !IS_FVECTOR(y))
 #define IS_NOT_LIST_SINGLE(x) (!IS_ARRAY(x)) && (!IS_LINKED_LIST(x)) && (!IS_FVECTOR(x))
+
 Value assert_nf(int argCount, Value *args)
 {
     if (argCount != 2)

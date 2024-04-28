@@ -592,6 +592,23 @@ static InterpretResult run()
             }
             break;
         }
+
+        case OP_INDEX_GET:
+        {
+            // TODO: Implement index get
+            // Return the value at the index of the array/vec
+            runtimeError("Index get not implemented.");
+            break;
+        }
+
+        case OP_INDEX_SET:
+        {
+            // TODO: Implement index set
+            // Set the value at the index of the array/vec
+            runtimeError("Index set not implemented.");
+            break;
+        }
+
         case OP_EQUAL:
         {
             if (IS_ARRAY(peek(0)) && IS_ARRAY(peek(1)))

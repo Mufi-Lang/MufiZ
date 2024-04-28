@@ -68,6 +68,8 @@ enum TokenType
     TOKEN_PLUS_PLUS,
     TOKEN_MINUS_MINUS,
     TOKEN_HAT, // Exponent
+    TOKEN_LEFT_SQPAREN, 
+    TOKEN_RIGHT_SQPAREN,
 };
 
 struct Token

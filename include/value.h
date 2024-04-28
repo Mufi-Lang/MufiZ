@@ -38,7 +38,7 @@ typedef struct{
         double num_double;
         int num_int;
         Obj* obj;
-        Complex complex; // will be purely handled with Zig 
+        Complex complex;  
     } as;
 }Value;
 

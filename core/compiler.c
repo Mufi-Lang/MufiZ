@@ -740,6 +740,7 @@ static void unary(bool canAssign)
         return; // Unreachable.
     }
 }
+
 ParseRule rules[] = {
     [TOKEN_LEFT_PAREN] = {grouping, call, PREC_CALL},
     [TOKEN_RIGHT_PAREN] = {NULL, NULL, PREC_NONE},
@@ -791,6 +792,8 @@ ParseRule rules[] = {
     [TOKEN_SLASH_EQUAL] = {NULL, NULL, PREC_NONE},
     [TOKEN_PLUS_PLUS] = {NULL, NULL, PREC_NONE},
     [TOKEN_MINUS_MINUS] = {NULL, NULL, PREC_NONE},
+    [TOKEN_LEFT_SQPAREN] = {NULL, NULL, PREC_NONE},
+    [TOKEN_RIGHT_SQPAREN] = {NULL, NULL, PREC_NONE},
 };
 
 static void parsePrecedence(Precedence precedence)
@@ -824,7 +827,18 @@ static ParseRule *getRule(enum TokenType type)
 }
 static void expression()
 {
-    parsePrecedence(PREC_ASSIGNMENT);
+    if (match(TOKEN_IDENTIFIER)) {
+        uint8_t name = identifierConstant(&parser.previous);
+        if (match(TOKEN_LEFT_SQPAREN)) {
+            emitBytes(OP_GET_GLOBAL, name); // Get the array.
+            consume(TOKEN_INT, "Expect integer after '['."); // Consume the number.
+            emitBytes(OP_CONSTANT,  makeConstant(INT_VAL(atoi(parser.previous.start)))); // Emit the number as a constant.
+            consume(TOKEN_RIGHT_SQPAREN, "Expect ']' after index.");
+            emitByte(OP_INDEX_GET); // Emit the INDEX_GET opcode.
+        }
+    } else {
+        parsePrecedence(PREC_ASSIGNMENT);
+    }
 }
 
 static void block()
@@ -870,8 +884,6 @@ static void function(FunctionType type)
         emitByte(compiler.upvalues[i].index);
     }
 }
-
-
 
 static void method()
 {
@@ -948,7 +960,6 @@ static void funDeclaration()
 static void varDeclaration()
 {
     uint8_t global = parseVariable("Expect variable name.");
-
     if (match(TOKEN_EQUAL))
     {
         expression();
@@ -965,7 +976,31 @@ static void varDeclaration()
 
 static void expressionStatement()
 {
-    expression();
+    if (match(TOKEN_IDENTIFIER))
+    {
+        uint8_t name = identifierConstant(&parser.previous);
+        if (match(TOKEN_LEFT_SQPAREN))
+        {
+            emitBytes(OP_GET_GLOBAL, name);                  // Get the array.
+            consume(TOKEN_INT, "Expect integer after '['."); // Consume the number.
+            emitByte(OP_CONSTANT);                           // Load the constant value.
+            emitByte(makeConstant(INT_VAL(atoi(parser.previous.start))));
+            consume(TOKEN_RIGHT_SQPAREN, "Expect ']' after index.");
+            if (match(TOKEN_EQUAL))
+            {
+                expression();           // Parse the expression after the '='.
+                emitByte(OP_INDEX_SET); // Emit the INDEX_SET opcode.
+            }
+            else
+            {
+                runtimeError("Invalid assignment target.");
+            }
+        }
+    }
+    else
+    {
+        expression();
+    }
     consume(TOKEN_SEMICOLON, "Expect ';' after expression.");
     emitByte(OP_POP);
 }
