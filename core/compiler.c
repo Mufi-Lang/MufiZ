@@ -827,18 +827,18 @@ static ParseRule *getRule(enum TokenType type)
 }
 static void expression()
 {
-    if (match(TOKEN_IDENTIFIER)) {
-        uint8_t name = identifierConstant(&parser.previous);
-        if (match(TOKEN_LEFT_SQPAREN)) {
-            emitBytes(OP_GET_GLOBAL, name); // Get the array.
-            consume(TOKEN_INT, "Expect integer after '['."); // Consume the number.
-            emitBytes(OP_CONSTANT,  makeConstant(INT_VAL(atoi(parser.previous.start)))); // Emit the number as a constant.
-            consume(TOKEN_RIGHT_SQPAREN, "Expect ']' after index.");
-            emitByte(OP_INDEX_GET); // Emit the INDEX_GET opcode.
-        }
-    } else {
+    // if (match(TOKEN_IDENTIFIER) && check(TOKEN_LEFT_SQPAREN)) {
+    //     uint8_t name = identifierConstant(&parser.previous);
+    //     if (match(TOKEN_LEFT_SQPAREN)) {
+    //         emitBytes(OP_GET_GLOBAL, name); // Get the array.
+    //         consume(TOKEN_INT, "Expect integer after '['."); // Consume the number.
+    //         emitBytes(OP_CONSTANT,  makeConstant(INT_VAL(atoi(parser.previous.start)))); // Emit the number as a constant.
+    //         consume(TOKEN_RIGHT_SQPAREN, "Expect ']' after index.");
+    //         emitByte(OP_INDEX_GET); // Emit the INDEX_GET opcode.
+    //     }
+    // } else {
         parsePrecedence(PREC_ASSIGNMENT);
-    }
+   // }
 }
 
 static void block()
@@ -976,25 +976,23 @@ static void varDeclaration()
 
 static void expressionStatement()
 {
-    if (match(TOKEN_IDENTIFIER))
+    if (match(TOKEN_IDENTIFIER) && check(TOKEN_LEFT_SQPAREN))
     {
         uint8_t name = identifierConstant(&parser.previous);
-        if (match(TOKEN_LEFT_SQPAREN))
+        emitBytes(OP_GET_GLOBAL, name);                  // Get the array.
+        consume(TOKEN_LEFT_SQPAREN, "Expect '[' after identifier."); // Consume the '['.
+        consume(TOKEN_INT, "Expect integer after '['."); // Consume the number.
+        emitByte(OP_CONSTANT);                           // Load the constant value.
+        emitByte(makeConstant(INT_VAL(atoi(parser.previous.start))));
+        consume(TOKEN_RIGHT_SQPAREN, "Expect ']' after index.");
+        if (match(TOKEN_EQUAL))
         {
-            emitBytes(OP_GET_GLOBAL, name);                  // Get the array.
-            consume(TOKEN_INT, "Expect integer after '['."); // Consume the number.
-            emitByte(OP_CONSTANT);                           // Load the constant value.
-            emitByte(makeConstant(INT_VAL(atoi(parser.previous.start))));
-            consume(TOKEN_RIGHT_SQPAREN, "Expect ']' after index.");
-            if (match(TOKEN_EQUAL))
-            {
-                expression();           // Parse the expression after the '='.
-                emitByte(OP_INDEX_SET); // Emit the INDEX_SET opcode.
-            }
-            else
-            {
-                runtimeError("Invalid assignment target.");
-            }
+            expression();           // Parse the expression after the '='.
+            emitByte(OP_INDEX_SET); // Emit the INDEX_SET opcode.
+        }
+        else
+        {
+            runtimeError("Invalid assignment target.");
         }
     }
     else

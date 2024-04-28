@@ -397,6 +397,26 @@ static void complex_div()
     push(COMPLEX_VAL(result));
 }
 
+static void setArray(ObjArray *array, int index, Value value)
+{
+    if (index >= array->count)
+    {
+        runtimeError("Index out of bounds.");
+        return;
+    }
+    array->values[index] = value;
+}
+
+static void setFloatVector(FloatVector *fvec, int index, double value)
+{
+    if (index >= fvec->count)
+    {
+        runtimeError("Index out of bounds.");
+        return;
+    }
+    fvec->data[index] = value;
+}
+
 // runs the virtual machine
 static InterpretResult run()
 {
@@ -595,17 +615,55 @@ static InterpretResult run()
 
         case OP_INDEX_GET:
         {
-            // TODO: Implement index get
-            // Return the value at the index of the array/vec
-            runtimeError("Index get not implemented.");
+            Value index = pop();
+            Value arrayVal = pop();
+
+            if (!IS_ARRAY(arrayVal) && !IS_FVECTOR(arrayVal))
+            {
+                runtimeError("Indexing is only supported on arrays and vectors.");
+                return INTERPRET_RUNTIME_ERROR;
+            }
+
+            if (IS_ARRAY(arrayVal))
+            {
+                ObjArray *array = AS_ARRAY(arrayVal);
+                int i = AS_INT(index);
+                push(getArray(array, i));
+            }
+            else
+            {
+                FloatVector *fvec = AS_FVECTOR(arrayVal);
+                int i = AS_INT(index);
+                push(DOUBLE_VAL(getFloatVector(fvec, i)));
+            }
+
             break;
         }
 
         case OP_INDEX_SET:
         {
-            // TODO: Implement index set
-            // Set the value at the index of the array/vec
-            runtimeError("Index set not implemented.");
+            Value value = pop();
+            Value index = pop();
+            Value arrayVal = pop();
+
+            if (!IS_ARRAY(arrayVal) && !IS_FVECTOR(arrayVal))
+            {
+                runtimeError("Indexing is only supported on arrays and vectors.");
+                return INTERPRET_RUNTIME_ERROR;
+            }
+
+            if (IS_ARRAY(arrayVal))
+            {
+                ObjArray *array = AS_ARRAY(arrayVal);
+                int i = AS_INT(index);
+                setArray(array, i, value);
+            }
+            else
+            {
+                FloatVector *fvec = AS_FVECTOR(arrayVal);
+                int i = AS_INT(index);
+                setFloatVector(fvec, i, AS_DOUBLE(value));
+            }
             break;
         }
 
