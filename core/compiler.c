@@ -30,6 +30,7 @@ typedef enum
     PREC_FACTOR,     // * /
     PREC_UNARY,      // ! -
     PREC_CALL,       // . ()
+    PREC_INDEX,      // []
     PREC_PRIMARY
 } Precedence;
 
@@ -591,6 +592,26 @@ static void string(bool canAssign)
     emitConstant(OBJ_VAL(copyString(parser.previous.start + 1,
                                     parser.previous.length - 2)));
 }
+
+static void array(bool canAssign)
+{
+    uint8_t argCount = 0;
+    if (!check(TOKEN_RIGHT_SQPAREN))
+    {
+        do
+        {
+            expression();
+            argCount++;
+            if (argCount > 255)
+            {
+                error("Can't have more than 255 elements in an array.");
+            }
+        } while (match(TOKEN_COMMA));
+    }
+    consume(TOKEN_RIGHT_SQPAREN, "Expect ']' after array elements.");
+    emitBytes(OP_ARRAY, argCount);
+}
+
 static void namedVariable(struct Token name, bool canAssign)
 {
     uint8_t getOp, setOp;
@@ -671,6 +692,48 @@ static void namedVariable(struct Token name, bool canAssign)
 static void variable(bool canAssign)
 {
     namedVariable(parser.previous, canAssign);
+}
+
+static void indexable(bool canAssign)
+{
+    // Ensure the previous token is an identifier
+    if (parser.previous.type != TOKEN_IDENTIFIER)
+    {
+        fprintf(stderr, "%s", parser.previous.start);
+        error("Expect an identifier before '['.");
+        return;
+    }
+
+    // Get the identifier name
+    uint8_t name = identifierConstant(&parser.previous);
+    // Store whether it's a getter or setter
+    bool isSetter = canAssign && match(TOKEN_EQUAL);
+
+    // Get the value from the array
+    emitBytes(OP_GET_GLOBAL, name);
+
+    // If it's a setter, parse the index expression and the value to set
+    if (isSetter)
+    {
+        // Parse the index expression
+        expression();
+        consume(TOKEN_RIGHT_SQPAREN, "Expect ']' after index.");
+
+        // Parse the value to set
+        expression();
+
+        // Emit the OP_INDEX_SET bytecode
+        emitByte(OP_INDEX_SET);
+    }
+    else
+    { // Otherwise, it's a getter, just parse the index expression
+        // Parse the index expression
+        expression();
+        consume(TOKEN_RIGHT_SQPAREN, "Expect ']' after index.");
+
+        // Emit the OP_INDEX_GET bytecode
+        emitByte(OP_INDEX_GET);
+    }
 }
 
 static struct Token syntheticToken(const char *text)
@@ -792,7 +855,7 @@ ParseRule rules[] = {
     [TOKEN_SLASH_EQUAL] = {NULL, NULL, PREC_NONE},
     [TOKEN_PLUS_PLUS] = {NULL, NULL, PREC_NONE},
     [TOKEN_MINUS_MINUS] = {NULL, NULL, PREC_NONE},
-    [TOKEN_LEFT_SQPAREN] = {NULL, NULL, PREC_NONE},
+    [TOKEN_LEFT_SQPAREN] = {array, NULL, PREC_INDEX},
     [TOKEN_RIGHT_SQPAREN] = {NULL, NULL, PREC_NONE},
 };
 
@@ -825,20 +888,11 @@ static ParseRule *getRule(enum TokenType type)
 {
     return &rules[type];
 }
+
 static void expression()
 {
-    // if (match(TOKEN_IDENTIFIER) && check(TOKEN_LEFT_SQPAREN)) {
-    //     uint8_t name = identifierConstant(&parser.previous);
-    //     if (match(TOKEN_LEFT_SQPAREN)) {
-    //         emitBytes(OP_GET_GLOBAL, name); // Get the array.
-    //         consume(TOKEN_INT, "Expect integer after '['."); // Consume the number.
-    //         emitBytes(OP_CONSTANT,  makeConstant(INT_VAL(atoi(parser.previous.start)))); // Emit the number as a constant.
-    //         consume(TOKEN_RIGHT_SQPAREN, "Expect ']' after index.");
-    //         emitByte(OP_INDEX_GET); // Emit the INDEX_GET opcode.
-    //     }
-    // } else {
-        parsePrecedence(PREC_ASSIGNMENT);
-   // }
+
+    parsePrecedence(PREC_ASSIGNMENT);
 }
 
 static void block()
@@ -976,29 +1030,7 @@ static void varDeclaration()
 
 static void expressionStatement()
 {
-    if (match(TOKEN_IDENTIFIER) && check(TOKEN_LEFT_SQPAREN))
-    {
-        uint8_t name = identifierConstant(&parser.previous);
-        emitBytes(OP_GET_GLOBAL, name);                  // Get the array.
-        consume(TOKEN_LEFT_SQPAREN, "Expect '[' after identifier."); // Consume the '['.
-        consume(TOKEN_INT, "Expect integer after '['."); // Consume the number.
-        emitByte(OP_CONSTANT);                           // Load the constant value.
-        emitByte(makeConstant(INT_VAL(atoi(parser.previous.start))));
-        consume(TOKEN_RIGHT_SQPAREN, "Expect ']' after index.");
-        if (match(TOKEN_EQUAL))
-        {
-            expression();           // Parse the expression after the '='.
-            emitByte(OP_INDEX_SET); // Emit the INDEX_SET opcode.
-        }
-        else
-        {
-            runtimeError("Invalid assignment target.");
-        }
-    }
-    else
-    {
-        expression();
-    }
+    expression();
     consume(TOKEN_SEMICOLON, "Expect ';' after expression.");
     emitByte(OP_POP);
 }

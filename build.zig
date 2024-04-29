@@ -15,13 +15,16 @@ pub fn build(b: *std.Build) !void {
     var c_flags: []const []const u8 = undefined;
     const query = target.query;
     if (query.cpu_arch == .x86_64) {
-        c_flags = &.{ "-Wall", "-O3", "-ffast-math", "-Wno-unused-variable", "-Wno-unused-function", "-mavx2" };
+        c_flags = &.{
+            "-Wall",                "-O3",    "-ffast-math", //"-Wno-unused-variable",
+            "-Wno-unused-function", "-mavx2",
+        };
     } else {
         c_flags = &.{
             "-Wall",
             "-O3",
             "-ffast-math",
-            "-Wno-unused-variable",
+            // "-Wno-unused-variable",
             "-Wno-unused-function",
         };
     }

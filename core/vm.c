@@ -615,55 +615,83 @@ static InterpretResult run()
 
         case OP_INDEX_GET:
         {
+            // Pop the array and index from the stack
             Value index = pop();
-            Value arrayVal = pop();
-
-            if (!IS_ARRAY(arrayVal) && !IS_FVECTOR(arrayVal))
+            Value array = pop();
+            if (!IS_ARRAY(array))
             {
-                runtimeError("Indexing is only supported on arrays and vectors.");
+                runtimeError("Only arrays support indexing.");
+                return INTERPRET_RUNTIME_ERROR;
+            }
+            if (!IS_INT(index))
+            {
+                runtimeError("Array index must be an integer.");
                 return INTERPRET_RUNTIME_ERROR;
             }
 
-            if (IS_ARRAY(arrayVal))
+            // Perform bounds checking
+            int idx = AS_INT(index);
+            ObjArray *arrObj = AS_ARRAY(array);
+            if (idx < 0 || idx >= arrObj->count)
             {
-                ObjArray *array = AS_ARRAY(arrayVal);
-                int i = AS_INT(index);
-                push(getArray(array, i));
-            }
-            else
-            {
-                FloatVector *fvec = AS_FVECTOR(arrayVal);
-                int i = AS_INT(index);
-                push(DOUBLE_VAL(getFloatVector(fvec, i)));
+                runtimeError("Index out of bounds.");
+                return INTERPRET_RUNTIME_ERROR;
             }
 
+            // Get the value at the given index and push it onto the stack
+            push(arrObj->values[idx]);
             break;
         }
 
         case OP_INDEX_SET:
         {
+            // Pop the value to set, index, and array from the stack
             Value value = pop();
             Value index = pop();
-            Value arrayVal = pop();
+            Value array = pop();
 
-            if (!IS_ARRAY(arrayVal) && !IS_FVECTOR(arrayVal))
+            // Perform type checking
+            if (!IS_ARRAY(array))
             {
-                runtimeError("Indexing is only supported on arrays and vectors.");
+                runtimeError("Only arrays support indexing.");
+                return INTERPRET_RUNTIME_ERROR;
+            }
+            if (!IS_INT(index))
+            {
+                runtimeError("Array index must be an integer.");
                 return INTERPRET_RUNTIME_ERROR;
             }
 
-            if (IS_ARRAY(arrayVal))
+            // Perform bounds checking
+            int idx = AS_INT(index);
+            ObjArray *arrObj = AS_ARRAY(array);
+            if (idx < 0 || idx >= arrObj->count)
             {
-                ObjArray *array = AS_ARRAY(arrayVal);
-                int i = AS_INT(index);
-                setArray(array, i, value);
+                runtimeError("Index out of bounds.");
+                return INTERPRET_RUNTIME_ERROR;
             }
-            else
+
+            // Set the value at the given index
+            arrObj->values[idx] = value;
+
+            // Push the value back onto the stack
+            push(value);
+            break;
+        }
+
+        case OP_ARRAY:
+        {
+            int count = READ_BYTE();
+            ObjArray *array = newArrayWithCap(count, true);
+            for (int i = 0; i < count; i++)
             {
-                FloatVector *fvec = AS_FVECTOR(arrayVal);
-                int i = AS_INT(index);
-                setFloatVector(fvec, i, AS_DOUBLE(value));
+                pushArray(array, peek(count - i - 1));
             }
+            for (int i = 0; i < count; i++)
+            {
+                pop();
+            }
+            push(OBJ_VAL(array));
             break;
         }
 
