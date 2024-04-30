@@ -58,6 +58,7 @@ typedef enum {
     OP_INHERIT,
     OP_METHOD, 
     OP_ARRAY, 
+    OP_FVECTOR,
 }OpCode; 
 
 //> Bytecode chunk, contains array of operation code

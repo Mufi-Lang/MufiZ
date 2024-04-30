@@ -612,6 +612,25 @@ static void array(bool canAssign)
     emitBytes(OP_ARRAY, argCount);
 }
 
+static void fvector(bool canAssign)
+{
+    uint8_t argCount = 0;
+    if (!check(TOKEN_RIGHT_BRACE))
+    {
+        do
+        {
+            expression();
+            argCount++;
+            if (argCount > 255)
+            {
+                error("Can't have more than 255 elements in a vector.");
+            }
+        } while (match(TOKEN_COMMA));
+    }
+    consume(TOKEN_RIGHT_BRACE, "Expect '}' after vector elements.");
+    emitBytes(OP_FVECTOR, argCount);
+}
+
 static void namedVariable(struct Token name, bool canAssign)
 {
     uint8_t getOp, setOp;
@@ -689,58 +708,46 @@ static void namedVariable(struct Token name, bool canAssign)
         emitBytes(getOp, (uint8_t)arg);
     }
 }
-static void variable(bool canAssign)
+
+static void index_(struct Token token, bool canAssign)
 {
-    namedVariable(parser.previous, canAssign);
-}
+    // Save the array expression.
+    uint8_t arraySlot = identifierConstant(&token);
 
-static void indexable(bool canAssign)
-{
-    // Ensure the previous token is an identifier
-    if (parser.previous.type != TOKEN_IDENTIFIER)
+    // Consume the '[' token.
+    consume(TOKEN_LEFT_SQPAREN, "Expect '[' before index.");
+
+    // Compile the index expression.
+    expression();
+
+    // Consume the ']' token.
+    consume(TOKEN_RIGHT_SQPAREN, "Expect ']' after index.");
+
+    if (canAssign && match(TOKEN_EQUAL))
     {
-        fprintf(stderr, "%s", parser.previous.start);
-        error("Expect an identifier before '['.");
-        return;
-    }
-
-    // Get the identifier name
-    uint8_t name = identifierConstant(&parser.previous);
-    // Store whether it's a getter or setter
-    bool isSetter = canAssign && match(TOKEN_EQUAL);
-
-    // Get the value from the array
-    emitBytes(OP_GET_GLOBAL, name);
-
-    // If it's a setter, parse the index expression and the value to set
-    if (isSetter)
-    {
-        // Parse the index expression
+        // If it's an assignment, compile the value expression and set the array element.
         expression();
-        consume(TOKEN_RIGHT_SQPAREN, "Expect ']' after index.");
-
-        // Parse the value to set
-        expression();
-
-        // Emit the OP_INDEX_SET bytecode
-        emitByte(OP_INDEX_SET);
+        emitBytes(OP_INDEX_SET, arraySlot);
     }
     else
-    { // Otherwise, it's a getter, just parse the index expression
-        // Parse the index expression
-        expression();
-        consume(TOKEN_RIGHT_SQPAREN, "Expect ']' after index.");
-
-        // Emit the OP_INDEX_GET bytecode
-        emitByte(OP_INDEX_GET);
+    {
+        // If it's an access, get the array element.
+        emitBytes(OP_INDEX_GET, arraySlot);
     }
+}
+
+static void variable(bool canAssign)
+{
+    if (parser.current.type == TOKEN_LEFT_SQPAREN)
+    {
+        index_(parser.previous, canAssign);
+    }
+    namedVariable(parser.previous, canAssign);
 }
 
 static struct Token syntheticToken(const char *text)
 {
-    struct Token token;
-    token.start = text;
-    token.length = (int)strlen(text);
+    struct Token token = {.start = text, .length = (int)strlen(text)};
     return token;
 }
 
@@ -807,7 +814,7 @@ static void unary(bool canAssign)
 ParseRule rules[] = {
     [TOKEN_LEFT_PAREN] = {grouping, call, PREC_CALL},
     [TOKEN_RIGHT_PAREN] = {NULL, NULL, PREC_NONE},
-    [TOKEN_LEFT_BRACE] = {NULL, NULL, PREC_NONE},
+    [TOKEN_LEFT_BRACE] = {fvector, NULL, PREC_NONE},
     [TOKEN_RIGHT_BRACE] = {NULL, NULL, PREC_NONE},
     [TOKEN_COMMA] = {NULL, NULL, PREC_NONE},
     [TOKEN_DOT] = {NULL, dot, PREC_CALL},

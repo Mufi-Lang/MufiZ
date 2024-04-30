@@ -615,22 +615,15 @@ static InterpretResult run()
 
         case OP_INDEX_GET:
         {
-            // Pop the array and index from the stack
-            Value index = pop();
-            Value array = pop();
+            printf("Index get\n");
+            int idx = READ_BYTE();         // Pop index
+            Value array = READ_CONSTANT(); // Peek array
+            printValue(array);
             if (!IS_ARRAY(array))
             {
                 runtimeError("Only arrays support indexing.");
                 return INTERPRET_RUNTIME_ERROR;
             }
-            if (!IS_INT(index))
-            {
-                runtimeError("Array index must be an integer.");
-                return INTERPRET_RUNTIME_ERROR;
-            }
-
-            // Perform bounds checking
-            int idx = AS_INT(index);
             ObjArray *arrObj = AS_ARRAY(array);
             if (idx < 0 || idx >= arrObj->count)
             {
@@ -638,19 +631,15 @@ static InterpretResult run()
                 return INTERPRET_RUNTIME_ERROR;
             }
 
-            // Get the value at the given index and push it onto the stack
-            push(arrObj->values[idx]);
+            push(arrObj->values[idx]); // Push indexed value
             break;
         }
 
         case OP_INDEX_SET:
         {
-            // Pop the value to set, index, and array from the stack
-            Value value = pop();
-            Value index = pop();
-            Value array = pop();
-
-            // Perform type checking
+            Value value = pop();   // Pop value
+            Value index = pop();   // Pop index
+            Value array = peek(2); // Peek array
             if (!IS_ARRAY(array))
             {
                 runtimeError("Only arrays support indexing.");
@@ -661,8 +650,6 @@ static InterpretResult run()
                 runtimeError("Array index must be an integer.");
                 return INTERPRET_RUNTIME_ERROR;
             }
-
-            // Perform bounds checking
             int idx = AS_INT(index);
             ObjArray *arrObj = AS_ARRAY(array);
             if (idx < 0 || idx >= arrObj->count)
@@ -670,12 +657,7 @@ static InterpretResult run()
                 runtimeError("Index out of bounds.");
                 return INTERPRET_RUNTIME_ERROR;
             }
-
-            // Set the value at the given index
-            arrObj->values[idx] = value;
-
-            // Push the value back onto the stack
-            push(value);
+            arrObj->values[idx] = value; // Set value at index
             break;
         }
 
@@ -692,6 +674,23 @@ static InterpretResult run()
                 pop();
             }
             push(OBJ_VAL(array));
+            break;
+        }
+
+        case OP_FVECTOR:
+        {
+            int count = READ_BYTE();
+            FloatVector *fvec = newFloatVector(count);
+            for (int i = 0; i < count; i++)
+            {
+                pushFloatVector(fvec, AS_DOUBLE(peek(count - i - 1)));
+            }
+
+            for (int i = 0; i < count; i++)
+            {
+                pop();
+            }
+            push(OBJ_VAL(fvec));
             break;
         }
 
