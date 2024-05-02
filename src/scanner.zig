@@ -75,6 +75,7 @@ pub const TokenType = enum(c_int) {
     TOKEN_HAT = 49,
     TOKEN_LEFT_SQPAREN = 50,
     TOKEN_RIGHT_SQPAREN = 51,
+    TOKEN_COLON = 52, 
 };
 
 pub const Token = extern struct {
@@ -271,6 +272,7 @@ pub export fn scanToken() Token {
         '[' => return makeToken(.TOKEN_LEFT_SQPAREN),
         ']' => return makeToken(.TOKEN_RIGHT_SQPAREN),
         ';' => return makeToken(.TOKEN_SEMICOLON),
+        ':' => return makeToken(.TOKEN_COLON), 
         ',' => return makeToken(.TOKEN_COMMA),
         '.' => return makeToken(.TOKEN_DOT),
         '-' => {

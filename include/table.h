@@ -17,6 +17,7 @@
 struct Entry{
     ObjString* key;
     Value value;
+    bool deleted; // Flag to check if the entry is deleted
 };
 
 struct Table{

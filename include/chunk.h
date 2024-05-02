@@ -1,4 +1,4 @@
-/* 
+/*
  * File:   chunk.h
  * Author: Mustafif Khan
  * Brief:  Bytecode chunk for VM
@@ -8,14 +8,15 @@
  * published by the Free Software Foundation.
  */
 
-//> Chunk of bytecode in mufi 
-#ifndef mufi_chunk_h 
-#define mufi_chunk_h 
+//> Chunk of bytecode in mufi
+#ifndef mufi_chunk_h
+#define mufi_chunk_h
 
 #include "common.h"
 #include "value.h"
-//> Operation Code 
-typedef enum {
+//> Operation Code
+typedef enum
+{
     OP_CONSTANT,
     OP_NIL,
     OP_TRUE,
@@ -31,7 +32,7 @@ typedef enum {
     OP_GET_PROPERTY,
     OP_SET_PROPERTY,
     OP_GET_SUPER,
-    OP_INDEX_GET, 
+    OP_INDEX_GET,
     OP_INDEX_SET,
     OP_EQUAL,
     OP_GREATER,
@@ -41,7 +42,7 @@ typedef enum {
     OP_MULTIPLY,
     OP_DIVIDE,
     OP_MODULO,
-    OP_EXPONENT, 
+    OP_EXPONENT,
     OP_NOT,
     OP_NEGATE,
     OP_PRINT,
@@ -56,26 +57,27 @@ typedef enum {
     OP_RETURN,
     OP_CLASS,
     OP_INHERIT,
-    OP_METHOD, 
-    OP_ARRAY, 
+    OP_METHOD,
+    OP_ARRAY,
     OP_FVECTOR,
-}OpCode; 
+} OpCode;
 
 //> Bytecode chunk, contains array of operation code
-typedef struct {
-    int count; // Number of allocated entries in use 
-    int capacity; // Number of elements allocated 
-    uint8_t* code; // Array of Opcode
-    int* lines; // Stores the line number parallel to the opcode
-    ValueArray constants; //Constants pool
-} Chunk; 
+typedef struct
+{
+    int count;            // Number of allocated entries in use
+    int capacity;         // Number of elements allocated
+    uint8_t *code;        // Array of Opcode
+    int *lines;           // Stores the line number parallel to the opcode
+    ValueArray constants; // Constants pool
+} Chunk;
 
-//> Chunk constructor 
-void initChunk(Chunk* chunk);
+//> Chunk constructor
+void initChunk(Chunk *chunk);
 //> Frees the memory of the  chunk
-void freeChunk(Chunk* chunk);
-//> Append to the chunk 
-void writeChunk(Chunk* chunk, uint8_t byte, int line);
+void freeChunk(Chunk *chunk);
+//> Append to the chunk
+void writeChunk(Chunk *chunk, uint8_t byte, int line);
 //> Add constant to the chunk's constant pool
-int addConstant(Chunk* chunk, Value value);
-#endif 
+int addConstant(Chunk *chunk, Value value);
+#endif

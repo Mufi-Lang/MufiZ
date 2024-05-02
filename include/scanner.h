@@ -70,6 +70,7 @@ enum TokenType
     TOKEN_HAT, // Exponent
     TOKEN_LEFT_SQPAREN, 
     TOKEN_RIGHT_SQPAREN,
+    TOKEN_COLON, 
 };
 
 struct Token

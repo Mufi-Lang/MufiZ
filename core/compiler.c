@@ -709,39 +709,31 @@ static void namedVariable(struct Token name, bool canAssign)
     }
 }
 
-static void index_(struct Token token, bool canAssign)
+static void index_(bool canAssign)
 {
-    // Save the array expression.
-    uint8_t arraySlot = identifierConstant(&token);
-
-    // Consume the '[' token.
-    consume(TOKEN_LEFT_SQPAREN, "Expect '[' before index.");
-
-    // Compile the index expression.
-    expression();
-
-    // Consume the ']' token.
-    consume(TOKEN_RIGHT_SQPAREN, "Expect ']' after index.");
-
-    if (canAssign && match(TOKEN_EQUAL))
+    if (check(TOKEN_LEFT_SQPAREN))
     {
-        // If it's an assignment, compile the value expression and set the array element.
+        consume(TOKEN_LEFT_SQPAREN, "Expect '[' after array.");
         expression();
-        emitBytes(OP_INDEX_SET, arraySlot);
+        consume(TOKEN_RIGHT_SQPAREN, "Expect ']' after index.");
+        if (canAssign && match(TOKEN_EQUAL))
+        {
+            expression();
+            emitByte(OP_INDEX_SET);
+        }
+        else
+        {
+            emitByte(OP_INDEX_GET);
+        }
     }
     else
     {
-        // If it's an access, get the array element.
-        emitBytes(OP_INDEX_GET, arraySlot);
+        runtimeError("Only arrays support indexing.");
     }
 }
 
 static void variable(bool canAssign)
 {
-    if (parser.current.type == TOKEN_LEFT_SQPAREN)
-    {
-        index_(parser.previous, canAssign);
-    }
     namedVariable(parser.previous, canAssign);
 }
 
@@ -833,7 +825,7 @@ ParseRule rules[] = {
     [TOKEN_GREATER_EQUAL] = {NULL, binary, PREC_COMPARISON},
     [TOKEN_LESS] = {NULL, binary, PREC_COMPARISON},
     [TOKEN_LESS_EQUAL] = {NULL, binary, PREC_COMPARISON},
-    [TOKEN_IDENTIFIER] = {variable, NULL, PREC_NONE},
+    [TOKEN_IDENTIFIER] = {variable, index_, PREC_NONE},
     [TOKEN_STRING] = {string, NULL, PREC_NONE},
     [TOKEN_INT] = {number, NULL, PREC_NONE},
     [TOKEN_DOUBLE] = {number, NULL, PREC_NONE},
