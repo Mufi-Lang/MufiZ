@@ -295,10 +295,9 @@ ObjArray *cloneArray(ObjArray *arr)
 
 void clearArray(ObjArray *arr)
 {
-    int cap = arr->capacity;
-    bool _static = arr->_static;
-    freeObjectArray(arr);
-    arr = newArrayWithCap(cap, _static);
+    arr->count = 0;
+    arr->capacity = 0;
+    FREE_ARRAY(Value, arr->values, arr->capacity);
 }
 
 void pushArray(ObjArray *array, Value val)
@@ -724,6 +723,32 @@ ObjLinkedList *newLinkedList()
     return list;
 }
 
+ObjLinkedList* cloneLinkedList(ObjLinkedList *list)
+{
+    ObjLinkedList *newList = newLinkedList();
+    struct Node *current = list->head;
+    while (current != NULL)
+    {
+        pushBack(newList, current->data);
+        current = current->next;
+    }
+    return newList;
+}
+
+void clearLinkedList(ObjLinkedList *list)
+{
+    struct Node *current = list->head;
+    while (current != NULL)
+    {
+        struct Node *next = current->next;
+        FREE(struct Node, current);
+        current = next;
+    }
+    list->head = NULL;
+    list->tail = NULL;
+    list->count = 0;
+}
+
 void pushFront(ObjLinkedList *list, Value value)
 {
     struct Node *node = ALLOCATE(struct Node, 1);
@@ -975,6 +1000,19 @@ ObjHashTable *newHashTable()
     ObjHashTable *htable = ALLOCATE_OBJ(ObjHashTable, OBJ_HASH_TABLE);
     initTable(&htable->table);
     return htable;
+}
+
+ObjHashTable* cloneHashTable(ObjHashTable *table)
+{
+    ObjHashTable *newTable = newHashTable();
+    tableAddAll(&table->table, &newTable->table);
+    return newTable;
+}
+
+void clearHashTable(ObjHashTable *table)
+{
+    freeTable(&table->table);
+    initTable(&table->table);
 }
 
 bool putHashTable(ObjHashTable *table, ObjString *key, Value value)
@@ -1485,6 +1523,23 @@ FloatVector *newFloatVector(int size)
     vector->count = 0;
     vector->data = ALLOCATE(double, size);
     return vector;
+}
+
+FloatVector* cloneFloatVector(FloatVector *vector)
+{
+    FloatVector *newVector = newFloatVector(vector->size);
+    for (int i = 0; i < vector->count; i++)
+    {
+        pushFloatVector(newVector, vector->data[i]);
+    }
+    return newVector;
+}
+
+void clearFloatVector(FloatVector *vector)
+{
+    FREE_ARRAY(double, vector->data, vector->size);
+    vector->count = 0;
+    vector->sorted = true;
 }
 
 void freeFloatVector(FloatVector *vector)

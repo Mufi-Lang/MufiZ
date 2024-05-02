@@ -894,6 +894,67 @@ Value merge_nf(int argCount, Value *args)
     return NIL_VAL;
 }
 
+Value clone_nf(int argCount, Value *args)
+{
+    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]) && !IS_FVECTOR(args[0]) && !IS_HASH_TABLE(args[0]))
+    {
+        runtimeError("First argument must be an array, linked list or vector.");
+        return NIL_VAL;
+    }
+
+    if (IS_ARRAY(args[0]))
+    {
+        ObjArray *a = AS_ARRAY(args[0]);
+        ObjArray *c = cloneArray(a);
+        return OBJ_VAL(c);
+    }
+    else if (IS_FVECTOR(args[0]))
+    {
+        FloatVector *f = AS_FVECTOR(args[0]);
+        FloatVector *c = cloneFloatVector(f);
+        return OBJ_VAL(c);
+    } else if (IS_LINKED_LIST(args[0])) {
+        ObjLinkedList *l = AS_LINKED_LIST(args[0]);
+        ObjLinkedList *c = cloneLinkedList(l);
+        return OBJ_VAL(c);
+    } else {
+        ObjHashTable *h = AS_HASH_TABLE(args[0]);
+        ObjHashTable *c = cloneHashTable(h);
+        return OBJ_VAL(c);
+    }
+}
+
+Value clear_nf(int argCount, Value *args)
+{
+    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]) && !IS_FVECTOR(args[0]) && !IS_HASH_TABLE(args[0]))
+    {
+        runtimeError("First argument must be an array, linked list, hash table or vector.");
+        return NIL_VAL;
+    }
+
+    if (IS_ARRAY(args[0]))
+    {
+        ObjArray *a = AS_ARRAY(args[0]);
+        clearArray(a);
+    }
+    else if (IS_FVECTOR(args[0]))
+    {
+        FloatVector *f = AS_FVECTOR(args[0]);
+        clearFloatVector(f);
+    }
+    else if (IS_LINKED_LIST(args[0]))
+    {
+        ObjLinkedList *l = AS_LINKED_LIST(args[0]);
+        clearLinkedList(l);
+    }
+    else
+    {
+        ObjHashTable *h = AS_HASH_TABLE(args[0]);
+        clearHashTable(h);
+    }
+    return NIL_VAL;
+}
+
 Value sum_nf(int argCount, Value *args)
 {
     if (!IS_ARRAY(args[0]) && !IS_FVECTOR(args[0]))

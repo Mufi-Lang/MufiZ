@@ -326,6 +326,10 @@ ObjArray *newArrayWithCap(int capacity, bool _static);
 /*-------------------------- Linked List Functions ---------------------------*/
 //> Creates a new empty linked list
 ObjLinkedList *newLinkedList();
+//> Clones a linked list into a new linked list
+ObjLinkedList *cloneLinkedList(ObjLinkedList *list);
+//> Clears the linked list
+void clearLinkedList(ObjLinkedList *list);
 //> Pushes a value to the front of the linked list
 //> Time Complexity: O(1)
 void pushFront(ObjLinkedList *list, Value value);
@@ -364,6 +368,10 @@ ObjLinkedList *mergeLinkedList(ObjLinkedList *a, ObjLinkedList *b);
 /*-------------------------- Hash Table Functions ----------------------------*/
 //> Creates a new empty hash table
 ObjHashTable *newHashTable();
+//> Copies all hash entries from one table to the other
+ObjHashTable *cloneHashTable(ObjHashTable *table);
+//> Clears the hash table
+void clearHashTable(ObjHashTable *table);
 //> Puts a key-value pair in the hash table
 bool putHashTable(ObjHashTable *table, ObjString *key, Value value);
 //> Gets a value from the hash table
@@ -428,6 +436,10 @@ ObjArray *solveMatrix(ObjMatrix *matrix, ObjArray *vector);
 /*-------------------------- Float Vector Functions --------------------------*/
 //> Creates a new empty float vector with a given size
 FloatVector *newFloatVector(int size);
+//> Copies the float vector into a new float vector
+FloatVector *cloneFloatVector(FloatVector *vector);
+//> Clears the float vector
+void clearFloatVector(FloatVector *vector);
 //> Frees the float vector
 void freeFloatVector(FloatVector *vector);
 //> Creates a new float vector from an array

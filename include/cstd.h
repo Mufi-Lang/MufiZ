@@ -81,6 +81,10 @@ Value equal_list_nf(int argCount, Value *args);
 Value reverse_nf(int argCount, Value *args);
 //> Merges two collections
 Value merge_nf(int argCount, Value *args);
+//> Copies the collection
+Value clone_nf(int argCount, Value *args);
+//> Clears the collection
+Value clear_nf(int argCount, Value *args);
 //> Sums the list
 Value sum_nf(int argCount, Value *args);
 //> Averages the list

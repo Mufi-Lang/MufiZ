@@ -87,6 +87,8 @@ void importCollections(void)
     defineNative("equal_list", equal_list_nf);
     defineNative("reverse", reverse_nf);
     defineNative("merge", merge_nf);
+    defineNative("clone", clone_nf);
+    defineNative("clear", clear_nf);
 
     defineNative("put", put_nf);
     defineNative("get", get_nf);
