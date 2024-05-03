@@ -296,8 +296,6 @@ ObjArray *cloneArray(ObjArray *arr)
 void clearArray(ObjArray *arr)
 {
     arr->count = 0;
-    arr->capacity = 0;
-    FREE_ARRAY(Value, arr->values, arr->capacity);
 }
 
 void pushArray(ObjArray *array, Value val)
@@ -723,7 +721,7 @@ ObjLinkedList *newLinkedList()
     return list;
 }
 
-ObjLinkedList* cloneLinkedList(ObjLinkedList *list)
+ObjLinkedList *cloneLinkedList(ObjLinkedList *list)
 {
     ObjLinkedList *newList = newLinkedList();
     struct Node *current = list->head;
@@ -1002,7 +1000,7 @@ ObjHashTable *newHashTable()
     return htable;
 }
 
-ObjHashTable* cloneHashTable(ObjHashTable *table)
+ObjHashTable *cloneHashTable(ObjHashTable *table)
 {
     ObjHashTable *newTable = newHashTable();
     tableAddAll(&table->table, &newTable->table);
@@ -1525,7 +1523,7 @@ FloatVector *newFloatVector(int size)
     return vector;
 }
 
-FloatVector* cloneFloatVector(FloatVector *vector)
+FloatVector *cloneFloatVector(FloatVector *vector)
 {
     FloatVector *newVector = newFloatVector(vector->size);
     for (int i = 0; i < vector->count; i++)
@@ -1537,7 +1535,6 @@ FloatVector* cloneFloatVector(FloatVector *vector)
 
 void clearFloatVector(FloatVector *vector)
 {
-    FREE_ARRAY(double, vector->data, vector->size);
     vector->count = 0;
     vector->sorted = true;
 }

@@ -15,3 +15,6 @@ assert(f, r); // test insert
 
 var four = remove(f, 3);
 assert(four, 4.0);
+
+clear(f);
+assert(f, {});
