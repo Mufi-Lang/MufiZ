@@ -1,7 +1,7 @@
 # MufiZ
 
 
-> This project uses the Zig `v0.11.0`
+> This project uses the Zig `v0.12.0`
 
 This project aims to integrate the Mufi-Lang compiler with the Zig language by using the 
 Zig Build system. We hope to integrate more features with this language and see how nicely 
