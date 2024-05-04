@@ -1,9 +1,6 @@
 #include "../include/cstd.h"
 #include <math.h>
 
-#define IS_NOT_LIST(x, y) (!IS_ARRAY(x) && !IS_ARRAY(y)) && (!IS_LINKED_LIST(x) && !IS_LINKED_LIST(y)) && (!IS_FVECTOR(x) && !IS_FVECTOR(y))
-#define IS_NOT_LIST_SINGLE(x) (!IS_ARRAY(x)) && (!IS_LINKED_LIST(x)) && (!IS_FVECTOR(x))
-
 Value assert_nf(int argCount, Value *args)
 {
     if (argCount != 2)
@@ -111,7 +108,7 @@ Value get_nf(int argCount, Value *args)
 
 Value remove_nf(int argCount, Value *args)
 {
-    if (!IS_HASH_TABLE(args[0]) && !IS_ARRAY(args[0]) && !IS_FVECTOR(args[0]))
+    if (!IS_HASH_TABLE(args[0]) && NOT_ARRAY_TYPES(args, 1))
     {
         runtimeError("First argument must be a hash table, array, or float vector.");
         return NIL_VAL;
@@ -203,7 +200,7 @@ Value pop_nf(int argCount, Value *args)
         return NIL_VAL;
     }
 
-    if (IS_NOT_LIST_SINGLE(args[0]))
+    if (NOT_LIST_TYPES(args, 1))
     {
         runtimeError("First argument must be a list type.");
         return NIL_VAL;
@@ -304,7 +301,7 @@ Value nth_nf(int argCount, Value *args)
 
 Value is_empty_nf(int argCount, Value *args)
 {
-    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]) && !IS_HASH_TABLE(args[0]))
+    if (NOT_COLLECTION_TYPES(args, 1))
     {
         runtimeError("First argument must be an array, linked list, hash table or vector.");
         return NIL_VAL;
@@ -325,16 +322,21 @@ Value is_empty_nf(int argCount, Value *args)
         FloatVector *f = AS_FVECTOR(args[0]);
         return BOOL_VAL(f->count == 0);
     }
-    else
+    else if (IS_LINKED_LIST(args[0]))
     {
         ObjLinkedList *l = AS_LINKED_LIST(args[0]);
         return BOOL_VAL(l->count == 0);
+    }
+    else
+    {
+        runtimeError("Unsupported type for is_empty().");
+        return NIL_VAL;
     }
 }
 
 Value sort_nf(int argCount, Value *args)
 {
-    if (IS_NOT_LIST_SINGLE(args[0]))
+    if (NOT_LIST_TYPES(args, 1))
     {
         runtimeError("First argument must be a list type.");
         return NIL_VAL;
@@ -459,7 +461,7 @@ Value insert_nf(int argCount, Value *args)
         runtimeError("insert() takes 3 arguments.");
         return NIL_VAL;
     }
-    if (!IS_ARRAY(args[0]) && !IS_FVECTOR(args[0]))
+    if (NOT_ARRAY_TYPES(args, 1))
     {
         runtimeError("First argument must be an array or vector.");
         return NIL_VAL;
@@ -864,7 +866,7 @@ Value merge_nf(int argCount, Value *args)
         runtimeError("merge() takes 2 arguments.");
         return NIL_VAL;
     }
-    if (IS_NOT_LIST(args[0], args[1]))
+    if (NOT_LIST_TYPES(args, 2))
     {
         runtimeError("Both arguments must be the same list type.");
         return NIL_VAL;
@@ -913,11 +915,15 @@ Value clone_nf(int argCount, Value *args)
         FloatVector *f = AS_FVECTOR(args[0]);
         FloatVector *c = cloneFloatVector(f);
         return OBJ_VAL(c);
-    } else if (IS_LINKED_LIST(args[0])) {
+    }
+    else if (IS_LINKED_LIST(args[0]))
+    {
         ObjLinkedList *l = AS_LINKED_LIST(args[0]);
         ObjLinkedList *c = cloneLinkedList(l);
         return OBJ_VAL(c);
-    } else {
+    }
+    else
+    {
         ObjHashTable *h = AS_HASH_TABLE(args[0]);
         ObjHashTable *c = cloneHashTable(h);
         return OBJ_VAL(c);
@@ -926,7 +932,7 @@ Value clone_nf(int argCount, Value *args)
 
 Value clear_nf(int argCount, Value *args)
 {
-    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]) && !IS_FVECTOR(args[0]) && !IS_HASH_TABLE(args[0]))
+    if (NOT_COLLECTION_TYPES(args, 1))
     {
         runtimeError("First argument must be an array, linked list, hash table or vector.");
         return NIL_VAL;
@@ -947,17 +953,21 @@ Value clear_nf(int argCount, Value *args)
         ObjLinkedList *l = AS_LINKED_LIST(args[0]);
         clearLinkedList(l);
     }
-    else
+    else if (IS_HASH_TABLE(args[0]))
     {
         ObjHashTable *h = AS_HASH_TABLE(args[0]);
         clearHashTable(h);
     }
-    return NIL_VAL;
+    else
+    {
+        runtimeError("Unsupported type for clear().");
+        return NIL_VAL;
+    }
 }
 
 Value sum_nf(int argCount, Value *args)
 {
-    if (!IS_ARRAY(args[0]) && !IS_FVECTOR(args[0]))
+    if (NOT_ARRAY_TYPES(args, 1))
     {
         runtimeError("First argument must be an array or vector.");
         return NIL_VAL;
@@ -977,7 +987,7 @@ Value sum_nf(int argCount, Value *args)
 
 Value mean_nf(int argCount, Value *args)
 {
-    if (!IS_ARRAY(args[0]) && !IS_FVECTOR(args[0]))
+    if (NOT_ARRAY_TYPES(args, 1))
     {
         runtimeError("First argument must be an array or vector.");
         return NIL_VAL;
@@ -997,7 +1007,7 @@ Value mean_nf(int argCount, Value *args)
 
 Value std_nf(int argCount, Value *args)
 {
-    if (!IS_ARRAY(args[0]) && !IS_FVECTOR(args[0]))
+    if (NOT_ARRAY_TYPES(args, 1))
     {
         runtimeError("First argument must be an array or vector.");
         return NIL_VAL;
@@ -1017,7 +1027,7 @@ Value std_nf(int argCount, Value *args)
 
 Value var_nf(int argCount, Value *args)
 {
-    if (!IS_ARRAY(args[0]) && !IS_FVECTOR(args[0]))
+    if (NOT_ARRAY_TYPES(args, 1))
     {
         runtimeError("First argument must be an array or vector.");
         return NIL_VAL;
@@ -1037,7 +1047,7 @@ Value var_nf(int argCount, Value *args)
 
 Value maxl_nf(int argCount, Value *args)
 {
-    if (!IS_ARRAY(args[0]) && !IS_FVECTOR(args[0]))
+    if (NOT_ARRAY_TYPES(args, 1))
     {
         runtimeError("First argument must be an array or vector.");
         return NIL_VAL;
@@ -1057,7 +1067,7 @@ Value maxl_nf(int argCount, Value *args)
 
 Value minl_nf(int argCount, Value *args)
 {
-    if (!IS_ARRAY(args[0]) && !IS_FVECTOR(args[0]))
+    if (NOT_ARRAY_TYPES(args, 1))
     {
         runtimeError("First argument must be an array or vector.");
         return NIL_VAL;
@@ -1077,7 +1087,7 @@ Value minl_nf(int argCount, Value *args)
 
 Value dot_nf(int argCount, Value *args)
 {
-    if (!IS_FVECTOR(args[0]) || !IS_FVECTOR(args[1]))
+    if (!IS_FVECTOR(args[0]) && !IS_FVECTOR(args[1]))
     {
         runtimeError("Both arguments must be vectors.");
         return NIL_VAL;
@@ -1090,7 +1100,7 @@ Value dot_nf(int argCount, Value *args)
 
 Value cross_nf(int argCount, Value *args)
 {
-    if (!IS_FVECTOR(args[0]) || !IS_FVECTOR(args[1]))
+    if (!IS_FVECTOR(args[0]) && !IS_FVECTOR(args[1]))
     {
         runtimeError("Both arguments must be vectors.");
         return NIL_VAL;
@@ -1115,7 +1125,7 @@ Value norm_nf(int argCount, Value *args)
 
 Value proj_nf(int argCount, Value *args)
 {
-    if (!IS_FVECTOR(args[0]) || !IS_FVECTOR(args[1]))
+    if (!IS_FVECTOR(args[0]) && !IS_FVECTOR(args[1]))
     {
         runtimeError("Both arguments must be vectors.");
         return NIL_VAL;
@@ -1128,7 +1138,7 @@ Value proj_nf(int argCount, Value *args)
 
 Value reflect_nf(int argCount, Value *args)
 {
-    if (!IS_FVECTOR(args[0]) || !IS_FVECTOR(args[1]))
+    if (!IS_FVECTOR(args[0]) && !IS_FVECTOR(args[1]))
     {
         runtimeError("Both arguments must be vectors.");
         return NIL_VAL;
@@ -1141,7 +1151,7 @@ Value reflect_nf(int argCount, Value *args)
 
 Value reject_nf(int argCount, Value *args)
 {
-    if (!IS_FVECTOR(args[0]) || !IS_FVECTOR(args[1]))
+    if (!IS_FVECTOR(args[0]) && !IS_FVECTOR(args[1]))
     {
         runtimeError("Both arguments must be vectors.");
         return NIL_VAL;
@@ -1154,7 +1164,7 @@ Value reject_nf(int argCount, Value *args)
 
 Value refract_nf(int argCount, Value *args)
 {
-    if (!IS_FVECTOR(args[0]) || !IS_FVECTOR(args[1]) || !IS_DOUBLE(args[2]) || !IS_DOUBLE(args[3]))
+    if (!IS_FVECTOR(args[0]) && !IS_FVECTOR(args[1]) && !IS_DOUBLE(args[2]) && !IS_DOUBLE(args[3]))
     {
         runtimeError("First and second arguments must be vectors and the third and fourth arguments must be doubles.");
         return NIL_VAL;
@@ -1224,7 +1234,7 @@ Value linspace_nf(int argCount, Value *args)
         runtimeError("linspace() takes 3 arguments.");
         return NIL_VAL;
     }
-    if (!IS_DOUBLE(args[0]) || !IS_DOUBLE(args[1]) || !IS_INT(args[2]))
+    if (!IS_DOUBLE(args[0]) && !IS_DOUBLE(args[1]) && !IS_INT(args[2]))
     {
         runtimeError("First and second arguments must be doubles and the third argument must be an integer.");
         return NIL_VAL;
@@ -1243,7 +1253,7 @@ Value interp1_nf(int argCount, Value *args)
         runtimeError("interp1() takes 3 arguments.");
         return NIL_VAL;
     }
-    if (!IS_FVECTOR(args[0]) || !IS_FVECTOR(args[1]) || !IS_DOUBLE(args[2]))
+    if (!IS_FVECTOR(args[0]) && !IS_FVECTOR(args[1]) && !IS_DOUBLE(args[2]))
     {
         runtimeError("First and second arguments must be vectors and the third argument must be a double.");
         return NIL_VAL;

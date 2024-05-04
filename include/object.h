@@ -37,6 +37,10 @@
 #define IS_MATRIX(value) isObjType(value, OBJ_MATRIX)
 #define IS_FVECTOR(value) isObjType(value, OBJ_FVECTOR)
 
+#define NOT_ARRAY_TYPES(args, n) notObjTypes(args, OBJ_ARRAY, n) && notObjTypes(args, OBJ_FVECTOR, n)
+#define NOT_LIST_TYPES(args, n) notObjTypes(args, OBJ_LINKED_LIST, n) && NOT_ARRAY_TYPES(args, n)
+#define NOT_COLLECTION_TYPES(args, n) notObjTypes(args, OBJ_HASH_TABLE, n) && notObjTypes(args, OBJ_MATRIX, n) && NOT_LIST_TYPES(args, n)
+
 #define AS_BOUND_METHOD(value) ((ObjBoundMethod *)AS_OBJ(value))
 #define AS_CLASS(value) ((ObjClass *)AS_OBJ(value))
 #define AS_CLOSURE(value) ((ObjClosure *)AS_OBJ(value))
@@ -570,6 +574,18 @@ void printObject(Value value);
 static inline bool isObjType(Value value, ObjType type)
 {
     return IS_OBJ(value) && AS_OBJ(value)->type == type;
+}
+
+static inline bool notObjTypes(Value *value, ObjType type, int n)
+{
+    for (int i = 0; i < n; i++)
+    {
+        if (isObjType(value[i], type))
+        {
+            return false;
+        }
+    }
+    return true;
 }
 
 #endif
