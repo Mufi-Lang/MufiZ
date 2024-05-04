@@ -1,14 +1,12 @@
 # MufiZ
-
-
 > This project uses the Zig `v0.12.0`
+
+🌐 [mufiz.mustafif.com](https://mufiz.mustafif.com)
 
 This project aims to integrate the Mufi-Lang compiler with the Zig language by using the 
 Zig Build system. We hope to integrate more features with this language and see how nicely 
 we can utilize both languages in unity. The advantage of Zig's Build system is easy cross-compatibility and caching, and as we integrate more,
 we can ensure more memory safety.
-
-[MufiZ Standard Library Plans](stdlib.md)
 
 ## Usage:
 
@@ -139,3 +137,9 @@ To support various toolchains, we have added the following features to the proje
 
 - `-Denable_net` - Enables the `net` module for the MufiZ standard library.
 - `-Denable_fs` - Enables the `fs` module for the MufiZ standard library.
+
+## Related Repositories
+
+- [MufiZ-APT](https://github.com/Mustafif/MufiZ-APT): The official APT repository for MufiZ.
+- [homebrew-mufi](https://github.com/Mustafif/homebrew-mufi): The official Homebrew Tap for MufiZ.
+- [mufi-bucket](https://github.com/Mustafif/mufi-bucket): The official Scoop bucket for MufiZ.
