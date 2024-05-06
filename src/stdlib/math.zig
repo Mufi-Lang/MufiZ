@@ -183,6 +183,10 @@ pub fn max(argc: c_int, args: [*c]Value) callconv(.C) Value {
     return conv.double_val(@max(a, b));
 }
 
-// complex numbers:
-// real
-// imaginary
+pub fn min(argc: c_int, args: [*c]Value) callconv(.C) Value {
+    if (argc != 2) return stdlib_error("min() expects two arguments!", .{ .argn = argc });
+    if (!type_check(2, args, 3)) return stdlib_error("max() expects 2 Double!", .{ .value_type = conv.what_is(args[0]) });
+    const a = conv.as_double(args[0]);
+    const b = conv.as_double(args[1]);
+    return conv.double_val(@min(a, b));
+}

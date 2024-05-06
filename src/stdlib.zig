@@ -52,6 +52,7 @@ pub fn addMath() void {
     defineNative("floor", &math.floor);
     defineNative("round", &math.round);
     defineNative("max", &math.max);
+    defineNative("min", &math.min);
 }
 
 pub fn addFs() void {
