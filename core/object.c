@@ -27,24 +27,6 @@ static Obj *allocateObject(size_t size, ObjType type)
     return object;
 }
 
-static double __mufi_sqrt(double x)
-{
-    if (x < 0)
-    {
-        printf("Cannot take square root of a negative number\n");
-        return 0;
-    }
-    double result;
-#if defined(__AVX2__)
-    __m256d simd_x = _mm256_set1_pd(x);
-    __m256d simd_result = _mm256_sqrt_pd(simd_x);
-    _mm256_storeu_pd(&result, simd_result);
-    return result;
-#endif
-
-    return sqrt(x);
-}
-
 static Value add_val(Value a, Value b)
 {
     if (IS_INT(a) && IS_INT(b))

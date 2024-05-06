@@ -79,6 +79,7 @@ pub fn addNet() void {
         defineNative("post_req", &net_funs.post);
         defineNative("put_req", &net_funs.put);
         defineNative("del_req", &net_funs.delete);
+        defineNative("open", &net_funs.open);
     } else {
         return std.log.warn("Network functions are disabled!", .{});
     }
@@ -166,6 +167,14 @@ const net_funs = if (enable_net) struct {
 
         const data = net.delete(url, @enumFromInt(method), options) catch return conv.nil_val();
         return conv.string_val(data);
+    }
+
+    pub fn open(argc: c_int, args: [*c]Value) callconv(.C) Value {
+        if (argc != 1) return stdlib_error("open() expects 1 argument", .{ .argn = argc });
+        const url = conv.as_zstring(args[0]);
+        const op = net.Open.init(url);
+        _ = op.that() catch {};
+        return conv.nil_val();
     }
 };
 
