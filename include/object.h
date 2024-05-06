@@ -367,6 +367,10 @@ int searchLinkedList(ObjLinkedList *list, Value value);
 void reverseLinkedList(ObjLinkedList *list);
 //> Merges two linked lists into a new linked list
 ObjLinkedList *mergeLinkedList(ObjLinkedList *a, ObjLinkedList *b);
+//> Slices the linked list from start to end
+ObjLinkedList *sliceLinkedList(ObjLinkedList *list, int start, int end);
+//> Splices the linked list from start to end
+ObjLinkedList *spliceLinkedList(ObjLinkedList *list, int start, int end);
 /*----------------------------------------------------------------------------*/
 
 /*-------------------------- Hash Table Functions ----------------------------*/
@@ -539,6 +543,9 @@ FloatVector *singleDivFloatVector(FloatVector *a, double b);
 //> Average Case: O(n log n)
 //> Worst Case: O(n^2)
 void sortFloatVector(FloatVector *vector);
+//> Reverses the float vector
+//> Time Complexity: O(n)
+void reverseFloatVector(FloatVector *vector);
 //> Searches for a value in the float vector using binary search
 //> Time Complexity:
 //> Best Case: O(1)

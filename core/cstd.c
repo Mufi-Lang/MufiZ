@@ -62,18 +62,36 @@ Value array_nf(int argCount, Value *args)
 
 Value linkedlist_nf(int argCount, Value *args)
 {
+    if (argCount != 0)
+    {
+        runtimeError("linked_list() takes no arguments.");
+        return NIL_VAL;
+    }
+
     ObjLinkedList *l = newLinkedList();
     return OBJ_VAL(l);
 }
 
 Value hashtable_nf(int argCount, Value *args)
 {
+    if (argCount != 0)
+    {
+        runtimeError("hash_table() takes no arguments.");
+        return NIL_VAL;
+    }
+
     ObjHashTable *h = newHashTable();
     return OBJ_VAL(h);
 }
 
 Value put_nf(int argCount, Value *args)
 {
+    if (argCount != 3)
+    {
+        runtimeError("put() takes 3 arguments.");
+        return NIL_VAL;
+    }
+
     if (!IS_HASH_TABLE(args[0]))
     {
         runtimeError("First argument must be a hash table.");
@@ -91,6 +109,12 @@ Value put_nf(int argCount, Value *args)
 
 Value get_nf(int argCount, Value *args)
 {
+    if (argCount != 2)
+    {
+        runtimeError("get() takes 2 arguments.");
+        return NIL_VAL;
+    }
+
     if (!IS_HASH_TABLE(args[0]))
     {
         runtimeError("First argument must be a hash table.");
@@ -108,6 +132,12 @@ Value get_nf(int argCount, Value *args)
 
 Value remove_nf(int argCount, Value *args)
 {
+    if (argCount != 2)
+    {
+        runtimeError("remove() takes 2 arguments.");
+        return NIL_VAL;
+    }
+
     if (!IS_HASH_TABLE(args[0]) && NOT_ARRAY_TYPES(args, 1))
     {
         runtimeError("First argument must be a hash table, array, or float vector.");
@@ -118,33 +148,42 @@ Value remove_nf(int argCount, Value *args)
         runtimeError("Second argument must be a string or integer.");
         return NIL_VAL;
     }
-    if (IS_HASH_TABLE(args[0]))
+    switch (AS_OBJ(args[0])->type)
+    {
+    case OBJ_HASH_TABLE:
     {
         ObjHashTable *h = AS_HASH_TABLE(args[0]);
         ObjString *key = AS_STRING(args[1]);
         return BOOL_VAL(removeHashTable(h, key));
     }
-    else if (IS_ARRAY(args[0]))
+    case OBJ_ARRAY:
     {
         return removeArray(AS_ARRAY(args[0]), AS_INT(args[1]));
     }
-    else if (IS_FVECTOR(args[0]))
+    case OBJ_FVECTOR:
     {
         return DOUBLE_VAL(removeFloatVector(AS_FVECTOR(args[0]), AS_INT(args[1])));
+    }
+    default:
+    {
+        // Handle invalid argument type
+        break;
+    }
     }
 }
 
 Value push_nf(int argCount, Value *args)
 {
-    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]) && !IS_FVECTOR(args[0]))
+    if (NOT_LIST_TYPES(args, 1))
     {
-        runtimeError("First argument must be an array, linked list or vector.");
+        runtimeError("First argument must be a list type.");
         return NIL_VAL;
     }
 
-    if (IS_ARRAY(args[0]))
+    switch (AS_OBJ(args[0])->type)
     {
-
+    case OBJ_ARRAY:
+    {
         ObjArray *a = AS_ARRAY(args[0]);
         for (int i = 1; i < argCount; i++)
         {
@@ -152,7 +191,7 @@ Value push_nf(int argCount, Value *args)
         }
         return NIL_VAL;
     }
-    else if (IS_FVECTOR(args[0]))
+    case OBJ_FVECTOR:
     {
         FloatVector *f = AS_FVECTOR(args[0]);
         for (int i = 1; i < argCount; i++)
@@ -166,13 +205,17 @@ Value push_nf(int argCount, Value *args)
         }
         return NIL_VAL;
     }
-    else
+    case OBJ_LINKED_LIST:
     {
         ObjLinkedList *l = AS_LINKED_LIST(args[0]);
         for (int i = 1; i < argCount; i++)
         {
             pushBack(l, args[i]);
         }
+        return NIL_VAL;
+    }
+    default:
+        runtimeError("Invalid argument type.");
         return NIL_VAL;
     }
 }
@@ -206,21 +249,25 @@ Value pop_nf(int argCount, Value *args)
         return NIL_VAL;
     }
 
-    if (IS_ARRAY(args[0]))
+    switch (AS_OBJ(args[0])->type)
     {
-
+    case OBJ_ARRAY:
+    {
         ObjArray *a = AS_ARRAY(args[0]);
         return popArray(a);
     }
-    else if (IS_FVECTOR(args[0]))
+    case OBJ_FVECTOR:
     {
         FloatVector *f = AS_FVECTOR(args[0]);
         return DOUBLE_VAL(popFloatVector(f));
     }
-    else
+    case OBJ_LINKED_LIST:
     {
         ObjLinkedList *l = AS_LINKED_LIST(args[0]);
         return popBack(l);
+    }
+    default: // unreachable
+        break;
     }
 }
 
@@ -237,7 +284,7 @@ Value pop_front_nf(int argCount, Value *args)
 
 Value nth_nf(int argCount, Value *args)
 {
-    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]) && !IS_MATRIX(args[0]) && !IS_FVECTOR(args[0]))
+    if (NOT_COLLECTION_TYPES(args, 1) && IS_HASH_TABLE(args[0]))
     {
         runtimeError("First argument must be an array, matrix, linked list or Vector.");
         return NIL_VAL;
@@ -248,54 +295,56 @@ Value nth_nf(int argCount, Value *args)
         return NIL_VAL;
     }
 
-    if (IS_MATRIX(args[0]) && argCount == 3)
+    switch (AS_OBJ(args[0])->type)
     {
-        if (!IS_INT(args[2]))
+    case OBJ_MATRIX:
+    {
+        if (argCount == 3 && IS_INT(args[2]))
         {
-            runtimeError("Third argument must be an integer.");
-            return NIL_VAL;
+            ObjMatrix *m = AS_MATRIX(args[0]);
+            int row = AS_INT(args[1]);
+            int col = AS_INT(args[2]);
+            return getMatrix(m, row, col);
         }
-
-        ObjMatrix *m = AS_MATRIX(args[0]);
-        // improve error handling here
-        int row = AS_INT(args[1]);
-        int col = AS_INT(args[2]);
-        return getMatrix(m, row, col);
+        break;
     }
-    else if (IS_FVECTOR(args[0]))
+    case OBJ_FVECTOR:
     {
         FloatVector *f = AS_FVECTOR(args[0]);
         int index = AS_INT(args[1]);
         double value = getFloatVector(f, index);
         return DOUBLE_VAL(value);
     }
-    else if (IS_ARRAY(args[0]))
+    case OBJ_ARRAY:
     {
         ObjArray *a = AS_ARRAY(args[0]);
         int index = AS_INT(args[1]);
-        if (index < 0 || index >= a->count)
+        if (index >= 0 && index < a->count)
         {
-            runtimeError("Index out of bounds.");
-            return NIL_VAL;
+            return a->values[index];
         }
-        return a->values[index];
+        break;
     }
-    else
+    case OBJ_LINKED_LIST:
     {
         ObjLinkedList *l = AS_LINKED_LIST(args[0]);
         int index = AS_INT(args[1]);
-        if (index < 0 || index >= l->count)
+        if (index >= 0 && index < l->count)
         {
-            runtimeError("Index out of bounds.");
-            return NIL_VAL;
+            struct Node *node = l->head;
+            for (int i = 0; i < index; i++)
+            {
+                node = node->next;
+            }
+            return node->data;
         }
-        struct Node *node = l->head;
-        for (int i = 0; i < index; i++)
-        {
-            node = node->next;
-        }
-
-        return node->data;
+        break;
+    }
+    default:
+    {
+        runtimeError("Invalid argument types or index out of bounds.");
+        return NIL_VAL;
+    }
     }
 }
 
@@ -303,34 +352,36 @@ Value is_empty_nf(int argCount, Value *args)
 {
     if (NOT_COLLECTION_TYPES(args, 1))
     {
-        runtimeError("First argument must be an array, linked list, hash table or vector.");
+        runtimeError("First argument must be a collection type.");
         return NIL_VAL;
     }
-
-    if (IS_ARRAY(args[0]))
+    switch (AS_OBJ(args[0])->type)
+    {
+    case OBJ_ARRAY:
     {
         ObjArray *a = AS_ARRAY(args[0]);
         return BOOL_VAL(a->count == 0);
     }
-    else if (IS_HASH_TABLE(args[0]))
+    case OBJ_HASH_TABLE:
     {
         ObjHashTable *h = AS_HASH_TABLE(args[0]);
         return BOOL_VAL(h->table.count == 0);
     }
-    else if (IS_FVECTOR(args[0]))
+    case OBJ_FVECTOR:
     {
         FloatVector *f = AS_FVECTOR(args[0]);
         return BOOL_VAL(f->count == 0);
     }
-    else if (IS_LINKED_LIST(args[0]))
+    case OBJ_LINKED_LIST:
     {
         ObjLinkedList *l = AS_LINKED_LIST(args[0]);
         return BOOL_VAL(l->count == 0);
     }
-    else
+    default:
     {
         runtimeError("Unsupported type for is_empty().");
         return NIL_VAL;
+    }
     }
 }
 
@@ -342,24 +393,28 @@ Value sort_nf(int argCount, Value *args)
         return NIL_VAL;
     }
 
-    if (IS_ARRAY(args[0]))
+    switch (AS_OBJ(args[0])->type)
     {
-
+    case OBJ_ARRAY:
+    {
         ObjArray *a = AS_ARRAY(args[0]);
         sortArray(a);
         return NIL_VAL;
     }
-    else if (IS_FVECTOR(args[0]))
+    case OBJ_FVECTOR:
     {
         FloatVector *f = AS_FVECTOR(args[0]);
         sortFloatVector(f);
         return NIL_VAL;
     }
-    else
+    case OBJ_LINKED_LIST:
     {
         ObjLinkedList *l = AS_LINKED_LIST(args[0]);
         mergeSort(l);
         return NIL_VAL;
+    }
+    default: // unreachable
+        break;
     }
 }
 
@@ -371,7 +426,9 @@ Value equal_list_nf(int argCount, Value *args)
         return NIL_VAL;
     }
 
-    if (IS_ARRAY(args[0]))
+    switch (AS_OBJ(args[0])->type)
+    {
+    case OBJ_ARRAY:
     {
         if (!IS_ARRAY(args[1]))
         {
@@ -382,7 +439,7 @@ Value equal_list_nf(int argCount, Value *args)
         ObjArray *b = AS_ARRAY(args[1]);
         return BOOL_VAL(equalArray(a, b));
     }
-    else if (IS_FVECTOR(args[0]))
+    case OBJ_FVECTOR:
     {
         if (!IS_FVECTOR(args[1]))
         {
@@ -393,7 +450,7 @@ Value equal_list_nf(int argCount, Value *args)
         FloatVector *b = AS_FVECTOR(args[1]);
         return BOOL_VAL(equalFloatVector(a, b));
     }
-    else
+    case OBJ_LINKED_LIST:
     {
         if (!IS_LINKED_LIST(args[1]))
         {
@@ -404,17 +461,25 @@ Value equal_list_nf(int argCount, Value *args)
         ObjLinkedList *b = AS_LINKED_LIST(args[1]);
         return BOOL_VAL(equalLinkedList(a, b));
     }
+    default:
+    {
+        runtimeError("Invalid argument type.");
+        return NIL_VAL;
+    }
+    }
 }
 
 Value contains_nf(int argCount, Value *args)
 {
-    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]) && !IS_HASH_TABLE(args[0]))
+    if (NOT_LIST_TYPES(args, 1) && !IS_HASH_TABLE(args[0]))
     {
         runtimeError("First argument must be an array, linked list or hash table.");
         return NIL_VAL;
     }
 
-    if (IS_ARRAY(args[0]))
+    switch (AS_OBJ(args[0])->type)
+    {
+    case OBJ_ARRAY:
     {
         ObjArray *a = AS_ARRAY(args[0]);
         for (int i = 0; i < a->count; i++)
@@ -426,7 +491,21 @@ Value contains_nf(int argCount, Value *args)
         }
         return BOOL_VAL(false);
     }
-    else if (IS_HASH_TABLE(args[0]))
+
+    case OBJ_FVECTOR:
+    {
+        FloatVector *f = AS_FVECTOR(args[0]);
+        for (int i = 0; i < f->count; i++)
+        {
+            if (f->data[i] == AS_DOUBLE(args[1]))
+            {
+                return BOOL_VAL(true);
+            }
+        }
+        return BOOL_VAL(false);
+    }
+
+    case OBJ_HASH_TABLE:
     {
         ObjHashTable *h = AS_HASH_TABLE(args[0]);
         if (!valuesEqual(getHashTable(h, AS_STRING(args[1])), NIL_VAL))
@@ -438,7 +517,7 @@ Value contains_nf(int argCount, Value *args)
             return BOOL_VAL(false);
         }
     }
-    else
+    case OBJ_LINKED_LIST:
     {
         ObjLinkedList *l = AS_LINKED_LIST(args[0]);
         struct Node *current = l->head;
@@ -451,6 +530,12 @@ Value contains_nf(int argCount, Value *args)
             current = current->next;
         }
         return BOOL_VAL(false);
+    }
+    default:
+    {
+        runtimeError("Invalid argument type.");
+        return NIL_VAL;
+    }
     }
 }
 
@@ -471,7 +556,9 @@ Value insert_nf(int argCount, Value *args)
         runtimeError("Second argument must be an integer.");
         return NIL_VAL;
     }
-    if (IS_FVECTOR(args[0]))
+    switch (AS_OBJ(args[0])->type)
+    {
+    case OBJ_FVECTOR:
     {
         FloatVector *f = AS_FVECTOR(args[0]);
         int index = AS_INT(args[1]);
@@ -483,42 +570,58 @@ Value insert_nf(int argCount, Value *args)
         insertFloatVector(f, index, AS_DOUBLE(args[2]));
         return NIL_VAL;
     }
-    else
+    case OBJ_ARRAY:
     {
         ObjArray *a = AS_ARRAY(args[0]);
         int index = AS_INT(args[1]);
         insertArray(a, index, args[2]);
         return NIL_VAL;
     }
+    default:
+        // Handle error or default case here
+        break;
+    }
 }
 
 Value len_nf(int argCount, Value *args)
 {
-    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]) && !IS_HASH_TABLE(args[0]) && !IS_FVECTOR(args[0]))
+    if (NOT_COLLECTION_TYPES(args, 1))
     {
-        runtimeError("First argument must be an array, vector, linked list or hash table.");
+        runtimeError("First argument must be a collection type.");
         return NIL_VAL;
     }
 
-    if (IS_ARRAY(args[0]))
+    switch (AS_OBJ(args[0])->type)
+    {
+    case OBJ_ARRAY:
     {
         ObjArray *a = AS_ARRAY(args[0]);
         return INT_VAL(a->count);
     }
-    else if (IS_HASH_TABLE(args[0]))
+
+    case OBJ_MATRIX:
+    {
+        ObjMatrix *m = AS_MATRIX(args[0]);
+        return INT_VAL(m->rows * m->cols);
+    }
+
+    case OBJ_HASH_TABLE:
     {
         ObjHashTable *h = AS_HASH_TABLE(args[0]);
         return INT_VAL(h->table.count);
     }
-    else if (IS_FVECTOR(args[0]))
+    case OBJ_FVECTOR:
     {
         FloatVector *f = AS_FVECTOR(args[0]);
         return INT_VAL(f->count);
     }
-    else
+    case OBJ_LINKED_LIST:
     {
         ObjLinkedList *l = AS_LINKED_LIST(args[0]);
         return INT_VAL(l->count);
+    }
+    default:
+        break;
     }
 }
 
@@ -541,7 +644,7 @@ Value range_nf(int argCount, Value *args)
 
 Value slice_nf(int argCount, Value *args)
 {
-    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]) && !IS_FVECTOR(args[0]))
+    if (NOT_LIST_TYPES(args, 1))
     {
         runtimeError("First argument must be an array, linked list or vector.");
         return NIL_VAL;
@@ -552,7 +655,9 @@ Value slice_nf(int argCount, Value *args)
         return NIL_VAL;
     }
 
-    if (IS_ARRAY(args[0]))
+    switch (AS_OBJ(args[0])->type)
+    {
+    case OBJ_ARRAY:
     {
         ObjArray *a = AS_ARRAY(args[0]);
         int start = AS_INT(args[1]);
@@ -560,7 +665,8 @@ Value slice_nf(int argCount, Value *args)
         ObjArray *s = sliceArray(a, start, end);
         return OBJ_VAL(s);
     }
-    else if (IS_FVECTOR(args[0]))
+
+    case OBJ_FVECTOR:
     {
         FloatVector *f = AS_FVECTOR(args[0]);
         int start = AS_INT(args[1]);
@@ -568,15 +674,23 @@ Value slice_nf(int argCount, Value *args)
         FloatVector *s = sliceFloatVector(f, start, end);
         return OBJ_VAL(s);
     }
-    else
+
+    case OBJ_LINKED_LIST:
     {
-        runtimeError("Unsupported type to slice.");
+        ObjLinkedList *l = AS_LINKED_LIST(args[0]);
+        int start = AS_INT(args[1]);
+        int end = AS_INT(args[2]);
+        ObjLinkedList *s = sliceLinkedList(l, start, end);
+        return OBJ_VAL(s);
+    }
+    default:
+        break;
     }
 }
 
 Value splice_nf(int argCount, Value *args)
 {
-    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]) && !IS_FVECTOR(args[0]))
+    if (NOT_LIST_TYPES(args, 1))
     {
         runtimeError("First argument must be an array, linked list or vector.");
         return NIL_VAL;
@@ -587,7 +701,9 @@ Value splice_nf(int argCount, Value *args)
         return NIL_VAL;
     }
 
-    if (IS_ARRAY(args[0]))
+    switch (AS_OBJ(args[0])->type)
+    {
+    case OBJ_ARRAY:
     {
         ObjArray *a = AS_ARRAY(args[0]);
         int start = AS_INT(args[1]);
@@ -595,7 +711,7 @@ Value splice_nf(int argCount, Value *args)
         ObjArray *s = spliceArray(a, start, end);
         return OBJ_VAL(s);
     }
-    else if (IS_FVECTOR(args[0]))
+    case OBJ_FVECTOR:
     {
         FloatVector *f = AS_FVECTOR(args[0]);
         int start = AS_INT(args[1]);
@@ -603,43 +719,64 @@ Value splice_nf(int argCount, Value *args)
         FloatVector *s = spliceFloatVector(f, start, end);
         return OBJ_VAL(s);
     }
-    else
+    case OBJ_LINKED_LIST:
     {
-        runtimeError("Unsupported type to splice.");
+        ObjLinkedList *l = AS_LINKED_LIST(args[0]);
+        int start = AS_INT(args[1]);
+        int end = AS_INT(args[2]);
+        ObjLinkedList *s = spliceLinkedList(l, start, end);
+        return OBJ_VAL(s);
+    }
+
+    default: // unreachable
+        break;
     }
 }
 
 Value reverse_nf(int argCount, Value *args)
 {
-    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]))
+    if (NOT_LIST_TYPES(args, 1))
     {
-        runtimeError("First argument must be an array or linked list.");
+        runtimeError("First argument must be a list type.");
         return NIL_VAL;
     }
 
-    if (IS_ARRAY(args[0]))
+    switch (AS_OBJ(args[0])->type)
+    {
+    case OBJ_ARRAY:
     {
         ObjArray *a = AS_ARRAY(args[0]);
         reverseArray(a);
         return NIL_VAL;
     }
-    else
+    case OBJ_FVECTOR:
+    {
+        FloatVector *f = AS_FVECTOR(args[0]);
+        reverseFloatVector(f);
+        return NIL_VAL;
+    }
+    case OBJ_LINKED_LIST:
     {
         ObjLinkedList *l = AS_LINKED_LIST(args[0]);
         reverseLinkedList(l);
         return NIL_VAL;
     }
+    default:
+        break;
+    }
 }
 
 Value search_nf(int argCount, Value *args)
 {
-    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]) && !IS_FVECTOR(args[0]))
+    if (NOT_LIST_TYPES(args, 1))
     {
-        runtimeError("First argument must be an array or linked list.");
+        runtimeError("First argument must be a list type.");
         return NIL_VAL;
     }
 
-    if (IS_ARRAY(args[0]))
+    switch (AS_OBJ(args[0])->type)
+    {
+    case OBJ_ARRAY:
     {
         ObjArray *a = AS_ARRAY(args[0]);
         int result = searchArray(a, args[1]);
@@ -647,7 +784,7 @@ Value search_nf(int argCount, Value *args)
             return NIL_VAL;
         return INT_VAL(result);
     }
-    else if (IS_FVECTOR(args[0]))
+    case OBJ_FVECTOR:
     {
         FloatVector *f = AS_FVECTOR(args[0]);
         int result = searchFloatVector(f, AS_DOUBLE(args[1]));
@@ -655,13 +792,16 @@ Value search_nf(int argCount, Value *args)
             return NIL_VAL;
         return INT_VAL(result);
     }
-    else
+    case OBJ_LINKED_LIST:
     {
         ObjLinkedList *l = AS_LINKED_LIST(args[0]);
         int result = searchLinkedList(l, args[1]);
         if (result == -1)
             return NIL_VAL;
         return INT_VAL(result);
+    }
+    default:
+        break;
     }
 }
 
@@ -872,61 +1012,71 @@ Value merge_nf(int argCount, Value *args)
         return NIL_VAL;
     }
 
-    if (IS_ARRAY(args[0]))
+    switch (AS_OBJ(args[0])->type)
+    {
+    case OBJ_ARRAY:
     {
         ObjArray *a = AS_ARRAY(args[0]);
         ObjArray *b = AS_ARRAY(args[1]);
         ObjArray *c = mergeArrays(a, b);
         return OBJ_VAL(c);
     }
-    else if (IS_LINKED_LIST(args[0]))
+    case OBJ_LINKED_LIST:
     {
         ObjLinkedList *a = AS_LINKED_LIST(args[0]);
         ObjLinkedList *b = AS_LINKED_LIST(args[1]);
         ObjLinkedList *c = mergeLinkedList(a, b);
         return OBJ_VAL(c);
     }
-    else
+    case OBJ_FVECTOR:
     {
         FloatVector *a = AS_FVECTOR(args[0]);
         FloatVector *b = AS_FVECTOR(args[1]);
         FloatVector *c = mergeFloatVector(a, b);
         return OBJ_VAL(c);
     }
-    return NIL_VAL;
+    default:
+        return NIL_VAL;
+    }
 }
 
 Value clone_nf(int argCount, Value *args)
 {
-    if (!IS_ARRAY(args[0]) && !IS_LINKED_LIST(args[0]) && !IS_FVECTOR(args[0]) && !IS_HASH_TABLE(args[0]))
+    if (NOT_COLLECTION_TYPES(args, 1))
     {
         runtimeError("First argument must be an array, linked list or vector.");
         return NIL_VAL;
     }
 
-    if (IS_ARRAY(args[0]))
+    switch (AS_OBJ(args[0])->type)
+    {
+    case OBJ_ARRAY:
     {
         ObjArray *a = AS_ARRAY(args[0]);
         ObjArray *c = cloneArray(a);
         return OBJ_VAL(c);
     }
-    else if (IS_FVECTOR(args[0]))
+    case OBJ_FVECTOR:
     {
         FloatVector *f = AS_FVECTOR(args[0]);
         FloatVector *c = cloneFloatVector(f);
         return OBJ_VAL(c);
     }
-    else if (IS_LINKED_LIST(args[0]))
+    case OBJ_LINKED_LIST:
     {
         ObjLinkedList *l = AS_LINKED_LIST(args[0]);
         ObjLinkedList *c = cloneLinkedList(l);
         return OBJ_VAL(c);
     }
-    else
+    case OBJ_HASH_TABLE:
     {
         ObjHashTable *h = AS_HASH_TABLE(args[0]);
         ObjHashTable *c = cloneHashTable(h);
         return OBJ_VAL(c);
+    }
+    default:
+        runtimeError("Unsupported type for clone().");
+        return NIL_VAL;
     }
 }
 
@@ -938,31 +1088,26 @@ Value clear_nf(int argCount, Value *args)
         return NIL_VAL;
     }
 
-    if (IS_ARRAY(args[0]))
+    switch (AS_OBJ(args[0])->type)
     {
-        ObjArray *a = AS_ARRAY(args[0]);
-        clearArray(a);
-    }
-    else if (IS_FVECTOR(args[0]))
-    {
-        FloatVector *f = AS_FVECTOR(args[0]);
-        clearFloatVector(f);
-    }
-    else if (IS_LINKED_LIST(args[0]))
-    {
-        ObjLinkedList *l = AS_LINKED_LIST(args[0]);
-        clearLinkedList(l);
-    }
-    else if (IS_HASH_TABLE(args[0]))
-    {
-        ObjHashTable *h = AS_HASH_TABLE(args[0]);
-        clearHashTable(h);
-    }
-    else
-    {
+    case OBJ_ARRAY:
+        clearArray(AS_ARRAY(args[0]));
+        break;
+    case OBJ_FVECTOR:
+        clearFloatVector(AS_FVECTOR(args[0]));
+        break;
+    case OBJ_LINKED_LIST:
+        clearLinkedList(AS_LINKED_LIST(args[0]));
+        break;
+    case OBJ_HASH_TABLE:
+        clearHashTable(AS_HASH_TABLE(args[0]));
+        break;
+    default:
         runtimeError("Unsupported type for clear().");
         return NIL_VAL;
     }
+
+    return NIL_VAL;
 }
 
 Value sum_nf(int argCount, Value *args)
@@ -973,15 +1118,20 @@ Value sum_nf(int argCount, Value *args)
         return NIL_VAL;
     }
 
-    if (IS_ARRAY(args[0]))
+    switch (AS_OBJ(args[0])->type)
+    {
+    case OBJ_ARRAY:
     {
         ObjArray *a = AS_ARRAY(args[0]);
         return sumArray(a);
     }
-    else
+    case OBJ_FVECTOR:
     {
         FloatVector *f = AS_FVECTOR(args[0]);
         return DOUBLE_VAL(sumFloatVector(f));
+    }
+    default:
+        break;
     }
 }
 
@@ -993,15 +1143,14 @@ Value mean_nf(int argCount, Value *args)
         return NIL_VAL;
     }
 
-    if (IS_ARRAY(args[0]))
+    switch (AS_OBJ(args[0])->type)
     {
-        ObjArray *a = AS_ARRAY(args[0]);
-        return meanArray(a);
-    }
-    else
-    {
-        FloatVector *f = AS_FVECTOR(args[0]);
-        return DOUBLE_VAL(meanFloatVector(f));
+    case OBJ_ARRAY:
+        return meanArray(AS_ARRAY(args[0]));
+    case OBJ_FVECTOR:
+        return DOUBLE_VAL(meanFloatVector(AS_FVECTOR(args[0])));
+    default: // unreachable
+        break;
     }
 }
 
@@ -1013,15 +1162,14 @@ Value std_nf(int argCount, Value *args)
         return NIL_VAL;
     }
 
-    if (IS_ARRAY(args[0]))
+    switch (AS_OBJ(args[0])->type)
     {
-        ObjArray *a = AS_ARRAY(args[0]);
-        return stdDevArray(a);
-    }
-    else
-    {
-        FloatVector *f = AS_FVECTOR(args[0]);
-        return DOUBLE_VAL(stdDevFloatVector(f));
+    case OBJ_ARRAY:
+        return stdDevArray(AS_ARRAY(args[0]));
+    case OBJ_FVECTOR:
+        return DOUBLE_VAL(stdDevFloatVector(AS_FVECTOR(args[0])));
+    default:
+        break;
     }
 }
 
@@ -1032,16 +1180,20 @@ Value var_nf(int argCount, Value *args)
         runtimeError("First argument must be an array or vector.");
         return NIL_VAL;
     }
-
-    if (IS_ARRAY(args[0]))
+    switch (AS_OBJ(args[0])->type)
+    {
+    case OBJ_ARRAY:
     {
         ObjArray *a = AS_ARRAY(args[0]);
         return varianceArray(a);
     }
-    else
+    case OBJ_FVECTOR:
     {
         FloatVector *f = AS_FVECTOR(args[0]);
         return DOUBLE_VAL(varianceFloatVector(f));
+    }
+    default:
+        // Handle the default case here
     }
 }
 
@@ -1053,15 +1205,20 @@ Value maxl_nf(int argCount, Value *args)
         return NIL_VAL;
     }
 
-    if (IS_ARRAY(args[0]))
+    switch (AS_OBJ(args[0])->type)
+    {
+    case OBJ_ARRAY:
     {
         ObjArray *a = AS_ARRAY(args[0]);
         return maxArray(a);
     }
-    else
+    case OBJ_FVECTOR:
     {
         FloatVector *f = AS_FVECTOR(args[0]);
         return DOUBLE_VAL(maxFloatVector(f));
+    }
+    default:
+        break;
     }
 }
 
@@ -1073,15 +1230,20 @@ Value minl_nf(int argCount, Value *args)
         return NIL_VAL;
     }
 
-    if (IS_ARRAY(args[0]))
+    switch (AS_OBJ(args[0])->type)
+    {
+    case OBJ_ARRAY:
     {
         ObjArray *a = AS_ARRAY(args[0]);
         return minArray(a);
     }
-    else
+    case OBJ_FVECTOR:
     {
         FloatVector *f = AS_FVECTOR(args[0]);
         return DOUBLE_VAL(minFloatVector(f));
+    }
+    default:
+        break;
     }
 }
 

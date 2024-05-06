@@ -12,3 +12,4 @@ include/common.h
 pkg
 manifests
 MufiZ.json
+grammar.y

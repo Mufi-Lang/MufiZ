@@ -8,7 +8,6 @@
 #include "../include/value.h"
 #include "../include/vm.h"
 #include "../include/table.h"
-#include "../include/wyhash.h"
 
 #define ALLOCATE_OBJ(type, objectType) \
     ((type *)allocateObject(sizeof(type), objectType))
@@ -987,6 +986,50 @@ ObjLinkedList *mergeLinkedList(ObjLinkedList *a, ObjLinkedList *b)
         currentB = currentB->next;
     }
     return result;
+}
+
+ObjLinkedList *sliceLinkedList(ObjLinkedList *list, int start, int end)
+{
+    ObjLinkedList *sliced = newLinkedList();
+    struct Node *current = list->head;
+    int index = 0;
+    while (current != NULL)
+    {
+        if (index >= start && index < end)
+        {
+            pushBack(sliced, current->data);
+        }
+        current = current->next;
+        index++;
+    }
+    return sliced;
+}
+
+ObjLinkedList *spliceLinkedList(ObjLinkedList *list, int start, int end)
+{
+    ObjLinkedList *spliced = newLinkedList();
+    struct Node *current = list->head;
+    int index = 0;
+    while (current != NULL)
+    {
+        struct Node *next = current->next;
+        if (index >= start && index < end)
+        {
+            pushBack(spliced, current->data);
+            if (current->prev != NULL)
+            {
+                current->prev->next = current->next;
+            }
+            if (current->next != NULL)
+            {
+                current->next->prev = current->prev;
+            }
+            FREE(struct Node, current);
+        }
+        current = next;
+        index++;
+    }
+    return spliced;
 }
 
 /*------------------------------------------------------------------------------*/
@@ -2085,6 +2128,16 @@ void sortFloatVector(FloatVector *vector)
     if (vector->sorted)
         return;
     qsort(vector->data, vector->count, sizeof(double), compare_double);
+}
+
+void reverseFloatVector(FloatVector *vector)
+{
+    for (int i = 0; i < vector->count / 2; i++)
+    {
+        double temp = vector->data[i];
+        vector->data[i] = vector->data[vector->count - i - 1];
+        vector->data[vector->count - i - 1] = temp;
+    }
 }
 
 static int binarySearchFloatVector(FloatVector *vector, double value)
