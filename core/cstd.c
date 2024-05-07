@@ -299,7 +299,7 @@ Value nth_nf(int argCount, Value *args)
     {
     case OBJ_MATRIX:
     {
-        if (argCount == 3 && IS_INT(args[2]))
+        if (argCount == 3 && IS_PRIM_NUM(args[2]))
         {
             ObjMatrix *m = AS_MATRIX(args[0]);
             int row = AS_NUM_INT(args[1]);
@@ -624,16 +624,15 @@ Value len_nf(int argCount, Value *args)
         break;
     }
 }
-// continue with the rest of the functions here ... for soft numeric requirements
 Value range_nf(int argCount, Value *args)
 {
-    if (!IS_INT(args[0]) || !IS_INT(args[1]))
+    if (!IS_PRIM_NUM(args[0]) && !IS_PRIM_NUM(args[1]))
     {
-        runtimeError("Both arguments must be integers.");
+        runtimeError("Both arguments must be numbers.");
         return NIL_VAL;
     }
-    int start = AS_INT(args[0]);
-    int end = AS_INT(args[1]);
+    int start = AS_NUM_INT(args[0]);
+    int end = AS_NUM_INT(args[1]);
     ObjArray *a = newArrayWithCap(end - start, true);
     for (int i = start; i < end; i++)
     {
@@ -649,9 +648,9 @@ Value slice_nf(int argCount, Value *args)
         runtimeError("First argument must be an array, linked list or vector.");
         return NIL_VAL;
     }
-    if (!IS_INT(args[1]) || !IS_INT(args[2]))
+    if (!IS_PRIM_NUM(args[0]) && !IS_PRIM_NUM(args[1]))
     {
-        runtimeError("Second and third arguments must be integers.");
+        runtimeError("Second and third arguments must be numbers.");
         return NIL_VAL;
     }
 
@@ -660,8 +659,8 @@ Value slice_nf(int argCount, Value *args)
     case OBJ_ARRAY:
     {
         ObjArray *a = AS_ARRAY(args[0]);
-        int start = AS_INT(args[1]);
-        int end = AS_INT(args[2]);
+        int start = AS_NUM_INT(args[1]);
+        int end = AS_NUM_INT(args[2]);
         ObjArray *s = sliceArray(a, start, end);
         return OBJ_VAL(s);
     }
@@ -669,8 +668,8 @@ Value slice_nf(int argCount, Value *args)
     case OBJ_FVECTOR:
     {
         FloatVector *f = AS_FVECTOR(args[0]);
-        int start = AS_INT(args[1]);
-        int end = AS_INT(args[2]);
+        int start = AS_NUM_INT(args[1]);
+        int end = AS_NUM_INT(args[2]);
         FloatVector *s = sliceFloatVector(f, start, end);
         return OBJ_VAL(s);
     }
@@ -678,8 +677,8 @@ Value slice_nf(int argCount, Value *args)
     case OBJ_LINKED_LIST:
     {
         ObjLinkedList *l = AS_LINKED_LIST(args[0]);
-        int start = AS_INT(args[1]);
-        int end = AS_INT(args[2]);
+        int start = AS_NUM_INT(args[1]);
+        int end = AS_NUM_INT(args[2]);
         ObjLinkedList *s = sliceLinkedList(l, start, end);
         return OBJ_VAL(s);
     }
@@ -695,9 +694,9 @@ Value splice_nf(int argCount, Value *args)
         runtimeError("First argument must be an array, linked list or vector.");
         return NIL_VAL;
     }
-    if (!IS_INT(args[1]) || !IS_INT(args[2]))
+    if (!IS_PRIM_NUM(args[1]) || !IS_PRIM_NUM(args[2]))
     {
-        runtimeError("Second and third arguments must be integers.");
+        runtimeError("Second and third arguments must be numbers.");
         return NIL_VAL;
     }
 
@@ -706,24 +705,24 @@ Value splice_nf(int argCount, Value *args)
     case OBJ_ARRAY:
     {
         ObjArray *a = AS_ARRAY(args[0]);
-        int start = AS_INT(args[1]);
-        int end = AS_INT(args[2]);
+        int start = AS_NUM_INT(args[1]);
+        int end = AS_NUM_INT(args[2]);
         ObjArray *s = spliceArray(a, start, end);
         return OBJ_VAL(s);
     }
     case OBJ_FVECTOR:
     {
         FloatVector *f = AS_FVECTOR(args[0]);
-        int start = AS_INT(args[1]);
-        int end = AS_INT(args[2]);
+        int start = AS_NUM_INT(args[1]);
+        int end = AS_NUM_INT(args[2]);
         FloatVector *s = spliceFloatVector(f, start, end);
         return OBJ_VAL(s);
     }
     case OBJ_LINKED_LIST:
     {
         ObjLinkedList *l = AS_LINKED_LIST(args[0]);
-        int start = AS_INT(args[1]);
-        int end = AS_INT(args[2]);
+        int start = AS_NUM_INT(args[1]);
+        int end = AS_NUM_INT(args[2]);
         ObjLinkedList *s = spliceLinkedList(l, start, end);
         return OBJ_VAL(s);
     }
@@ -787,7 +786,7 @@ Value search_nf(int argCount, Value *args)
     case OBJ_FVECTOR:
     {
         FloatVector *f = AS_FVECTOR(args[0]);
-        int result = searchFloatVector(f, AS_DOUBLE(args[1]));
+        int result = searchFloatVector(f, AS_NUM_DOUBLE(args[1]));
         if (result == -1)
             return NIL_VAL;
         return INT_VAL(result);
@@ -807,13 +806,13 @@ Value search_nf(int argCount, Value *args)
 
 Value matrix_nf(int argCount, Value *args)
 {
-    if (!IS_INT(args[0]) || !IS_INT(args[1]))
+    if (!IS_PRIM_NUM(args[0]) || !IS_PRIM_NUM(args[1]))
     {
-        runtimeError("Both arguments must be integers.");
+        runtimeError("Both arguments must be numbers.");
         return NIL_VAL;
     }
-    int rows = AS_INT(args[0]);
-    int cols = AS_INT(args[1]);
+    int rows = AS_NUM_INT(args[0]);
+    int cols = AS_NUM_INT(args[1]);
     ObjMatrix *m = newMatrix(rows, cols);
     return OBJ_VAL(m);
 }
@@ -825,9 +824,9 @@ Value set_row_nf(int argCount, Value *args)
         runtimeError("First argument must be a matrix.");
         return NIL_VAL;
     }
-    if (!IS_INT(args[1]))
+    if (!IS_PRIM_NUM(args[1]))
     {
-        runtimeError("Second argument must be an integer.");
+        runtimeError("Second argument must be an numbers.");
         return NIL_VAL;
     }
     if (!IS_ARRAY(args[2]))
@@ -837,7 +836,7 @@ Value set_row_nf(int argCount, Value *args)
     }
 
     ObjMatrix *matrix = AS_MATRIX(args[0]);
-    int row = AS_INT(args[1]);
+    int row = AS_NUM_INT(args[1]);
     ObjArray *array = AS_ARRAY(args[2]);
 
     setRow(matrix, row, array);
@@ -851,9 +850,9 @@ Value set_col_nf(int argCount, Value *args)
         runtimeError("First argument must be a matrix.");
         return NIL_VAL;
     }
-    if (!IS_INT(args[1]))
+    if (!IS_PRIM_NUM(args[1]))
     {
-        runtimeError("Second argument must be an integer.");
+        runtimeError("Second argument must be an numbers.");
         return NIL_VAL;
     }
     if (!IS_ARRAY(args[2]))
@@ -863,7 +862,7 @@ Value set_col_nf(int argCount, Value *args)
     }
 
     ObjMatrix *matrix = AS_MATRIX(args[0]);
-    int col = AS_INT(args[1]);
+    int col = AS_NUM_INT(args[1]);
     ObjArray *array = AS_ARRAY(args[2]);
 
     setCol(matrix, col, array);
@@ -883,20 +882,20 @@ Value set_nf(int argCount, Value *args)
         runtimeError("First argument must be a matrix.");
         return NIL_VAL;
     }
-    if (!IS_INT(args[1]))
+    if (!IS_PRIM_NUM(args[1]))
     {
-        runtimeError("Second argument must be an integer.");
+        runtimeError("Second argument must be an numbers.");
         return NIL_VAL;
     }
-    if (!IS_INT(args[2]))
+    if (!IS_PRIM_NUM(args[2]))
     {
-        runtimeError("Third argument must be an integer.");
+        runtimeError("Third argument must be an numbers.");
         return NIL_VAL;
     }
 
     ObjMatrix *matrix = AS_MATRIX(args[0]);
-    int row = AS_INT(args[1]);
-    int col = AS_INT(args[2]);
+    int row = AS_NUM_INT(args[1]);
+    int col = AS_NUM_INT(args[2]);
 
     setMatrix(matrix, row, col, args[3]);
     return NIL_VAL;
@@ -970,9 +969,9 @@ Value fvector_nf(int argCount, Value *args)
         runtimeError("fvec() takes 1 argument.");
         return NIL_VAL;
     }
-    if (!IS_INT(args[0]) && !IS_ARRAY(args[0]))
+    if (!IS_PRIM_NUM(args[0]) && !IS_ARRAY(args[0]))
     {
-        runtimeError("First argument must be an integer or an array.");
+        runtimeError("First argument must be an numbers or an array.");
         return NIL_VAL;
     }
 
@@ -982,18 +981,18 @@ Value fvector_nf(int argCount, Value *args)
         FloatVector *f = newFloatVector(a->capacity);
         for (int i = 0; i < a->count; i++)
         {
-            if (!IS_DOUBLE(a->values[i]))
+            if (!IS_PRIM_NUM(a->values[i]))
             {
-                runtimeError("All elements of the vector must be doubles.");
+                runtimeError("All elements of the vector must be numbers.");
                 return NIL_VAL;
             }
-            pushFloatVector(f, AS_DOUBLE(a->values[i]));
+            pushFloatVector(f, AS_NUM_DOUBLE(a->values[i]));
         }
         return OBJ_VAL(f);
     }
     else
     {
-        int n = AS_INT(args[0]);
+        int n = AS_NUM_INT(args[0]);
         FloatVector *f = newFloatVector(n);
         return OBJ_VAL(f);
     }
@@ -1326,15 +1325,15 @@ Value reject_nf(int argCount, Value *args)
 
 Value refract_nf(int argCount, Value *args)
 {
-    if (!IS_FVECTOR(args[0]) && !IS_FVECTOR(args[1]) && !IS_DOUBLE(args[2]) && !IS_DOUBLE(args[3]))
+    if (!IS_FVECTOR(args[0]) && !IS_FVECTOR(args[1]) && !IS_PRIM_NUM(args[2]) && !IS_PRIM_NUM(args[3]))
     {
-        runtimeError("First and second arguments must be vectors and the third and fourth arguments must be doubles.");
+        runtimeError("First and second arguments must be vectors and the third and fourth arguments must be numbers.");
         return NIL_VAL;
     }
     FloatVector *a = AS_FVECTOR(args[0]);
     FloatVector *b = AS_FVECTOR(args[1]);
-    double n1 = AS_DOUBLE(args[2]);
-    double n2 = AS_DOUBLE(args[3]);
+    double n1 = AS_NUM_DOUBLE(args[2]);
+    double n2 = AS_NUM_DOUBLE(args[3]);
     FloatVector *result = refraction(a, b, n1, n2);
     return OBJ_VAL(result);
 }
@@ -1396,14 +1395,14 @@ Value linspace_nf(int argCount, Value *args)
         runtimeError("linspace() takes 3 arguments.");
         return NIL_VAL;
     }
-    if (!IS_DOUBLE(args[0]) && !IS_DOUBLE(args[1]) && !IS_INT(args[2]))
+    if (!IS_PRIM_NUM(args[0]) && !IS_PRIM_NUM(args[1]) && !IS_PRIM_NUM(args[2]))
     {
-        runtimeError("First and second arguments must be doubles and the third argument must be an integer.");
+        runtimeError("First and second arguments must be numbers and the third argument must be an numbers.");
         return NIL_VAL;
     }
-    double start = AS_DOUBLE(args[0]);
-    double end = AS_DOUBLE(args[1]);
-    int n = AS_INT(args[2]);
+    double start = AS_NUM_DOUBLE(args[0]);
+    double end = AS_NUM_DOUBLE(args[1]);
+    int n = AS_NUM_INT(args[2]);
     FloatVector *a = linspace(start, end, n);
     return OBJ_VAL(a);
 }
@@ -1415,15 +1414,15 @@ Value interp1_nf(int argCount, Value *args)
         runtimeError("interp1() takes 3 arguments.");
         return NIL_VAL;
     }
-    if (!IS_FVECTOR(args[0]) && !IS_FVECTOR(args[1]) && !IS_DOUBLE(args[2]))
+    if (!IS_FVECTOR(args[0]) && !IS_FVECTOR(args[1]) && !IS_PRIM_NUM(args[2]))
     {
-        runtimeError("First and second arguments must be vectors and the third argument must be a double.");
+        runtimeError("First and second arguments must be vectors and the third argument must be a number.");
         return NIL_VAL;
     }
 
     FloatVector *x = AS_FVECTOR(args[0]);
     FloatVector *y = AS_FVECTOR(args[1]);
-    double x0 = AS_DOUBLE(args[2]);
+    double x0 = AS_NUM_DOUBLE(args[2]);
     double result = interp1(x, y, x0);
     return DOUBLE_VAL(result);
 }
