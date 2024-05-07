@@ -38,9 +38,9 @@ Value array_nf(int argCount, Value *args)
     }
     else if (argCount >= 1)
     {
-        if (!IS_INT(args[0]))
+        if (!IS_PRIM_NUM(args[0]))
         {
-            runtimeError("First argument must be an integer.");
+            runtimeError("First argument must be a number.");
             return NIL_VAL;
         }
 
@@ -50,7 +50,7 @@ Value array_nf(int argCount, Value *args)
             return NIL_VAL;
         }
 
-        ObjArray *a = newArrayWithCap(AS_INT(args[0]), AS_BOOL(args[1]));
+        ObjArray *a = newArrayWithCap(AS_NUM_INT(args[0]), AS_BOOL(args[1]));
         return OBJ_VAL(a);
     }
     else
@@ -143,9 +143,9 @@ Value remove_nf(int argCount, Value *args)
         runtimeError("First argument must be a hash table, array, or float vector.");
         return NIL_VAL;
     }
-    if (!IS_STRING(args[1]) && !IS_INT(args[1]))
+    if (!IS_STRING(args[1]) && !IS_PRIM_NUM(args[1]))
     {
-        runtimeError("Second argument must be a string or integer.");
+        runtimeError("Second argument must be a string or number.");
         return NIL_VAL;
     }
     switch (AS_OBJ(args[0])->type)
@@ -158,11 +158,11 @@ Value remove_nf(int argCount, Value *args)
     }
     case OBJ_ARRAY:
     {
-        return removeArray(AS_ARRAY(args[0]), AS_INT(args[1]));
+        return removeArray(AS_ARRAY(args[0]), AS_NUM_INT(args[1]));
     }
     case OBJ_FVECTOR:
     {
-        return DOUBLE_VAL(removeFloatVector(AS_FVECTOR(args[0]), AS_INT(args[1])));
+        return DOUBLE_VAL(removeFloatVector(AS_FVECTOR(args[0]), AS_NUM_INT(args[1])));
     }
     default:
     {
@@ -196,12 +196,12 @@ Value push_nf(int argCount, Value *args)
         FloatVector *f = AS_FVECTOR(args[0]);
         for (int i = 1; i < argCount; i++)
         {
-            if (!IS_DOUBLE(args[i]))
+            if (!IS_PRIM_NUM(args[i]))
             {
-                runtimeError("All elements of the vector must be doubles.");
+                runtimeError("All elements of the vector must be numbers.");
                 return NIL_VAL;
             }
-            pushFloatVector(f, AS_DOUBLE(args[i]));
+            pushFloatVector(f, AS_NUM_DOUBLE(args[i]));
         }
         return NIL_VAL;
     }
@@ -289,9 +289,9 @@ Value nth_nf(int argCount, Value *args)
         runtimeError("First argument must be an array, matrix, linked list or Vector.");
         return NIL_VAL;
     }
-    if (!IS_INT(args[1]))
+    if (!IS_PRIM_NUM(args[1]))
     {
-        runtimeError("Second argument must be an integer.");
+        runtimeError("Second argument must be a number.");
         return NIL_VAL;
     }
 
@@ -302,8 +302,8 @@ Value nth_nf(int argCount, Value *args)
         if (argCount == 3 && IS_INT(args[2]))
         {
             ObjMatrix *m = AS_MATRIX(args[0]);
-            int row = AS_INT(args[1]);
-            int col = AS_INT(args[2]);
+            int row = AS_NUM_INT(args[1]);
+            int col = AS_NUM_INT(args[2]);
             return getMatrix(m, row, col);
         }
         break;
@@ -311,14 +311,14 @@ Value nth_nf(int argCount, Value *args)
     case OBJ_FVECTOR:
     {
         FloatVector *f = AS_FVECTOR(args[0]);
-        int index = AS_INT(args[1]);
+        int index = AS_NUM_INT(args[1]);
         double value = getFloatVector(f, index);
         return DOUBLE_VAL(value);
     }
     case OBJ_ARRAY:
     {
         ObjArray *a = AS_ARRAY(args[0]);
-        int index = AS_INT(args[1]);
+        int index = AS_NUM_INT(args[1]);
         if (index >= 0 && index < a->count)
         {
             return a->values[index];
@@ -328,7 +328,7 @@ Value nth_nf(int argCount, Value *args)
     case OBJ_LINKED_LIST:
     {
         ObjLinkedList *l = AS_LINKED_LIST(args[0]);
-        int index = AS_INT(args[1]);
+        int index = AS_NUM_INT(args[1]);
         if (index >= 0 && index < l->count)
         {
             struct Node *node = l->head;
@@ -497,7 +497,7 @@ Value contains_nf(int argCount, Value *args)
         FloatVector *f = AS_FVECTOR(args[0]);
         for (int i = 0; i < f->count; i++)
         {
-            if (f->data[i] == AS_DOUBLE(args[1]))
+            if (f->data[i] == AS_NUM_DOUBLE(args[1]))
             {
                 return BOOL_VAL(true);
             }
@@ -551,9 +551,9 @@ Value insert_nf(int argCount, Value *args)
         runtimeError("First argument must be an array or vector.");
         return NIL_VAL;
     }
-    if (!IS_INT(args[1]))
+    if (!IS_PRIM_NUM(args[1]))
     {
-        runtimeError("Second argument must be an integer.");
+        runtimeError("Second argument must be a number.");
         return NIL_VAL;
     }
     switch (AS_OBJ(args[0])->type)
@@ -561,19 +561,19 @@ Value insert_nf(int argCount, Value *args)
     case OBJ_FVECTOR:
     {
         FloatVector *f = AS_FVECTOR(args[0]);
-        int index = AS_INT(args[1]);
-        if (!IS_DOUBLE(args[2]))
+        int index = AS_NUM_INT(args[1]);
+        if (!IS_PRIM_NUM(args[2]))
         {
-            runtimeError("Third argument must be a double.");
+            runtimeError("Third argument must be a number.");
             return NIL_VAL;
         }
-        insertFloatVector(f, index, AS_DOUBLE(args[2]));
+        insertFloatVector(f, index, AS_NUM_DOUBLE(args[2]));
         return NIL_VAL;
     }
     case OBJ_ARRAY:
     {
         ObjArray *a = AS_ARRAY(args[0]);
-        int index = AS_INT(args[1]);
+        int index = AS_NUM_INT(args[1]);
         insertArray(a, index, args[2]);
         return NIL_VAL;
     }
@@ -624,7 +624,7 @@ Value len_nf(int argCount, Value *args)
         break;
     }
 }
-
+// continue with the rest of the functions here ... for soft numeric requirements
 Value range_nf(int argCount, Value *args)
 {
     if (!IS_INT(args[0]) || !IS_INT(args[1]))
