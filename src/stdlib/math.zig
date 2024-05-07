@@ -7,6 +7,14 @@ const type_check = conv.type_check;
 
 // Int = 2
 // Double = 3
+
+pub fn ln(argc: c_int, args: [*c]Value) callconv(.C) Value {
+    if (argc != 1) return stdlib_error("ln() expects one argument!", .{ .argn = argc });
+    if (!type_check(1, args, 3)) return stdlib_error("ln() expects a Double!", .{ .value_type = conv.what_is(args[0]) });
+    const double = conv.as_double(args[0]);
+    return conv.double_val(@log(double));
+}
+
 /// log2(double) double
 pub fn log2(argc: c_int, args: [*c]Value) callconv(.C) Value {
     if (argc != 1) return stdlib_error("log2() expects one argument!", .{ .argn = argc });
@@ -185,7 +193,7 @@ pub fn max(argc: c_int, args: [*c]Value) callconv(.C) Value {
 
 pub fn min(argc: c_int, args: [*c]Value) callconv(.C) Value {
     if (argc != 2) return stdlib_error("min() expects two arguments!", .{ .argn = argc });
-    if (!type_check(2, args, 3)) return stdlib_error("max() expects 2 Double!", .{ .value_type = conv.what_is(args[0]) });
+    if (!type_check(2, args, 3)) return stdlib_error("min() expects 2 Double!", .{ .value_type = conv.what_is(args[0]) });
     const a = conv.as_double(args[0]);
     const b = conv.as_double(args[1]);
     return conv.double_val(@min(a, b));

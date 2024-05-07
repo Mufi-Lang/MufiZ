@@ -13,3 +13,4 @@ pkg
 manifests
 MufiZ.json
 grammar.y
+update_apt.sh

@@ -31,6 +31,7 @@ pub fn prelude() void {
 }
 
 pub fn addMath() void {
+    defineNative("ln", &math.ln);
     defineNative("log2", &math.log2);
     defineNative("log10", &math.log10);
     defineNative("pi", &math.pi);
