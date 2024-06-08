@@ -36,6 +36,7 @@
 #define IS_HASH_TABLE(value) isObjType(value, OBJ_HASH_TABLE)
 #define IS_MATRIX(value) isObjType(value, OBJ_MATRIX)
 #define IS_FVECTOR(value) isObjType(value, OBJ_FVECTOR)
+#define IS_ITERATOR(value) isObjType(value, OBJ_ITERATOR)
 
 #define NOT_ARRAY_TYPES(args, n) notObjTypes(args, OBJ_ARRAY, n) && notObjTypes(args, OBJ_FVECTOR, n)
 #define NOT_LIST_TYPES(args, n) notObjTypes(args, OBJ_LINKED_LIST, n) && NOT_ARRAY_TYPES(args, n)
@@ -55,6 +56,7 @@
 #define AS_HASH_TABLE(value) ((ObjHashTable *)AS_OBJ(value))
 #define AS_MATRIX(value) ((ObjMatrix *)AS_OBJ(value))
 #define AS_FVECTOR(value) ((FloatVector *)AS_OBJ(value))
+#define AS_ITERATOR(value) ((ObjIterator *)AS_OBJ(value))
 
 //> Object Type
 //> An object type is a type of an object in Mufi
@@ -73,6 +75,7 @@ typedef enum
     OBJ_HASH_TABLE,
     OBJ_MATRIX,
     OBJ_FVECTOR,
+    OBJ_ITERATOR,
 } ObjType;
 
 //> Object Structure
@@ -226,6 +229,15 @@ typedef struct
     ObjClosure *method;
 } ObjBoundMethod;
 
+typedef struct{
+    Obj obj;
+    void* arr;
+    int pos;
+    int len;
+    size_t size;
+    ObjType type;
+}ObjIterator;
+
 /*-------------------------- Object Functions --------------------------------*/
 ObjBoundMethod *newBoundMethod(Value receiver, ObjClosure *method);
 ObjClass *newClass(ObjString *name);
@@ -238,6 +250,14 @@ uint64_t hashString(const char *key, int length);
 ObjString *takeString(char *chars, int length);
 ObjString *copyString(const char *chars, int length);
 ObjUpvalue *newUpvalue(Value *slot);
+/*----------------------------------------------------------------------------*/
+
+/* ------------------------- Iterator Functions ----------------------------- */
+
+ObjIterator *newIterator(void *arr, int len, size_t size, ObjType type);
+void* iteratorNext(ObjIterator *iter);
+bool iteratorHasNext(ObjIterator *iter);
+void freeObjectIterator(ObjIterator *iter);
 /*----------------------------------------------------------------------------*/
 
 /*-------------------------- Array Functions --------------------------------*/

@@ -19,6 +19,54 @@ Value assert_nf(int argCount, Value *args)
     }
 }
 
+Value iter_nf(int argCount, Value *args)
+{
+    if (argCount != 1)
+    {
+        runtimeError("iter() takes 1 argument.");
+        return NIL_VAL;
+    }
+    if (NOT_ARRAY_TYPES(args, 1))
+    {
+        runtimeError("Argument must be an array type.");
+        return NIL_VAL;
+    }
+    switch (AS_OBJ(args[0])->type)
+    {
+    case OBJ_ARRAY:
+    {
+        ObjArray *a = AS_ARRAY(args[0]);
+        ObjIterator *iter = newIterator(a->values, a->count, sizeof(Value), OBJ_ARRAY);
+        return OBJ_VAL(iter);
+    }
+    case OBJ_FVECTOR:
+    {
+        FloatVector *f = AS_FVECTOR(args[0]);
+        ObjIterator *iter = newIterator(f->data, f->count, sizeof(double), OBJ_FVECTOR);
+        return OBJ_VAL(iter);
+    }
+    default:
+        runtimeError("Invalid argument type.");
+        return NIL_VAL;
+    }
+}
+
+Value next_nf(int argCount, Value *args)
+{
+    if (argCount != 1)
+    {
+        runtimeError("next() takes 1 argument.");
+        return NIL_VAL;
+    }
+    if (!IS_ITERATOR(args[0]))
+    {
+        runtimeError("Argument must be an iterator.");
+        return NIL_VAL;
+    }
+    ObjIterator *iter = AS_ITERATOR(args[0]);
+    return *(Value*)iteratorNext(iter);
+}
+
 Value array_nf(int argCount, Value *args)
 {
     if (argCount == 0)

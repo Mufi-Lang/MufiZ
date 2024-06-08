@@ -248,6 +248,63 @@ ObjUpvalue *newUpvalue(Value *slot)
 
 /*------------------------------------------------------------------------------*/
 
+/* -------------------------- Iterator Functions ---------------------------------*/
+
+ObjIterator *newIterator(void *arr, int len, size_t size, ObjType type)
+{
+    switch (type)
+    {
+    case OBJ_ARRAY:
+    case OBJ_FVECTOR:
+    {
+        ObjIterator *iterator = ALLOCATE_OBJ(ObjIterator, OBJ_ITERATOR);
+        iterator->arr = arr;
+        iterator->len = len;
+        iterator->size = size;
+        iterator->pos = 0;
+        iterator->type = type;
+        return iterator;
+    }
+    default:
+        return NULL;
+    }
+}
+
+void *iteratorNext(ObjIterator *iter)
+{
+    if (iter->pos < iter->len)
+    {
+        switch (iter->type)
+        {
+        case OBJ_ARRAY:
+        {
+            void *res = (Value *)iter->arr + iter->pos * iter->size;
+            iter->pos++;
+            return (void*)res;
+        }
+        case OBJ_FVECTOR:
+        {
+            void *res = (double *)iter->arr + iter->pos * iter->size;
+            iter->pos++;
+            return (void*)res;
+        }
+        default:
+            break;
+        }
+    }
+    return NULL;
+}
+
+bool iteratorHasNext(ObjIterator *iter)
+{
+    return iter->pos < iter->len;
+}
+
+void freeObjectIterator(ObjIterator *iter)
+{
+    FREE(ObjIterator, iter);
+}
+
 /*-------------------------- Array Functions --------------------------------*/
 ObjArray *mergeArrays(ObjArray *a, ObjArray *b)
 {
@@ -2398,6 +2455,11 @@ void printObject(Value value)
     case OBJ_MATRIX:
     {
         printMatrix(AS_MATRIX(value));
+        break;
+    }
+    case OBJ_ITERATOR:
+    {
+        printf("<iterator>");
         break;
     }
     }

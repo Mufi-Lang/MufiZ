@@ -162,6 +162,7 @@ static void blackenObject(Obj *object)
     case OBJ_NATIVE:
     case OBJ_STRING:
     case OBJ_FVECTOR:
+    case OBJ_ITERATOR:
         break;
     }
 }
@@ -244,6 +245,12 @@ static void freeObject(Obj *object)
     {
         FloatVector *fvector = (FloatVector *)object;
         freeFloatVector(fvector);
+        break;
+    }
+    case OBJ_ITERATOR:
+    {
+        ObjIterator *iterator = (ObjIterator *)object;
+        freeObjectIterator(iterator);
         break;
     }
     // case OBJ_MATRIX:

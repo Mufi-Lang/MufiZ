@@ -1,4 +1,4 @@
-zig-cache
+.zig-cache
 zig-out
 m.zig
 fpm.txt
@@ -14,3 +14,4 @@ manifests
 MufiZ.json
 grammar.y
 update_apt.sh
+__pycache__

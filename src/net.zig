@@ -6,7 +6,7 @@ const Header = http.Header;
 const Client = http.Client;
 const GlobalAlloc = @import("main.zig").GlobalAlloc;
 const builtin = @import("builtin");
-const cp = std.ChildProcess;
+const cp = std.process.Child;
 
 pub const ContentType = enum(u8) {
     PlainText = 0,

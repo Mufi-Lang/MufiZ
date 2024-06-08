@@ -17,6 +17,10 @@
 #include <stdio.h>
 
 Value assert_nf(int argCount, Value *args);
+Value iter_nf(int argCount, Value *args);
+Value next_nf(int argCount, Value *args);
+Value hashNext_nf(int argCount, Value *args);
+
 
 /* Collection Initializations  */
 //> Initializes a new array 

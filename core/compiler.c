@@ -1088,6 +1088,10 @@ static void forStatement()
     endScope();
 }
 
+static void eachStatement() {
+
+}
+
 static void ifStatement()
 {
     consume(TOKEN_LEFT_PAREN, "Expect '(' after 'if'.");

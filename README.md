@@ -1,5 +1,5 @@
 # MufiZ
-> This project uses the Zig `v0.12.0`
+> This project uses the Zig `v0.13.0`
 
 🌐 [mufiz.mustafif.com](https://mufiz.mustafif.com)
 
