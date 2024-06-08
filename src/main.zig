@@ -54,9 +54,7 @@ pub fn main() !void {
         };
         defer res.deinit();
 
-        if (res.args.help != 0) {
-            return clap.help(std.io.getStdErr().writer(), clap.Help, &params, .{});
-        } else if (res.args.version != 0) {
+        if (res.args.version != 0) {
             system.version();
         } else if (res.args.run) |s| {
             var runner = system.Runner.init(GlobalAlloc);
@@ -69,6 +67,8 @@ pub fn main() !void {
         } else if (res.args.repl != 0) {
             try system.repl();
         } else {
+            system.version();
+            system.usage();
             return clap.help(std.io.getStdErr().writer(), clap.Help, &params, .{});
         }
     }

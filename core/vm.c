@@ -90,6 +90,9 @@ void importCollections(void)
     defineNative("clone", clone_nf);
     defineNative("clear", clear_nf);
 
+    defineNative("iter", iter_nf);
+    defineNative("next", next_nf);
+
     defineNative("put", put_nf);
     defineNative("get", get_nf);
     defineNative("remove", remove_nf);

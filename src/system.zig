@@ -9,7 +9,12 @@ const PATCH: u8 = 0;
 const CODENAME: []const u8 = "Jade";
 
 pub inline fn version() void {
-    std.debug.print("Version {d}.{d}.{d} ({s} Release)\n", .{ MAJOR, MINOR, PATCH, CODENAME });
+    std.debug.print("MufiZ v{d}.{d}.{d} ({s} Release)\n", .{ MAJOR, MINOR, PATCH, CODENAME });
+}
+
+pub inline fn usage() void {
+    std.debug.print("Usage: mufiz [OPTIONS] [ARGS]\n", .{});
+    std.debug.print("Options:\n", .{});
 }
 
 pub fn repl() !void {
