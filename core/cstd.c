@@ -36,13 +36,15 @@ Value iter_nf(int argCount, Value *args)
     case OBJ_ARRAY:
     {
         ObjArray *a = AS_ARRAY(args[0]);
-        ObjIterator *iter = newIterator(a->values, a->count, sizeof(Value), OBJ_ARRAY);
+        ArrayIter *aiter = newArrayIter(a);
+        ObjIterator *iter = newIterator(ARRAY_ITER, (IterUnion){.arr = aiter});
         return OBJ_VAL(iter);
     }
     case OBJ_FVECTOR:
     {
         FloatVector *f = AS_FVECTOR(args[0]);
-        ObjIterator *iter = newIterator(f->data, f->count, sizeof(double), OBJ_FVECTOR);
+        FloatVecIter *fiter = newFloatVecIter(f);
+        ObjIterator *iter = newIterator(FLOAT_VEC_ITER, (IterUnion){.fvec = fiter});
         return OBJ_VAL(iter);
     }
     default:
@@ -64,8 +66,89 @@ Value next_nf(int argCount, Value *args)
         return NIL_VAL;
     }
     ObjIterator *iter = AS_ITERATOR(args[0]);
-    return *(Value*)iteratorNext(iter);
+    return iteratorNext(iter);
 }
+
+Value hasNext_nf(int argCount, Value *args)
+{
+    if (argCount != 1)
+    {
+        runtimeError("hasNext() takes 1 argument.");
+        return NIL_VAL;
+    }
+    if (!IS_ITERATOR(args[0]))
+    {
+        runtimeError("Argument must be an iterator.");
+        return NIL_VAL;
+    }
+    ObjIterator *iter = AS_ITERATOR(args[0]);
+    return BOOL_VAL(iteratorHasNext(iter));
+}
+
+Value peek_nf(int argCount, Value *args)
+{
+    if (argCount != 1)
+    {
+        runtimeError("peek() takes 2 argument.");
+        return NIL_VAL;
+    }
+    if (!IS_ITERATOR(args[0]))
+    {
+        runtimeError("Argument must be an iterator.");
+        return NIL_VAL;
+    }
+
+    if(!IS_PRIM_NUM(args[1]))
+    {
+        runtimeError("Second argument must be a number.");
+        return NIL_VAL;
+    }
+
+    ObjIterator *iter = AS_ITERATOR(args[0]);
+    int pos = AS_NUM_INT(args[1]);
+    return iteratorPeek(iter, pos);
+}
+
+Value reset_nf(int argCount, Value *args)
+{
+    if (argCount != 1)
+    {
+        runtimeError("reset() takes 1 argument.");
+        return NIL_VAL;
+    }
+    if (!IS_ITERATOR(args[0]))
+    {
+        runtimeError("Argument must be an iterator.");
+        return NIL_VAL;
+    }
+    ObjIterator *iter = AS_ITERATOR(args[0]);
+    iteratorReset(iter);
+    return NIL_VAL;
+}
+
+Value skip_nf(int argCount, Value *args)
+{
+    if (argCount != 2)
+    {
+        runtimeError("skip() takes 2 arguments.");
+        return NIL_VAL;
+    }
+    if (!IS_ITERATOR(args[0]))
+    {
+        runtimeError("First argument must be an iterator.");
+        return NIL_VAL;
+    }
+    if (!IS_PRIM_NUM(args[1]))
+    {
+        runtimeError("Second argument must be a number.");
+        return NIL_VAL;
+    }
+    ObjIterator *iter = AS_ITERATOR(args[0]);
+    int n = AS_NUM_INT(args[1]);
+    iteratorSkip(iter, n);
+    return NIL_VAL;
+}
+
 
 Value array_nf(int argCount, Value *args)
 {

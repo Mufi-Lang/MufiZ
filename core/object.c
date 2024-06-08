@@ -249,55 +249,106 @@ ObjUpvalue *newUpvalue(Value *slot)
 /*------------------------------------------------------------------------------*/
 
 /* -------------------------- Iterator Functions ---------------------------------*/
+#define NEXT_FLOAT_VEC(iter) \
+    ((iter)->pos < (iter)->vec->count ? (iter)->vec->data[(iter)->pos++] : 0.0)
 
-ObjIterator *newIterator(void *arr, int len, size_t size, ObjType type)
+#define NEXT_ARRAY(iter) \
+    ((iter)->pos < (iter)->arr->count ? (iter)->arr->values[(iter)->pos++] : NIL_VAL)
+
+#define HAS_NEXT_ARRAY(iter) \
+    ((iter)->pos < (iter)->arr->count)
+
+#define HAS_NEXT_FLOAT_VEC(iter) \
+    ((iter)->pos < (iter)->vec->count)
+
+#define ITERATOR_PEEK(iter, pos)                                                                                                                                                                                                           \
+    (((iter)->type == FLOAT_VEC_ITER && (pos) < (iter)->iter.fvec->vec->count) ? DOUBLE_VAL((iter)->iter.fvec->vec->data[pos]) : ((iter)->type == ARRAY_ITER && (pos) < (iter)->iter.arr->arr->count) ? (iter)->iter.arr->arr->values[pos] \
+                                                                                                                                                                                                      : NIL_VAL)
+
+FloatVecIter *newFloatVecIter(FloatVector *vec)
 {
-    switch (type)
-    {
-    case OBJ_ARRAY:
-    case OBJ_FVECTOR:
-    {
-        ObjIterator *iterator = ALLOCATE_OBJ(ObjIterator, OBJ_ITERATOR);
-        iterator->arr = arr;
-        iterator->len = len;
-        iterator->size = size;
-        iterator->pos = 0;
-        iterator->type = type;
-        return iterator;
-    }
-    default:
-        return NULL;
-    }
+    FloatVecIter *iter = ALLOCATE(FloatVecIter, 1);
+    iter->vec = vec;
+    iter->pos = 0;
+    return iter;
 }
 
-void *iteratorNext(ObjIterator *iter)
+ArrayIter *newArrayIter(ObjArray *arr)
 {
-    if (iter->pos < iter->len)
+    ArrayIter *iter = ALLOCATE(ArrayIter, 1);
+    iter->arr = arr;
+    iter->pos = 0;
+    return iter;
+}
+
+ObjIterator *newIterator(IterType type, IterUnion iter)
+{
+    ObjIterator *iterator = ALLOCATE_OBJ(ObjIterator, OBJ_ITERATOR);
+    iterator->type = type;
+    iterator->iter = iter;
+    return iterator;
+}
+
+Value iteratorNext(ObjIterator *iter)
+{
+    if (iteratorHasNext(iter))
     {
         switch (iter->type)
         {
-        case OBJ_ARRAY:
-        {
-            void *res = (Value *)iter->arr + iter->pos * iter->size;
-            iter->pos++;
-            return (void*)res;
-        }
-        case OBJ_FVECTOR:
-        {
-            void *res = (double *)iter->arr + iter->pos * iter->size;
-            iter->pos++;
-            return (void*)res;
-        }
-        default:
-            break;
+        case FLOAT_VEC_ITER:
+            return DOUBLE_VAL(NEXT_FLOAT_VEC(iter->iter.fvec));
+        case ARRAY_ITER:
+            return NEXT_ARRAY(iter->iter.arr);
         }
     }
-    return NULL;
+    else
+    {
+        return NIL_VAL;
+    }
 }
 
 bool iteratorHasNext(ObjIterator *iter)
 {
-    return iter->pos < iter->len;
+    switch (iter->type)
+    {
+    case FLOAT_VEC_ITER:
+        return HAS_NEXT_ARRAY(iter->iter.arr);
+    case ARRAY_ITER:
+        return HAS_NEXT_FLOAT_VEC(iter->iter.fvec);
+    default:
+        return false;
+    }
+}
+
+Value iteratorPeek(ObjIterator *iter, int pos)
+{
+    return ITERATOR_PEEK(iter, pos);
+}
+
+void iteratorReset(ObjIterator *iter)
+{
+    switch (iter->type)
+    {
+    case FLOAT_VEC_ITER:
+        iter->iter.fvec->pos = 0;
+        break;
+    case ARRAY_ITER:
+        iter->iter.arr->pos = 0;
+        break;
+    }
+}
+
+void iteratorSkip(ObjIterator *iter, int n)
+{
+    switch (iter->type)
+    {
+    case FLOAT_VEC_ITER:
+        iter->iter.fvec->pos = (iter->iter.fvec->pos + n) < iter->iter.fvec->vec->count ? iter->iter.fvec->pos + n : iter->iter.fvec->vec->count;
+        break;
+    case ARRAY_ITER:
+        iter->iter.arr->pos = (iter->iter.arr->pos + n) < iter->iter.arr->arr->count ? iter->iter.arr->pos + n : iter->iter.arr->arr->count;
+        break;
+    }
 }
 
 void freeObjectIterator(ObjIterator *iter)

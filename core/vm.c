@@ -92,6 +92,9 @@ void importCollections(void)
 
     defineNative("iter", iter_nf);
     defineNative("next", next_nf);
+    defineNative("has_next", hasNext_nf);
+    defineNative("reset", reset_nf);
+    defineNative("skip", skip_nf);
 
     defineNative("put", put_nf);
     defineNative("get", get_nf);

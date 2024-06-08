@@ -230,12 +230,31 @@ typedef struct
 } ObjBoundMethod;
 
 typedef struct{
-    Obj obj;
-    void* arr;
+    FloatVector *vec;
     int pos;
-    int len;
-    size_t size;
-    ObjType type;
+}FloatVecIter;
+
+typedef struct 
+{
+    ObjArray *arr;
+    int pos;
+}ArrayIter;
+
+typedef enum{
+    FLOAT_VEC_ITER,
+    ARRAY_ITER
+}IterType;
+
+typedef union{
+    FloatVecIter* fvec;
+    ArrayIter* arr;
+}IterUnion;
+
+//> Iterator Object
+typedef struct{
+    Obj obj;
+    IterType type;
+    IterUnion iter;
 }ObjIterator;
 
 /*-------------------------- Object Functions --------------------------------*/
@@ -253,10 +272,15 @@ ObjUpvalue *newUpvalue(Value *slot);
 /*----------------------------------------------------------------------------*/
 
 /* ------------------------- Iterator Functions ----------------------------- */
+FloatVecIter *newFloatVecIter(FloatVector *vec);
+ArrayIter *newArrayIter(ObjArray *arr);
 
-ObjIterator *newIterator(void *arr, int len, size_t size, ObjType type);
-void* iteratorNext(ObjIterator *iter);
+ObjIterator *newIterator(IterType type, IterUnion iter);
+Value iteratorNext(ObjIterator *iter);
 bool iteratorHasNext(ObjIterator *iter);
+Value iteratorPeek(ObjIterator *iter, int pos);
+void iteratorReset(ObjIterator *iter);
+void iteratorSkip(ObjIterator *iter, int n);
 void freeObjectIterator(ObjIterator *iter);
 /*----------------------------------------------------------------------------*/
 
