@@ -1,7 +1,7 @@
-/* 
+/*
  * File:   cstd.h
  * Author: Mustafif Khan
- * Brief:  The Standard Library from C 
+ * Brief:  The Standard Library from C
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -26,8 +26,8 @@ Value skip_nf(int argCount, Value *args);
 
 
 /* Collection Initializations  */
-//> Initializes a new array 
-//> Options: 
+//> Initializes a new array
+//> Options:
 //> 1. array() -> []
 //> 2. array(int, bool) -> array with cap and static flag
 //> 3. array(int) -> array with cap
@@ -39,7 +39,7 @@ Value linkedlist_nf(int argCount, Value *args);
 Value hashtable_nf(int argCount, Value *args);
 //> Initializes a new matrix with rows and columns and zeroes the matrix
 Value matrix_nf(int argCount, Value *args);
-//> Initializes a new fvec with a size 
+//> Initializes a new fvec with a size
 Value fvector_nf(int argCount, Value *args);
 //> Creates a new array with range [a, b)
 Value range_nf(int argCount, Value *args);
@@ -56,10 +56,10 @@ Value push_nf(int argCount, Value *args);
 //> Pops a value from a collection
 //> Options:
 //> 1. array: pop(array) value
-//> 2. linkedlist: pop(linkedlist) value 
+//> 2. linkedlist: pop(linkedlist) value
 //> 3. fvec: pop(fvec) double
 Value pop_nf(int argCount, Value *args);
-//> Returns the value at an index 
+//> Returns the value at an index
 //> Options:
 //> 1. array: nth(array, index) value
 //> 2. linkedlist: nth(linkedlist, index) value
@@ -144,7 +144,7 @@ Value set_row_nf(int argCount, Value *args);
 Value set_col_nf(int argCount, Value *args);
 //> Sets the value at a row and column in the matrix
 Value set_nf(int argCount, Value *args);
-//> A special matrix 
+//> A special matrix
 Value kolasa_nf(int argCount, Value *args);
 //> Performs the Row Reduced Echelon Form (RREF) on the matrix
 Value rref_nf(int argCount, Value *args);
@@ -171,5 +171,6 @@ Value interp1_nf(int argCount, Value *args);
 // Value eigenvectors_nf(int argCount, Value *args);
 // Value blsprice_nf(int argCount, Value *args);
 //Value solve_nf(int argCount, Value *args);
+Value simd_stat_nf(int argCount, Value *args);
 
 #endif

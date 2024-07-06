@@ -22,6 +22,10 @@
 #include <avx2intrin.h>
 #endif
 
+#ifdef __ARM_NEON
+#include <arm_neon.h>
+#endif
+
 #define OBJ_TYPE(value) (AS_OBJ(value)->type)
 
 #define IS_BOUND_METHOD(value) isObjType(value, OBJ_BOUND_METHOD)
@@ -234,7 +238,7 @@ typedef struct{
     int pos;
 }FloatVecIter;
 
-typedef struct 
+typedef struct
 {
     ObjArray *arr;
     int pos;

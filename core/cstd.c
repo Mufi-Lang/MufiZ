@@ -1,5 +1,6 @@
 #include "../include/cstd.h"
 #include <math.h>
+#include <stdio.h>
 
 Value assert_nf(int argCount, Value *args)
 {
@@ -17,6 +18,23 @@ Value assert_nf(int argCount, Value *args)
         runtimeError("Assertion failed %s != %s", valueToString(args[0]), valueToString(args[1]));
         return NIL_VAL;
     }
+}
+
+Value simd_stat_nf(int argCount, Value *args){
+    if(argCount != 0)
+    {
+        runtimeError("simd_stat() takes 0 arguments.");
+    }
+
+    #ifdef __AVX2__
+    printf("x86_64 SIMD AVX2 Enabled\n");
+    #elif defined (__ARM_NEON)
+    printf("ARM NEON SIMD Enabled\n");
+    #else
+    printf("SIMD Not Supported\n");
+    #endif
+
+    return NIL_VAL;
 }
 
 Value iter_nf(int argCount, Value *args)

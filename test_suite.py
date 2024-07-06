@@ -30,8 +30,8 @@ def run_test(num, test_file_path):
             return True, True
 
         # Run the test file
-        result = subprocess.run(
-            ["zig", "build", "run", "--release=safe", "--", "-r", test_file_path],
+        subprocess.run(
+            ["./zig-out/bin/mufiz", "-r", test_file_path],
             check=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -83,6 +83,7 @@ def main():
         return
 
     skipped_tests = []
+    subprocess.run(["zig", "build", "--release=safe"])
     successful_tests, failed_tests = run_tests_in_directory(
         test_suite_directory, skipped_tests
     )

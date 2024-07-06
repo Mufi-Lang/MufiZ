@@ -16,7 +16,7 @@ pub fn build(b: *std.Build) !void {
     const query = target.query;
     if (query.cpu_arch == .x86_64) {
         c_flags = &.{
-            "-Wall",                "-O3",    "-ffast-math", //"-Wno-unused-variable",
+            "-Wall",                "-O3",    "-ffast-math",
             "-Wno-unused-function", "-mavx2",
         };
     } else {
@@ -24,7 +24,6 @@ pub fn build(b: *std.Build) !void {
             "-Wall",
             "-O3",
             "-ffast-math",
-            // "-Wno-unused-variable",
             "-Wno-unused-function",
         };
     }
@@ -73,13 +72,13 @@ pub fn build(b: *std.Build) !void {
     exe.linkLibrary(lib_scanner);
 
     // zig fmt: off
-    exe.addCSourceFiles(.{ 
+    exe.addCSourceFiles(.{
         .root = b.path("core"),
         .files = &.{
-        "chunk.c", 
-        "compiler.c", 
-        "debug.c", 
-        "vm.c", 
+        "chunk.c",
+        "compiler.c",
+        "debug.c",
+        "vm.c",
         "cstd.c",
         },
         .flags = c_flags
@@ -88,7 +87,7 @@ pub fn build(b: *std.Build) !void {
     exe.linkSystemLibrary("m");
 
     const clap = b.dependency("clap", .{
-        .target = target, 
+        .target = target,
         .optimize = .ReleaseSafe
     });
 
@@ -144,7 +143,7 @@ pub fn build(b: *std.Build) !void {
 
 const common_path = "include/common.h";
 const common_debug =
-    \\/* 
+    \\/*
     \\ * File:   common.h
     \\ * Author: Mustafif Khan
     \\ * Brief:  Common imports and preprocessors
@@ -154,9 +153,9 @@ const common_debug =
     \\ * published by the Free Software Foundation.
     \\ */
     \\
-    \\//> All common imports and preprocessor macros defined here 
-    \\#ifndef mufi_common_h 
-    \\#define mufi_common_h 
+    \\//> All common imports and preprocessor macros defined here
+    \\#ifndef mufi_common_h
+    \\#define mufi_common_h
     \\
     \\#include <stdbool.h>
     \\#include <stddef.h>

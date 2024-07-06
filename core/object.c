@@ -262,8 +262,8 @@ ObjUpvalue *newUpvalue(Value *slot)
     ((iter)->pos < (iter)->vec->count)
 
 #define ITERATOR_PEEK(iter, pos)                                                                                                                                                                                                           \
-    (((iter)->type == FLOAT_VEC_ITER && (pos) < (iter)->iter.fvec->vec->count) ? DOUBLE_VAL((iter)->iter.fvec->vec->data[pos]) : ((iter)->type == ARRAY_ITER && (pos) < (iter)->iter.arr->arr->count) ? (iter)->iter.arr->arr->values[pos] \
-                                                                                                                                                                                                      : NIL_VAL)
+    (((iter)->type == FLOAT_VEC_ITER && (pos) < (iter)->iter.fvec->vec->count) ? DOUBLE_VAL((iter)->iter.fvec->vec->data[pos]) : \
+        ((iter)->type == ARRAY_ITER && (pos) < (iter)->iter.arr->arr->count) ? (iter)->iter.arr->arr->values[pos] : NIL_VAL)
 
 FloatVecIter *newFloatVecIter(FloatVector *vec)
 {
@@ -1858,8 +1858,7 @@ FloatVector *spliceFloatVector(FloatVector *vector, int start, int end)
     return result;
 }
 
-double sumFloatVector(FloatVector *vector)
-{
+double sumFloatVector(FloatVector *vector) {
     double sum = 0;
 #if defined(__AVX2__)
     size_t simdSize = vector->count - (vector->count % 4);
@@ -1884,6 +1883,29 @@ double sumFloatVector(FloatVector *vector)
         sum += simd_sum_arr[i];
     }
     return sum;
+#elif defined(__ARM_NEON)
+    size_t simdSize = vector->count - (vector->count % 2);
+    float64x2_t simd_sum = vdupq_n_f64(0); // Initialize sum to zero
+    for (size_t i = 0; i < simdSize; i += 2)
+    {
+        float64x2_t simd_arr = vld1q_f64(&vector->data[i]); // Load 2 double from arr
+        simd_sum = vaddq_f64(simd_arr, simd_sum);           // SIMD addition
+    }
+
+    // Handle remaining element
+    if (simdSize < vector->count)
+    {
+        sum += vector->data[vector->count - 1];
+    }
+
+    // Sum up SIMD sum
+    double simd_sum_arr[2];
+    vst1q_f64(simd_sum_arr, simd_sum);
+    for (int i = 0; i < 2; i++)
+    {
+        sum += simd_sum_arr[i];
+    }
+    return sum;
 #else
     for (int i = 0; i < vector->count; i++)
     {
@@ -1898,8 +1920,7 @@ double meanFloatVector(FloatVector *vector)
     return sumFloatVector(vector) / vector->count;
 }
 
-double varianceFloatVector(FloatVector *vector)
-{
+double varianceFloatVector(FloatVector *vector) {
     double mean = meanFloatVector(vector);
     double variance = 0;
 #if defined(__AVX2__)
@@ -1922,6 +1943,30 @@ double varianceFloatVector(FloatVector *vector)
     double simd_variance_arr[4];
     _mm256_storeu_pd(simd_variance_arr, simd_variance);
     for (int i = 0; i < 4; i++)
+    {
+        variance += simd_variance_arr[i];
+    }
+    return variance / (vector->count - 1);
+#elif defined(__ARM_NEON)
+    size_t simdSize = vector->count - (vector->count % 2);
+    float64x2_t simd_variance = vdupq_n_f64(0); // Initialize variance to zero
+    for (size_t i = 0; i < simdSize; i += 2)
+    {
+        float64x2_t simd_arr = vld1q_f64(&vector->data[i]); // Load 2 double from arr
+        float64x2_t simd_diff = vsubq_f64(simd_arr, vdupq_n_f64(mean));
+        simd_variance = vfmaq_f64(simd_variance, simd_diff, simd_diff); // SIMD variance
+    }
+
+    // Handle remaining element
+    if (simdSize < vector->count)
+    {
+        variance += (vector->data[vector->count - 1] - mean) * (vector->data[vector->count - 1] - mean);
+    }
+
+    // Sum up SIMD variance
+    double simd_variance_arr[2];
+    vst1q_f64(simd_variance_arr, simd_variance);
+    for (int i = 0; i < 2; i++)
     {
         variance += simd_variance_arr[i];
     }
@@ -1966,8 +2011,7 @@ double minFloatVector(FloatVector *vector)
     return min;
 }
 
-FloatVector *addFloatVector(FloatVector *vector1, FloatVector *vector2)
-{
+FloatVector *addFloatVector(FloatVector *vector1, FloatVector *vector2) {
     if (vector1->size != vector2->size)
     {
         printf("Vectors are not of the same size\n");
@@ -1991,17 +2035,34 @@ FloatVector *addFloatVector(FloatVector *vector1, FloatVector *vector2)
     }
     result->count = vector1->count;
     return result;
-#endif
+#elif defined(__ARM_NEON)
+    size_t simdSize = vector1->count - (vector1->count % 2);
+    for (size_t i = 0; i < simdSize; i += 2)
+    {
+        float64x2_t simd_arr1 = vld1q_f64(&vector1->data[i]);    // Load 2 double from arr1
+        float64x2_t simd_arr2 = vld1q_f64(&vector2->data[i]);    // Load 2 double from arr2
+        float64x2_t simd_result = vaddq_f64(simd_arr1, simd_arr2); // SIMD addition
+        vst1q_f64(&result->data[i], simd_result);                // Store result back to memory
+    }
+
+    // Handle remaining element
+    if (simdSize < vector1->count)
+    {
+        result->data[vector1->count - 1] = vector1->data[vector1->count - 1] + vector2->data[vector1->count - 1];
+    }
+    result->count = vector1->count;
+    return result;
+#else
     for (int i = 0; i < vector1->size; i++)
     {
         result->data[i] = vector1->data[i] + vector2->data[i];
     }
     result->count = vector1->count;
     return result;
+#endif
 }
 
-FloatVector *subFloatVector(FloatVector *vector1, FloatVector *vector2)
-{
+FloatVector *subFloatVector(FloatVector *vector1, FloatVector *vector2) {
     if (vector1->size != vector2->size)
     {
         printf("Vectors are not of the same size\n");
@@ -2025,17 +2086,34 @@ FloatVector *subFloatVector(FloatVector *vector1, FloatVector *vector2)
     }
     result->count = vector1->count;
     return result;
-#endif
+#elif defined(__ARM_NEON)
+    size_t simdSize = vector1->count - (vector1->count % 2);
+    for (size_t i = 0; i < simdSize; i += 2)
+    {
+        float64x2_t simd_arr1 = vld1q_f64(&vector1->data[i]);    // Load 2 double from arr1
+        float64x2_t simd_arr2 = vld1q_f64(&vector2->data[i]);    // Load 2 double from arr2
+        float64x2_t simd_result = vsubq_f64(simd_arr1, simd_arr2); // SIMD subtraction
+        vst1q_f64(&result->data[i], simd_result);                // Store result back to memory
+    }
+
+    // Handle remaining element
+    if (simdSize < vector1->count)
+    {
+        result->data[vector1->count - 1] = vector1->data[vector1->count - 1] - vector2->data[vector1->count - 1];
+    }
+    result->count = vector1->count;
+    return result;
+#else
     for (int i = 0; i < vector1->size; i++)
     {
         result->data[i] = vector1->data[i] - vector2->data[i];
     }
     result->count = vector1->count;
     return result;
+#endif
 }
 
-FloatVector *mulFloatVector(FloatVector *vector1, FloatVector *vector2)
-{
+FloatVector *mulFloatVector(FloatVector *vector1, FloatVector *vector2) {
     if (vector1->size != vector2->size)
     {
         printf("Vectors are not of the same size\n");
@@ -2059,17 +2137,34 @@ FloatVector *mulFloatVector(FloatVector *vector1, FloatVector *vector2)
     }
     result->count = vector1->count;
     return result;
-#endif
+#elif defined(__ARM_NEON)
+    size_t simdSize = vector1->count - (vector1->count % 2);
+    for (size_t i = 0; i < simdSize; i += 2)
+    {
+        float64x2_t simd_arr1 = vld1q_f64(&vector1->data[i]);    // Load 2 double from arr1
+        float64x2_t simd_arr2 = vld1q_f64(&vector2->data[i]);    // Load 2 double from arr2
+        float64x2_t simd_result = vmulq_f64(simd_arr1, simd_arr2); // SIMD multiplication
+        vst1q_f64(&result->data[i], simd_result);                // Store result back to memory
+    }
+
+    // Handle remaining element
+    if (simdSize < vector1->count)
+    {
+        result->data[vector1->count - 1] = vector1->data[vector1->count - 1] * vector2->data[vector1->count - 1];
+    }
+    result->count = vector1->count;
+    return result;
+#else
     for (int i = 0; i < vector1->size; i++)
     {
         result->data[i] = vector1->data[i] * vector2->data[i];
     }
     result->count = vector1->count;
     return result;
+#endif
 }
 
-FloatVector *divFloatVector(FloatVector *vector1, FloatVector *vector2)
-{
+FloatVector *divFloatVector(FloatVector *vector1, FloatVector *vector2) {
     if (vector1->size != vector2->size)
     {
         printf("Vectors are not of the same size\n");
@@ -2082,7 +2177,7 @@ FloatVector *divFloatVector(FloatVector *vector1, FloatVector *vector2)
     {
         __m256 simd_arr1 = _mm256_loadu_pd(&vector1->data[i]);    // Load 4 double from arr1
         __m256 simd_arr2 = _mm256_loadu_pd(&vector2->data[i]);    // Load 4 double from arr2
-        __m256 simd_result = _mm256_div_pd(simd_arr1, simd_arr2); // SIMD subtraction
+        __m256 simd_result = _mm256_div_pd(simd_arr1, simd_arr2); // SIMD division
         _mm256_storeu_pd(&result->data[i], simd_result);          // Store result back to memory
     }
 
@@ -2093,13 +2188,31 @@ FloatVector *divFloatVector(FloatVector *vector1, FloatVector *vector2)
     }
     result->count = vector1->count;
     return result;
-#endif
+#elif defined(__ARM_NEON)
+    size_t simdSize = vector1->count - (vector1->count % 2);
+    for (size_t i = 0; i < simdSize; i += 2)
+    {
+        float64x2_t simd_arr1 = vld1q_f64(&vector1->data[i]);    // Load 2 double from arr1
+        float64x2_t simd_arr2 = vld1q_f64(&vector2->data[i]);    // Load 2 double from arr2
+        float64x2_t simd_result = vdivq_f64(simd_arr1, simd_arr2); // SIMD division
+        vst1q_f64(&result->data[i], simd_result);                // Store result back to memory
+    }
+
+    // Handle remaining element
+    if (simdSize < vector1->count)
+    {
+        result->data[vector1->count - 1] = vector1->data[vector1->count - 1] / vector2->data[vector1->count - 1];
+    }
+    result->count = vector1->count;
+    return result;
+#else
     for (int i = 0; i < vector1->size; i++)
     {
         result->data[i] = vector1->data[i] / vector2->data[i];
     }
     result->count = vector1->count;
     return result;
+#endif
 }
 
 bool equalFloatVector(FloatVector *a, FloatVector *b)
@@ -2118,10 +2231,8 @@ bool equalFloatVector(FloatVector *a, FloatVector *b)
     return true;
 }
 
-FloatVector *scaleFloatVector(FloatVector *vector, double scalar)
-{
+FloatVector *scaleFloatVector(FloatVector *vector, double scalar) {
     FloatVector *result = newFloatVector(vector->size);
-
 #if defined(__AVX2__)
     size_t simdSize = vector->count - (vector->count % 4);
     for (size_t i = 0; i < simdSize; i += 4)
@@ -2137,20 +2248,33 @@ FloatVector *scaleFloatVector(FloatVector *vector, double scalar)
     }
     result->count = vector->count;
     return result;
-#endif
-
+#elif defined(__ARM_NEON)
+    size_t simdSize = vector->count - (vector->count % 2);
+    for (size_t i = 0; i < simdSize; i += 2)
+    {
+        float64x2_t simd_arr1 = vld1q_f64(&vector->data[i]);       // Load 2 double from arr1
+        float64x2_t simd_scalar = vdupq_n_f64(scalar);             // Load 2 double from scalar
+        float64x2_t simd_result = vmulq_f64(simd_arr1, simd_scalar); // SIMD multiplication
+        vst1q_f64(&result->data[i], simd_result);                   // Store result back to memory
+    }
+    for (size_t i = simdSize; i < vector->count; i++)
+    {
+        result->data[i] = vector->data[i] * scalar;
+    }
+    result->count = vector->count;
+    return result;
+#else
     for (int i = 0; i < vector->count; i++)
     {
         result->data[i] = vector->data[i] * scalar;
     }
     result->count = vector->count;
     return result;
+#endif
 }
 
-FloatVector *singleAddFloatVector(FloatVector *a, double b)
-{
+FloatVector *singleAddFloatVector(FloatVector *a, double b) {
     FloatVector *result = newFloatVector(a->size);
-
 #if defined(__AVX2__)
     size_t simdSize = a->count - (a->count % 4);
     for (size_t i = 0; i < simdSize; i += 4)
@@ -2166,18 +2290,32 @@ FloatVector *singleAddFloatVector(FloatVector *a, double b)
     }
     result->count = a->count;
     return result;
-#endif
-
+#elif defined(__ARM_NEON)
+    size_t simdSize = a->count - (a->count % 2);
+    for (size_t i = 0; i < simdSize; i += 2)
+    {
+        float64x2_t simd_arr1 = vld1q_f64(&a->data[i]);            // Load 2 double from arr1
+        float64x2_t simd_scalar = vdupq_n_f64(b);                  // Load 2 double from scalar
+        float64x2_t simd_result = vaddq_f64(simd_arr1, simd_scalar); // SIMD addition
+        vst1q_f64(&result->data[i], simd_result);                   // Store result back to memory
+    }
+    for (size_t i = simdSize; i < a->count; i++)
+    {
+        result->data[i] = a->data[i] + b;
+    }
+    result->count = a->count;
+    return result;
+#else
     for (int i = 0; i < a->size; i++)
     {
         result->data[i] = a->data[i] + b;
     }
     result->count = a->count;
     return result;
+#endif
 }
 
-FloatVector *singleSubFloatVector(FloatVector *a, double b)
-{
+FloatVector *singleSubFloatVector(FloatVector *a, double b) {
     FloatVector *result = newFloatVector(a->size);
 #if defined(__AVX2__)
     size_t simdSize = a->count - (a->count % 4);
@@ -2194,13 +2332,29 @@ FloatVector *singleSubFloatVector(FloatVector *a, double b)
     }
     result->count = a->count;
     return result;
-#endif
+#elif defined(__ARM_NEON)
+    size_t simdSize = a->count - (a->count % 2);
+    for (size_t i = 0; i < simdSize; i += 2)
+    {
+        float64x2_t simd_arr1 = vld1q_f64(&a->data[i]);            // Load 2 double from arr1
+        float64x2_t simd_scalar = vdupq_n_f64(b);                  // Load 2 double from scalar
+        float64x2_t simd_result = vsubq_f64(simd_arr1, simd_scalar); // SIMD subtraction
+        vst1q_f64(&result->data[i], simd_result);                   // Store result back to memory
+    }
+    for (size_t i = simdSize; i < a->count; i++)
+    {
+        result->data[i] = a->data[i] - b;
+    }
+    result->count = a->count;
+    return result;
+#else
     for (int i = 0; i < a->size; i++)
     {
         result->data[i] = a->data[i] - b;
     }
     result->count = a->count;
     return result;
+#endif
 }
 
 FloatVector *singleDivFloatVector(FloatVector *a, double b)
