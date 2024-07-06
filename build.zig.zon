@@ -1,11 +1,4 @@
-.{
-    .name = "mufiz",
-    .version = "0.7.0",
-    .paths = .{"."},
-    .dependencies = .{
-        .clap = .{
-            .url = "https://github.com/Mustafif/zig-clap/archive/refs/tags/v0.8.1.tar.gz", 
-            .hash = "122013efc1cedcca3b1e0587f1b3d8ad87b17ca8b2b7f06523c2bccf0fd6c1a82732"
-        }
-    }
-}
+.{ .name = "mufiz", .version = "0.7.0", .paths = .{"."}, .dependencies = .{ .clap = .{
+            .url = "git+https://github.com/Hejsil/zig-clap#c0193e9247335a6c1688b946325060289405de2a",
+            .hash = "12207ee987ce045596cb992cfb15b0d6d9456e50d4721c3061c69dabc2962053644d",
+        }, } }

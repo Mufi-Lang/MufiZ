@@ -75,7 +75,7 @@ Value next_nf(int argCount, Value *args) {
 
 Value hasNext_nf(int argCount, Value *args) {
   if (argCount != 1) {
-    runtimeError("hasNext() takes 1 argument.");
+    runtimeError("has_next() takes 1 argument.");
     return NIL_VAL;
   }
   if (!IS_ITERATOR(args[0])) {

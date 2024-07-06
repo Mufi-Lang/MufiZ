@@ -1,35 +1,35 @@
-   195 build.zig
-    46 core/chunk.c
-  1266 core/compiler.c
-  1446 core/cstd.c
-   152 core/debug.c
-   345 core/memory.c
-  2404 core/object.c
-   238 core/value.c
-  1136 core/vm.c
+   194 build.zig
+    51 core/chunk.c
+  1036 core/compiler.c
+  1321 core/cstd.c
+   151 core/debug.c
+   300 core/memory.c
+  2261 core/object.c
+   205 core/value.c
+   939 core/vm.c
     82 include/chunk.h
     32 include/common.h
     19 include/compiler.h
-   167 include/cstd.h
+   176 include/cstd.h
     21 include/debug.h
     51 include/memory.h
-   597 include/object.h
-   108 include/scanner.h
+   646 include/object.h
+   109 include/scanner.h
     53 include/table.h
-    84 include/value.h
+    87 include/value.h
     74 include/vm.h
-   209 src/conv.zig
+   231 src/conv.zig
    170 src/core.zig
-   101 src/main.zig
+    75 src/main.zig
    155 src/net_curl.zig
    173 src/net.zig
-   320 src/scanner.zig
-   193 src/stdlib.zig
-    93 src/system.zig
+   329 src/scanner.zig
+   195 src/stdlib.zig
+    98 src/system.zig
    172 src/table.zig
     66 src/stdlib/fs.zig
     20 src/stdlib/io.zig
-   188 src/stdlib/math.zig
+   200 src/stdlib/math.zig
     28 src/stdlib/time.zig
     77 src/stdlib/types.zig
- 10481 total
+  9797 total
