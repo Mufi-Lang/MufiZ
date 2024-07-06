@@ -1,0 +1,16 @@
+var ll = linked_list();
+
+push(ll, 3, 1, 5, 4);
+
+var sorted_ll = linked_list();
+push(sorted_ll, 1, 3, 4, 5);
+sort(ll);
+assert(ll, sorted_ll);
+
+var idx = search(ll, 3);
+assert(idx, 1);
+
+var rev_ll = linked_list();
+push(rev_ll, 5, 4, 3, 1);
+reverse(ll);
+assert(ll, rev_ll);

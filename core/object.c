@@ -843,17 +843,16 @@ int searchLinkedList(ObjLinkedList *list, Value value) {
 }
 
 void reverseLinkedList(ObjLinkedList *list) {
-  struct Node *current = list->head;
-  while (current != NULL) {
-    struct Node *temp = current->prev;
-    current->prev = current->next;
-    current->next = temp;
-    current = current->prev;
-  }
-  struct Node *temp = current->prev;
-  if (temp != NULL) {
-    list->head = temp->prev;
-  }
+    struct Node *current = list->head;
+    while (current != NULL) {
+        struct Node *temp = current->next;
+        current->next = current->prev;
+        current->prev = temp;
+        current = temp;
+    }
+    struct Node *temp = list->head;
+    list->head = list->tail;
+    list->tail = temp;
 }
 
 ObjLinkedList *mergeLinkedList(ObjLinkedList *a, ObjLinkedList *b) {
