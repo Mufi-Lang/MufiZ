@@ -186,10 +186,13 @@ const Got = union(enum) {
 };
 
 pub fn stdlib_error(message: []const u8, got: Got) Value {
-    std.log.err("{s}", .{message});
     switch (got) {
-        .value_type => |v| std.log.err("Got a {s} type...", .{v}),
-        .argn => |n| std.log.err("Got {d} arguments...", .{n}),
+        .value_type => |v| {
+            vm.runtimeError("%s Got %s type...", conv.cstr(@constCast(message)), conv.cstr(@constCast(v)));
+        },
+        .argn => |n| {
+            vm.runtimeError("%s Got %d arguments...", conv.cstr(@constCast(message)), n);
+        },
     }
     return conv.nil_val();
 }
