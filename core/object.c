@@ -584,7 +584,7 @@ Value varianceArray(ObjArray *array) {
     Value temp = sub_val(array->values[i], mean);
     sum = add_val(sum, mul_val(temp, temp));
   }
-  Value variance = div_val(sum, DOUBLE_VAL(array->count));
+  Value variance = div_val(sum, DOUBLE_VAL(array->count - 1));
   return variance;
 }
 

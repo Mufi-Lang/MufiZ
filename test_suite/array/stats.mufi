@@ -7,7 +7,7 @@ assert(mean(a), 3.0);
 
 assert(vari(a), 2.5);
 
-assert(ceil(std(a)), 2.0);
+assert(ceil(std(a)), 2);
 
 assert(5, maxl(a));
 assert(1, minl(a));
