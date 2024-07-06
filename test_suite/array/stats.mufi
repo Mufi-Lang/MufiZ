@@ -1,0 +1,13 @@
+var a = [1, 2, 3, 4, 5];
+
+var s = sum(a);
+assert(s, 15.0);
+
+assert(mean(a), 3.0);
+
+assert(vari(a), 2.5);
+
+assert(ceil(std(a)), 2.0);
+
+assert(5, maxl(a));
+assert(1, minl(a));
