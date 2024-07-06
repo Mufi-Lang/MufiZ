@@ -41,7 +41,7 @@ pub fn what_is(val: Value) []const u8 {
                 core.OBJ_HASH_TABLE => return "Hash Table",
                 core.OBJ_MATRIX => return "Matrix",
                 core.OBJ_FVECTOR => return "Float Vector",
-                else => return "Unknown Object Type", 
+                else => return "Unknown Object Type",
             }
         },
         VAL_COMPLEX => return "Complex",
@@ -58,6 +58,7 @@ pub fn type_check(n: usize, values: [*c]Value, val_type: i32) bool {
         VAL_NIL => &is_nil,
         VAL_OBJ => &is_obj,
         VAL_COMPLEX => &is_complex,
+        6 => &is_prim_num,
         else => return false,
     };
     for (0..n) |i| {
@@ -101,6 +102,10 @@ pub fn is_obj(val: Value) bool {
 /// Checks if the given value is a complex number
 pub fn is_complex(val: Value) bool {
     return val.type == VAL_COMPLEX;
+}
+
+pub fn is_prim_num(val: Value) bool {
+    return is_int(val) or is_double(val);
 }
 
 /// Checks if the given object is of the given type
@@ -177,6 +182,22 @@ pub fn as_double(val: Value) f64 {
 /// Casts a value to a complex number
 pub fn as_complex(val: Value) Complex {
     return val.as.complex;
+}
+
+pub fn as_num_double(val: Value) f64 {
+    return switch (val.type) {
+        VAL_INT => @floatFromInt(val.as.num_int),
+        VAL_DOUBLE => val.as.num_double,
+        else => 0.0,
+    };
+}
+
+pub fn as_num_int(val: Value) i32 {
+    return switch (val.type) {
+        VAL_INT => val.as.num_int,
+        VAL_DOUBLE => @intFromFloat(val.as.num_double),
+        else => 0,
+    };
 }
 
 /// Casts a value to a string

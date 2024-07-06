@@ -1,0 +1,7 @@
+//var r = linspace(1.0, 4.0, 4);
+var a = array();
+push(a, 1, 2, 43);
+a[2] = 33;
+print a;
+//r[0] = 2.0;
+//print r[0];

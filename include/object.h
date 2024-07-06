@@ -19,6 +19,11 @@
 
 #ifdef __AVX2__
 #include <immintrin.h>
+#include <avx2intrin.h>
+#endif
+
+#ifdef __ARM_NEON
+#include <arm_neon.h>
 #endif
 
 #define OBJ_TYPE(value) (AS_OBJ(value)->type)
@@ -35,6 +40,11 @@
 #define IS_HASH_TABLE(value) isObjType(value, OBJ_HASH_TABLE)
 #define IS_MATRIX(value) isObjType(value, OBJ_MATRIX)
 #define IS_FVECTOR(value) isObjType(value, OBJ_FVECTOR)
+#define IS_ITERATOR(value) isObjType(value, OBJ_ITERATOR)
+
+#define NOT_ARRAY_TYPES(args, n) notObjTypes(args, OBJ_ARRAY, n) && notObjTypes(args, OBJ_FVECTOR, n)
+#define NOT_LIST_TYPES(args, n) notObjTypes(args, OBJ_LINKED_LIST, n) && NOT_ARRAY_TYPES(args, n)
+#define NOT_COLLECTION_TYPES(args, n) notObjTypes(args, OBJ_HASH_TABLE, n) && notObjTypes(args, OBJ_MATRIX, n) && NOT_LIST_TYPES(args, n)
 
 #define AS_BOUND_METHOD(value) ((ObjBoundMethod *)AS_OBJ(value))
 #define AS_CLASS(value) ((ObjClass *)AS_OBJ(value))
@@ -50,6 +60,7 @@
 #define AS_HASH_TABLE(value) ((ObjHashTable *)AS_OBJ(value))
 #define AS_MATRIX(value) ((ObjMatrix *)AS_OBJ(value))
 #define AS_FVECTOR(value) ((FloatVector *)AS_OBJ(value))
+#define AS_ITERATOR(value) ((ObjIterator *)AS_OBJ(value))
 
 //> Object Type
 //> An object type is a type of an object in Mufi
@@ -68,6 +79,7 @@ typedef enum
     OBJ_HASH_TABLE,
     OBJ_MATRIX,
     OBJ_FVECTOR,
+    OBJ_ITERATOR,
 } ObjType;
 
 //> Object Structure
@@ -137,10 +149,10 @@ typedef struct
 typedef struct
 {
     Obj obj;
-    bool vec3; // quick check for vec3
     int size;
     int count;
     double *data;
+    bool sorted;
 } FloatVector;
 
 //> Function Object
@@ -221,6 +233,34 @@ typedef struct
     ObjClosure *method;
 } ObjBoundMethod;
 
+typedef struct{
+    FloatVector *vec;
+    int pos;
+}FloatVecIter;
+
+typedef struct
+{
+    ObjArray *arr;
+    int pos;
+}ArrayIter;
+
+typedef enum{
+    FLOAT_VEC_ITER,
+    ARRAY_ITER
+}IterType;
+
+typedef union{
+    FloatVecIter* fvec;
+    ArrayIter* arr;
+}IterUnion;
+
+//> Iterator Object
+typedef struct{
+    Obj obj;
+    IterType type;
+    IterUnion iter;
+}ObjIterator;
+
 /*-------------------------- Object Functions --------------------------------*/
 ObjBoundMethod *newBoundMethod(Value receiver, ObjClosure *method);
 ObjClass *newClass(ObjString *name);
@@ -235,6 +275,19 @@ ObjString *copyString(const char *chars, int length);
 ObjUpvalue *newUpvalue(Value *slot);
 /*----------------------------------------------------------------------------*/
 
+/* ------------------------- Iterator Functions ----------------------------- */
+FloatVecIter *newFloatVecIter(FloatVector *vec);
+ArrayIter *newArrayIter(ObjArray *arr);
+
+ObjIterator *newIterator(IterType type, IterUnion iter);
+Value iteratorNext(ObjIterator *iter);
+bool iteratorHasNext(ObjIterator *iter);
+Value iteratorPeek(ObjIterator *iter, int pos);
+void iteratorReset(ObjIterator *iter);
+void iteratorSkip(ObjIterator *iter, int n);
+void freeObjectIterator(ObjIterator *iter);
+/*----------------------------------------------------------------------------*/
+
 /*-------------------------- Array Functions --------------------------------*/
 //> Merges two arrays into a new array
 ObjArray *mergeArrays(ObjArray *a, ObjArray *b);
@@ -243,20 +296,36 @@ ObjArray *cloneArray(ObjArray *array);
 //> Clears the array
 void clearArray(ObjArray *array);
 //> Pushes a value to the end of the array
+//> If the array is static, it will not push the value
+//> If the array is dynamic, it will resize the array if needed
+//> Time Complexity: O(1)
 void pushArray(ObjArray *array, Value value);
 //> Inserts a value at a given index
+//> Time Complexity: O(n)
 void insertArray(ObjArray *array, int index, Value value);
 //> Removes a value at a given index from the array
+//> Time Complexity: O(n)
 Value removeArray(ObjArray *array, int index);
 //> Gets a value from the array at a given index
+//> Time Complexity: O(1)
 Value getArray(ObjArray *array, int index);
 //> Removes a value at the end of the array
+//> Time Complexity: O(1)
 Value popArray(ObjArray *array);
 //> Sorts the array using quick sort
+//> Time Complexity:
+//> Best Case: O(n log n)
+//> Average Case: O(n log n)
+//> Worst Case: O(n^2)
 void sortArray(ObjArray *array);
-//> Searches for a value in the array
+//> Searches for a value in the array using binary search
+//> Time Complexity:
+//> Best Case: O(1)
+//> Average Case: O(log n)
+//> Worst Case: O(log n)
 int searchArray(ObjArray *array, Value value);
 //> Reverses the array
+//> Time Complexity: O(n)
 void reverseArray(ObjArray *array);
 //> Checks if two arrays are equal
 bool equalArray(ObjArray *a, ObjArray *b);
@@ -267,24 +336,34 @@ ObjArray *sliceArray(ObjArray *array, int start, int end);
 //> Splices the array from start to end
 ObjArray *spliceArray(ObjArray *array, int start, int end);
 //> Adds two arrays together
+//> Time Complexity: O(n)
 ObjArray *addArray(ObjArray *a, ObjArray *b);
 //> Subtracts two arrays
+//> Time Complexity: O(n)
 ObjArray *subArray(ObjArray *a, ObjArray *b);
 //> Multiplies two arrays
+//> Time Complexity: O(n)
 ObjArray *mulArray(ObjArray *a, ObjArray *b);
 //> Divides two arrays
+//> Time Complexity: O(n)
 ObjArray *divArray(ObjArray *a, ObjArray *b);
 //> Sums the array
+//> Time Complexity: O(n)
 Value sumArray(ObjArray *array);
 //> Finds the minimum value in the array
+//> Time Complexity: O(n)
 Value minArray(ObjArray *array);
 //> Finds the maximum value in the array
+//> Time Complexity: O(n)
 Value maxArray(ObjArray *array);
 //> Finds the mean of the array
+//> Time Complexity: O(n)
 Value meanArray(ObjArray *array);
 //> Finds the variance of the array
+//> Time Complexity: O(n)
 Value varianceArray(ObjArray *array);
 //> Finds the standard deviation of the array
+//> Time Complexity: O(n)
 Value stdDevArray(ObjArray *array);
 //> Returns the length of the array
 int lenArray(ObjArray *array);
@@ -299,31 +378,56 @@ ObjArray *newArrayWithCap(int capacity, bool _static);
 /*-------------------------- Linked List Functions ---------------------------*/
 //> Creates a new empty linked list
 ObjLinkedList *newLinkedList();
+//> Clones a linked list into a new linked list
+ObjLinkedList *cloneLinkedList(ObjLinkedList *list);
+//> Clears the linked list
+void clearLinkedList(ObjLinkedList *list);
 //> Pushes a value to the front of the linked list
+//> Time Complexity: O(1)
 void pushFront(ObjLinkedList *list, Value value);
 //> Pushes a value to the back of the linked list
+//> Time Complexity: O(1)
 void pushBack(ObjLinkedList *list, Value value);
 //> Pops a value from the front of the linked list
+//> Time Complexity: O(1)
 Value popFront(ObjLinkedList *list);
 //> Pops a value from the back of the linked list
+//> Time Complexity: O(1)
 Value popBack(ObjLinkedList *list);
 //> Checks if two linked lists are equal
 bool equalLinkedList(ObjLinkedList *a, ObjLinkedList *b);
 //> Frees the linked list
 void freeObjectLinkedList(ObjLinkedList *list);
 //> Sorts the linked list using merge sort
+//> Time Complexity:
+//> Best Case: O(n log n)
+//> Average Case: O(n log n)
+//> Worst Case: O(n log n)
 void mergeSort(ObjLinkedList *list);
 //> Searches for a value in the linked list
+//> Time Complexity:
+//> Best Case: O(1)
+//> Average Case: O(n)
+//> Worst Case: O(n)
 int searchLinkedList(ObjLinkedList *list, Value value);
 //> Reverses the linked list
+//> Time Complexity: O(n)
 void reverseLinkedList(ObjLinkedList *list);
 //> Merges two linked lists into a new linked list
 ObjLinkedList *mergeLinkedList(ObjLinkedList *a, ObjLinkedList *b);
+//> Slices the linked list from start to end
+ObjLinkedList *sliceLinkedList(ObjLinkedList *list, int start, int end);
+//> Splices the linked list from start to end
+ObjLinkedList *spliceLinkedList(ObjLinkedList *list, int start, int end);
 /*----------------------------------------------------------------------------*/
 
 /*-------------------------- Hash Table Functions ----------------------------*/
 //> Creates a new empty hash table
 ObjHashTable *newHashTable();
+//> Copies all hash entries from one table to the other
+ObjHashTable *cloneHashTable(ObjHashTable *table);
+//> Clears the hash table
+void clearHashTable(ObjHashTable *table);
 //> Puts a key-value pair in the hash table
 bool putHashTable(ObjHashTable *table, ObjString *key, Value value);
 //> Gets a value from the hash table
@@ -388,19 +492,28 @@ ObjArray *solveMatrix(ObjMatrix *matrix, ObjArray *vector);
 /*-------------------------- Float Vector Functions --------------------------*/
 //> Creates a new empty float vector with a given size
 FloatVector *newFloatVector(int size);
+//> Copies the float vector into a new float vector
+FloatVector *cloneFloatVector(FloatVector *vector);
+//> Clears the float vector
+void clearFloatVector(FloatVector *vector);
 //> Frees the float vector
 void freeFloatVector(FloatVector *vector);
 //> Creates a new float vector from an array
 FloatVector *fromArray(ObjArray *array);
 //> Pushes a value to the end of the float vector
+//> Time Complexity: O(1)
 void pushFloatVector(FloatVector *vector, double value);
 //> Inserts a value at a given index
+//> Time Complexity: O(n)
 void insertFloatVector(FloatVector *vector, int index, double value);
 //> Gets a value from the float vector at a given index
+//> Time Complexity: O(1)
 double getFloatVector(FloatVector *vector, int index);
 //> Removes a value at the end of the float vector
+//> Time Complexity: O(1)
 double popFloatVector(FloatVector *vector);
 //> Removes a value at a given index from the float vector
+//> Time Complexity: O(n)
 double removeFloatVector(FloatVector *vector, int index);
 //> Prints the float vector
 void printFloatVector(FloatVector *vector);
@@ -411,40 +524,81 @@ FloatVector *sliceFloatVector(FloatVector *vector, int start, int end);
 //> Splices the float vector from start to end
 FloatVector *spliceFloatVector(FloatVector *vector, int start, int end);
 //> Sums the float vector
+//> Time Complexity: O(n) without SIMD
+//> Time Complexity: O(n/4) with SIMD
 double sumFloatVector(FloatVector *vector);
 //> Finds the mean of the float vector
+//> Time Complexity: O(n) without SIMD
+//> Time Complexity: O(n/4) with SIMD
 double meanFloatVector(FloatVector *vector);
 //> Finds the variance of the float vector
+//> Time Complexity: O(n) without SIMD
+//> Time Complexity: O(n/4) with SIMD
 double varianceFloatVector(FloatVector *vector);
 //> Finds the standard deviation of the float vector
+//> Time Complexity: O(n) without SIMD
+//> Time Complexity: O(n/4) with SIMD
 double stdDevFloatVector(FloatVector *vector);
 //> Finds the maximum value in the float vector
+//> Time Complexity: O(n) without SIMD
+//> Time Complexity: O(n/4) with SIMD
 double maxFloatVector(FloatVector *vector);
 //> Finds the minimum value in the float vector
+//> Time Complexity: O(n) without SIMD
+//> Time Complexity: O(n/4) with SIMD
 double minFloatVector(FloatVector *vector);
 //> Adds two float vectors together with SIMD if available
+//> Time Complexity: O(n) without SIMD
+//> Time Complexity: O(n/4) with SIMD
 FloatVector *addFloatVector(FloatVector *a, FloatVector *b);
 //> Subtracts two float vectors with SIMD if available
+//> Time Complexity: O(n) without SIMD
+//> Time Complexity: O(n/4) with SIMD
 FloatVector *subFloatVector(FloatVector *a, FloatVector *b);
 //> Multiplies two float vectors with SIMD if available
+//> Time Complexity: O(n) without SIMD
+//> Time Complexity: O(n/4) with SIMD
 FloatVector *mulFloatVector(FloatVector *a, FloatVector *b);
 //> Divides two float vectors with SIMD if available
+//> Time Complexity: O(n) without SIMD
+//> Time Complexity: O(n/4) with SIMD
 FloatVector *divFloatVector(FloatVector *a, FloatVector *b);
 //> Checks if two float vectors are equal
 bool equalFloatVector(FloatVector *a, FloatVector *b);
 //> Scales the float vector with a given scalar with SIMD if available
+//> Time Complexity: O(n) without SIMD
+//> Time Complexity: O(n/4) with SIMD
 FloatVector *scaleFloatVector(FloatVector *vector, double scalar);
 //> Adds the float vector with a given value with SIMD if available
+//> Time Complexity: O(n) without SIMD
+//> Time Complexity: O(n/4) with SIMD
 FloatVector *singleAddFloatVector(FloatVector *a, double b);
 //> Subtracts the float vector with a given value with SIMD if available
+//> Time Complexity: O(n) without SIMD
+//> Time Complexity: O(n/4) with SIMD
 FloatVector *singleSubFloatVector(FloatVector *a, double b);
 //> Multiplies the float vector with a given value with SIMD if available
+//> Time Complexity: O(n) without SIMD
+//> Time Complexity: O(n/4) with SIMD
 FloatVector *singleMulFloatVector(FloatVector *a, double b);
 //> Divides the float vector with a given value with SIMD if available
+//> Time Complexity: O(n) without SIMD
+//> Time Complexity: O(n/4) with SIMD
 FloatVector *singleDivFloatVector(FloatVector *a, double b);
 //> Sorts the float vector using quick sort
+//> Time Complexity:
+//> Best Case: O(n log n)
+//> Average Case: O(n log n)
+//> Worst Case: O(n^2)
 void sortFloatVector(FloatVector *vector);
+//> Reverses the float vector
+//> Time Complexity: O(n)
+void reverseFloatVector(FloatVector *vector);
 //> Searches for a value in the float vector using binary search
+//> Time Complexity:
+//> Best Case: O(1)
+//> Average Case: O(log n)
+//> Worst Case: O(log n)
 int searchFloatVector(FloatVector *vector, double value);
 //> linearly spaced float vector
 FloatVector *linspace(double start, double end, int n);
@@ -475,6 +629,18 @@ void printObject(Value value);
 static inline bool isObjType(Value value, ObjType type)
 {
     return IS_OBJ(value) && AS_OBJ(value)->type == type;
+}
+
+static inline bool notObjTypes(Value *value, ObjType type, int n)
+{
+    for (int i = 0; i < n; i++)
+    {
+        if (isObjType(value[i], type))
+        {
+            return false;
+        }
+    }
+    return true;
 }
 
 #endif

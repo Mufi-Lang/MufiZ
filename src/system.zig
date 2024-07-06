@@ -1,16 +1,20 @@
 const std = @import("std");
 const vm_h = @import("core.zig").vm_h;
 const conv = @import("conv.zig");
-const builtin = @import("builtin");
 const GlobalAlloc = @import("main.zig").GlobalAlloc;
 
 const MAJOR: u8 = 0;
-const MINOR: u8 = 6;
+const MINOR: u8 = 7;
 const PATCH: u8 = 0;
-const CODENAME: []const u8 = "Mars";
+const CODENAME: []const u8 = "Jade";
 
 pub inline fn version() void {
-    std.debug.print("Version {d}.{d}.{d} ({s} Release)\n", .{ MAJOR, MINOR, PATCH, CODENAME });
+    std.debug.print("MufiZ v{d}.{d}.{d} ({s} Release)\n", .{ MAJOR, MINOR, PATCH, CODENAME });
+}
+
+pub inline fn usage() void {
+    std.debug.print("Usage: mufiz [OPTIONS] [ARGS]\n", .{});
+    std.debug.print("Options:\n", .{});
 }
 
 pub fn repl() !void {
@@ -25,6 +29,14 @@ pub fn repl() !void {
         streamer.reset();
     }
 }
+
+pub const InterpreterError = error{
+    // this might confuse you, but what if something that isn't supposed to happen happens?
+    // then by definition its an error because it's not expected.
+    OK,
+    CompileError,
+    RuntimeError,
+};
 
 pub const Runner = struct {
     main: []u8 = &.{},
@@ -50,10 +62,10 @@ pub const Runner = struct {
         return try std.fs.cwd().readFileAlloc(self.allocator, path, max_bytes);
     }
 
-    fn run(str: []u8) void {
+    fn run(str: []u8) InterpreterError!void {
         const result = vm_h.interpret(conv.cstr(str));
-        if (result == vm_h.INTERPRET_COMPILE_ERROR) std.process.exit(65);
-        if (result == vm_h.INTERPRET_RUNTIME_ERROR) std.process.exit(70);
+        if (result == vm_h.INTERPRET_COMPILE_ERROR) return InterpreterError.CompileError;
+        if (result == vm_h.INTERPRET_RUNTIME_ERROR) return InterpreterError.RuntimeError;
     }
 
     pub fn setMain(self: *Self, main: []u8) !void {
@@ -78,9 +90,9 @@ pub const Runner = struct {
             defer self.allocator.free(str);
             @memcpy(str[0..l.len], l[0..]);
             @memcpy(str[l.len..], self.main[0..]);
-            run(str);
+            try run(str);
         } else {
-            run(self.main);
+            try run(self.main);
         }
     }
 };

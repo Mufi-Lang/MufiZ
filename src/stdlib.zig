@@ -31,6 +31,7 @@ pub fn prelude() void {
 }
 
 pub fn addMath() void {
+    defineNative("ln", &math.ln);
     defineNative("log2", &math.log2);
     defineNative("log10", &math.log10);
     defineNative("pi", &math.pi);
@@ -52,6 +53,7 @@ pub fn addMath() void {
     defineNative("floor", &math.floor);
     defineNative("round", &math.round);
     defineNative("max", &math.max);
+    defineNative("min", &math.min);
 }
 
 pub fn addFs() void {
@@ -79,6 +81,7 @@ pub fn addNet() void {
         defineNative("post_req", &net_funs.post);
         defineNative("put_req", &net_funs.put);
         defineNative("del_req", &net_funs.delete);
+        defineNative("open", &net_funs.open);
     } else {
         return std.log.warn("Network functions are disabled!", .{});
     }
@@ -167,6 +170,14 @@ const net_funs = if (enable_net) struct {
         const data = net.delete(url, @enumFromInt(method), options) catch return conv.nil_val();
         return conv.string_val(data);
     }
+
+    pub fn open(argc: c_int, args: [*c]Value) callconv(.C) Value {
+        if (argc != 1) return stdlib_error("open() expects 1 argument", .{ .argn = argc });
+        const url = conv.as_zstring(args[0]);
+        const op = net.Open.init(url);
+        _ = op.that() catch {};
+        return conv.nil_val();
+    }
 };
 
 const Got = union(enum) {
@@ -175,10 +186,13 @@ const Got = union(enum) {
 };
 
 pub fn stdlib_error(message: []const u8, got: Got) Value {
-    std.log.err("{s}", .{message});
     switch (got) {
-        .value_type => |v| std.log.err("Got a {s} type...", .{v}),
-        .argn => |n| std.log.err("Got {d} arguments...", .{n}),
+        .value_type => |v| {
+            vm.runtimeError("%s Got %s type...", conv.cstr(@constCast(message)), conv.cstr(@constCast(v)));
+        },
+        .argn => |n| {
+            vm.runtimeError("%s Got %d arguments...", conv.cstr(@constCast(message)), n);
+        },
     }
     return conv.nil_val();
 }

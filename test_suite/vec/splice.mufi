@@ -1,0 +1,5 @@
+var a = linspace(1.0, 10.0, 10);
+var b = splice(a, 0, 2);
+var c = splice(a, 3, 9);
+
+assert(a, merge(c, b));

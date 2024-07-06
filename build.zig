@@ -2,9 +2,9 @@ const std = @import("std");
 const builtin = @import("builtin");
 
 comptime {
-    const supported_version = std.SemanticVersion.parse("0.12.0") catch unreachable;
+    const supported_version = std.SemanticVersion.parse("0.13.0") catch unreachable;
     if (builtin.zig_version.order(supported_version) != .eq) {
-        @compileError(std.fmt.comptimePrint("Unsupported Zig version ({}). Required Zig version 0.12.0.", .{builtin.zig_version}));
+        @compileError(std.fmt.comptimePrint("Unsupported Zig version ({}). Required Zig version 0.13.0.", .{builtin.zig_version}));
     }
 }
 
@@ -15,13 +15,15 @@ pub fn build(b: *std.Build) !void {
     var c_flags: []const []const u8 = undefined;
     const query = target.query;
     if (query.cpu_arch == .x86_64) {
-        c_flags = &.{ "-Wall", "-O3", "-ffast-math", "-Wno-unused-variable", "-Wno-unused-function", "-mavx2" };
+        c_flags = &.{
+            "-Wall",                "-O3",    "-ffast-math",
+            "-Wno-unused-function", "-mavx2",
+        };
     } else {
         c_flags = &.{
             "-Wall",
             "-O3",
             "-ffast-math",
-            "-Wno-unused-variable",
             "-Wno-unused-function",
         };
     }
@@ -30,8 +32,8 @@ pub fn build(b: *std.Build) !void {
 
     const exe = b.addExecutable(.{
         .name = "mufiz",
-        .root_source_file = .{ .path = "src/main.zig" },
-        .version = .{ .major = 0, .minor = 6, .patch = 0 },
+        .root_source_file = b.path("src/main.zig"),
+        .version = .{ .major = 0, .minor = 7, .patch = 0 },
         .target = target,
         .optimize = optimize,
         .link_libc = true,
@@ -43,7 +45,7 @@ pub fn build(b: *std.Build) !void {
 
     const lib_scanner = b.addStaticLibrary(.{
         .name = "libmufiz_scanner",
-        .root_source_file = .{ .path = "src/scanner.zig" },
+        .root_source_file = b.path("src/scanner.zig"),
         .target = target,
         .optimize = .ReleaseFast,
         .link_libc = true,
@@ -54,45 +56,44 @@ pub fn build(b: *std.Build) !void {
         .target = target,
         .optimize = .ReleaseFast,
         .link_libc = true,
-        .root_source_file = .{ .path = "src/table.zig" },
+        .root_source_file = b.path("src/table.zig"),
     });
 
-    lib_table.addCSourceFiles(.{ .files = &.{
-        "core/value.c",
-        "core/memory.c",
-        "core/object.c",
+    lib_table.addCSourceFiles(.{ .root = b.path("core"), .files = &.{
+        "value.c",
+        "memory.c",
+        "object.c",
     }, .flags = c_flags });
 
-    lib_table.addIncludePath(.{ .path = "include/" });
+    lib_table.addIncludePath(b.path("include"));
 
     exe.linkLibrary(lib_table);
 
     exe.linkLibrary(lib_scanner);
 
     // zig fmt: off
-    exe.addCSourceFiles(.{ 
+    exe.addCSourceFiles(.{
+        .root = b.path("core"),
         .files = &.{
-        "core/chunk.c", 
-        "core/compiler.c", 
-        "core/debug.c", 
-        "core/vm.c", 
-        "core/cstd.c",
+        "chunk.c",
+        "compiler.c",
+        "debug.c",
+        "vm.c",
+        "cstd.c",
         },
         .flags = c_flags
     });
-    exe.addIncludePath(.{.path = "include/"});
+    exe.addIncludePath(b.path("include"));
     exe.linkSystemLibrary("m");
 
     const clap = b.dependency("clap", .{
-        .target = target, 
+        .target = target,
         .optimize = .ReleaseSafe
     });
 
     exe.root_module.addImport("clap", clap.module("clap"));
 
     const options = b.addOptions();
-    // const nostd = b.option(bool, "nostd", "Run Mufi without Standard Library") orelse false;
-    // options.addOption(bool, "nostd", nostd);
     const net  = b.option(bool, "enable_net", "Enable Network features") orelse true;
     const fs = b.option(bool, "enable_fs", "Enable File System features") orelse true;
     const sandbox = b.option(bool, "sandbox", "Enable Sandbox Mode (REPL only)") orelse false;
@@ -121,11 +122,28 @@ pub fn build(b: *std.Build) !void {
 
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
+
+    const exe_test = b.addTest(.{ .root_source_file = b.path("src/main.zig"), .target = target, .optimize = optimize });
+    exe_test.linkLibC();
+    exe_test.addCSourceFiles(.{ .root = b.path("core"), .files = &.{
+        "chunk.c",
+        "compiler.c",
+        "debug.c",
+        "vm.c",
+        "cstd.c",
+    }, .flags = c_flags });
+    exe_test.linkLibrary(lib_scanner);
+    exe_test.linkLibrary(lib_table);
+    exe_test.addIncludePath(b.path("include"));
+    const run_exe_test = b.addRunArtifact(exe_test);
+
+    const test_step = b.step("test", "Run Test Suite");
+    test_step.dependOn(&run_exe_test.step);
 }
 
 const common_path = "include/common.h";
 const common_debug =
-    \\/* 
+    \\/*
     \\ * File:   common.h
     \\ * Author: Mustafif Khan
     \\ * Brief:  Common imports and preprocessors
@@ -135,9 +153,9 @@ const common_debug =
     \\ * published by the Free Software Foundation.
     \\ */
     \\
-    \\//> All common imports and preprocessor macros defined here 
-    \\#ifndef mufi_common_h 
-    \\#define mufi_common_h 
+    \\//> All common imports and preprocessor macros defined here
+    \\#ifndef mufi_common_h
+    \\#define mufi_common_h
     \\
     \\#include <stdbool.h>
     \\#include <stddef.h>

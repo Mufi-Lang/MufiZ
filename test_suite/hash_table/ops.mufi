@@ -1,0 +1,10 @@
+var table = hash_table();
+
+put(table, "key1", "value1");
+put(table, "key2", "value2");
+
+assert(get(table, "key1"),"value1");
+
+var r = remove(table, "key1");
+
+assert(r, true);

@@ -9,7 +9,7 @@ on:
       - main
 
 env:
-  codename: 'mars'
+  codename: 'Jade'
 
 jobs:
   build:
@@ -22,7 +22,7 @@ jobs:
       - name: Setup Zig
         uses: goto-bus-stop/setup-zig@v2
         with:
-          version: 0.12.0
+          version: 0.13.0
 
       - name: Set up Python
         uses: actions/setup-python@v2
@@ -52,7 +52,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           token: ${{secrets.SECRET}}
-          tag_name: v0.6.0
+          tag_name: v0.7.0
           name: v0.6.0 ${{env.codename}} Release
           generate_release_notes: true
           draft: true

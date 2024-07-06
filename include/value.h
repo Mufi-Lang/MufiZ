@@ -38,7 +38,7 @@ typedef struct{
         double num_double;
         int num_int;
         Obj* obj;
-        Complex complex; // will be purely handled with Zig 
+        Complex complex;  
     } as;
 }Value;
 
@@ -48,12 +48,15 @@ typedef struct{
 #define IS_DOUBLE(value)  ((value).type == VAL_DOUBLE)
 #define IS_OBJ(value) ((value).type == VAL_OBJ)
 #define IS_COMPLEX(value) ((value).type == VAL_COMPLEX)
+#define IS_PRIM_NUM(value) (IS_INT(value) || IS_DOUBLE(value))
 
 #define AS_OBJ(value)  ((value).as.obj)
 #define AS_BOOL(value) ((value).as.boolean)
 #define AS_INT(value) ((value).as.num_int)
 #define AS_DOUBLE(value)  ((value).as.num_double)
 #define AS_COMPLEX(value)   ((value).as.complex)
+#define AS_NUM_DOUBLE(value) (IS_INT(value) ? (double)AS_INT(value) : AS_DOUBLE(value))
+#define AS_NUM_INT(value) (IS_DOUBLE(value) ? (int)AS_DOUBLE(value) : AS_INT(value))
 
 #define BOOL_VAL(value) ((Value){VAL_BOOL, {.boolean = value}})
 #define NIL_VAL         ((Value){VAL_NIL, {.num_int = 0}})
@@ -79,5 +82,6 @@ void writeValueArray(ValueArray* array, Value value);
 void freeValueArray(ValueArray* array);
 //> Prints a value
 void printValue(Value value);
+char* valueToString(Value value);
 
 #endif

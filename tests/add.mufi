@@ -2,6 +2,12 @@ fun add(a, b){
     return a + b;
 }
 
+fun sub(a, b){
+    var c = add;
+    return c(-a, b);
+}
+
 
 print add(1, 2);
+print sub(1, 2);
 print add("hello ", "world");

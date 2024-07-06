@@ -1,0 +1,10 @@
+var ll = linked_list();
+
+push_front(ll, 5);
+assert(5, nth(ll, 0));
+
+push(ll, 2);
+assert(2, nth(ll, 1));
+
+assert(5, pop_front(ll));
+assert(2, pop(ll));

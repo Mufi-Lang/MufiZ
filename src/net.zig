@@ -6,6 +6,7 @@ const Header = http.Header;
 const Client = http.Client;
 const GlobalAlloc = @import("main.zig").GlobalAlloc;
 const builtin = @import("builtin");
+const cp = std.process.Child;
 
 pub const ContentType = enum(u8) {
     PlainText = 0,
@@ -146,3 +147,27 @@ pub fn delete(url: []const u8, ct: ContentType, op: Options) ![]u8 {
     const pos = try req.readAll(&buffer);
     return buffer[0..pos];
 }
+
+/// Inspired by `open-rs`
+pub const Open = struct {
+    url: []u8,
+    os: std.Target.Os.Tag = builtin.target.os.tag,
+
+    pub fn init(url: []u8) Open {
+        return .{ .url = url };
+    }
+
+    fn os_cmd(self: Open) []const u8 {
+        switch (self.os) {
+            .windows => return "start",
+            .linux => return "xdg-open",
+            .macos => return "open",
+            else => unreachable, // we only compile for windows, mac and linux
+        }
+    }
+
+    pub fn that(self: Open) !void {
+        var proc = cp.init(&.{ self.os_cmd(), self.url }, GlobalAlloc);
+        try proc.spawn();
+    }
+};

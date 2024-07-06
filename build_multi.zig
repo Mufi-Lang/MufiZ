@@ -2,9 +2,9 @@ const std = @import("std");
 const builtin = @import("builtin");
 
 comptime {
-    const supported_version = std.SemanticVersion.parse("0.12.0") catch unreachable;
+    const supported_version = std.SemanticVersion.parse("0.13.0") catch unreachable;
     if (builtin.zig_version.order(supported_version) != .eq) {
-        @compileError(std.fmt.comptimePrint("Unsupported Zig version ({}). Required Zig version 0.12.0.", .{builtin.zig_version}));
+        @compileError(std.fmt.comptimePrint("Unsupported Zig version ({}). Required Zig version 0.13.0.", .{builtin.zig_version}));
     }
 }
 
@@ -132,8 +132,8 @@ fn build_target(b: *std.Build, target: std.Target.Query, options: *std.Build.Ste
 
     const exe = b.addExecutable(.{
         .name = "mufiz",
-        .root_source_file = .{ .path = "src/main.zig" },
-        .version = .{ .major = 0, .minor = 6, .patch = 0 },
+        .root_source_file = b.path("src/main.zig"),
+        .version = .{ .major = 0, .minor = 7, .patch = 0 },
         .target = b.resolveTargetQuery(target),
         .optimize = if (target.cpu_arch != .arm) .ReleaseSafe else .Debug,
         .link_libc = true,
@@ -145,7 +145,7 @@ fn build_target(b: *std.Build, target: std.Target.Query, options: *std.Build.Ste
 
     const lib_scanner = b.addStaticLibrary(.{
         .name = "libmufiz_scanner",
-        .root_source_file = .{ .path = "src/scanner.zig" },
+        .root_source_file = b.path("src/scanner.zig"),
         .target = b.resolveTargetQuery(target),
         .optimize = .ReleaseFast,
         .link_libc = true,
@@ -156,7 +156,7 @@ fn build_target(b: *std.Build, target: std.Target.Query, options: *std.Build.Ste
         .target = b.resolveTargetQuery(target),
         .optimize = .ReleaseFast,
         .link_libc = true,
-        .root_source_file = .{ .path = "src/table.zig" },
+        .root_source_file = b.path("src/table.zig"),
     });
 
     lib_table.addCSourceFiles(.{ .files = &.{
@@ -165,7 +165,7 @@ fn build_target(b: *std.Build, target: std.Target.Query, options: *std.Build.Ste
         "core/object.c",
     }, .flags = c_flags });
 
-    lib_table.addIncludePath(.{ .path = "include/" });
+    lib_table.addIncludePath(b.path("include/"));
 
     exe.linkLibrary(lib_table);
 
@@ -182,7 +182,7 @@ fn build_target(b: *std.Build, target: std.Target.Query, options: *std.Build.Ste
         },
         .flags = c_flags
     });
-    exe.addIncludePath(.{.path = "include/"});
+    exe.addIncludePath(b.path("include/"));
     exe.linkSystemLibrary("m");
 
     const clap = b.dependency("clap", .{

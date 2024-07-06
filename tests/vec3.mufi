@@ -1,0 +1,14 @@
+var x = linspace(1.0, 10.0, 3);
+var y = linspace(2.0, 12.0, 3);
+
+print x;
+print y;
+
+print dot(x, y);
+print cross(x, y);
+print norm(x);
+print proj(x, y);
+print reject(x, y);
+print reflect(x,y);
+print refract(x, y, 1.0, 2.0);
+print angle(x, y);

@@ -45,6 +45,7 @@ enum TokenType
     TOKEN_ELSE,
     TOKEN_FALSE,
     TOKEN_FOR,
+    TOKEN_EACH, 
     TOKEN_FUN,
     TOKEN_IF,
     TOKEN_LET,
@@ -68,6 +69,9 @@ enum TokenType
     TOKEN_PLUS_PLUS,
     TOKEN_MINUS_MINUS,
     TOKEN_HAT, // Exponent
+    TOKEN_LEFT_SQPAREN, 
+    TOKEN_RIGHT_SQPAREN,
+    TOKEN_COLON, 
 };
 
 struct Token

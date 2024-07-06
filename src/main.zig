@@ -3,19 +3,27 @@ const builtin = @import("builtin");
 const stdlib = @import("stdlib.zig");
 const system = @import("system.zig");
 const clap = @import("clap");
-const core = @import("core");
+const core = @import("core.zig");
 const features = @import("features");
+const conv = @import("conv.zig");
 const heap = std.heap;
-pub const vm_h = @cImport(@cInclude("vm.h"));
+pub const vm_h = core.vm_h;
+const testing = std.testing;
+const fs = std.fs;
+const InterpreterError = system.InterpreterError;
+
+pub const OK: u8 = core.vm_h.INTERPRET_OK;
+pub const COMPILE_ERROR: u8 = core.vm_h.INTERPRET_COMPILE_ERROR;
+pub const RUNTIME_ERROR: u8 = core.vm_h.INTERPRET_RUNTIME_ERROR;
 
 var Global = heap.GeneralPurposeAllocator(.{}){};
-pub const GlobalAlloc = if (builtin.target.isWasm()) heap.page_allocator else Global.allocator();
+pub const GlobalAlloc = if (builtin.target.isWasm()) heap.wasm_allocator else Global.allocator();
 
 const params = clap.parseParamsComptime(
     \\-h, --help             Displays this help and exit.
     \\-v, --version          Prints the version and codename.
     \\-r, --run <str>        Runs a Mufi Script
-    \\-l, --link <str>       Link another Mufi Script when interpreting 
+    \\-l, --link <str>       Link another Mufi Script when interpreting
     \\--repl                 Runs Mufi Repl system
     \\
 );
@@ -46,9 +54,7 @@ pub fn main() !void {
         };
         defer res.deinit();
 
-        if (res.args.help != 0) {
-            return clap.help(std.io.getStdErr().writer(), clap.Help, &params, .{});
-        } else if (res.args.version != 0) {
+        if (res.args.version != 0) {
             system.version();
         } else if (res.args.run) |s| {
             var runner = system.Runner.init(GlobalAlloc);
@@ -61,6 +67,8 @@ pub fn main() !void {
         } else if (res.args.repl != 0) {
             try system.repl();
         } else {
+            system.version();
+            system.usage();
             return clap.help(std.io.getStdErr().writer(), clap.Help, &params, .{});
         }
     }

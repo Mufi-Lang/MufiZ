@@ -51,28 +51,32 @@ pub const TokenType = enum(c_int) {
     TOKEN_ELSE = 26,
     TOKEN_FALSE = 27,
     TOKEN_FOR = 28,
-    TOKEN_FUN = 29,
-    TOKEN_IF = 30,
-    TOKEN_LET = 31,
-    TOKEN_NIL = 32,
-    TOKEN_OR = 33,
-    TOKEN_PRINT = 34,
-    TOKEN_RETURN = 35,
-    TOKEN_SELF = 36,
-    TOKEN_SUPER = 37,
-    TOKEN_TRUE = 38,
-    TOKEN_VAR = 39,
-    TOKEN_WHILE = 40,
+    TOKEN_EACH = 29,
+    TOKEN_FUN = 30,
+    TOKEN_IF = 31,
+    TOKEN_LET = 32,
+    TOKEN_NIL = 33,
+    TOKEN_OR = 34,
+    TOKEN_PRINT = 35,
+    TOKEN_RETURN = 36,
+    TOKEN_SELF = 37,
+    TOKEN_SUPER = 38,
+    TOKEN_TRUE = 39,
+    TOKEN_VAR = 40,
+    TOKEN_WHILE = 41,
     // Misc
-    TOKEN_ERROR = 41,
-    TOKEN_EOF = 42,
-    TOKEN_PLUS_EQUAL = 43,
-    TOKEN_MINUS_EQUAL = 44,
-    TOKEN_STAR_EQUAL = 45,
-    TOKEN_SLASH_EQUAL = 46,
-    TOKEN_PLUS_PLUS = 47,
-    TOKEN_MINUS_MINUS = 48,
-    TOKEN_HAT = 49,
+    TOKEN_ERROR = 42,
+    TOKEN_EOF = 43,
+    TOKEN_PLUS_EQUAL = 44,
+    TOKEN_MINUS_EQUAL = 45,
+    TOKEN_STAR_EQUAL = 46,
+    TOKEN_SLASH_EQUAL = 47,
+    TOKEN_PLUS_PLUS = 48,
+    TOKEN_MINUS_MINUS = 49,
+    TOKEN_HAT = 50,
+    TOKEN_LEFT_SQPAREN = 51,
+    TOKEN_RIGHT_SQPAREN = 52,
+    TOKEN_COLON = 53, 
 };
 
 pub const Token = extern struct {
@@ -187,7 +191,15 @@ pub export fn identifierType() callconv(.C) TokenType {
     switch (scanner.start[0]) {
         'a' => return checkKeyword(1, 2, @ptrCast("nd"), .TOKEN_AND),
         'c' => return checkKeyword(1, 4, @ptrCast("lass"), .TOKEN_CLASS),
-        'e' => return checkKeyword(1, 3, @ptrCast("lse"), .TOKEN_ELSE),
+        'e' => {
+            if (@intFromPtr(scanner.current) - @intFromPtr(scanner.start) > 1) {
+                switch (scanner.start[1]) {
+                    'l' => return checkKeyword(2, 2, @ptrCast("se"), .TOKEN_ELSE),
+                    'a' => return checkKeyword(2, 2, @ptrCast("ch"), .TOKEN_EACH),
+                    else => {},
+                }
+            }
+        },
         'f' => {
             if (@intFromPtr(scanner.current) - @intFromPtr(scanner.start) > 1) {
                 switch (scanner.start[1]) {
@@ -266,7 +278,10 @@ pub export fn scanToken() Token {
         ')' => return makeToken(.TOKEN_RIGHT_PAREN),
         '{' => return makeToken(.TOKEN_LEFT_BRACE),
         '}' => return makeToken(.TOKEN_RIGHT_BRACE),
+        '[' => return makeToken(.TOKEN_LEFT_SQPAREN),
+        ']' => return makeToken(.TOKEN_RIGHT_SQPAREN),
         ';' => return makeToken(.TOKEN_SEMICOLON),
+        ':' => return makeToken(.TOKEN_COLON), 
         ',' => return makeToken(.TOKEN_COMMA),
         '.' => return makeToken(.TOKEN_DOT),
         '-' => {

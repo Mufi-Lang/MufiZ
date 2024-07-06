@@ -22,6 +22,7 @@ pub const Table = extern struct {
 pub const Entry = extern struct {
     key: ?*ObjString,
     value: Value,
+    deleted: bool,
 };
 
 fn memcmp(s1: ?*const anyopaque, s2: ?*const anyopaque, n: usize) c_int {
@@ -53,16 +54,10 @@ pub export fn entries_(table: *Table) [*c]Entry {
 
 pub export fn findEntry(entries: [*]Entry, capacity: c_int, key: ?*ObjString) callconv(.C) *Entry {
     var index: usize = @as(usize, @intCast(key.?.hash)) & @as(usize, @intCast(capacity - 1));
-    var tombstone: ?*Entry = null;
-
     while (true) {
         const entry: *Entry = &entries[index];
-        if (entry.*.key == null) {
-            if (value_h.IS_NIL(entry.*.value)) {
-                if (tombstone != null) return tombstone.? else return entry;
-            } else {
-                if (tombstone == null) tombstone = entry;
-            }
+        if (entry.*.key == null or entry.*.deleted) {
+            return entry;
         } else if (entry.*.key == key) {
             return entry;
         }
@@ -73,7 +68,7 @@ pub export fn findEntry(entries: [*]Entry, capacity: c_int, key: ?*ObjString) ca
 pub export fn tableGet(table: *Table, key: ?*ObjString, value: *Value) callconv(.C) bool {
     if (table.count == 0) return false;
     const entry = findEntry(table.entries, table.capacity, key);
-    if (entry.*.key == null) return false;
+    if (entry.*.key == null or entry.*.deleted) return false;
 
     value.* = entry.value;
     return true;
@@ -108,24 +103,25 @@ pub export fn tableSet(table: *Table, key: ?*ObjString, value: Value) bool {
         adjustCapacity(table, capacity);
     }
     const entry: [*c]Entry = findEntry(table.*.entries, table.*.capacity, key);
-    const isNewKey: bool = entry.*.key == null;
-    if (isNewKey and (entry.*.value.type == VAL_NIL)) table.*.count += 1;
+    const isNewKey: bool = entry.*.key == null or entry.*.deleted;
+    if (isNewKey and (entry.*.value.type == VAL_NIL)) {
+        if (entry.*.deleted) {
+            entry.*.deleted = false; // reusing deleted entry
+        } else {
+            table.*.count += 1;
+        }
+    }
     entry.*.key = key;
     entry.*.value = value;
+    entry.*.deleted = false; // ensure deleted flag is reset
     return isNewKey;
 }
 
 pub export fn tableDelete(table: *Table, key: ?*ObjString) bool {
     if (table.*.count == 0) return false;
     const entry: [*c]Entry = findEntry(table.*.entries, table.*.capacity, key);
-    if (entry.*.key == null) return false;
-    entry.*.key = null;
-    entry.*.value = Value{
-        .type = VAL_BOOL,
-        .as = .{
-            .boolean = true,
-        },
-    };
+    if (entry.*.key == null or entry.*.deleted) return false;
+    entry.*.deleted = true;
     return true;
 }
 
@@ -146,7 +142,7 @@ pub export fn tableFindString(table: *Table, chars: [*c]const u8, length: c_int,
         const entry: [*c]Entry = &table.*.entries[index];
         if (entry.*.key == null) {
             if (entry.*.value.type == VAL_NIL) return null;
-        } else if (((entry.*.key.?.length == length) and (entry.*.key.?.hash == hash)) and (memcmp(@ptrCast(entry.*.key.?.chars), @ptrCast(chars), @as(usize, @intCast(length))) == 0)) {
+        } else if ( !entry.*.deleted and ((entry.*.key.?.length == length) and (entry.*.key.?.hash == hash)) and (memcmp(@ptrCast(entry.*.key.?.chars), @ptrCast(chars), @as(usize, @intCast(length))) == 0)) {
             return entry.*.key;
         }
         index = (index + 1) & @as(usize, @intCast(table.*.capacity - 1));

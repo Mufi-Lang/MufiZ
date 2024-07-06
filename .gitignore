@@ -1,4 +1,4 @@
-zig-cache
+.zig-cache
 zig-out
 m.zig
 fpm.txt
@@ -12,3 +12,7 @@ include/common.h
 pkg
 manifests
 MufiZ.json
+grammar.y
+update_apt.sh
+__pycache__
+ctests/hashdict.c
