@@ -590,16 +590,19 @@ ObjArray *sliceArray(ObjArray *array, int start, int end)
 
 ObjArray *spliceArray(ObjArray *array, int start, int end)
 {
+    if(start < 0 || start >= array->count || end < 0 || end > array->count || start > end){
+        printf("Index out of bounds");
+        return NULL;
+    }
+
     ObjArray *spliced = newArrayWithCap(end - start, false);
-    for (int i = start; i < end; i++)
-    {
+
+    for(int i = 0; i < start; i++){
         pushArray(spliced, array->values[i]);
     }
-    for (int i = start; i < array->count - (end - start); i++)
-    {
-        array->values[i] = array->values[i + (end - start)];
+    for(int i = end + 1; i < array->count; i++){
+        pushArray(spliced, array->values[i]);
     }
-    array->count -= (end - start);
     return spliced;
 }
 
