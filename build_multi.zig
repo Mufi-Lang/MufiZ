@@ -64,7 +64,7 @@ pub fn build(b: *std.Build) !void {
 
 const common_path = "include/common.h";
 const common_debug =
-    \\/* 
+    \\/*
     \\ * File:   common.h
     \\ * Author: Mustafif Khan
     \\ * Brief:  Common imports and preprocessors
@@ -74,9 +74,9 @@ const common_debug =
     \\ * published by the Free Software Foundation.
     \\ */
     \\
-    \\//> All common imports and preprocessor macros defined here 
-    \\#ifndef mufi_common_h 
-    \\#define mufi_common_h 
+    \\//> All common imports and preprocessor macros defined here
+    \\#ifndef mufi_common_h
+    \\#define mufi_common_h
     \\
     \\#include <stdbool.h>
     \\#include <stddef.h>
@@ -133,7 +133,6 @@ fn build_target(b: *std.Build, target: std.Target.Query, options: *std.Build.Ste
     const exe = b.addExecutable(.{
         .name = "mufiz",
         .root_source_file = b.path("src/main.zig"),
-        .version = .{ .major = 0, .minor = 7, .patch = 0 },
         .target = b.resolveTargetQuery(target),
         .optimize = if (target.cpu_arch != .arm) .ReleaseSafe else .Debug,
         .link_libc = true,
@@ -172,12 +171,12 @@ fn build_target(b: *std.Build, target: std.Target.Query, options: *std.Build.Ste
     exe.linkLibrary(lib_scanner);
 
     // zig fmt: off
-    exe.addCSourceFiles(.{ 
+    exe.addCSourceFiles(.{
         .files = &.{
-        "core/chunk.c", 
-        "core/compiler.c", 
-        "core/debug.c", 
-        "core/vm.c", 
+        "core/chunk.c",
+        "core/compiler.c",
+        "core/debug.c",
+        "core/vm.c",
         "core/cstd.c",
         },
         .flags = c_flags
@@ -186,7 +185,7 @@ fn build_target(b: *std.Build, target: std.Target.Query, options: *std.Build.Ste
     exe.linkSystemLibrary("m");
 
     const clap = b.dependency("clap", .{
-        .target = b.resolveTargetQuery(target), 
+        .target = b.resolveTargetQuery(target),
         .optimize = .ReleaseSafe
     });
 

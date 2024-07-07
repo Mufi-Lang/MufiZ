@@ -55,7 +55,7 @@ Value iter_nf(int argCount, Value *args) {
     return OBJ_VAL(iter);
   }
   default:
-    runtimeError("Invalid argument type.");
+    runtimeError("Argument must be an array or float vector.");
     return NIL_VAL;
   }
 }
@@ -87,7 +87,7 @@ Value hasNext_nf(int argCount, Value *args) {
 }
 
 Value peek_nf(int argCount, Value *args) {
-  if (argCount != 1) {
+  if (argCount != 2) {
     runtimeError("peek() takes 2 argument.");
     return NIL_VAL;
   }
@@ -152,7 +152,8 @@ Value array_nf(int argCount, Value *args) {
     return OBJ_VAL(a);
   } else if (argCount >= 1) {
     if (!IS_PRIM_NUM(args[0])) {
-      runtimeError("First argument must be a number.");
+      runtimeError("First argument must be a number when creating an array "
+                   "with a specified capacity.");
       return NIL_VAL;
     }
 
@@ -256,7 +257,8 @@ Value remove_nf(int argCount, Value *args) {
         removeFloatVector(AS_FVECTOR(args[0]), AS_NUM_INT(args[1])));
   }
   default: {
-    // Handle invalid argument type
+    runtimeError("Argument must be a hash table, array or float vector.");
+    return NIL_VAL;
     break;
   }
   }
@@ -295,7 +297,7 @@ Value push_nf(int argCount, Value *args) {
     return NIL_VAL;
   }
   default:
-    runtimeError("Invalid argument type.");
+    runtimeError("Argument must be a linked list, array or float vector.");
     return NIL_VAL;
   }
 }
@@ -336,7 +338,9 @@ Value pop_nf(int argCount, Value *args) {
     ObjLinkedList *l = AS_LINKED_LIST(args[0]);
     return popBack(l);
   }
-  default: // unreachable
+  default:
+    runtimeError("Argument must be a linked list, array or float vector.");
+    return NIL_VAL;
     break;
   }
 }
@@ -455,7 +459,9 @@ Value sort_nf(int argCount, Value *args) {
     mergeSort(l);
     return NIL_VAL;
   }
-  default: // unreachable
+  default:
+    runtimeError("Argument must be a linked list, array or float vector.");
+    return NIL_VAL;
     break;
   }
 }
@@ -495,7 +501,8 @@ Value equal_list_nf(int argCount, Value *args) {
     return BOOL_VAL(equalLinkedList(a, b));
   }
   default: {
-    runtimeError("Invalid argument type.");
+    runtimeError("Argument must be a linked list, array or float vector.");
+    return NIL_VAL;
     return NIL_VAL;
   }
   }
@@ -503,7 +510,7 @@ Value equal_list_nf(int argCount, Value *args) {
 
 Value contains_nf(int argCount, Value *args) {
   if (NOT_LIST_TYPES(args, 1) && !IS_HASH_TABLE(args[0])) {
-    runtimeError("First argument must be an array, linked list or hash table.");
+    runtimeError("First argument must be a collection type.");
     return NIL_VAL;
   }
 
@@ -585,7 +592,8 @@ Value insert_nf(int argCount, Value *args) {
     return NIL_VAL;
   }
   default:
-    // Handle error or default case here
+    runtimeError("Invalid argument type.");
+    return NIL_VAL;
     break;
   }
 }

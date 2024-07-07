@@ -327,6 +327,7 @@ static void declareVariable() {
 
     if (identifiersEqual(name, &local->name)) {
       error("Already a variable with this name in this scope.");
+      return;
     }
   }
 
@@ -535,15 +536,26 @@ static void namedVariable(struct Token name, bool canAssign) {
   if (canAssign && match(TOKEN_EQUAL)) {
     expression();
     emitBytes(setOp, (uint8_t)arg);
-  } else if (match(TOKEN_PLUS_EQUAL)) {
+  } else if (match(TOKEN_PLUS_EQUAL) || match(TOKEN_MINUS_EQUAL) ||
+             match(TOKEN_STAR_EQUAL) || match(TOKEN_SLASH_EQUAL)) {
     emitBytes(getOp, (uint8_t)arg); // Get the current value
     expression();                   // Evaluate the right-hand side
-    emitByte(OP_ADD);               // Perform the addition
-    emitBytes(setOp, (uint8_t)arg); // Store the result
-  } else if (match(TOKEN_MINUS_EQUAL)) {
-    emitBytes(getOp, (uint8_t)arg); // Get the current value
-    expression();                   // Evaluate the right-hand side
-    emitByte(OP_SUBTRACT);          // Perform the subtraction
+    switch (parser.previous.type) {
+    case TOKEN_PLUS_EQUAL:
+      emitByte(OP_ADD); // Perform the addition
+      break;
+    case TOKEN_MINUS_EQUAL:
+      emitByte(OP_SUBTRACT); // Perform the subtraction
+      break;
+    case TOKEN_STAR_EQUAL:
+      emitByte(OP_MULTIPLY); // Perform the multiplication
+      break;
+    case TOKEN_SLASH_EQUAL:
+      emitByte(OP_DIVIDE); // Perform the division
+      break;
+    default:
+      return; // Unreachable.
+    }
     emitBytes(setOp, (uint8_t)arg); // Store the result
   }
 
@@ -555,21 +567,10 @@ static void namedVariable(struct Token name, bool canAssign) {
     emitBytes(setOp, (uint8_t)arg);     // Store the result
   } else if (match(TOKEN_MINUS_MINUS)) {
     emitBytes(getOp, (uint8_t)arg); // Get the current value
-
     emitByte(OP_CONSTANT);
     emitByte(makeConstant(INT_VAL(1))); // Load the constant value 1
     emitByte(OP_SUBTRACT);              // Perform the subtraction
     emitBytes(setOp, (uint8_t)arg);     // Store the result
-  } else if (match(TOKEN_STAR_EQUAL)) {
-    emitBytes(getOp, (uint8_t)arg); // Get the current value
-    expression();                   // Evaluate the right-hand side
-    emitByte(OP_MULTIPLY);          // Perform the multiplication
-    emitBytes(setOp, (uint8_t)arg); // Store the result
-  } else if (match(TOKEN_SLASH_EQUAL)) {
-    emitBytes(getOp, (uint8_t)arg); // Get the current value
-    expression();                   // Evaluate the right-hand side
-    emitByte(OP_DIVIDE);            // Perform the division
-    emitBytes(setOp, (uint8_t)arg); // Store the result
   } else {
     emitBytes(getOp, (uint8_t)arg);
   }

@@ -30,15 +30,19 @@ static Obj *allocateObject(size_t size, ObjType type) {
   switch (a.type) {                                                            \
   case VAL_INT:                                                                \
     if (b.type == VAL_INT) {                                                   \
+      return NIL_VAL;                                                          \
       return INT_VAL(AS_INT(a) op AS_INT(b));                                  \
     } else if (b.type == VAL_DOUBLE) {                                         \
+      return NIL_VAL;                                                          \
       return DOUBLE_VAL(AS_INT(a) op AS_DOUBLE(b));                            \
     }                                                                          \
     break;                                                                     \
   case VAL_DOUBLE:                                                             \
     if (b.type == VAL_INT) {                                                   \
+      return NIL_VAL;                                                          \
       return DOUBLE_VAL(AS_DOUBLE(a) op AS_INT(b));                            \
     } else if (b.type == VAL_DOUBLE) {                                         \
+      return NIL_VAL;                                                          \
       return DOUBLE_VAL(AS_DOUBLE(a) op AS_DOUBLE(b));                         \
     }                                                                          \
     break;                                                                     \
@@ -584,7 +588,8 @@ Value varianceArray(ObjArray *array) {
     Value temp = sub_val(array->values[i], mean);
     sum = add_val(sum, mul_val(temp, temp));
   }
-  Value variance = div_val(sum, DOUBLE_VAL(array->count - 1));
+  Value variance =
+      (array->count > 1) ? div_val(sum, DOUBLE_VAL(array->count - 1)) : NIL_VAL;
   return variance;
 }
 
@@ -843,16 +848,16 @@ int searchLinkedList(ObjLinkedList *list, Value value) {
 }
 
 void reverseLinkedList(ObjLinkedList *list) {
-    struct Node *current = list->head;
-    while (current != NULL) {
-        struct Node *temp = current->next;
-        current->next = current->prev;
-        current->prev = temp;
-        current = temp;
-    }
-    struct Node *temp = list->head;
-    list->head = list->tail;
-    list->tail = temp;
+  struct Node *current = list->head;
+  while (current != NULL) {
+    struct Node *temp = current->next;
+    current->next = current->prev;
+    current->prev = temp;
+    current = temp;
+  }
+  struct Node *temp = list->head;
+  list->head = list->tail;
+  list->tail = temp;
 }
 
 ObjLinkedList *mergeLinkedList(ObjLinkedList *a, ObjLinkedList *b) {

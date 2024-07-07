@@ -1,13 +1,14 @@
 #include "../include/memory.h"
 #include "../include/compiler.h"
 #include "../include/vm.h"
-
+#include <stdio.h>
 #ifdef DEBUG_LOG_GC
 #include "../include/debug.h"
-#include <stdio.h>
 #endif
 
 #define GC_HEAP_GROW_FACTOR 2
+
+GCData gcData = {GC_IDLE, 0, NULL};
 
 void *reallocate(void *pointer, size_t oldSize, size_t newSize) {
   vm.bytesAllocated += newSize - oldSize;
@@ -16,21 +17,34 @@ void *reallocate(void *pointer, size_t oldSize, size_t newSize) {
     collectGarbage();
 #endif
   }
+
   if (vm.bytesAllocated > vm.nextGC) {
     collectGarbage();
   }
 
-  // If the new size is 0, we free the array
   if (newSize == 0) {
     free(pointer);
     return NULL;
   }
-  // use realloc to handle any grow, shrink, etc.
+
   void *result = realloc(pointer, newSize);
-  // if allocation fails exit program
-  if (result == NULL)
-    exit(1);
-  // return the result of the reallocation
+  if (result == NULL && newSize > 0) {
+    fprintf(stderr,
+            "Memory allocation failed. Attempted to allocate %zu bytes.\n",
+            newSize);
+    // Try to recover by running garbage collection
+    collectGarbage();
+
+    // Try allocation again
+    result = realloc(pointer, newSize);
+
+    if (result == NULL) {
+      fprintf(stderr, "Critical error: Memory allocation failed after garbage "
+                      "collection attempt\n");
+      exit(1);
+    }
+  }
+
   return result;
 }
 
@@ -237,46 +251,127 @@ void freeObjects() {
   free(vm.grayStack);
 }
 
-static void markRoots() {
-  for (Value *slot = vm.stack; slot < vm.stackTop; slot++) {
-    markValue(*slot);
-  }
-  for (int i = 0; i < vm.frameCount; i++) {
-    markObject((Obj *)vm.frames[i].closure);
-  }
-  for (ObjUpvalue *upvalue = vm.openUpvalues; upvalue != NULL;
-       upvalue = upvalue->next) {
-    markObject((Obj *)upvalue);
-  }
-  markTable(&vm.globals);
-  markCompilerRoots();
-  markObject((Obj *)vm.initString);
-}
+// static void markRoots() {
+//   for (Value *slot = vm.stack; slot < vm.stackTop; slot++) {
+//     markValue(*slot);
+//   }
+//   for (int i = 0; i < vm.frameCount; i++) {
+//     markObject((Obj *)vm.frames[i].closure);
+//   }
+//   for (ObjUpvalue *upvalue = vm.openUpvalues; upvalue != NULL;
+//        upvalue = upvalue->next) {
+//     markObject((Obj *)upvalue);
+//   }
+//   markTable(&vm.globals);
+//   markCompilerRoots();
+//   markObject((Obj *)vm.initString);
+// }
 
-static void traceReferences() {
-  while (vm.grayCount > 0) {
-    Obj *object = vm.grayStack[--vm.grayCount];
-    blackenObject(object);
-  }
-}
+// static void traceReferences() {
+//   while (vm.grayCount > 0) {
+//     Obj *object = vm.grayStack[--vm.grayCount];
+//     blackenObject(object);
+//   }
+// }
 
-static void sweep() {
-  Obj *previous = NULL;
-  Obj *object = vm.objects;
-  while (object != NULL) {
-    if (object->isMarked) {
-      object->isMarked = false;
-      previous = object;
-      object = object->next;
-    } else {
-      Obj *unreached = object;
-      object = object->next;
-      if (previous != NULL) {
-        previous->next = object;
-      } else {
-        vm.objects = object;
+// static void sweep() {
+//   Obj *previous = NULL;
+//   Obj *object = vm.objects;
+//   while (object != NULL) {
+//     if (object->isMarked) {
+//       object->isMarked = false;
+//       previous = object;
+//       object = object->next;
+//     } else {
+//       Obj *unreached = object;
+//       object = object->next;
+//       if (previous != NULL) {
+//         previous->next = object;
+//       } else {
+//         vm.objects = object;
+//       }
+//       freeObject(unreached);
+//     }
+//   }
+// }
+
+void incrementalGC() {
+  const int INCREMENT_LIMIT =
+      1000; // Adjust this value to balance GC work and program execution
+  int workDone = 0;
+
+  while (workDone < INCREMENT_LIMIT) {
+    switch (gcData.state) {
+    case GC_IDLE:
+      // Start a new GC cycle
+      gcData.state = GC_MARK_ROOTS;
+      gcData.rootIndex = 0;
+      gcData.sweepingObject = NULL;
+      break;
+
+    case GC_MARK_ROOTS:
+      // Mark roots
+      for (; gcData.rootIndex < (size_t)(vm.stackTop - vm.stack) &&
+             workDone < INCREMENT_LIMIT;
+           gcData.rootIndex++) {
+        markValue(vm.stack[gcData.rootIndex]);
+        workDone++;
       }
-      freeObject(unreached);
+
+      if (gcData.rootIndex >= (size_t)(vm.stackTop - vm.stack)) {
+        // Finished marking stack, mark other roots
+        for (int i = 0; i < vm.frameCount; i++) {
+          markObject((Obj *)vm.frames[i].closure);
+        }
+        markTable(&vm.globals);
+        markTable(&vm.strings);
+        markObject((Obj *)vm.initString);
+        for (ObjUpvalue *upvalue = vm.openUpvalues; upvalue != NULL;
+             upvalue = upvalue->next) {
+          markObject((Obj *)upvalue);
+        }
+
+        gcData.state = GC_TRACING;
+      }
+      break;
+
+    case GC_TRACING:
+      // Trace references
+      while (vm.grayCount > 0 && workDone < INCREMENT_LIMIT) {
+        Obj *object = vm.grayStack[--vm.grayCount];
+        blackenObject(object);
+        workDone++;
+      }
+      if (vm.grayCount == 0) {
+        gcData.state = GC_SWEEPING;
+        gcData.sweepingObject = vm.objects;
+      }
+      break;
+
+    case GC_SWEEPING:
+      // Sweep unreachable objects
+      while (gcData.sweepingObject != NULL && workDone < INCREMENT_LIMIT) {
+        Obj *next = gcData.sweepingObject->next;
+        if (!gcData.sweepingObject->isMarked) {
+          freeObject(gcData.sweepingObject);
+          vm.objects = next;
+        } else {
+          gcData.sweepingObject->isMarked = false;
+        }
+        gcData.sweepingObject = next;
+        workDone++;
+      }
+      if (gcData.sweepingObject == NULL) {
+        // Finished sweeping, GC cycle complete
+        gcData.state = GC_IDLE;
+        // Update GC threshold
+        vm.nextGC = vm.bytesAllocated * GC_HEAP_GROW_FACTOR;
+      }
+      break;
+    }
+
+    if (gcData.state == GC_IDLE) {
+      break; // GC cycle complete
     }
   }
 }
@@ -286,12 +381,10 @@ void collectGarbage() {
   printf("-- gc begin\n");
   size_t before = vm.bytesAllocated;
 #endif
-  markRoots();
-  traceReferences();
-  tableRemoveWhite(&vm.strings);
-  sweep();
 
-  vm.nextGC = vm.bytesAllocated * GC_HEAP_GROW_FACTOR;
+  while (gcData.state != GC_IDLE) {
+    incrementalGC();
+  }
 
 #ifdef DEBUG_LOG_GC
   printf("-- gc end\n");

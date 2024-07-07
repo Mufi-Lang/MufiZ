@@ -1,7 +1,7 @@
-/* 
+/*
  * File:   memory.h
  * Author: Mustafif Khan
- * Brief:  Manages memory allocation/garbage collection 
+ * Brief:  Manages memory allocation/garbage collection
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -9,9 +9,9 @@
  */
 
 
-//> Manages memory allocation in mufi 
-#ifndef mufi_memory_h 
-#define mufi_memory_h 
+//> Manages memory allocation in mufi
+#ifndef mufi_memory_h
+#define mufi_memory_h
 
 #include "common.h"
 #include "value.h"
@@ -38,6 +38,21 @@
 //> Frees a dynamic array
 #define FREE_ARRAY(type, pointer, oldCount) \
     reallocate(pointer, sizeof(type)*(oldCount), 0) \
+
+typedef enum {
+    GC_IDLE,
+    GC_MARK_ROOTS,
+    GC_TRACING,
+    GC_SWEEPING
+} GCState;
+
+typedef struct {
+    GCState state;
+    size_t rootIndex;
+    Obj* sweepingObject;
+} GCData;
+
+void incremntalGC();
 
 //> Used to reallocate memory for arrays
 void* reallocate(void* pointer, size_t oldSize, size_t newSize);
