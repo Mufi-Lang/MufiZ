@@ -74,13 +74,23 @@ pub fn build(b: *std.Build) !void {
         .root_source_file = b.path("src/value.zig"),
     });
 
+    const lib_memory = b.addStaticLibrary(.{
+        .name = "libmufiz_memory",
+        .target = target,
+        .optimize = .ReleaseFast,
+        .link_libc = true,
+        .root_source_file = b.path("src/memory.zig"),
+    });
+
     lib_value.addIncludePath(b.path("include"));
+    lib_memory.addIncludePath(b.path("include"));
     lib_table.linkLibrary(lib_value);
+    lib_table.linkLibrary(lib_memory);
     lib_table.addCSourceFiles(.{
         .root = b.path("core"),
         .files = &.{
             //    "value.c",
-            "memory.c",
+            //"memory.c",
             "object.c",
         },
         .flags = c_flags,
