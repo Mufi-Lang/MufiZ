@@ -90,9 +90,27 @@ pub fn build(b: *std.Build) !void {
         .root_source_file = b.path("src/chunk.zig"),
     });
 
+    const lib_compiler = b.addStaticLibrary(.{
+        .name = "libmufiz_compiler",
+        .target = target,
+        .optimize = .ReleaseFast,
+        .link_libc = true,
+        .root_source_file = b.path("src/compiler.zig"),
+    });
+
+    const lib_debug = b.addStaticLibrary(.{
+        .name = "libmufiz_debug",
+        .target = target,
+        .optimize = .ReleaseFast,
+        .link_libc = true,
+        .root_source_file = b.path("src/debug.zig"),
+    });
+
     lib_value.addIncludePath(b.path("include"));
     lib_memory.addIncludePath(b.path("include"));
     lib_chunk.addIncludePath(b.path("include"));
+    lib_compiler.addIncludePath(b.path("include"));
+    lib_debug.addIncludePath(b.path("include"));
 
     lib_table.linkLibrary(lib_value);
     lib_table.linkLibrary(lib_memory);
@@ -110,16 +128,21 @@ pub fn build(b: *std.Build) !void {
 
     exe.linkLibrary(lib_table);
     exe.linkLibrary(lib_chunk);
+    exe.linkLibrary(lib_compiler);
+    exe.linkLibrary(lib_debug);
+
     exe_check.linkLibrary(lib_table);
     exe_check.linkLibrary(lib_chunk);
+    exe_check.linkLibrary(lib_compiler);
+    exe_check.linkLibrary(lib_debug);
 
     exe.linkLibrary(lib_scanner);
     exe_check.linkLibrary(lib_scanner);
 
     const c_files: []const []const u8 = &.{
         //   "chunk.c",
-        "compiler.c",
-        "debug.c",
+        //  "compiler.c",
+        // "debug.c",
         "vm.c",
         "cstd.c",
     };
