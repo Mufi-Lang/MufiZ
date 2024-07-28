@@ -82,8 +82,18 @@ pub fn build(b: *std.Build) !void {
         .root_source_file = b.path("src/memory.zig"),
     });
 
+    const lib_chunk = b.addStaticLibrary(.{
+        .name = "libmufiz_chunk",
+        .target = target,
+        .optimize = .ReleaseFast,
+        .link_libc = true,
+        .root_source_file = b.path("src/chunk.zig"),
+    });
+
     lib_value.addIncludePath(b.path("include"));
     lib_memory.addIncludePath(b.path("include"));
+    lib_chunk.addIncludePath(b.path("include"));
+
     lib_table.linkLibrary(lib_value);
     lib_table.linkLibrary(lib_memory);
     lib_table.addCSourceFiles(.{
@@ -99,23 +109,34 @@ pub fn build(b: *std.Build) !void {
     lib_table.addIncludePath(b.path("include"));
 
     exe.linkLibrary(lib_table);
+    exe.linkLibrary(lib_chunk);
     exe_check.linkLibrary(lib_table);
+    exe_check.linkLibrary(lib_chunk);
 
     exe.linkLibrary(lib_scanner);
     exe_check.linkLibrary(lib_scanner);
 
-    // zig fmt: off
-    exe.addCSourceFiles(.{
-        .root = b.path("core"),
-        .files = &.{
-        "chunk.c",
+    const c_files: []const []const u8 = &.{
+        //   "chunk.c",
         "compiler.c",
         "debug.c",
         "vm.c",
         "cstd.c",
-        },
+    };
+
+    // zig fmt: off
+    exe.addCSourceFiles(.{
+        .root = b.path("core"),
+        .files = c_files,
         .flags = c_flags
     });
+
+    exe_check.addCSourceFiles(.{
+        .root = b.path("core"),
+        .files = c_files,
+        .flags = c_flags
+    });
+
     exe.addIncludePath(b.path("include"));
     exe_check.addIncludePath(b.path("include"));
     exe.linkSystemLibrary("m");
