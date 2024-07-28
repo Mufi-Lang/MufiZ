@@ -38,6 +38,14 @@ pub fn build(b: *std.Build) !void {
         .link_libc = true,
     });
 
+    const exe_check = b.addExecutable(.{
+        .name = "mufiz",
+        .root_source_file = b.path("src/main.zig"),
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
+
     if (query.cpu_arch == .wasm32) {
         b.enable_wasmtime = true;
     }
@@ -67,8 +75,10 @@ pub fn build(b: *std.Build) !void {
     lib_table.addIncludePath(b.path("include"));
 
     exe.linkLibrary(lib_table);
+    exe_check.linkLibrary(lib_table);
 
     exe.linkLibrary(lib_scanner);
+    exe_check.linkLibrary(lib_scanner);
 
     // zig fmt: off
     exe.addCSourceFiles(.{
@@ -83,7 +93,9 @@ pub fn build(b: *std.Build) !void {
         .flags = c_flags
     });
     exe.addIncludePath(b.path("include"));
+    exe_check.addIncludePath(b.path("include"));
     exe.linkSystemLibrary("m");
+    exe_check.linkSystemLibrary("m");
 
     const clap = b.dependency("clap", .{
         .target = target,
@@ -91,6 +103,7 @@ pub fn build(b: *std.Build) !void {
     });
 
     exe.root_module.addImport("clap", clap.module("clap"));
+    exe_check.root_module.addImport("clap", clap.module("clap"));
 
     const options = b.addOptions();
     const net  = b.option(bool, "enable_net", "Enable Network features") orelse true;
@@ -100,6 +113,7 @@ pub fn build(b: *std.Build) !void {
     options.addOption(bool, "enable_fs", fs);
     options.addOption(bool, "sandbox", sandbox);
     exe.root_module.addOptions("features", options);
+    exe_check.root_module.addOptions("features", options);
 
     // zig fmt: on
     b.installArtifact(exe);
@@ -112,6 +126,9 @@ pub fn build(b: *std.Build) !void {
 
     const docs_step = b.step("docs", "Copy documentation artifacts to prefix path");
     docs_step.dependOn(&install_docs.step);
+
+    const check = b.step("check", "Check if MufiZ compiles");
+    check.dependOn(&exe_check.step);
 
     const run_cmd = b.addRunArtifact(exe);
     run_cmd.step.dependOn(b.getInstallStep());

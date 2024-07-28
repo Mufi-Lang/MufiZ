@@ -1,7 +1,7 @@
-/* 
+/*
  * File:   value.h
  * Author: Mustafif Khan
- * Brief:  Mufi Data Type Values 
+ * Brief:  Mufi Data Type Values
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -23,11 +23,11 @@ typedef enum{
     VAL_INT,
     VAL_DOUBLE,
     VAL_OBJ,
-    VAL_COMPLEX, 
+    VAL_COMPLEX,
 }ValueType;
 
 typedef struct{
-    double r; 
+    double r;
     double i;
 } Complex;
 
@@ -38,7 +38,7 @@ typedef struct{
         double num_double;
         int num_int;
         Obj* obj;
-        Complex complex;  
+        Complex complex;
     } as;
 }Value;
 
@@ -58,12 +58,12 @@ typedef struct{
 #define AS_NUM_DOUBLE(value) (IS_INT(value) ? (double)AS_INT(value) : AS_DOUBLE(value))
 #define AS_NUM_INT(value) (IS_DOUBLE(value) ? (int)AS_DOUBLE(value) : AS_INT(value))
 
-#define BOOL_VAL(value) ((Value){VAL_BOOL, {.boolean = value}})
+#define BOOL_VAL(value) ((Value){VAL_BOOL, {.boolean = (value)}})
 #define NIL_VAL         ((Value){VAL_NIL, {.num_int = 0}})
-#define INT_VAL(value) ((Value){VAL_INT, {.num_int = value}})
-#define DOUBLE_VAL(value) ((Value){VAL_DOUBLE, {.num_double = value}})
-#define OBJ_VAL(object)  ((Value){VAL_OBJ, {.obj = (Obj*)object}})
-#define COMPLEX_VAL(c) ((Value){VAL_COMPLEX, {.complex = c}})
+#define INT_VAL(value) ((Value){VAL_INT, {.num_int = (value)}})
+#define DOUBLE_VAL(value) ((Value){VAL_DOUBLE, {.num_double = (value)}})
+#define OBJ_VAL(object)  ((Value){VAL_OBJ, {.obj = (Obj*)(object)}})
+#define COMPLEX_VAL(c) ((Value){VAL_COMPLEX, {.complex = (c)}})
 
 typedef struct {
     int capacity;

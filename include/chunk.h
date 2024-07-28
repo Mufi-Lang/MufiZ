@@ -48,6 +48,7 @@ typedef enum
     OP_PRINT,
     OP_JUMP,
     OP_JUMP_IF_FALSE,
+    OP_JUMP_IF_DONE,
     OP_LOOP,
     OP_CALL,
     OP_INVOKE,
@@ -60,6 +61,9 @@ typedef enum
     OP_METHOD,
     OP_ARRAY,
     OP_FVECTOR,
+    OP_GET_ITERATOR,
+    OP_ITERATOR_NEXT,
+    OP_ITERATOR_HAS_NEXT,
 } OpCode;
 
 //> Bytecode chunk, contains array of operation code

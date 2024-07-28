@@ -27,21 +27,21 @@ static Obj *allocateObject(size_t size, ObjType type) {
 }
 
 #define ARITHMETIC_OP(a, b, op)                                                \
-  switch (a.type) {                                                            \
+  switch ((a).type) {                                                            \
   case VAL_INT:                                                                \
-    if (b.type == VAL_INT) {                                                   \
+    if ((b).type == VAL_INT) {                                                   \
       return NIL_VAL;                                                          \
       return INT_VAL(AS_INT(a) op AS_INT(b));                                  \
-    } else if (b.type == VAL_DOUBLE) {                                         \
+    } else if ((b).type == VAL_DOUBLE) {                                         \
       return NIL_VAL;                                                          \
       return DOUBLE_VAL(AS_INT(a) op AS_DOUBLE(b));                            \
     }                                                                          \
     break;                                                                     \
   case VAL_DOUBLE:                                                             \
-    if (b.type == VAL_INT) {                                                   \
+    if ((b).type == VAL_INT) {                                                   \
       return NIL_VAL;                                                          \
       return DOUBLE_VAL(AS_DOUBLE(a) op AS_INT(b));                            \
-    } else if (b.type == VAL_DOUBLE) {                                         \
+    } else if ((b).type == VAL_DOUBLE) {                                         \
       return NIL_VAL;                                                          \
       return DOUBLE_VAL(AS_DOUBLE(a) op AS_DOUBLE(b));                         \
     }                                                                          \
@@ -110,11 +110,11 @@ ObjNative *newNative(NativeFn function) {
   return native;
 }
 
-ObjString *allocateString(char *chars, int length, uint64_t hash) {
+ObjString *allocateString(AllocStringParams params) {
   ObjString *string = ALLOCATE_OBJ(ObjString, OBJ_STRING);
-  string->length = length;
-  string->chars = chars;
-  string->hash = hash;
+  string->length = params.length;
+  string->chars = params.chars;
+  string->hash = params.hash;
   push(OBJ_VAL(string));
   tableSet(&vm.strings, string, NIL_VAL);
   pop();
@@ -176,7 +176,7 @@ ObjString *takeString(char *chars, int length) {
     FREE_ARRAY(char, chars, length + 1);
     return interned;
   }
-  return allocateString(chars, length, hash);
+  return allocateString((AllocStringParams){chars, length, hash});
 }
 
 ObjString *copyString(const char *chars, int length) {
@@ -187,7 +187,7 @@ ObjString *copyString(const char *chars, int length) {
   char *heapChars = ALLOCATE(char, length + 1);
   memcpy(heapChars, chars, length);
   heapChars[length] = '\0';
-  return allocateString(heapChars, length, hash);
+  return allocateString((AllocStringParams){heapChars, length, hash});
 }
 
 ObjUpvalue *newUpvalue(Value *slot) {
@@ -199,104 +199,6 @@ ObjUpvalue *newUpvalue(Value *slot) {
 }
 
 /*------------------------------------------------------------------------------*/
-
-/* -------------------------- Iterator Functions
- * ---------------------------------*/
-#define NEXT_FLOAT_VEC(iter)                                                   \
-  ((iter)->pos < (iter)->vec->count ? (iter)->vec->data[(iter)->pos++] : 0.0)
-
-#define NEXT_ARRAY(iter)                                                       \
-  ((iter)->pos < (iter)->arr->count ? (iter)->arr->values[(iter)->pos++]       \
-                                    : NIL_VAL)
-
-#define HAS_NEXT_ARRAY(iter) ((iter)->pos < (iter)->arr->count)
-
-#define HAS_NEXT_FLOAT_VEC(iter) ((iter)->pos < (iter)->vec->count)
-
-#define ITERATOR_PEEK(iter, pos)                                               \
-  (((iter)->type == FLOAT_VEC_ITER && (pos) < (iter)->iter.fvec->vec->count)   \
-       ? DOUBLE_VAL((iter)->iter.fvec->vec->data[pos])                         \
-   : ((iter)->type == ARRAY_ITER && (pos) < (iter)->iter.arr->arr->count)      \
-       ? (iter)->iter.arr->arr->values[pos]                                    \
-       : NIL_VAL)
-
-FloatVecIter *newFloatVecIter(FloatVector *vec) {
-  FloatVecIter *iter = ALLOCATE(FloatVecIter, 1);
-  iter->vec = vec;
-  iter->pos = 0;
-  return iter;
-}
-
-ArrayIter *newArrayIter(ObjArray *arr) {
-  ArrayIter *iter = ALLOCATE(ArrayIter, 1);
-  iter->arr = arr;
-  iter->pos = 0;
-  return iter;
-}
-
-ObjIterator *newIterator(IterType type, IterUnion iter) {
-  ObjIterator *iterator = ALLOCATE_OBJ(ObjIterator, OBJ_ITERATOR);
-  iterator->type = type;
-  iterator->iter = iter;
-  return iterator;
-}
-
-Value iteratorNext(ObjIterator *iter) {
-  if (iteratorHasNext(iter)) {
-    switch (iter->type) {
-    case FLOAT_VEC_ITER:
-      return DOUBLE_VAL(NEXT_FLOAT_VEC(iter->iter.fvec));
-    case ARRAY_ITER:
-      return NEXT_ARRAY(iter->iter.arr);
-    }
-  } else {
-    return NIL_VAL;
-  }
-}
-
-bool iteratorHasNext(ObjIterator *iter) {
-  switch (iter->type) {
-  case FLOAT_VEC_ITER:
-    return HAS_NEXT_ARRAY(iter->iter.arr);
-  case ARRAY_ITER:
-    return HAS_NEXT_FLOAT_VEC(iter->iter.fvec);
-  default:
-    return false;
-  }
-}
-
-Value iteratorPeek(ObjIterator *iter, int pos) {
-  return ITERATOR_PEEK(iter, pos);
-}
-
-void iteratorReset(ObjIterator *iter) {
-  switch (iter->type) {
-  case FLOAT_VEC_ITER:
-    iter->iter.fvec->pos = 0;
-    break;
-  case ARRAY_ITER:
-    iter->iter.arr->pos = 0;
-    break;
-  }
-}
-
-void iteratorSkip(ObjIterator *iter, int n) {
-  switch (iter->type) {
-  case FLOAT_VEC_ITER:
-    iter->iter.fvec->pos =
-        (iter->iter.fvec->pos + n) < iter->iter.fvec->vec->count
-            ? iter->iter.fvec->pos + n
-            : iter->iter.fvec->vec->count;
-    break;
-  case ARRAY_ITER:
-    iter->iter.arr->pos = (iter->iter.arr->pos + n) < iter->iter.arr->arr->count
-                              ? iter->iter.arr->pos + n
-                              : iter->iter.arr->arr->count;
-    break;
-  }
-}
-
-void freeObjectIterator(ObjIterator *iter) { FREE(ObjIterator, iter); }
 
 /*-------------------------- Array Functions --------------------------------*/
 ObjArray *mergeArrays(ObjArray *a, ObjArray *b) {
@@ -649,6 +551,32 @@ ObjArray *newArrayWithCap(int capacity, bool _static) {
 }
 
 ObjArray *newArray() { return newArrayWithCap(0, false); }
+
+Value nextObjectArray(ObjArray *array){
+    if (array->pos >= array->count) {
+        return NIL_VAL;
+    }
+    return array->values[array->pos++];
+}
+
+bool hasNextObjectArray(ObjArray *array) {
+    return array->pos < array->count;
+}
+
+Value peekObjectArray(ObjArray *array, int pos){
+    if (pos >= array->count) {
+        return NIL_VAL;
+    }
+    return array->values[pos];
+}
+
+void skipObjectArray(ObjArray *array, int n){
+    array->pos = array->pos + n < array->count ? array->pos + n : array->count;
+}
+
+void resetObjectArray(ObjArray *array){
+    array->pos = 0;
+}
 
 /*----------------------------------------------------------------------------*/
 
@@ -2011,7 +1939,7 @@ FloatVector *singleDivFloatVector(FloatVector *a, double b) {
 }
 
 static int compare_double(const void *a, const void *b) {
-  return (*(double *)a - *(double *)b);
+  return (int)(*(double *)a - *(double *)b);
 }
 
 void sortFloatVector(FloatVector *vector) {
@@ -2026,6 +1954,33 @@ void reverseFloatVector(FloatVector *vector) {
     vector->data[i] = vector->data[vector->count - i - 1];
     vector->data[vector->count - i - 1] = temp;
   }
+}
+
+
+double nextFloatVector(FloatVector *vector){
+    if(hasNextFloatVector(vector)){
+        return vector->data[vector->pos++];
+    }
+    return 0.0;
+}
+
+bool hasNextFloatVector(FloatVector *vector){
+    return vector->pos < vector->count;
+}
+
+double peekFloatVector(FloatVector *vector, int pos){
+    if(pos < vector->count){
+        return vector->data[pos];
+    }
+    return 0.0;
+}
+
+void resetFloatVector(FloatVector *vector){
+    vector->pos = 0;
+}
+
+void skipFloatVector(FloatVector *vector, int n){
+    vector->pos = vector->pos + n < vector->count ? vector->pos + n : vector->count;
 }
 
 static int binarySearchFloatVector(FloatVector *vector, double value) {
@@ -2256,10 +2211,6 @@ void printObject(Value value) {
   }
   case OBJ_MATRIX: {
     printMatrix(AS_MATRIX(value));
-    break;
-  }
-  case OBJ_ITERATOR: {
-    printf("<iterator>");
     break;
   }
   }

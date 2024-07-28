@@ -1,4 +1,4 @@
-/* 
+/*
  * File:   table.h
  * Author: Mustafif Khan
  * Brief:  Hashtable implementation using ObjString as Key, and Value as the Value
@@ -13,11 +13,12 @@
 
 #include "common.h"
 #include "value.h"
+#include "stdbool.h"
 
 struct Entry{
     ObjString* key;
     Value value;
-    bool deleted; // Flag to check if the entry is deleted
+    bool deleted;
 };
 
 struct Table{

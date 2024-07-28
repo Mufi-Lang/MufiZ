@@ -1,0 +1,83 @@
+Checks: >
+  -*,
+  bugprone-*,                  # Checks for common bugs
+  cert-*,                      # CERT C Secure Coding Standard checks
+  clang-analyzer-*,            # Clang Static Analyzer checks
+  cppcoreguidelines-*,         # C++ Core Guidelines checks
+  google-*,                    # Google coding style checks
+  llvm-*,                      # LLVM coding style checks
+  misc-*,                      # Miscellaneous checks
+  modernize-*,                 # Modernize code (use C++11/14/17 features)
+  performance-*,               # Performance-related checks
+  portability-*,               # Portability-related checks
+  readability-*                # Readability improvements
+
+WarningsAsErrors: '*'          # Treat all warnings as errors
+
+HeaderFilterRegex: '.*'        # Analyze all files
+AnalyzeTemporaryDtors: false   # Skip temporary destructor analysis
+CheckOptions:
+  - key:             readability-identifier-naming.NamespaceCase
+    value:           lower_case
+  - key:             readability-identifier-naming.ClassCase
+    value:           CamelCase
+  - key:             readability-identifier-naming.StructCase
+    value:           CamelCase
+  - key:             readability-identifier-naming.FunctionCase
+    value:           camelBack
+  - key:             readability-identifier-naming.VariableCase
+    value:           lower_case
+  - key:             readability-identifier-naming.ParameterCase
+    value:           lower_case
+  - key:             readability-identifier-naming.ClassMemberCase
+    value:           mCamelCase
+  - key:             readability-identifier-naming.GlobalConstantCase
+    value:           UPPER_CASE
+
+  - key:             readability-braces-around-statements.ShortStatementLines
+    value:           1
+  - key:             readability-magic-numbers.IgnoreSimpleAssignments
+    value:           true
+  - key:             readability-magic-numbers.IgnoredIntegerValues
+    value:           '0,1,2,3,4,5,6,7,8,9,10,16,32,64,128'
+  - key:             readability-function-size.StatementThreshold
+    value:           800
+
+  - key:             cert-dcl03-c.ProhibitNamespacesInHeaders
+    value:           true
+  - key:             cert-env33-c.ProhibitEnvironmentVariables
+    value:           true
+  - key:             cert-err33-c.ProhibitErrno
+    value:           true
+
+  - key:             modernize-use-auto.MinTypeNameLength
+    value:           5
+
+  - key:             performance-unnecessary-value-param.UseConstRef
+    value:           true
+
+  - key:             portability-simd-intrinsics.UsePortableHeader
+    value:           true
+
+  - key:             cppcoreguidelines-pro-type-member-init.MemberInit
+    value:           true
+  - key:             cppcoreguidelines-avoid-magic-numbers.IgnoreCppOneLiners
+    value:           true
+
+  - key:             google-readability-function-size.LineThreshold
+    value:           80
+  - key:             google-readability-namespace-comments.ShortNamespaceLines
+    value:           10
+
+  - key:             clang-analyzer-core.CallAndMessage
+    value:           true
+  - key:             clang-analyzer-core.DivideZero
+    value:           true
+  - key:             clang-analyzer-core.NullDereference
+    value:           true
+  - key:             clang-analyzer-core.UndefinedBinaryOperatorResult
+    value:           true
+  - key:             clang-analyzer-core.VLASize
+    value:           true
+
+FormatStyle:        file       # Use clang-format style from .clang-format

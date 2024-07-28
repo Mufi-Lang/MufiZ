@@ -1,0 +1,9 @@
+var a = array();
+var amt = 10000000;
+var start = now_ms();
+for (var i = 0; i < amt; i++) {
+    push(a, i);
+}
+var end = now_ms();
+
+print end - start;

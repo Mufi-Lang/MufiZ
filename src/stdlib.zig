@@ -19,7 +19,7 @@ pub const io = @import("stdlib/io.zig");
 pub const NativeFn = *const fn (c_int, [*c]Value) callconv(.C) Value;
 
 fn defineNative(name: []const u8, fun: NativeFn) void {
-    vm.defineNative(conv.cstr(@constCast(name)), @ptrCast(fun));
+    vm.defineNative(@ptrCast(@constCast(name)), @ptrCast(fun));
 }
 
 pub fn prelude() void {

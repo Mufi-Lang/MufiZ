@@ -2,9 +2,12 @@
 #include "../include/common.h"
 #include "../include/memory.h"
 #include "../include/scanner.h"
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
 
 #ifdef DEBUG_PRINT_CODE
 #include "../include/debug.h"
@@ -631,6 +634,10 @@ static void self_(bool canAssign) {
   variable(false);
 }
 
+static void item_(bool canAssign){
+    variable(false);
+}
+
 static void unary(bool canAssign) {
   enum TokenType operatorType = parser.previous.type;
 
@@ -679,10 +686,12 @@ ParseRule rules[] = {
     [TOKEN_AND] = {NULL, and_, PREC_AND},
     [TOKEN_CLASS] = {NULL, NULL, PREC_NONE},
     [TOKEN_ELSE] = {NULL, NULL, PREC_NONE},
+    [TOKEN_EACH] = {NULL, NULL, PREC_NONE},
     [TOKEN_FALSE] = {literal, NULL, PREC_NONE},
     [TOKEN_FOR] = {NULL, NULL, PREC_NONE},
     [TOKEN_FUN] = {NULL, NULL, PREC_NONE},
     [TOKEN_IF] = {NULL, NULL, PREC_NONE},
+    [TOKEN_ITEM] = {item_, NULL, PREC_NONE},
     [TOKEN_LET] = {NULL, NULL, PREC_NONE},
     [TOKEN_NIL] = {literal, NULL, PREC_NONE},
     [TOKEN_OR] = {NULL, or_, PREC_OR},
@@ -895,7 +904,22 @@ static void forStatement() {
   endScope();
 }
 
-static void eachStatement() {}
+static void eachStatement() {
+    int loopStart = currentChunk()->count;
+    consume(TOKEN_LEFT_PAREN, "Expect '(' after 'while'.");
+    expression();
+    consume(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
+
+    int exitJump = emitJump(OP_JUMP_IF_DONE);
+    //emitByte(OP_POP);
+    struct Token item = (struct Token) {.start = "item", .length = 4, .type = TOKEN_ITEM};
+    emitBytes(OP_SET_GLOBAL, identifierConstant(&item));
+    // assign item here
+    statement();
+    emitLoop(loopStart);
+    patchJump(exitJump);
+    emitByte(OP_POP);
+}
 
 static void ifStatement() {
   consume(TOKEN_LEFT_PAREN, "Expect '(' after 'if'.");
@@ -977,6 +1001,7 @@ static void synchronize() {
     advance();
   }
 }
+
 static void declaration() {
   if (match(TOKEN_CLASS)) {
     classDeclaration();
@@ -996,6 +1021,8 @@ static void statement() {
     printStatement();
   } else if (match(TOKEN_FOR)) {
     forStatement();
+  } else if (match(TOKEN_EACH)) {
+    eachStatement();
   } else if (match(TOKEN_IF)) {
     ifStatement();
   } else if (match(TOKEN_RETURN)) {

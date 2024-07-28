@@ -142,7 +142,7 @@ pub export fn tableFindString(table: *Table, chars: [*c]const u8, length: c_int,
         const entry: [*c]Entry = &table.*.entries[index];
         if (entry.*.key == null) {
             if (entry.*.value.type == VAL_NIL) return null;
-        } else if ( !entry.*.deleted and ((entry.*.key.?.length == length) and (entry.*.key.?.hash == hash)) and (memcmp(@ptrCast(entry.*.key.?.chars), @ptrCast(chars), @as(usize, @intCast(length))) == 0)) {
+        } else if (!entry.*.deleted and ((entry.*.key.?.length == length) and (entry.*.key.?.hash == hash)) and (memcmp(@ptrCast(entry.*.key.?.chars), @ptrCast(chars), @as(usize, @intCast(length))) == 0)) {
             return entry.*.key;
         }
         index = (index + 1) & @as(usize, @intCast(table.*.capacity - 1));

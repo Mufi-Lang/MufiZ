@@ -21,7 +21,7 @@
 #define ALLOCATE(type, count) \
     ((type*)reallocate(NULL, 0, sizeof(type) * (count)))
 // To grow capacity we check if the capacity is less than 8,
-// if so, we make it 8, if not we multiply the old capacity by 2.
+// if so, we make it 8, if not we multiply the old capacity by 2
 //> Grows the capacity of dynamic arrays
 #define GROW_CAPACITY(capacity) \
     ((capacity) < 8 ? 8: (capacity) * 2)
@@ -32,7 +32,7 @@
 // Knowing what the new capacity is, we can also grow an array to the same capacity
 //> Grows the array with a desired capacity
 #define GROW_ARRAY(type, pointer, oldCount, newCount) \
-        (type*)reallocate(pointer, sizeof(type) * oldCount, \
+        (type*)reallocate(pointer, sizeof(type) * (oldCount), \
         sizeof(type) * (newCount))
 
 //> Frees a dynamic array
