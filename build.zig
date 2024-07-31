@@ -52,7 +52,7 @@ pub fn build(b: *std.Build) !void {
 
     const lib_scanner = b.addStaticLibrary(.{
         .name = "libmufiz_scanner",
-        .root_source_file = b.path("src/scanner.zig"),
+        .root_source_file = b.path("lib/scanner.zig"),
         .target = target,
         .optimize = .ReleaseFast,
         .link_libc = true,
@@ -63,7 +63,7 @@ pub fn build(b: *std.Build) !void {
         .target = target,
         .optimize = .ReleaseFast,
         .link_libc = true,
-        .root_source_file = b.path("src/table.zig"),
+        .root_source_file = b.path("lib/table.zig"),
     });
 
     const lib_value = b.addStaticLibrary(.{
@@ -71,7 +71,7 @@ pub fn build(b: *std.Build) !void {
         .target = target,
         .optimize = .ReleaseFast,
         .link_libc = true,
-        .root_source_file = b.path("src/value.zig"),
+        .root_source_file = b.path("lib/value.zig"),
     });
 
     const lib_memory = b.addStaticLibrary(.{
@@ -79,7 +79,7 @@ pub fn build(b: *std.Build) !void {
         .target = target,
         .optimize = .ReleaseFast,
         .link_libc = true,
-        .root_source_file = b.path("src/memory.zig"),
+        .root_source_file = b.path("lib/memory.zig"),
     });
 
     const lib_chunk = b.addStaticLibrary(.{
@@ -87,7 +87,7 @@ pub fn build(b: *std.Build) !void {
         .target = target,
         .optimize = .ReleaseFast,
         .link_libc = true,
-        .root_source_file = b.path("src/chunk.zig"),
+        .root_source_file = b.path("lib/chunk.zig"),
     });
 
     const lib_compiler = b.addStaticLibrary(.{
@@ -95,7 +95,7 @@ pub fn build(b: *std.Build) !void {
         .target = target,
         .optimize = .ReleaseFast,
         .link_libc = true,
-        .root_source_file = b.path("src/compiler.zig"),
+        .root_source_file = b.path("lib/compiler.zig"),
     });
 
     const lib_debug = b.addStaticLibrary(.{
@@ -103,7 +103,7 @@ pub fn build(b: *std.Build) !void {
         .target = target,
         .optimize = .ReleaseFast,
         .link_libc = true,
-        .root_source_file = b.path("src/debug.zig"),
+        .root_source_file = b.path("lib/debug.zig"),
     });
 
     const lib_cstd = b.addStaticLibrary(.{
@@ -111,7 +111,7 @@ pub fn build(b: *std.Build) !void {
         .target = target,
         .optimize = .ReleaseFast,
         .link_libc = true,
-        .root_source_file = b.path("src/cstd.zig"),
+        .root_source_file = b.path("lib/cstd.zig"),
     });
 
     lib_value.addIncludePath(b.path("include"));
@@ -218,7 +218,7 @@ pub fn build(b: *std.Build) !void {
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
 
-    const exe_test = b.addTest(.{ .root_source_file = b.path("src/main.zig"), .target = target, .optimize = optimize });
+    const exe_test = b.addTest(.{ .root_source_file = b.path("lib/main.zig"), .target = target, .optimize = optimize });
     exe_test.linkLibC();
     exe_test.addCSourceFiles(.{ .root = b.path("core"), .files = c_files, .flags = c_flags });
     exe_test.linkLibrary(lib_scanner);

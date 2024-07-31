@@ -1,8 +1,10 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
+const zig_version = "0.13.0";
+
 comptime {
-    const supported_version = std.SemanticVersion.parse("0.13.0") catch unreachable;
+    const supported_version = std.SemanticVersion.parse(zig_version) catch unreachable;
     if (builtin.zig_version.order(supported_version) != .eq) {
         @compileError(std.fmt.comptimePrint("Unsupported Zig version ({}). Required Zig version 0.13.0.", .{builtin.zig_version}));
     }
@@ -58,7 +60,7 @@ pub fn build(b: *std.Build) !void {
     options.addOption(bool, "sandbox", sandbox);
 
     for (targets) |target| {
-        try build_target(b, target, options);
+        try buildTarget(b, target, options);
     }
 }
 
@@ -114,7 +116,7 @@ fn common(optimize: std.builtin.OptimizeMode) !void {
     }
 }
 
-fn build_target(b: *std.Build, target: std.Target.Query, options: *std.Build.Step.Options) !void {
+fn buildTarget(b: *std.Build, target: std.Target.Query, options: *std.Build.Step.Options) !void {
     var c_flags: []const []const u8 = undefined;
     if (target.cpu_arch == .x86_64) {
         c_flags = &.{ "-Wall", "-O3", "-ffast-math", "-Wno-unused-variable", "-Wno-unused-function", "-mavx2" };
@@ -158,30 +160,98 @@ fn build_target(b: *std.Build, target: std.Target.Query, options: *std.Build.Ste
         .root_source_file = b.path("src/table.zig"),
     });
 
-    lib_table.addCSourceFiles(.{ .files = &.{
-        "core/value.c",
-        "core/memory.c",
-        "core/object.c",
-    }, .flags = c_flags });
+    const lib_value = b.addStaticLibrary(.{
+        .name = "libmufiz_value",
+        .target = b.resolveTargetQuery(target),
+        .optimize = .ReleaseFast,
+        .link_libc = true,
+        .root_source_file = b.path("src/value.zig"),
+    });
 
-    lib_table.addIncludePath(b.path("include/"));
+    const lib_memory = b.addStaticLibrary(.{
+        .name = "libmufiz_memory",
+        .target = b.resolveTargetQuery(target),
+        .optimize = .ReleaseFast,
+        .link_libc = true,
+        .root_source_file = b.path("src/memory.zig"),
+    });
+
+    const lib_chunk = b.addStaticLibrary(.{
+        .name = "libmufiz_chunk",
+        .target = b.resolveTargetQuery(target),
+        .optimize = .ReleaseFast,
+        .link_libc = true,
+        .root_source_file = b.path("src/chunk.zig"),
+    });
+
+    const lib_compiler = b.addStaticLibrary(.{
+        .name = "libmufiz_compiler",
+        .target = b.resolveTargetQuery(target),
+        .optimize = .ReleaseFast,
+        .link_libc = true,
+        .root_source_file = b.path("src/compiler.zig"),
+    });
+
+    const lib_debug = b.addStaticLibrary(.{
+        .name = "libmufiz_debug",
+        .target = b.resolveTargetQuery(target),
+        .optimize = .ReleaseFast,
+        .link_libc = true,
+        .root_source_file = b.path("src/debug.zig"),
+    });
+
+    const lib_cstd = b.addStaticLibrary(.{
+        .name = "libmufiz_cstd",
+        .target = b.resolveTargetQuery(target),
+        .optimize = .ReleaseFast,
+        .link_libc = true,
+        .root_source_file = b.path("src/cstd.zig"),
+    });
+
+    lib_value.addIncludePath(b.path("include"));
+    lib_memory.addIncludePath(b.path("include"));
+    lib_chunk.addIncludePath(b.path("include"));
+    lib_compiler.addIncludePath(b.path("include"));
+    lib_debug.addIncludePath(b.path("include"));
+    lib_cstd.addIncludePath(b.path("include"));
+
+    lib_table.linkLibrary(lib_value);
+    lib_table.linkLibrary(lib_memory);
+    lib_table.addCSourceFiles(.{
+        .root = b.path("core"),
+        .files = &.{
+            //    "value.c",
+            //"memory.c",
+            "object.c",
+        },
+        .flags = c_flags,
+    });
+
+    lib_table.addIncludePath(b.path("include"));
 
     exe.linkLibrary(lib_table);
+    exe.linkLibrary(lib_chunk);
+    exe.linkLibrary(lib_compiler);
+    exe.linkLibrary(lib_debug);
+    exe.linkLibrary(lib_cstd);
 
     exe.linkLibrary(lib_scanner);
 
+    const c_files: []const []const u8 = &.{
+        //   "chunk.c",
+        //  "compiler.c",
+        // "debug.c",
+        "vm.c",
+        // "cstd.c",
+    };
+
     // zig fmt: off
     exe.addCSourceFiles(.{
-        .files = &.{
-        "core/chunk.c",
-        "core/compiler.c",
-        "core/debug.c",
-        "core/vm.c",
-        "core/cstd.c",
-        },
+        .root = b.path("core"),
+        .files = c_files,
         .flags = c_flags
     });
-    exe.addIncludePath(b.path("include/"));
+    exe.addIncludePath(b.path("include"));
     exe.linkSystemLibrary("m");
 
     const clap = b.dependency("clap", .{

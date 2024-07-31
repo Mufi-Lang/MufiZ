@@ -54,12 +54,6 @@ pub const __builtin_assume = @import("std").zig.c_builtins.__builtin_assume;
 pub const __builtin_unreachable = @import("std").zig.c_builtins.__builtin_unreachable;
 pub const __builtin_constant_p = @import("std").zig.c_builtins.__builtin_constant_p;
 pub const __builtin_mul_overflow = @import("std").zig.c_builtins.__builtin_mul_overflow;
-pub const ptrdiff_t = c_long;
-pub const wchar_t = c_int;
-pub const max_align_t = extern struct {
-    __clang_max_align_nonce1: c_longlong align(8) = @import("std").mem.zeroes(c_longlong),
-    __clang_max_align_nonce2: c_longdouble align(16) = @import("std").mem.zeroes(c_longdouble),
-};
 pub const __u_char = u8;
 pub const __u_short = c_ushort;
 pub const __u_int = c_uint;
@@ -125,6 +119,741 @@ pub const __caddr_t = [*c]u8;
 pub const __intptr_t = c_long;
 pub const __socklen_t = c_uint;
 pub const __sig_atomic_t = c_int;
+pub const _Float32 = f32;
+pub const _Float64 = f64;
+pub const _Float32x = f64;
+pub const _Float64x = c_longdouble;
+pub const float_t = f32;
+pub const double_t = f64;
+pub extern fn __fpclassify(__value: f64) c_int;
+pub extern fn __signbit(__value: f64) c_int;
+pub extern fn __isinf(__value: f64) c_int;
+pub extern fn __finite(__value: f64) c_int;
+pub extern fn __isnan(__value: f64) c_int;
+pub extern fn __iseqsig(__x: f64, __y: f64) c_int;
+pub extern fn __issignaling(__value: f64) c_int;
+pub extern fn acos(__x: f64) f64;
+pub extern fn __acos(__x: f64) f64;
+pub extern fn asin(__x: f64) f64;
+pub extern fn __asin(__x: f64) f64;
+pub extern fn atan(__x: f64) f64;
+pub extern fn __atan(__x: f64) f64;
+pub extern fn atan2(__y: f64, __x: f64) f64;
+pub extern fn __atan2(__y: f64, __x: f64) f64;
+pub extern fn cos(__x: f64) f64;
+pub extern fn __cos(__x: f64) f64;
+pub extern fn sin(__x: f64) f64;
+pub extern fn __sin(__x: f64) f64;
+pub extern fn tan(__x: f64) f64;
+pub extern fn __tan(__x: f64) f64;
+pub extern fn cosh(__x: f64) f64;
+pub extern fn __cosh(__x: f64) f64;
+pub extern fn sinh(__x: f64) f64;
+pub extern fn __sinh(__x: f64) f64;
+pub extern fn tanh(__x: f64) f64;
+pub extern fn __tanh(__x: f64) f64;
+pub extern fn acosh(__x: f64) f64;
+pub extern fn __acosh(__x: f64) f64;
+pub extern fn asinh(__x: f64) f64;
+pub extern fn __asinh(__x: f64) f64;
+pub extern fn atanh(__x: f64) f64;
+pub extern fn __atanh(__x: f64) f64;
+pub extern fn exp(__x: f64) f64;
+pub extern fn __exp(__x: f64) f64;
+pub extern fn frexp(__x: f64, __exponent: [*c]c_int) f64;
+pub extern fn __frexp(__x: f64, __exponent: [*c]c_int) f64;
+pub extern fn ldexp(__x: f64, __exponent: c_int) f64;
+pub extern fn __ldexp(__x: f64, __exponent: c_int) f64;
+pub extern fn log(__x: f64) f64;
+pub extern fn __log(__x: f64) f64;
+pub extern fn log10(__x: f64) f64;
+pub extern fn __log10(__x: f64) f64;
+pub extern fn modf(__x: f64, __iptr: [*c]f64) f64;
+pub extern fn __modf(__x: f64, __iptr: [*c]f64) f64;
+pub extern fn expm1(__x: f64) f64;
+pub extern fn __expm1(__x: f64) f64;
+pub extern fn log1p(__x: f64) f64;
+pub extern fn __log1p(__x: f64) f64;
+pub extern fn logb(__x: f64) f64;
+pub extern fn __logb(__x: f64) f64;
+pub extern fn exp2(__x: f64) f64;
+pub extern fn __exp2(__x: f64) f64;
+pub extern fn log2(__x: f64) f64;
+pub extern fn __log2(__x: f64) f64;
+pub extern fn pow(__x: f64, __y: f64) f64;
+pub extern fn __pow(__x: f64, __y: f64) f64;
+pub extern fn sqrt(__x: f64) f64;
+pub extern fn __sqrt(__x: f64) f64;
+pub extern fn hypot(__x: f64, __y: f64) f64;
+pub extern fn __hypot(__x: f64, __y: f64) f64;
+pub extern fn cbrt(__x: f64) f64;
+pub extern fn __cbrt(__x: f64) f64;
+pub extern fn ceil(__x: f64) f64;
+pub extern fn __ceil(__x: f64) f64;
+pub extern fn fabs(__x: f64) f64;
+pub extern fn __fabs(__x: f64) f64;
+pub extern fn floor(__x: f64) f64;
+pub extern fn __floor(__x: f64) f64;
+pub extern fn fmod(__x: f64, __y: f64) f64;
+pub extern fn __fmod(__x: f64, __y: f64) f64;
+pub extern fn isinf(__value: f64) c_int;
+pub extern fn finite(__value: f64) c_int;
+pub extern fn drem(__x: f64, __y: f64) f64;
+pub extern fn __drem(__x: f64, __y: f64) f64;
+pub extern fn significand(__x: f64) f64;
+pub extern fn __significand(__x: f64) f64;
+pub extern fn copysign(__x: f64, __y: f64) f64;
+pub extern fn __copysign(__x: f64, __y: f64) f64;
+pub extern fn nan(__tagb: [*c]const u8) f64;
+pub extern fn __nan(__tagb: [*c]const u8) f64;
+pub extern fn isnan(__value: f64) c_int;
+pub extern fn j0(f64) f64;
+pub extern fn __j0(f64) f64;
+pub extern fn j1(f64) f64;
+pub extern fn __j1(f64) f64;
+pub extern fn jn(c_int, f64) f64;
+pub extern fn __jn(c_int, f64) f64;
+pub extern fn y0(f64) f64;
+pub extern fn __y0(f64) f64;
+pub extern fn y1(f64) f64;
+pub extern fn __y1(f64) f64;
+pub extern fn yn(c_int, f64) f64;
+pub extern fn __yn(c_int, f64) f64;
+pub extern fn erf(f64) f64;
+pub extern fn __erf(f64) f64;
+pub extern fn erfc(f64) f64;
+pub extern fn __erfc(f64) f64;
+pub extern fn lgamma(f64) f64;
+pub extern fn __lgamma(f64) f64;
+pub extern fn tgamma(f64) f64;
+pub extern fn __tgamma(f64) f64;
+pub extern fn gamma(f64) f64;
+pub extern fn __gamma(f64) f64;
+pub extern fn lgamma_r(f64, __signgamp: [*c]c_int) f64;
+pub extern fn __lgamma_r(f64, __signgamp: [*c]c_int) f64;
+pub extern fn rint(__x: f64) f64;
+pub extern fn __rint(__x: f64) f64;
+pub extern fn nextafter(__x: f64, __y: f64) f64;
+pub extern fn __nextafter(__x: f64, __y: f64) f64;
+pub extern fn nexttoward(__x: f64, __y: c_longdouble) f64;
+pub extern fn __nexttoward(__x: f64, __y: c_longdouble) f64;
+pub extern fn remainder(__x: f64, __y: f64) f64;
+pub extern fn __remainder(__x: f64, __y: f64) f64;
+pub extern fn scalbn(__x: f64, __n: c_int) f64;
+pub extern fn __scalbn(__x: f64, __n: c_int) f64;
+pub extern fn ilogb(__x: f64) c_int;
+pub extern fn __ilogb(__x: f64) c_int;
+pub extern fn scalbln(__x: f64, __n: c_long) f64;
+pub extern fn __scalbln(__x: f64, __n: c_long) f64;
+pub extern fn nearbyint(__x: f64) f64;
+pub extern fn __nearbyint(__x: f64) f64;
+pub extern fn round(__x: f64) f64;
+pub extern fn __round(__x: f64) f64;
+pub extern fn trunc(__x: f64) f64;
+pub extern fn __trunc(__x: f64) f64;
+pub extern fn remquo(__x: f64, __y: f64, __quo: [*c]c_int) f64;
+pub extern fn __remquo(__x: f64, __y: f64, __quo: [*c]c_int) f64;
+pub extern fn lrint(__x: f64) c_long;
+pub extern fn __lrint(__x: f64) c_long;
+pub extern fn llrint(__x: f64) c_longlong;
+pub extern fn __llrint(__x: f64) c_longlong;
+pub extern fn lround(__x: f64) c_long;
+pub extern fn __lround(__x: f64) c_long;
+pub extern fn llround(__x: f64) c_longlong;
+pub extern fn __llround(__x: f64) c_longlong;
+pub extern fn fdim(__x: f64, __y: f64) f64;
+pub extern fn __fdim(__x: f64, __y: f64) f64;
+pub extern fn fmax(__x: f64, __y: f64) f64;
+pub extern fn __fmax(__x: f64, __y: f64) f64;
+pub extern fn fmin(__x: f64, __y: f64) f64;
+pub extern fn __fmin(__x: f64, __y: f64) f64;
+pub extern fn fma(__x: f64, __y: f64, __z: f64) f64;
+pub extern fn __fma(__x: f64, __y: f64, __z: f64) f64;
+pub extern fn scalb(__x: f64, __n: f64) f64;
+pub extern fn __scalb(__x: f64, __n: f64) f64;
+pub extern fn __fpclassifyf(__value: f32) c_int;
+pub extern fn __signbitf(__value: f32) c_int;
+pub extern fn __isinff(__value: f32) c_int;
+pub extern fn __finitef(__value: f32) c_int;
+pub extern fn __isnanf(__value: f32) c_int;
+pub extern fn __iseqsigf(__x: f32, __y: f32) c_int;
+pub extern fn __issignalingf(__value: f32) c_int;
+pub extern fn acosf(__x: f32) f32;
+pub extern fn __acosf(__x: f32) f32;
+pub extern fn asinf(__x: f32) f32;
+pub extern fn __asinf(__x: f32) f32;
+pub extern fn atanf(__x: f32) f32;
+pub extern fn __atanf(__x: f32) f32;
+pub extern fn atan2f(__y: f32, __x: f32) f32;
+pub extern fn __atan2f(__y: f32, __x: f32) f32;
+pub extern fn cosf(__x: f32) f32;
+pub extern fn __cosf(__x: f32) f32;
+pub extern fn sinf(__x: f32) f32;
+pub extern fn __sinf(__x: f32) f32;
+pub extern fn tanf(__x: f32) f32;
+pub extern fn __tanf(__x: f32) f32;
+pub extern fn coshf(__x: f32) f32;
+pub extern fn __coshf(__x: f32) f32;
+pub extern fn sinhf(__x: f32) f32;
+pub extern fn __sinhf(__x: f32) f32;
+pub extern fn tanhf(__x: f32) f32;
+pub extern fn __tanhf(__x: f32) f32;
+pub extern fn acoshf(__x: f32) f32;
+pub extern fn __acoshf(__x: f32) f32;
+pub extern fn asinhf(__x: f32) f32;
+pub extern fn __asinhf(__x: f32) f32;
+pub extern fn atanhf(__x: f32) f32;
+pub extern fn __atanhf(__x: f32) f32;
+pub extern fn expf(__x: f32) f32;
+pub extern fn __expf(__x: f32) f32;
+pub extern fn frexpf(__x: f32, __exponent: [*c]c_int) f32;
+pub extern fn __frexpf(__x: f32, __exponent: [*c]c_int) f32;
+pub extern fn ldexpf(__x: f32, __exponent: c_int) f32;
+pub extern fn __ldexpf(__x: f32, __exponent: c_int) f32;
+pub extern fn logf(__x: f32) f32;
+pub extern fn __logf(__x: f32) f32;
+pub extern fn log10f(__x: f32) f32;
+pub extern fn __log10f(__x: f32) f32;
+pub extern fn modff(__x: f32, __iptr: [*c]f32) f32;
+pub extern fn __modff(__x: f32, __iptr: [*c]f32) f32;
+pub extern fn expm1f(__x: f32) f32;
+pub extern fn __expm1f(__x: f32) f32;
+pub extern fn log1pf(__x: f32) f32;
+pub extern fn __log1pf(__x: f32) f32;
+pub extern fn logbf(__x: f32) f32;
+pub extern fn __logbf(__x: f32) f32;
+pub extern fn exp2f(__x: f32) f32;
+pub extern fn __exp2f(__x: f32) f32;
+pub extern fn log2f(__x: f32) f32;
+pub extern fn __log2f(__x: f32) f32;
+pub extern fn powf(__x: f32, __y: f32) f32;
+pub extern fn __powf(__x: f32, __y: f32) f32;
+pub extern fn sqrtf(__x: f32) f32;
+pub extern fn __sqrtf(__x: f32) f32;
+pub extern fn hypotf(__x: f32, __y: f32) f32;
+pub extern fn __hypotf(__x: f32, __y: f32) f32;
+pub extern fn cbrtf(__x: f32) f32;
+pub extern fn __cbrtf(__x: f32) f32;
+pub extern fn ceilf(__x: f32) f32;
+pub extern fn __ceilf(__x: f32) f32;
+pub extern fn fabsf(__x: f32) f32;
+pub extern fn __fabsf(__x: f32) f32;
+pub extern fn floorf(__x: f32) f32;
+pub extern fn __floorf(__x: f32) f32;
+pub extern fn fmodf(__x: f32, __y: f32) f32;
+pub extern fn __fmodf(__x: f32, __y: f32) f32;
+pub extern fn isinff(__value: f32) c_int;
+pub extern fn finitef(__value: f32) c_int;
+pub extern fn dremf(__x: f32, __y: f32) f32;
+pub extern fn __dremf(__x: f32, __y: f32) f32;
+pub extern fn significandf(__x: f32) f32;
+pub extern fn __significandf(__x: f32) f32;
+pub extern fn copysignf(__x: f32, __y: f32) f32;
+pub extern fn __copysignf(__x: f32, __y: f32) f32;
+pub extern fn nanf(__tagb: [*c]const u8) f32;
+pub extern fn __nanf(__tagb: [*c]const u8) f32;
+pub extern fn isnanf(__value: f32) c_int;
+pub extern fn j0f(f32) f32;
+pub extern fn __j0f(f32) f32;
+pub extern fn j1f(f32) f32;
+pub extern fn __j1f(f32) f32;
+pub extern fn jnf(c_int, f32) f32;
+pub extern fn __jnf(c_int, f32) f32;
+pub extern fn y0f(f32) f32;
+pub extern fn __y0f(f32) f32;
+pub extern fn y1f(f32) f32;
+pub extern fn __y1f(f32) f32;
+pub extern fn ynf(c_int, f32) f32;
+pub extern fn __ynf(c_int, f32) f32;
+pub extern fn erff(f32) f32;
+pub extern fn __erff(f32) f32;
+pub extern fn erfcf(f32) f32;
+pub extern fn __erfcf(f32) f32;
+pub extern fn lgammaf(f32) f32;
+pub extern fn __lgammaf(f32) f32;
+pub extern fn tgammaf(f32) f32;
+pub extern fn __tgammaf(f32) f32;
+pub extern fn gammaf(f32) f32;
+pub extern fn __gammaf(f32) f32;
+pub extern fn lgammaf_r(f32, __signgamp: [*c]c_int) f32;
+pub extern fn __lgammaf_r(f32, __signgamp: [*c]c_int) f32;
+pub extern fn rintf(__x: f32) f32;
+pub extern fn __rintf(__x: f32) f32;
+pub extern fn nextafterf(__x: f32, __y: f32) f32;
+pub extern fn __nextafterf(__x: f32, __y: f32) f32;
+pub extern fn nexttowardf(__x: f32, __y: c_longdouble) f32;
+pub extern fn __nexttowardf(__x: f32, __y: c_longdouble) f32;
+pub extern fn remainderf(__x: f32, __y: f32) f32;
+pub extern fn __remainderf(__x: f32, __y: f32) f32;
+pub extern fn scalbnf(__x: f32, __n: c_int) f32;
+pub extern fn __scalbnf(__x: f32, __n: c_int) f32;
+pub extern fn ilogbf(__x: f32) c_int;
+pub extern fn __ilogbf(__x: f32) c_int;
+pub extern fn scalblnf(__x: f32, __n: c_long) f32;
+pub extern fn __scalblnf(__x: f32, __n: c_long) f32;
+pub extern fn nearbyintf(__x: f32) f32;
+pub extern fn __nearbyintf(__x: f32) f32;
+pub extern fn roundf(__x: f32) f32;
+pub extern fn __roundf(__x: f32) f32;
+pub extern fn truncf(__x: f32) f32;
+pub extern fn __truncf(__x: f32) f32;
+pub extern fn remquof(__x: f32, __y: f32, __quo: [*c]c_int) f32;
+pub extern fn __remquof(__x: f32, __y: f32, __quo: [*c]c_int) f32;
+pub extern fn lrintf(__x: f32) c_long;
+pub extern fn __lrintf(__x: f32) c_long;
+pub extern fn llrintf(__x: f32) c_longlong;
+pub extern fn __llrintf(__x: f32) c_longlong;
+pub extern fn lroundf(__x: f32) c_long;
+pub extern fn __lroundf(__x: f32) c_long;
+pub extern fn llroundf(__x: f32) c_longlong;
+pub extern fn __llroundf(__x: f32) c_longlong;
+pub extern fn fdimf(__x: f32, __y: f32) f32;
+pub extern fn __fdimf(__x: f32, __y: f32) f32;
+pub extern fn fmaxf(__x: f32, __y: f32) f32;
+pub extern fn __fmaxf(__x: f32, __y: f32) f32;
+pub extern fn fminf(__x: f32, __y: f32) f32;
+pub extern fn __fminf(__x: f32, __y: f32) f32;
+pub extern fn fmaf(__x: f32, __y: f32, __z: f32) f32;
+pub extern fn __fmaf(__x: f32, __y: f32, __z: f32) f32;
+pub extern fn scalbf(__x: f32, __n: f32) f32;
+pub extern fn __scalbf(__x: f32, __n: f32) f32;
+pub extern fn __fpclassifyl(__value: c_longdouble) c_int;
+pub extern fn __signbitl(__value: c_longdouble) c_int;
+pub extern fn __isinfl(__value: c_longdouble) c_int;
+pub extern fn __finitel(__value: c_longdouble) c_int;
+pub extern fn __isnanl(__value: c_longdouble) c_int;
+pub extern fn __iseqsigl(__x: c_longdouble, __y: c_longdouble) c_int;
+pub extern fn __issignalingl(__value: c_longdouble) c_int;
+pub extern fn acosl(__x: c_longdouble) c_longdouble;
+pub extern fn __acosl(__x: c_longdouble) c_longdouble;
+pub extern fn asinl(__x: c_longdouble) c_longdouble;
+pub extern fn __asinl(__x: c_longdouble) c_longdouble;
+pub extern fn atanl(__x: c_longdouble) c_longdouble;
+pub extern fn __atanl(__x: c_longdouble) c_longdouble;
+pub extern fn atan2l(__y: c_longdouble, __x: c_longdouble) c_longdouble;
+pub extern fn __atan2l(__y: c_longdouble, __x: c_longdouble) c_longdouble;
+pub extern fn cosl(__x: c_longdouble) c_longdouble;
+pub extern fn __cosl(__x: c_longdouble) c_longdouble;
+pub extern fn sinl(__x: c_longdouble) c_longdouble;
+pub extern fn __sinl(__x: c_longdouble) c_longdouble;
+pub extern fn tanl(__x: c_longdouble) c_longdouble;
+pub extern fn __tanl(__x: c_longdouble) c_longdouble;
+pub extern fn coshl(__x: c_longdouble) c_longdouble;
+pub extern fn __coshl(__x: c_longdouble) c_longdouble;
+pub extern fn sinhl(__x: c_longdouble) c_longdouble;
+pub extern fn __sinhl(__x: c_longdouble) c_longdouble;
+pub extern fn tanhl(__x: c_longdouble) c_longdouble;
+pub extern fn __tanhl(__x: c_longdouble) c_longdouble;
+pub extern fn acoshl(__x: c_longdouble) c_longdouble;
+pub extern fn __acoshl(__x: c_longdouble) c_longdouble;
+pub extern fn asinhl(__x: c_longdouble) c_longdouble;
+pub extern fn __asinhl(__x: c_longdouble) c_longdouble;
+pub extern fn atanhl(__x: c_longdouble) c_longdouble;
+pub extern fn __atanhl(__x: c_longdouble) c_longdouble;
+pub extern fn expl(__x: c_longdouble) c_longdouble;
+pub extern fn __expl(__x: c_longdouble) c_longdouble;
+pub extern fn frexpl(__x: c_longdouble, __exponent: [*c]c_int) c_longdouble;
+pub extern fn __frexpl(__x: c_longdouble, __exponent: [*c]c_int) c_longdouble;
+pub extern fn ldexpl(__x: c_longdouble, __exponent: c_int) c_longdouble;
+pub extern fn __ldexpl(__x: c_longdouble, __exponent: c_int) c_longdouble;
+pub extern fn logl(__x: c_longdouble) c_longdouble;
+pub extern fn __logl(__x: c_longdouble) c_longdouble;
+pub extern fn log10l(__x: c_longdouble) c_longdouble;
+pub extern fn __log10l(__x: c_longdouble) c_longdouble;
+pub extern fn modfl(__x: c_longdouble, __iptr: [*c]c_longdouble) c_longdouble;
+pub extern fn __modfl(__x: c_longdouble, __iptr: [*c]c_longdouble) c_longdouble;
+pub extern fn expm1l(__x: c_longdouble) c_longdouble;
+pub extern fn __expm1l(__x: c_longdouble) c_longdouble;
+pub extern fn log1pl(__x: c_longdouble) c_longdouble;
+pub extern fn __log1pl(__x: c_longdouble) c_longdouble;
+pub extern fn logbl(__x: c_longdouble) c_longdouble;
+pub extern fn __logbl(__x: c_longdouble) c_longdouble;
+pub extern fn exp2l(__x: c_longdouble) c_longdouble;
+pub extern fn __exp2l(__x: c_longdouble) c_longdouble;
+pub extern fn log2l(__x: c_longdouble) c_longdouble;
+pub extern fn __log2l(__x: c_longdouble) c_longdouble;
+pub extern fn powl(__x: c_longdouble, __y: c_longdouble) c_longdouble;
+pub extern fn __powl(__x: c_longdouble, __y: c_longdouble) c_longdouble;
+pub extern fn sqrtl(__x: c_longdouble) c_longdouble;
+pub extern fn __sqrtl(__x: c_longdouble) c_longdouble;
+pub extern fn hypotl(__x: c_longdouble, __y: c_longdouble) c_longdouble;
+pub extern fn __hypotl(__x: c_longdouble, __y: c_longdouble) c_longdouble;
+pub extern fn cbrtl(__x: c_longdouble) c_longdouble;
+pub extern fn __cbrtl(__x: c_longdouble) c_longdouble;
+pub extern fn ceill(__x: c_longdouble) c_longdouble;
+pub extern fn __ceill(__x: c_longdouble) c_longdouble;
+pub extern fn fabsl(__x: c_longdouble) c_longdouble;
+pub extern fn __fabsl(__x: c_longdouble) c_longdouble;
+pub extern fn floorl(__x: c_longdouble) c_longdouble;
+pub extern fn __floorl(__x: c_longdouble) c_longdouble;
+pub extern fn fmodl(__x: c_longdouble, __y: c_longdouble) c_longdouble;
+pub extern fn __fmodl(__x: c_longdouble, __y: c_longdouble) c_longdouble;
+pub extern fn isinfl(__value: c_longdouble) c_int;
+pub extern fn finitel(__value: c_longdouble) c_int;
+pub extern fn dreml(__x: c_longdouble, __y: c_longdouble) c_longdouble;
+pub extern fn __dreml(__x: c_longdouble, __y: c_longdouble) c_longdouble;
+pub extern fn significandl(__x: c_longdouble) c_longdouble;
+pub extern fn __significandl(__x: c_longdouble) c_longdouble;
+pub extern fn copysignl(__x: c_longdouble, __y: c_longdouble) c_longdouble;
+pub extern fn __copysignl(__x: c_longdouble, __y: c_longdouble) c_longdouble;
+pub extern fn nanl(__tagb: [*c]const u8) c_longdouble;
+pub extern fn __nanl(__tagb: [*c]const u8) c_longdouble;
+pub extern fn isnanl(__value: c_longdouble) c_int;
+pub extern fn j0l(c_longdouble) c_longdouble;
+pub extern fn __j0l(c_longdouble) c_longdouble;
+pub extern fn j1l(c_longdouble) c_longdouble;
+pub extern fn __j1l(c_longdouble) c_longdouble;
+pub extern fn jnl(c_int, c_longdouble) c_longdouble;
+pub extern fn __jnl(c_int, c_longdouble) c_longdouble;
+pub extern fn y0l(c_longdouble) c_longdouble;
+pub extern fn __y0l(c_longdouble) c_longdouble;
+pub extern fn y1l(c_longdouble) c_longdouble;
+pub extern fn __y1l(c_longdouble) c_longdouble;
+pub extern fn ynl(c_int, c_longdouble) c_longdouble;
+pub extern fn __ynl(c_int, c_longdouble) c_longdouble;
+pub extern fn erfl(c_longdouble) c_longdouble;
+pub extern fn __erfl(c_longdouble) c_longdouble;
+pub extern fn erfcl(c_longdouble) c_longdouble;
+pub extern fn __erfcl(c_longdouble) c_longdouble;
+pub extern fn lgammal(c_longdouble) c_longdouble;
+pub extern fn __lgammal(c_longdouble) c_longdouble;
+pub extern fn tgammal(c_longdouble) c_longdouble;
+pub extern fn __tgammal(c_longdouble) c_longdouble;
+pub extern fn gammal(c_longdouble) c_longdouble;
+pub extern fn __gammal(c_longdouble) c_longdouble;
+pub extern fn lgammal_r(c_longdouble, __signgamp: [*c]c_int) c_longdouble;
+pub extern fn __lgammal_r(c_longdouble, __signgamp: [*c]c_int) c_longdouble;
+pub extern fn rintl(__x: c_longdouble) c_longdouble;
+pub extern fn __rintl(__x: c_longdouble) c_longdouble;
+pub extern fn nextafterl(__x: c_longdouble, __y: c_longdouble) c_longdouble;
+pub extern fn __nextafterl(__x: c_longdouble, __y: c_longdouble) c_longdouble;
+pub extern fn nexttowardl(__x: c_longdouble, __y: c_longdouble) c_longdouble;
+pub extern fn __nexttowardl(__x: c_longdouble, __y: c_longdouble) c_longdouble;
+pub extern fn remainderl(__x: c_longdouble, __y: c_longdouble) c_longdouble;
+pub extern fn __remainderl(__x: c_longdouble, __y: c_longdouble) c_longdouble;
+pub extern fn scalbnl(__x: c_longdouble, __n: c_int) c_longdouble;
+pub extern fn __scalbnl(__x: c_longdouble, __n: c_int) c_longdouble;
+pub extern fn ilogbl(__x: c_longdouble) c_int;
+pub extern fn __ilogbl(__x: c_longdouble) c_int;
+pub extern fn scalblnl(__x: c_longdouble, __n: c_long) c_longdouble;
+pub extern fn __scalblnl(__x: c_longdouble, __n: c_long) c_longdouble;
+pub extern fn nearbyintl(__x: c_longdouble) c_longdouble;
+pub extern fn __nearbyintl(__x: c_longdouble) c_longdouble;
+pub extern fn roundl(__x: c_longdouble) c_longdouble;
+pub extern fn __roundl(__x: c_longdouble) c_longdouble;
+pub extern fn truncl(__x: c_longdouble) c_longdouble;
+pub extern fn __truncl(__x: c_longdouble) c_longdouble;
+pub extern fn remquol(__x: c_longdouble, __y: c_longdouble, __quo: [*c]c_int) c_longdouble;
+pub extern fn __remquol(__x: c_longdouble, __y: c_longdouble, __quo: [*c]c_int) c_longdouble;
+pub extern fn lrintl(__x: c_longdouble) c_long;
+pub extern fn __lrintl(__x: c_longdouble) c_long;
+pub extern fn llrintl(__x: c_longdouble) c_longlong;
+pub extern fn __llrintl(__x: c_longdouble) c_longlong;
+pub extern fn lroundl(__x: c_longdouble) c_long;
+pub extern fn __lroundl(__x: c_longdouble) c_long;
+pub extern fn llroundl(__x: c_longdouble) c_longlong;
+pub extern fn __llroundl(__x: c_longdouble) c_longlong;
+pub extern fn fdiml(__x: c_longdouble, __y: c_longdouble) c_longdouble;
+pub extern fn __fdiml(__x: c_longdouble, __y: c_longdouble) c_longdouble;
+pub extern fn fmaxl(__x: c_longdouble, __y: c_longdouble) c_longdouble;
+pub extern fn __fmaxl(__x: c_longdouble, __y: c_longdouble) c_longdouble;
+pub extern fn fminl(__x: c_longdouble, __y: c_longdouble) c_longdouble;
+pub extern fn __fminl(__x: c_longdouble, __y: c_longdouble) c_longdouble;
+pub extern fn fmal(__x: c_longdouble, __y: c_longdouble, __z: c_longdouble) c_longdouble;
+pub extern fn __fmal(__x: c_longdouble, __y: c_longdouble, __z: c_longdouble) c_longdouble;
+pub extern fn scalbl(__x: c_longdouble, __n: c_longdouble) c_longdouble;
+pub extern fn __scalbl(__x: c_longdouble, __n: c_longdouble) c_longdouble;
+pub extern var signgam: c_int;
+pub const FP_NAN: c_int = 0;
+pub const FP_INFINITE: c_int = 1;
+pub const FP_ZERO: c_int = 2;
+pub const FP_SUBNORMAL: c_int = 3;
+pub const FP_NORMAL: c_int = 4;
+const enum_unnamed_1 = c_uint;
+pub const struct___va_list_tag_2 = extern struct {
+    gp_offset: c_uint = @import("std").mem.zeroes(c_uint),
+    fp_offset: c_uint = @import("std").mem.zeroes(c_uint),
+    overflow_arg_area: ?*anyopaque = @import("std").mem.zeroes(?*anyopaque),
+    reg_save_area: ?*anyopaque = @import("std").mem.zeroes(?*anyopaque),
+};
+pub const __builtin_va_list = [1]struct___va_list_tag_2;
+pub const __gnuc_va_list = __builtin_va_list;
+const union_unnamed_3 = extern union {
+    __wch: c_uint,
+    __wchb: [4]u8,
+};
+pub const __mbstate_t = extern struct {
+    __count: c_int = @import("std").mem.zeroes(c_int),
+    __value: union_unnamed_3 = @import("std").mem.zeroes(union_unnamed_3),
+};
+pub const struct__G_fpos_t = extern struct {
+    __pos: __off_t = @import("std").mem.zeroes(__off_t),
+    __state: __mbstate_t = @import("std").mem.zeroes(__mbstate_t),
+};
+pub const __fpos_t = struct__G_fpos_t;
+pub const struct__G_fpos64_t = extern struct {
+    __pos: __off64_t = @import("std").mem.zeroes(__off64_t),
+    __state: __mbstate_t = @import("std").mem.zeroes(__mbstate_t),
+};
+pub const __fpos64_t = struct__G_fpos64_t;
+pub const struct__IO_marker = opaque {};
+pub const _IO_lock_t = anyopaque;
+pub const struct__IO_codecvt = opaque {};
+pub const struct__IO_wide_data = opaque {};
+pub const struct__IO_FILE = extern struct {
+    _flags: c_int = @import("std").mem.zeroes(c_int),
+    _IO_read_ptr: [*c]u8 = @import("std").mem.zeroes([*c]u8),
+    _IO_read_end: [*c]u8 = @import("std").mem.zeroes([*c]u8),
+    _IO_read_base: [*c]u8 = @import("std").mem.zeroes([*c]u8),
+    _IO_write_base: [*c]u8 = @import("std").mem.zeroes([*c]u8),
+    _IO_write_ptr: [*c]u8 = @import("std").mem.zeroes([*c]u8),
+    _IO_write_end: [*c]u8 = @import("std").mem.zeroes([*c]u8),
+    _IO_buf_base: [*c]u8 = @import("std").mem.zeroes([*c]u8),
+    _IO_buf_end: [*c]u8 = @import("std").mem.zeroes([*c]u8),
+    _IO_save_base: [*c]u8 = @import("std").mem.zeroes([*c]u8),
+    _IO_backup_base: [*c]u8 = @import("std").mem.zeroes([*c]u8),
+    _IO_save_end: [*c]u8 = @import("std").mem.zeroes([*c]u8),
+    _markers: ?*struct__IO_marker = @import("std").mem.zeroes(?*struct__IO_marker),
+    _chain: [*c]struct__IO_FILE = @import("std").mem.zeroes([*c]struct__IO_FILE),
+    _fileno: c_int = @import("std").mem.zeroes(c_int),
+    _flags2: c_int = @import("std").mem.zeroes(c_int),
+    _old_offset: __off_t = @import("std").mem.zeroes(__off_t),
+    _cur_column: c_ushort = @import("std").mem.zeroes(c_ushort),
+    _vtable_offset: i8 = @import("std").mem.zeroes(i8),
+    _shortbuf: [1]u8 = @import("std").mem.zeroes([1]u8),
+    _lock: ?*_IO_lock_t = @import("std").mem.zeroes(?*_IO_lock_t),
+    _offset: __off64_t = @import("std").mem.zeroes(__off64_t),
+    _codecvt: ?*struct__IO_codecvt = @import("std").mem.zeroes(?*struct__IO_codecvt),
+    _wide_data: ?*struct__IO_wide_data = @import("std").mem.zeroes(?*struct__IO_wide_data),
+    _freeres_list: [*c]struct__IO_FILE = @import("std").mem.zeroes([*c]struct__IO_FILE),
+    _freeres_buf: ?*anyopaque = @import("std").mem.zeroes(?*anyopaque),
+    __pad5: usize = @import("std").mem.zeroes(usize),
+    _mode: c_int = @import("std").mem.zeroes(c_int),
+    _unused2: [20]u8 = @import("std").mem.zeroes([20]u8),
+};
+pub const __FILE = struct__IO_FILE;
+pub const FILE = struct__IO_FILE;
+pub const va_list = __gnuc_va_list;
+pub const off_t = __off_t;
+pub const fpos_t = __fpos_t;
+pub extern var stdin: [*c]FILE;
+pub extern var stdout: [*c]FILE;
+pub extern var stderr: [*c]FILE;
+pub extern fn remove(__filename: [*c]const u8) c_int;
+pub extern fn rename(__old: [*c]const u8, __new: [*c]const u8) c_int;
+pub extern fn renameat(__oldfd: c_int, __old: [*c]const u8, __newfd: c_int, __new: [*c]const u8) c_int;
+pub extern fn fclose(__stream: [*c]FILE) c_int;
+pub extern fn tmpfile() [*c]FILE;
+pub extern fn tmpnam([*c]u8) [*c]u8;
+pub extern fn tmpnam_r(__s: [*c]u8) [*c]u8;
+pub extern fn tempnam(__dir: [*c]const u8, __pfx: [*c]const u8) [*c]u8;
+pub extern fn fflush(__stream: [*c]FILE) c_int;
+pub extern fn fflush_unlocked(__stream: [*c]FILE) c_int;
+pub extern fn fopen(__filename: [*c]const u8, __modes: [*c]const u8) [*c]FILE;
+pub extern fn freopen(noalias __filename: [*c]const u8, noalias __modes: [*c]const u8, noalias __stream: [*c]FILE) [*c]FILE;
+pub extern fn fdopen(__fd: c_int, __modes: [*c]const u8) [*c]FILE;
+pub extern fn fmemopen(__s: ?*anyopaque, __len: usize, __modes: [*c]const u8) [*c]FILE;
+pub extern fn open_memstream(__bufloc: [*c][*c]u8, __sizeloc: [*c]usize) [*c]FILE;
+pub extern fn setbuf(noalias __stream: [*c]FILE, noalias __buf: [*c]u8) void;
+pub extern fn setvbuf(noalias __stream: [*c]FILE, noalias __buf: [*c]u8, __modes: c_int, __n: usize) c_int;
+pub extern fn setbuffer(noalias __stream: [*c]FILE, noalias __buf: [*c]u8, __size: usize) void;
+pub extern fn setlinebuf(__stream: [*c]FILE) void;
+pub extern fn fprintf(__stream: [*c]FILE, __format: [*c]const u8, ...) c_int;
+pub extern fn printf(__format: [*c]const u8, ...) c_int;
+pub extern fn sprintf(__s: [*c]u8, __format: [*c]const u8, ...) c_int;
+pub extern fn vfprintf(__s: [*c]FILE, __format: [*c]const u8, __arg: [*c]struct___va_list_tag_2) c_int;
+pub extern fn vprintf(__format: [*c]const u8, __arg: [*c]struct___va_list_tag_2) c_int;
+pub extern fn vsprintf(__s: [*c]u8, __format: [*c]const u8, __arg: [*c]struct___va_list_tag_2) c_int;
+pub extern fn snprintf(__s: [*c]u8, __maxlen: c_ulong, __format: [*c]const u8, ...) c_int;
+pub extern fn vsnprintf(__s: [*c]u8, __maxlen: c_ulong, __format: [*c]const u8, __arg: [*c]struct___va_list_tag_2) c_int;
+pub extern fn vdprintf(__fd: c_int, noalias __fmt: [*c]const u8, __arg: [*c]struct___va_list_tag_2) c_int;
+pub extern fn dprintf(__fd: c_int, noalias __fmt: [*c]const u8, ...) c_int;
+pub extern fn fscanf(noalias __stream: [*c]FILE, noalias __format: [*c]const u8, ...) c_int;
+pub extern fn scanf(noalias __format: [*c]const u8, ...) c_int;
+pub extern fn sscanf(noalias __s: [*c]const u8, noalias __format: [*c]const u8, ...) c_int;
+pub extern fn vfscanf(noalias __s: [*c]FILE, noalias __format: [*c]const u8, __arg: [*c]struct___va_list_tag_2) c_int;
+pub extern fn vscanf(noalias __format: [*c]const u8, __arg: [*c]struct___va_list_tag_2) c_int;
+pub extern fn vsscanf(noalias __s: [*c]const u8, noalias __format: [*c]const u8, __arg: [*c]struct___va_list_tag_2) c_int;
+pub extern fn fgetc(__stream: [*c]FILE) c_int;
+pub extern fn getc(__stream: [*c]FILE) c_int;
+pub extern fn getchar() c_int;
+pub extern fn getc_unlocked(__stream: [*c]FILE) c_int;
+pub extern fn getchar_unlocked() c_int;
+pub extern fn fgetc_unlocked(__stream: [*c]FILE) c_int;
+pub extern fn fputc(__c: c_int, __stream: [*c]FILE) c_int;
+pub extern fn putc(__c: c_int, __stream: [*c]FILE) c_int;
+pub extern fn putchar(__c: c_int) c_int;
+pub extern fn fputc_unlocked(__c: c_int, __stream: [*c]FILE) c_int;
+pub extern fn putc_unlocked(__c: c_int, __stream: [*c]FILE) c_int;
+pub extern fn putchar_unlocked(__c: c_int) c_int;
+pub extern fn getw(__stream: [*c]FILE) c_int;
+pub extern fn putw(__w: c_int, __stream: [*c]FILE) c_int;
+pub extern fn fgets(noalias __s: [*c]u8, __n: c_int, noalias __stream: [*c]FILE) [*c]u8;
+pub extern fn __getdelim(noalias __lineptr: [*c][*c]u8, noalias __n: [*c]usize, __delimiter: c_int, noalias __stream: [*c]FILE) __ssize_t;
+pub extern fn getdelim(noalias __lineptr: [*c][*c]u8, noalias __n: [*c]usize, __delimiter: c_int, noalias __stream: [*c]FILE) __ssize_t;
+pub extern fn getline(noalias __lineptr: [*c][*c]u8, noalias __n: [*c]usize, noalias __stream: [*c]FILE) __ssize_t;
+pub extern fn fputs(noalias __s: [*c]const u8, noalias __stream: [*c]FILE) c_int;
+pub extern fn puts(__s: [*c]const u8) c_int;
+pub extern fn ungetc(__c: c_int, __stream: [*c]FILE) c_int;
+pub extern fn fread(__ptr: ?*anyopaque, __size: c_ulong, __n: c_ulong, __stream: [*c]FILE) c_ulong;
+pub extern fn fwrite(__ptr: ?*const anyopaque, __size: c_ulong, __n: c_ulong, __s: [*c]FILE) c_ulong;
+pub extern fn fread_unlocked(noalias __ptr: ?*anyopaque, __size: usize, __n: usize, noalias __stream: [*c]FILE) usize;
+pub extern fn fwrite_unlocked(noalias __ptr: ?*const anyopaque, __size: usize, __n: usize, noalias __stream: [*c]FILE) usize;
+pub extern fn fseek(__stream: [*c]FILE, __off: c_long, __whence: c_int) c_int;
+pub extern fn ftell(__stream: [*c]FILE) c_long;
+pub extern fn rewind(__stream: [*c]FILE) void;
+pub extern fn fseeko(__stream: [*c]FILE, __off: __off_t, __whence: c_int) c_int;
+pub extern fn ftello(__stream: [*c]FILE) __off_t;
+pub extern fn fgetpos(noalias __stream: [*c]FILE, noalias __pos: [*c]fpos_t) c_int;
+pub extern fn fsetpos(__stream: [*c]FILE, __pos: [*c]const fpos_t) c_int;
+pub extern fn clearerr(__stream: [*c]FILE) void;
+pub extern fn feof(__stream: [*c]FILE) c_int;
+pub extern fn ferror(__stream: [*c]FILE) c_int;
+pub extern fn clearerr_unlocked(__stream: [*c]FILE) void;
+pub extern fn feof_unlocked(__stream: [*c]FILE) c_int;
+pub extern fn ferror_unlocked(__stream: [*c]FILE) c_int;
+pub extern fn perror(__s: [*c]const u8) void;
+pub extern fn fileno(__stream: [*c]FILE) c_int;
+pub extern fn fileno_unlocked(__stream: [*c]FILE) c_int;
+pub extern fn pclose(__stream: [*c]FILE) c_int;
+pub extern fn popen(__command: [*c]const u8, __modes: [*c]const u8) [*c]FILE;
+pub extern fn ctermid(__s: [*c]u8) [*c]u8;
+pub extern fn flockfile(__stream: [*c]FILE) void;
+pub extern fn ftrylockfile(__stream: [*c]FILE) c_int;
+pub extern fn funlockfile(__stream: [*c]FILE) void;
+pub extern fn __uflow([*c]FILE) c_int;
+pub extern fn __overflow([*c]FILE, c_int) c_int;
+pub extern fn memcpy(__dest: ?*anyopaque, __src: ?*const anyopaque, __n: c_ulong) ?*anyopaque;
+pub extern fn memmove(__dest: ?*anyopaque, __src: ?*const anyopaque, __n: c_ulong) ?*anyopaque;
+pub extern fn memccpy(__dest: ?*anyopaque, __src: ?*const anyopaque, __c: c_int, __n: c_ulong) ?*anyopaque;
+pub extern fn memset(__s: ?*anyopaque, __c: c_int, __n: c_ulong) ?*anyopaque;
+pub extern fn memcmp(__s1: ?*const anyopaque, __s2: ?*const anyopaque, __n: c_ulong) c_int;
+pub extern fn __memcmpeq(__s1: ?*const anyopaque, __s2: ?*const anyopaque, __n: usize) c_int;
+pub extern fn memchr(__s: ?*const anyopaque, __c: c_int, __n: c_ulong) ?*anyopaque;
+pub extern fn strcpy(__dest: [*c]u8, __src: [*c]const u8) [*c]u8;
+pub extern fn strncpy(__dest: [*c]u8, __src: [*c]const u8, __n: c_ulong) [*c]u8;
+pub extern fn strcat(__dest: [*c]u8, __src: [*c]const u8) [*c]u8;
+pub extern fn strncat(__dest: [*c]u8, __src: [*c]const u8, __n: c_ulong) [*c]u8;
+pub extern fn strcmp(__s1: [*c]const u8, __s2: [*c]const u8) c_int;
+pub extern fn strncmp(__s1: [*c]const u8, __s2: [*c]const u8, __n: c_ulong) c_int;
+pub extern fn strcoll(__s1: [*c]const u8, __s2: [*c]const u8) c_int;
+pub extern fn strxfrm(__dest: [*c]u8, __src: [*c]const u8, __n: c_ulong) c_ulong;
+pub const struct___locale_data_4 = opaque {};
+pub const struct___locale_struct = extern struct {
+    __locales: [13]?*struct___locale_data_4 = @import("std").mem.zeroes([13]?*struct___locale_data_4),
+    __ctype_b: [*c]const c_ushort = @import("std").mem.zeroes([*c]const c_ushort),
+    __ctype_tolower: [*c]const c_int = @import("std").mem.zeroes([*c]const c_int),
+    __ctype_toupper: [*c]const c_int = @import("std").mem.zeroes([*c]const c_int),
+    __names: [13][*c]const u8 = @import("std").mem.zeroes([13][*c]const u8),
+};
+pub const __locale_t = [*c]struct___locale_struct;
+pub const locale_t = __locale_t;
+pub extern fn strcoll_l(__s1: [*c]const u8, __s2: [*c]const u8, __l: locale_t) c_int;
+pub extern fn strxfrm_l(__dest: [*c]u8, __src: [*c]const u8, __n: usize, __l: locale_t) usize;
+pub extern fn strdup(__s: [*c]const u8) [*c]u8;
+pub extern fn strndup(__string: [*c]const u8, __n: c_ulong) [*c]u8;
+pub extern fn strchr(__s: [*c]const u8, __c: c_int) [*c]u8;
+pub extern fn strrchr(__s: [*c]const u8, __c: c_int) [*c]u8;
+pub extern fn strcspn(__s: [*c]const u8, __reject: [*c]const u8) c_ulong;
+pub extern fn strspn(__s: [*c]const u8, __accept: [*c]const u8) c_ulong;
+pub extern fn strpbrk(__s: [*c]const u8, __accept: [*c]const u8) [*c]u8;
+pub extern fn strstr(__haystack: [*c]const u8, __needle: [*c]const u8) [*c]u8;
+pub extern fn strtok(__s: [*c]u8, __delim: [*c]const u8) [*c]u8;
+pub extern fn __strtok_r(noalias __s: [*c]u8, noalias __delim: [*c]const u8, noalias __save_ptr: [*c][*c]u8) [*c]u8;
+pub extern fn strtok_r(noalias __s: [*c]u8, noalias __delim: [*c]const u8, noalias __save_ptr: [*c][*c]u8) [*c]u8;
+pub extern fn strlen(__s: [*c]const u8) c_ulong;
+pub extern fn strnlen(__string: [*c]const u8, __maxlen: usize) usize;
+pub extern fn strerror(__errnum: c_int) [*c]u8;
+pub extern fn strerror_r(__errnum: c_int, __buf: [*c]u8, __buflen: usize) c_int;
+pub extern fn strerror_l(__errnum: c_int, __l: locale_t) [*c]u8;
+pub extern fn bcmp(__s1: ?*const anyopaque, __s2: ?*const anyopaque, __n: c_ulong) c_int;
+pub extern fn bcopy(__src: ?*const anyopaque, __dest: ?*anyopaque, __n: c_ulong) void;
+pub extern fn bzero(__s: ?*anyopaque, __n: c_ulong) void;
+pub extern fn index(__s: [*c]const u8, __c: c_int) [*c]u8;
+pub extern fn rindex(__s: [*c]const u8, __c: c_int) [*c]u8;
+pub extern fn ffs(__i: c_int) c_int;
+pub extern fn ffsl(__l: c_long) c_int;
+pub extern fn ffsll(__ll: c_longlong) c_int;
+pub extern fn strcasecmp(__s1: [*c]const u8, __s2: [*c]const u8) c_int;
+pub extern fn strncasecmp(__s1: [*c]const u8, __s2: [*c]const u8, __n: c_ulong) c_int;
+pub extern fn strcasecmp_l(__s1: [*c]const u8, __s2: [*c]const u8, __loc: locale_t) c_int;
+pub extern fn strncasecmp_l(__s1: [*c]const u8, __s2: [*c]const u8, __n: usize, __loc: locale_t) c_int;
+pub extern fn explicit_bzero(__s: ?*anyopaque, __n: usize) void;
+pub extern fn strsep(noalias __stringp: [*c][*c]u8, noalias __delim: [*c]const u8) [*c]u8;
+pub extern fn strsignal(__sig: c_int) [*c]u8;
+pub extern fn __stpcpy(noalias __dest: [*c]u8, noalias __src: [*c]const u8) [*c]u8;
+pub extern fn stpcpy(__dest: [*c]u8, __src: [*c]const u8) [*c]u8;
+pub extern fn __stpncpy(noalias __dest: [*c]u8, noalias __src: [*c]const u8, __n: usize) [*c]u8;
+pub extern fn stpncpy(__dest: [*c]u8, __src: [*c]const u8, __n: c_ulong) [*c]u8;
+pub const clock_t = __clock_t;
+pub const time_t = __time_t;
+pub const struct_tm = extern struct {
+    tm_sec: c_int = @import("std").mem.zeroes(c_int),
+    tm_min: c_int = @import("std").mem.zeroes(c_int),
+    tm_hour: c_int = @import("std").mem.zeroes(c_int),
+    tm_mday: c_int = @import("std").mem.zeroes(c_int),
+    tm_mon: c_int = @import("std").mem.zeroes(c_int),
+    tm_year: c_int = @import("std").mem.zeroes(c_int),
+    tm_wday: c_int = @import("std").mem.zeroes(c_int),
+    tm_yday: c_int = @import("std").mem.zeroes(c_int),
+    tm_isdst: c_int = @import("std").mem.zeroes(c_int),
+    tm_gmtoff: c_long = @import("std").mem.zeroes(c_long),
+    tm_zone: [*c]const u8 = @import("std").mem.zeroes([*c]const u8),
+};
+pub const struct_timespec = extern struct {
+    tv_sec: __time_t = @import("std").mem.zeroes(__time_t),
+    tv_nsec: __syscall_slong_t = @import("std").mem.zeroes(__syscall_slong_t),
+};
+pub const clockid_t = __clockid_t;
+pub const timer_t = __timer_t;
+pub const struct_itimerspec = extern struct {
+    it_interval: struct_timespec = @import("std").mem.zeroes(struct_timespec),
+    it_value: struct_timespec = @import("std").mem.zeroes(struct_timespec),
+};
+pub const struct_sigevent = opaque {};
+pub const pid_t = __pid_t;
+pub extern fn clock() clock_t;
+pub extern fn time(__timer: [*c]time_t) time_t;
+pub extern fn difftime(__time1: time_t, __time0: time_t) f64;
+pub extern fn mktime(__tp: [*c]struct_tm) time_t;
+pub extern fn strftime(noalias __s: [*c]u8, __maxsize: usize, noalias __format: [*c]const u8, noalias __tp: [*c]const struct_tm) usize;
+pub extern fn strftime_l(noalias __s: [*c]u8, __maxsize: usize, noalias __format: [*c]const u8, noalias __tp: [*c]const struct_tm, __loc: locale_t) usize;
+pub extern fn gmtime(__timer: [*c]const time_t) [*c]struct_tm;
+pub extern fn localtime(__timer: [*c]const time_t) [*c]struct_tm;
+pub extern fn gmtime_r(noalias __timer: [*c]const time_t, noalias __tp: [*c]struct_tm) [*c]struct_tm;
+pub extern fn localtime_r(noalias __timer: [*c]const time_t, noalias __tp: [*c]struct_tm) [*c]struct_tm;
+pub extern fn asctime(__tp: [*c]const struct_tm) [*c]u8;
+pub extern fn ctime(__timer: [*c]const time_t) [*c]u8;
+pub extern fn asctime_r(noalias __tp: [*c]const struct_tm, noalias __buf: [*c]u8) [*c]u8;
+pub extern fn ctime_r(noalias __timer: [*c]const time_t, noalias __buf: [*c]u8) [*c]u8;
+pub extern var __tzname: [2][*c]u8;
+pub extern var __daylight: c_int;
+pub extern var __timezone: c_long;
+pub extern var tzname: [2][*c]u8;
+pub extern fn tzset() void;
+pub extern var daylight: c_int;
+pub extern var timezone: c_long;
+pub extern fn timegm(__tp: [*c]struct_tm) time_t;
+pub extern fn timelocal(__tp: [*c]struct_tm) time_t;
+pub extern fn dysize(__year: c_int) c_int;
+pub extern fn nanosleep(__requested_time: [*c]const struct_timespec, __remaining: [*c]struct_timespec) c_int;
+pub extern fn clock_getres(__clock_id: clockid_t, __res: [*c]struct_timespec) c_int;
+pub extern fn clock_gettime(__clock_id: clockid_t, __tp: [*c]struct_timespec) c_int;
+pub extern fn clock_settime(__clock_id: clockid_t, __tp: [*c]const struct_timespec) c_int;
+pub extern fn clock_nanosleep(__clock_id: clockid_t, __flags: c_int, __req: [*c]const struct_timespec, __rem: [*c]struct_timespec) c_int;
+pub extern fn clock_getcpuclockid(__pid: pid_t, __clock_id: [*c]clockid_t) c_int;
+pub extern fn timer_create(__clock_id: clockid_t, noalias __evp: ?*struct_sigevent, noalias __timerid: [*c]timer_t) c_int;
+pub extern fn timer_delete(__timerid: timer_t) c_int;
+pub extern fn timer_settime(__timerid: timer_t, __flags: c_int, noalias __value: [*c]const struct_itimerspec, noalias __ovalue: [*c]struct_itimerspec) c_int;
+pub extern fn timer_gettime(__timerid: timer_t, __value: [*c]struct_itimerspec) c_int;
+pub extern fn timer_getoverrun(__timerid: timer_t) c_int;
+pub extern fn timespec_get(__ts: [*c]struct_timespec, __base: c_int) c_int;
+pub const ptrdiff_t = c_long;
+pub const wchar_t = c_int;
+pub const max_align_t = extern struct {
+    __clang_max_align_nonce1: c_longlong align(8) = @import("std").mem.zeroes(c_longlong),
+    __clang_max_align_nonce2: c_longdouble align(16) = @import("std").mem.zeroes(c_longdouble),
+};
 pub const int_least8_t = __int_least8_t;
 pub const int_least16_t = __int_least16_t;
 pub const int_least32_t = __int_least32_t;
@@ -143,10 +872,6 @@ pub const uint_fast32_t = c_ulong;
 pub const uint_fast64_t = c_ulong;
 pub const intmax_t = __intmax_t;
 pub const uintmax_t = __uintmax_t;
-pub const _Float32 = f32;
-pub const _Float64 = f64;
-pub const _Float32x = f64;
-pub const _Float64x = c_longdouble;
 pub const div_t = extern struct {
     quot: c_int = @import("std").mem.zeroes(c_int),
     rem: c_int = @import("std").mem.zeroes(c_int),
@@ -189,16 +914,10 @@ pub const gid_t = __gid_t;
 pub const mode_t = __mode_t;
 pub const nlink_t = __nlink_t;
 pub const uid_t = __uid_t;
-pub const off_t = __off_t;
-pub const pid_t = __pid_t;
 pub const id_t = __id_t;
 pub const daddr_t = __daddr_t;
 pub const caddr_t = __caddr_t;
 pub const key_t = __key_t;
-pub const clock_t = __clock_t;
-pub const clockid_t = __clockid_t;
-pub const time_t = __time_t;
-pub const timer_t = __timer_t;
 pub const ulong = c_ulong;
 pub const ushort = c_ushort;
 pub const uint = c_uint;
@@ -245,10 +964,6 @@ pub const struct_timeval = extern struct {
     tv_sec: __time_t = @import("std").mem.zeroes(__time_t),
     tv_usec: __suseconds_t = @import("std").mem.zeroes(__suseconds_t),
 };
-pub const struct_timespec = extern struct {
-    tv_sec: __time_t = @import("std").mem.zeroes(__time_t),
-    tv_nsec: __syscall_slong_t = @import("std").mem.zeroes(__syscall_slong_t),
-};
 pub const suseconds_t = __suseconds_t;
 pub const __fd_mask = c_long;
 pub const fd_set = extern struct {
@@ -261,13 +976,13 @@ pub const blksize_t = __blksize_t;
 pub const blkcnt_t = __blkcnt_t;
 pub const fsblkcnt_t = __fsblkcnt_t;
 pub const fsfilcnt_t = __fsfilcnt_t;
-const struct_unnamed_1 = extern struct {
+const struct_unnamed_5 = extern struct {
     __low: c_uint = @import("std").mem.zeroes(c_uint),
     __high: c_uint = @import("std").mem.zeroes(c_uint),
 };
 pub const __atomic_wide_counter = extern union {
     __value64: c_ulonglong,
-    __value32: struct_unnamed_1,
+    __value32: struct_unnamed_5,
 };
 pub const struct___pthread_internal_list = extern struct {
     __prev: [*c]struct___pthread_internal_list = @import("std").mem.zeroes([*c]struct___pthread_internal_list),
@@ -459,68 +1174,6 @@ pub extern fn wcstombs(noalias __s: [*c]u8, noalias __pwcs: [*c]const wchar_t, _
 pub extern fn rpmatch(__response: [*c]const u8) c_int;
 pub extern fn getsubopt(noalias __optionp: [*c][*c]u8, noalias __tokens: [*c]const [*c]u8, noalias __valuep: [*c][*c]u8) c_int;
 pub extern fn getloadavg(__loadavg: [*c]f64, __nelem: c_int) c_int;
-pub extern fn memcpy(__dest: ?*anyopaque, __src: ?*const anyopaque, __n: c_ulong) ?*anyopaque;
-pub extern fn memmove(__dest: ?*anyopaque, __src: ?*const anyopaque, __n: c_ulong) ?*anyopaque;
-pub extern fn memccpy(__dest: ?*anyopaque, __src: ?*const anyopaque, __c: c_int, __n: c_ulong) ?*anyopaque;
-pub extern fn memset(__s: ?*anyopaque, __c: c_int, __n: c_ulong) ?*anyopaque;
-pub extern fn memcmp(__s1: ?*const anyopaque, __s2: ?*const anyopaque, __n: c_ulong) c_int;
-pub extern fn __memcmpeq(__s1: ?*const anyopaque, __s2: ?*const anyopaque, __n: usize) c_int;
-pub extern fn memchr(__s: ?*const anyopaque, __c: c_int, __n: c_ulong) ?*anyopaque;
-pub extern fn strcpy(__dest: [*c]u8, __src: [*c]const u8) [*c]u8;
-pub extern fn strncpy(__dest: [*c]u8, __src: [*c]const u8, __n: c_ulong) [*c]u8;
-pub extern fn strcat(__dest: [*c]u8, __src: [*c]const u8) [*c]u8;
-pub extern fn strncat(__dest: [*c]u8, __src: [*c]const u8, __n: c_ulong) [*c]u8;
-pub extern fn strcmp(__s1: [*c]const u8, __s2: [*c]const u8) c_int;
-pub extern fn strncmp(__s1: [*c]const u8, __s2: [*c]const u8, __n: c_ulong) c_int;
-pub extern fn strcoll(__s1: [*c]const u8, __s2: [*c]const u8) c_int;
-pub extern fn strxfrm(__dest: [*c]u8, __src: [*c]const u8, __n: c_ulong) c_ulong;
-pub const struct___locale_data_2 = opaque {};
-pub const struct___locale_struct = extern struct {
-    __locales: [13]?*struct___locale_data_2 = @import("std").mem.zeroes([13]?*struct___locale_data_2),
-    __ctype_b: [*c]const c_ushort = @import("std").mem.zeroes([*c]const c_ushort),
-    __ctype_tolower: [*c]const c_int = @import("std").mem.zeroes([*c]const c_int),
-    __ctype_toupper: [*c]const c_int = @import("std").mem.zeroes([*c]const c_int),
-    __names: [13][*c]const u8 = @import("std").mem.zeroes([13][*c]const u8),
-};
-pub const __locale_t = [*c]struct___locale_struct;
-pub const locale_t = __locale_t;
-pub extern fn strcoll_l(__s1: [*c]const u8, __s2: [*c]const u8, __l: locale_t) c_int;
-pub extern fn strxfrm_l(__dest: [*c]u8, __src: [*c]const u8, __n: usize, __l: locale_t) usize;
-pub extern fn strdup(__s: [*c]const u8) [*c]u8;
-pub extern fn strndup(__string: [*c]const u8, __n: c_ulong) [*c]u8;
-pub extern fn strchr(__s: [*c]const u8, __c: c_int) [*c]u8;
-pub extern fn strrchr(__s: [*c]const u8, __c: c_int) [*c]u8;
-pub extern fn strcspn(__s: [*c]const u8, __reject: [*c]const u8) c_ulong;
-pub extern fn strspn(__s: [*c]const u8, __accept: [*c]const u8) c_ulong;
-pub extern fn strpbrk(__s: [*c]const u8, __accept: [*c]const u8) [*c]u8;
-pub extern fn strstr(__haystack: [*c]const u8, __needle: [*c]const u8) [*c]u8;
-pub extern fn strtok(__s: [*c]u8, __delim: [*c]const u8) [*c]u8;
-pub extern fn __strtok_r(noalias __s: [*c]u8, noalias __delim: [*c]const u8, noalias __save_ptr: [*c][*c]u8) [*c]u8;
-pub extern fn strtok_r(noalias __s: [*c]u8, noalias __delim: [*c]const u8, noalias __save_ptr: [*c][*c]u8) [*c]u8;
-pub extern fn strlen(__s: [*c]const u8) c_ulong;
-pub extern fn strnlen(__string: [*c]const u8, __maxlen: usize) usize;
-pub extern fn strerror(__errnum: c_int) [*c]u8;
-pub extern fn strerror_r(__errnum: c_int, __buf: [*c]u8, __buflen: usize) c_int;
-pub extern fn strerror_l(__errnum: c_int, __l: locale_t) [*c]u8;
-pub extern fn bcmp(__s1: ?*const anyopaque, __s2: ?*const anyopaque, __n: c_ulong) c_int;
-pub extern fn bcopy(__src: ?*const anyopaque, __dest: ?*anyopaque, __n: c_ulong) void;
-pub extern fn bzero(__s: ?*anyopaque, __n: c_ulong) void;
-pub extern fn index(__s: [*c]const u8, __c: c_int) [*c]u8;
-pub extern fn rindex(__s: [*c]const u8, __c: c_int) [*c]u8;
-pub extern fn ffs(__i: c_int) c_int;
-pub extern fn ffsl(__l: c_long) c_int;
-pub extern fn ffsll(__ll: c_longlong) c_int;
-pub extern fn strcasecmp(__s1: [*c]const u8, __s2: [*c]const u8) c_int;
-pub extern fn strncasecmp(__s1: [*c]const u8, __s2: [*c]const u8, __n: c_ulong) c_int;
-pub extern fn strcasecmp_l(__s1: [*c]const u8, __s2: [*c]const u8, __loc: locale_t) c_int;
-pub extern fn strncasecmp_l(__s1: [*c]const u8, __s2: [*c]const u8, __n: usize, __loc: locale_t) c_int;
-pub extern fn explicit_bzero(__s: ?*anyopaque, __n: usize) void;
-pub extern fn strsep(noalias __stringp: [*c][*c]u8, noalias __delim: [*c]const u8) [*c]u8;
-pub extern fn strsignal(__sig: c_int) [*c]u8;
-pub extern fn __stpcpy(noalias __dest: [*c]u8, noalias __src: [*c]const u8) [*c]u8;
-pub extern fn stpcpy(__dest: [*c]u8, __src: [*c]const u8) [*c]u8;
-pub extern fn __stpncpy(noalias __dest: [*c]u8, noalias __src: [*c]const u8, __n: usize) [*c]u8;
-pub extern fn stpncpy(__dest: [*c]u8, __src: [*c]const u8, __n: c_ulong) [*c]u8;
 pub const struct_Obj = extern struct {
     type: ObjType = @import("std").mem.zeroes(ObjType),
     isMarked: bool = @import("std").mem.zeroes(bool),
@@ -545,7 +1198,7 @@ pub const Complex = extern struct {
     r: f64 = @import("std").mem.zeroes(f64),
     i: f64 = @import("std").mem.zeroes(f64),
 };
-const union_unnamed_3 = extern union {
+const union_unnamed_6 = extern union {
     boolean: bool,
     num_double: f64,
     num_int: c_int,
@@ -554,300 +1207,20 @@ const union_unnamed_3 = extern union {
 };
 pub const Value = extern struct {
     type: ValueType = @import("std").mem.zeroes(ValueType),
-    as: union_unnamed_3 = @import("std").mem.zeroes(union_unnamed_3),
+    as: union_unnamed_6 = @import("std").mem.zeroes(union_unnamed_6),
 };
 pub const ValueArray = extern struct {
     capacity: c_int = @import("std").mem.zeroes(c_int),
     count: c_int = @import("std").mem.zeroes(c_int),
     values: [*c]Value = @import("std").mem.zeroes([*c]Value),
 };
-pub const struct_Node = extern struct {
-    data: Value = @import("std").mem.zeroes(Value),
-    prev: [*c]struct_Node = @import("std").mem.zeroes([*c]struct_Node),
-    next: [*c]struct_Node = @import("std").mem.zeroes([*c]struct_Node),
-};
-pub export fn valuesEqual(arg_a: Value, arg_b: Value) bool {
-    var a = arg_a;
-    _ = &a;
-    var b = arg_b;
-    _ = &b;
-    if (a.type != b.type) return @as(c_int, 0) != 0;
-    while (true) {
-        switch (a.type) {
-            @as(c_uint, @bitCast(@as(c_int, 0))) => return @as(c_int, @intFromBool(a.as.boolean)) == @as(c_int, @intFromBool(b.as.boolean)),
-            @as(c_uint, @bitCast(@as(c_int, 1))) => return @as(c_int, 1) != 0,
-            @as(c_uint, @bitCast(@as(c_int, 2))) => return a.as.num_int == b.as.num_int,
-            @as(c_uint, @bitCast(@as(c_int, 3))) => return a.as.num_double == b.as.num_double,
-            @as(c_uint, @bitCast(@as(c_int, 4))) => {
-                {
-                    var obj_a: [*c]Obj = a.as.obj;
-                    _ = &obj_a;
-                    var obj_b: [*c]Obj = b.as.obj;
-                    _ = &obj_b;
-                    if (obj_a.*.type != obj_b.*.type) return @as(c_int, 0) != 0;
-                    while (true) {
-                        switch (obj_a.*.type) {
-                            @as(c_uint, @bitCast(@as(c_int, 4))) => {
-                                {
-                                    var str_a: [*c]ObjString = @as([*c]ObjString, @ptrCast(@alignCast(a.as.obj)));
-                                    _ = &str_a;
-                                    var str_b: [*c]ObjString = @as([*c]ObjString, @ptrCast(@alignCast(b.as.obj)));
-                                    _ = &str_b;
-                                    return (str_a.*.length == str_b.*.length) and (memcmp(@as(?*const anyopaque, @ptrCast(str_a.*.chars)), @as(?*const anyopaque, @ptrCast(str_b.*.chars)), @as(c_ulong, @bitCast(@as(c_long, str_a.*.length)))) == @as(c_int, 0));
-                                }
-                            },
-                            @as(c_uint, @bitCast(@as(c_int, 8))) => {
-                                {
-                                    var arr_a: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(a.as.obj)));
-                                    _ = &arr_a;
-                                    var arr_b: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(b.as.obj)));
-                                    _ = &arr_b;
-                                    if (arr_a.*.count != arr_b.*.count) return @as(c_int, 0) != 0;
-                                    {
-                                        var i: c_int = 0;
-                                        _ = &i;
-                                        while (i < arr_a.*.count) : (i += 1) {
-                                            if (!valuesEqual((blk: {
-                                                const tmp = i;
-                                                if (tmp >= 0) break :blk arr_a.*.values + @as(usize, @intCast(tmp)) else break :blk arr_a.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                                            }).*, (blk: {
-                                                const tmp = i;
-                                                if (tmp >= 0) break :blk arr_b.*.values + @as(usize, @intCast(tmp)) else break :blk arr_b.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                                            }).*)) return @as(c_int, 0) != 0;
-                                        }
-                                    }
-                                    return @as(c_int, 1) != 0;
-                                }
-                            },
-                            @as(c_uint, @bitCast(@as(c_int, 9))) => {
-                                {
-                                    var list_a: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(a.as.obj)));
-                                    _ = &list_a;
-                                    var list_b: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(b.as.obj)));
-                                    _ = &list_b;
-                                    if (list_a.*.count != list_b.*.count) return @as(c_int, 0) != 0;
-                                    var node_a: [*c]struct_Node = list_a.*.head;
-                                    _ = &node_a;
-                                    var node_b: [*c]struct_Node = list_b.*.head;
-                                    _ = &node_b;
-                                    while (node_a != @as([*c]struct_Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
-                                        if (!valuesEqual(node_a.*.data, node_b.*.data)) return @as(c_int, 0) != 0;
-                                        node_a = node_a.*.next;
-                                        node_b = node_b.*.next;
-                                    }
-                                    return @as(c_int, 1) != 0;
-                                }
-                            },
-                            @as(c_uint, @bitCast(@as(c_int, 12))) => {
-                                {
-                                    var vec_a: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(a.as.obj)));
-                                    _ = &vec_a;
-                                    var vec_b: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(b.as.obj)));
-                                    _ = &vec_b;
-                                    if (vec_a.*.count != vec_b.*.count) return @as(c_int, 0) != 0;
-                                    {
-                                        var i: c_int = 0;
-                                        _ = &i;
-                                        while (i < vec_a.*.count) : (i += 1) {
-                                            if ((blk: {
-                                                const tmp = i;
-                                                if (tmp >= 0) break :blk vec_a.*.data + @as(usize, @intCast(tmp)) else break :blk vec_a.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                                            }).* != (blk: {
-                                                const tmp = i;
-                                                if (tmp >= 0) break :blk vec_b.*.data + @as(usize, @intCast(tmp)) else break :blk vec_b.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                                            }).*) return @as(c_int, 0) != 0;
-                                        }
-                                    }
-                                    return @as(c_int, 1) != 0;
-                                }
-                            },
-                            else => {},
-                        }
-                        break;
-                    }
-                }
-                {
-                    var c_a: Complex = a.as.complex;
-                    _ = &c_a;
-                    var c_b: Complex = b.as.complex;
-                    _ = &c_b;
-                    return (c_a.r == c_b.r) and (c_a.i == c_b.i);
-                }
-            },
-            @as(c_uint, @bitCast(@as(c_int, 5))) => {
-                {
-                    var c_a: Complex = a.as.complex;
-                    _ = &c_a;
-                    var c_b: Complex = b.as.complex;
-                    _ = &c_b;
-                    return (c_a.r == c_b.r) and (c_a.i == c_b.i);
-                }
-            },
-            else => return @as(c_int, 0) != 0,
-        }
-        break;
-    }
-    return @as(c_int, 0) != 0;
-}
-pub export fn valueCompare(arg_a: Value, arg_b: Value) c_int {
-    var a = arg_a;
-    _ = &a;
-    var b = arg_b;
-    _ = &b;
-    if (a.type != b.type) return -@as(c_int, 1);
-    while (true) {
-        switch (a.type) {
-            @as(c_uint, @bitCast(@as(c_int, 0))) => return @as(c_int, @intFromBool(a.as.boolean)) - @as(c_int, @intFromBool(b.as.boolean)),
-            @as(c_uint, @bitCast(@as(c_int, 1))) => return 0,
-            @as(c_uint, @bitCast(@as(c_int, 2))) => {
-                {
-                    var a1: c_int = a.as.num_int;
-                    _ = &a1;
-                    var b1: c_int = b.as.num_int;
-                    _ = &b1;
-                    if (a1 > b1) return 1;
-                    if (a1 < b1) return -@as(c_int, 1);
-                    if (a1 == b1) return 0;
-                    break;
-                }
-            },
-            @as(c_uint, @bitCast(@as(c_int, 3))) => {
-                {
-                    var a1: f64 = a.as.num_double;
-                    _ = &a1;
-                    var b1: f64 = b.as.num_double;
-                    _ = &b1;
-                    if (a1 > b1) return 1;
-                    if (a1 < b1) return -@as(c_int, 1);
-                    if (a1 == b1) return 0;
-                    break;
-                }
-            },
-            else => return -@as(c_int, 1),
-        }
-        break;
-    }
-    return -@as(c_int, 1);
-}
-pub export fn initValueArray(arg_array: [*c]ValueArray) void {
-    var array = arg_array;
-    _ = &array;
-    array.*.values = null;
-    array.*.capacity = 0;
-    array.*.count = 0;
-}
-pub export fn writeValueArray(arg_array: [*c]ValueArray, arg_value: Value) void {
-    var array = arg_array;
-    _ = &array;
-    var value = arg_value;
-    _ = &value;
-    if (array.*.capacity < (array.*.count + @as(c_int, 1))) {
-        var oldCapacity: c_int = array.*.capacity;
-        _ = &oldCapacity;
-        array.*.capacity = if (oldCapacity < @as(c_int, 8)) @as(c_int, 8) else oldCapacity * @as(c_int, 2);
-        array.*.values = @as([*c]Value, @ptrCast(@alignCast(reallocate(@as(?*anyopaque, @ptrCast(array.*.values)), @sizeOf(Value) *% @as(c_ulong, @bitCast(@as(c_long, oldCapacity))), @sizeOf(Value) *% @as(c_ulong, @bitCast(@as(c_long, array.*.capacity)))))));
-    }
-    (blk: {
-        const tmp = array.*.count;
-        if (tmp >= 0) break :blk array.*.values + @as(usize, @intCast(tmp)) else break :blk array.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    }).* = value;
-    array.*.count += 1;
-}
-pub export fn freeValueArray(arg_array: [*c]ValueArray) void {
-    var array = arg_array;
-    _ = &array;
-    _ = reallocate(@as(?*anyopaque, @ptrCast(array.*.values)), @sizeOf(Value) *% @as(c_ulong, @bitCast(@as(c_long, array.*.capacity))), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
-    initValueArray(array);
-}
-pub export fn printValue(arg_value: Value) void {
-    var value = arg_value;
-    _ = &value;
-    while (true) {
-        switch (value.type) {
-            @as(c_uint, @bitCast(@as(c_int, 0))) => {
-                _ = printf(if (@as(c_int, @intFromBool(value.as.boolean)) != 0) "true" else "false");
-                break;
-            },
-            @as(c_uint, @bitCast(@as(c_int, 1))) => {
-                _ = printf("nil");
-                break;
-            },
-            @as(c_uint, @bitCast(@as(c_int, 3))) => {
-                {
-                    var val: f64 = value.as.num_double;
-                    _ = &val;
-                    if (fabs(val) < 0.0000000001) {
-                        val = 0.0;
-                    }
-                    _ = printf("%g", val);
-                }
-                break;
-            },
-            @as(c_uint, @bitCast(@as(c_int, 2))) => {
-                _ = printf("%d", value.as.num_int);
-                break;
-            },
-            @as(c_uint, @bitCast(@as(c_int, 5))) => {
-                {
-                    var c: Complex = value.as.complex;
-                    _ = &c;
-                    _ = printf("%g + (%g)i", c.r, c.i);
-                    break;
-                }
-            },
-            @as(c_uint, @bitCast(@as(c_int, 4))) => {
-                printObject(value);
-                break;
-            },
-            else => {},
-        }
-        break;
-    }
-}
-pub export fn valueToString(arg_value: Value) [*c]u8 {
-    var value = arg_value;
-    _ = &value;
-    while (true) {
-        switch (value.type) {
-            @as(c_uint, @bitCast(@as(c_int, 0))) => return if (@as(c_int, @intFromBool(value.as.boolean)) != 0) @ptrCast(@constCast("true")) else @ptrCast(@constCast("false")),
-            @as(c_uint, @bitCast(@as(c_int, 1))) => return @ptrCast(@constCast("nil")),
-            @as(c_uint, @bitCast(@as(c_int, 2))) => {
-                {
-                    var str: [*c]u8 = @as([*c]u8, @ptrCast(@alignCast(reallocate(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))), @sizeOf(u8) *% @as(c_ulong, @bitCast(@as(c_long, @as(c_int, 100))))))));
-                    _ = &str;
-                    _ = sprintf(str, "%d", value.as.num_int);
-                    return str;
-                }
-            },
-            @as(c_uint, @bitCast(@as(c_int, 3))) => {
-                {
-                    var str: [*c]u8 = @as([*c]u8, @ptrCast(@alignCast(reallocate(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))), @sizeOf(u8) *% @as(c_ulong, @bitCast(@as(c_long, @as(c_int, 100))))))));
-                    _ = &str;
-                    _ = sprintf(str, "%g", value.as.num_double);
-                    return str;
-                }
-            },
-            @as(c_uint, @bitCast(@as(c_int, 5))) => {
-                {
-                    var str: [*c]u8 = @as([*c]u8, @ptrCast(@alignCast(reallocate(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))), @sizeOf(u8) *% @as(c_ulong, @bitCast(@as(c_long, @as(c_int, 100))))))));
-                    _ = &str;
-                    var c: Complex = value.as.complex;
-                    _ = &c;
-                    _ = sprintf(str, "%g + (%g)i", c.r, c.i);
-                    return str;
-                }
-            },
-            @as(c_uint, @bitCast(@as(c_int, 4))) => {
-                {
-                    return @ptrCast(@constCast("object"));
-                }
-            },
-            else => return null,
-        }
-        break;
-    }
-    return null;
-}
+pub extern fn valuesEqual(a: Value, b: Value) bool;
+pub extern fn valueCompare(a: Value, b: Value) c_int;
+pub extern fn initValueArray(array: [*c]ValueArray) void;
+pub extern fn writeValueArray(array: [*c]ValueArray, value: Value) void;
+pub extern fn freeValueArray(array: [*c]ValueArray) void;
+pub extern fn printValue(value: Value) void;
+pub extern fn valueToString(value: Value) [*c]u8;
 pub const OP_CONSTANT: c_int = 0;
 pub const OP_NIL: c_int = 1;
 pub const OP_TRUE: c_int = 2;
@@ -29438,6 +29811,11 @@ pub const OBJ_HASH_TABLE: c_int = 10;
 pub const OBJ_MATRIX: c_int = 11;
 pub const OBJ_FVECTOR: c_int = 12;
 pub const ObjType = c_uint;
+pub const struct_Node = extern struct {
+    data: Value = @import("std").mem.zeroes(Value),
+    prev: [*c]struct_Node = @import("std").mem.zeroes([*c]struct_Node),
+    next: [*c]struct_Node = @import("std").mem.zeroes([*c]struct_Node),
+};
 pub const ObjLinkedList = extern struct {
     obj: Obj = @import("std").mem.zeroes(Obj),
     head: [*c]struct_Node = @import("std").mem.zeroes([*c]struct_Node),
@@ -29511,152 +29889,3070 @@ pub const ObjBoundMethod = extern struct {
     receiver: Value = @import("std").mem.zeroes(Value),
     method: [*c]ObjClosure = @import("std").mem.zeroes([*c]ObjClosure),
 };
-pub extern fn newBoundMethod(receiver: Value, method: [*c]ObjClosure) [*c]ObjBoundMethod;
-pub extern fn newClass(name: [*c]ObjString) [*c]ObjClass;
-pub extern fn newClosure(function: [*c]ObjFunction) [*c]ObjClosure;
-pub extern fn newFunction(...) [*c]ObjFunction;
-pub extern fn newInstance(klass: [*c]ObjClass) [*c]ObjInstance;
-pub extern fn newNative(function: NativeFn) [*c]ObjNative;
+pub export fn newBoundMethod(arg_receiver: Value, arg_method: [*c]ObjClosure) [*c]ObjBoundMethod {
+    var receiver = arg_receiver;
+    _ = &receiver;
+    var method = arg_method;
+    _ = &method;
+    var bound: [*c]ObjBoundMethod = @as([*c]ObjBoundMethod, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjBoundMethod), @as(c_uint, @bitCast(OBJ_BOUND_METHOD))))));
+    _ = &bound;
+    bound.*.receiver = receiver;
+    bound.*.method = method;
+    return bound;
+}
+pub export fn newClass(arg_name: [*c]ObjString) [*c]ObjClass {
+    var name = arg_name;
+    _ = &name;
+    var klass: [*c]ObjClass = @as([*c]ObjClass, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjClass), @as(c_uint, @bitCast(OBJ_CLASS))))));
+    _ = &klass;
+    klass.*.name = name;
+    initTable(&klass.*.methods);
+    return klass;
+}
+pub export fn newClosure(arg_function: [*c]ObjFunction) [*c]ObjClosure {
+    var function = arg_function;
+    _ = &function;
+    var upvalues: [*c][*c]ObjUpvalue = @as([*c][*c]ObjUpvalue, @ptrCast(@alignCast(reallocate(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))), @sizeOf([*c]ObjUpvalue) *% @as(c_ulong, @bitCast(@as(c_long, function.*.upvalueCount)))))));
+    _ = &upvalues;
+    {
+        var i: c_int = 0;
+        _ = &i;
+        while (i < function.*.upvalueCount) : (i += 1) {
+            (blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk upvalues + @as(usize, @intCast(tmp)) else break :blk upvalues - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).* = null;
+        }
+    }
+    var closure: [*c]ObjClosure = @as([*c]ObjClosure, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjClosure), @as(c_uint, @bitCast(OBJ_CLOSURE))))));
+    _ = &closure;
+    closure.*.function = function;
+    closure.*.upvalues = upvalues;
+    closure.*.upvalueCount = function.*.upvalueCount;
+    return closure;
+}
+pub export fn newFunction() [*c]ObjFunction {
+    var function: [*c]ObjFunction = @as([*c]ObjFunction, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjFunction), @as(c_uint, @bitCast(OBJ_FUNCTION))))));
+    _ = &function;
+    function.*.arity = 0;
+    function.*.upvalueCount = 0;
+    function.*.name = null;
+    initChunk(&function.*.chunk);
+    return function;
+}
+pub export fn newInstance(arg_klass: [*c]ObjClass) [*c]ObjInstance {
+    var klass = arg_klass;
+    _ = &klass;
+    var instance: [*c]ObjInstance = @as([*c]ObjInstance, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjInstance), @as(c_uint, @bitCast(OBJ_INSTANCE))))));
+    _ = &instance;
+    instance.*.klass = klass;
+    initTable(&instance.*.fields);
+    return instance;
+}
+pub export fn newNative(arg_function: NativeFn) [*c]ObjNative {
+    var function = arg_function;
+    _ = &function;
+    var native: [*c]ObjNative = @as([*c]ObjNative, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjNative), @as(c_uint, @bitCast(OBJ_NATIVE))))));
+    _ = &native;
+    native.*.function = function;
+    return native;
+}
 pub const AllocStringParams = extern struct {
     chars: [*c]u8 = @import("std").mem.zeroes([*c]u8),
     length: c_int = @import("std").mem.zeroes(c_int),
     hash: u64 = @import("std").mem.zeroes(u64),
 };
-pub extern fn allocateString(params: AllocStringParams) [*c]ObjString;
-pub extern fn hashString(key: [*c]const u8, length: c_int) u64;
-pub extern fn takeString(chars: [*c]u8, length: c_int) [*c]ObjString;
-pub extern fn copyString(chars: [*c]const u8, length: c_int) [*c]ObjString;
-pub extern fn newUpvalue(slot: [*c]Value) [*c]ObjUpvalue;
-pub extern fn mergeArrays(a: [*c]ObjArray, b: [*c]ObjArray) [*c]ObjArray;
-pub extern fn cloneArray(array: [*c]ObjArray) [*c]ObjArray;
-pub extern fn clearArray(array: [*c]ObjArray) void;
-pub extern fn pushArray(array: [*c]ObjArray, value: Value) void;
-pub extern fn insertArray(array: [*c]ObjArray, index: c_int, value: Value) void;
-pub extern fn removeArray(array: [*c]ObjArray, index: c_int) Value;
-pub extern fn getArray(array: [*c]ObjArray, index: c_int) Value;
-pub extern fn popArray(array: [*c]ObjArray) Value;
-pub extern fn sortArray(array: [*c]ObjArray) void;
-pub extern fn searchArray(array: [*c]ObjArray, value: Value) c_int;
-pub extern fn reverseArray(array: [*c]ObjArray) void;
-pub extern fn equalArray(a: [*c]ObjArray, b: [*c]ObjArray) bool;
-pub extern fn freeObjectArray(array: [*c]ObjArray) void;
-pub extern fn sliceArray(array: [*c]ObjArray, start: c_int, end: c_int) [*c]ObjArray;
-pub extern fn spliceArray(array: [*c]ObjArray, start: c_int, end: c_int) [*c]ObjArray;
-pub extern fn addArray(a: [*c]ObjArray, b: [*c]ObjArray) [*c]ObjArray;
-pub extern fn subArray(a: [*c]ObjArray, b: [*c]ObjArray) [*c]ObjArray;
-pub extern fn mulArray(a: [*c]ObjArray, b: [*c]ObjArray) [*c]ObjArray;
-pub extern fn divArray(a: [*c]ObjArray, b: [*c]ObjArray) [*c]ObjArray;
-pub extern fn sumArray(array: [*c]ObjArray) Value;
-pub extern fn minArray(array: [*c]ObjArray) Value;
-pub extern fn maxArray(array: [*c]ObjArray) Value;
-pub extern fn meanArray(array: [*c]ObjArray) Value;
-pub extern fn varianceArray(array: [*c]ObjArray) Value;
-pub extern fn stdDevArray(array: [*c]ObjArray) Value;
-pub extern fn lenArray(array: [*c]ObjArray) c_int;
-pub extern fn printArray(array: [*c]ObjArray) void;
-pub extern fn newArray(...) [*c]ObjArray;
-pub extern fn newArrayWithCap(capacity: c_int, _static: bool) [*c]ObjArray;
-pub extern fn nextObjectArray(array: [*c]ObjArray) Value;
-pub extern fn hasNextObjectArray(array: [*c]ObjArray) bool;
-pub extern fn peekObjectArray(array: [*c]ObjArray, pos: c_int) Value;
-pub extern fn resetObjectArray(array: [*c]ObjArray) void;
-pub extern fn skipObjectArray(array: [*c]ObjArray, n: c_int) void;
-pub extern fn newLinkedList(...) [*c]ObjLinkedList;
-pub extern fn cloneLinkedList(list: [*c]ObjLinkedList) [*c]ObjLinkedList;
-pub extern fn clearLinkedList(list: [*c]ObjLinkedList) void;
-pub extern fn pushFront(list: [*c]ObjLinkedList, value: Value) void;
-pub extern fn pushBack(list: [*c]ObjLinkedList, value: Value) void;
-pub extern fn popFront(list: [*c]ObjLinkedList) Value;
-pub extern fn popBack(list: [*c]ObjLinkedList) Value;
-pub extern fn equalLinkedList(a: [*c]ObjLinkedList, b: [*c]ObjLinkedList) bool;
-pub extern fn freeObjectLinkedList(list: [*c]ObjLinkedList) void;
-pub extern fn mergeSort(list: [*c]ObjLinkedList) void;
-pub extern fn searchLinkedList(list: [*c]ObjLinkedList, value: Value) c_int;
-pub extern fn reverseLinkedList(list: [*c]ObjLinkedList) void;
-pub extern fn mergeLinkedList(a: [*c]ObjLinkedList, b: [*c]ObjLinkedList) [*c]ObjLinkedList;
-pub extern fn sliceLinkedList(list: [*c]ObjLinkedList, start: c_int, end: c_int) [*c]ObjLinkedList;
-pub extern fn spliceLinkedList(list: [*c]ObjLinkedList, start: c_int, end: c_int) [*c]ObjLinkedList;
-pub extern fn newHashTable(...) [*c]ObjHashTable;
-pub extern fn cloneHashTable(table: [*c]ObjHashTable) [*c]ObjHashTable;
-pub extern fn clearHashTable(table: [*c]ObjHashTable) void;
-pub extern fn putHashTable(table: [*c]ObjHashTable, key: [*c]ObjString, value: Value) bool;
-pub extern fn getHashTable(table: [*c]ObjHashTable, key: [*c]ObjString) Value;
-pub extern fn removeHashTable(table: [*c]ObjHashTable, key: [*c]ObjString) bool;
-pub extern fn freeObjectHashTable(table: [*c]ObjHashTable) void;
+pub export fn allocateString(arg_params: AllocStringParams) [*c]ObjString {
+    var params = arg_params;
+    _ = &params;
+    var string: [*c]ObjString = @as([*c]ObjString, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjString), @as(c_uint, @bitCast(OBJ_STRING))))));
+    _ = &string;
+    string.*.length = params.length;
+    string.*.chars = params.chars;
+    string.*.hash = params.hash;
+    push(Value{
+        .type = @as(c_uint, @bitCast(VAL_OBJ)),
+        .as = union_unnamed_6{
+            .obj = @as([*c]Obj, @ptrCast(@alignCast(string))),
+        },
+    });
+    _ = tableSet(&vm.strings, string, Value{
+        .type = @as(c_uint, @bitCast(VAL_NIL)),
+        .as = union_unnamed_6{
+            .num_int = @as(c_int, 0),
+        },
+    });
+    _ = pop();
+    return string;
+}
+pub export fn hashString(arg_key: [*c]const u8, arg_length: c_int) u64 {
+    var key = arg_key;
+    _ = &key;
+    var length = arg_length;
+    _ = &length;
+    return cityhash64(key, @as(usize, @bitCast(@as(c_long, length))));
+}
+pub export fn takeString(arg_chars: [*c]u8, arg_length: c_int) [*c]ObjString {
+    var chars = arg_chars;
+    _ = &chars;
+    var length = arg_length;
+    _ = &length;
+    var hash: u64 = hashString(chars, length);
+    _ = &hash;
+    var interned: [*c]ObjString = tableFindString(&vm.strings, chars, length, hash);
+    _ = &interned;
+    if (interned != @as([*c]ObjString, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
+        _ = reallocate(@as(?*anyopaque, @ptrCast(chars)), @sizeOf(u8) *% @as(c_ulong, @bitCast(@as(c_long, length + @as(c_int, 1)))), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
+        return interned;
+    }
+    return allocateString(AllocStringParams{
+        .chars = chars,
+        .length = length,
+        .hash = hash,
+    });
+}
+pub export fn copyString(arg_chars: [*c]const u8, arg_length: c_int) [*c]ObjString {
+    var chars = arg_chars;
+    _ = &chars;
+    var length = arg_length;
+    _ = &length;
+    var hash: u64 = hashString(chars, length);
+    _ = &hash;
+    var interned: [*c]ObjString = tableFindString(&vm.strings, chars, length, hash);
+    _ = &interned;
+    if (interned != @as([*c]ObjString, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) return interned;
+    var heapChars: [*c]u8 = @as([*c]u8, @ptrCast(@alignCast(reallocate(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))), @sizeOf(u8) *% @as(c_ulong, @bitCast(@as(c_long, length + @as(c_int, 1))))))));
+    _ = &heapChars;
+    _ = memcpy(@as(?*anyopaque, @ptrCast(heapChars)), @as(?*const anyopaque, @ptrCast(chars)), @as(c_ulong, @bitCast(@as(c_long, length))));
+    (blk: {
+        const tmp = length;
+        if (tmp >= 0) break :blk heapChars + @as(usize, @intCast(tmp)) else break :blk heapChars - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+    }).* = '\x00';
+    return allocateString(AllocStringParams{
+        .chars = heapChars,
+        .length = length,
+        .hash = hash,
+    });
+}
+pub export fn newUpvalue(arg_slot: [*c]Value) [*c]ObjUpvalue {
+    var slot = arg_slot;
+    _ = &slot;
+    var upvalue: [*c]ObjUpvalue = @as([*c]ObjUpvalue, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjUpvalue), @as(c_uint, @bitCast(OBJ_UPVALUE))))));
+    _ = &upvalue;
+    upvalue.*.location = slot;
+    upvalue.*.closed = Value{
+        .type = @as(c_uint, @bitCast(VAL_NIL)),
+        .as = union_unnamed_6{
+            .num_int = @as(c_int, 0),
+        },
+    };
+    upvalue.*.next = null;
+    return upvalue;
+}
+pub export fn mergeArrays(arg_a: [*c]ObjArray, arg_b: [*c]ObjArray) [*c]ObjArray {
+    var a = arg_a;
+    _ = &a;
+    var b = arg_b;
+    _ = &b;
+    var result: [*c]ObjArray = newArrayWithCap(a.*.count + b.*.count, @as(c_int, 0) != 0);
+    _ = &result;
+    {
+        var i: c_int = 0;
+        _ = &i;
+        while (i < a.*.count) : (i += 1) {
+            pushArray(result, (blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk a.*.values + @as(usize, @intCast(tmp)) else break :blk a.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*);
+        }
+    }
+    {
+        var i: c_int = 0;
+        _ = &i;
+        while (i < b.*.count) : (i += 1) {
+            pushArray(result, (blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk b.*.values + @as(usize, @intCast(tmp)) else break :blk b.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*);
+        }
+    }
+    return result;
+}
+pub export fn cloneArray(arg_arr: [*c]ObjArray) [*c]ObjArray {
+    var arr = arg_arr;
+    _ = &arr;
+    var _static: bool = arr.*._static;
+    _ = &_static;
+    var newArray_1: [*c]ObjArray = newArrayWithCap(arr.*.count, _static);
+    _ = &newArray_1;
+    {
+        var i: c_int = 0;
+        _ = &i;
+        while (i < arr.*.count) : (i += 1) {
+            pushArray(newArray_1, (blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk arr.*.values + @as(usize, @intCast(tmp)) else break :blk arr.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*);
+        }
+    }
+    return newArray_1;
+}
+pub export fn clearArray(arg_arr: [*c]ObjArray) void {
+    var arr = arg_arr;
+    _ = &arr;
+    arr.*.count = 0;
+}
+pub export fn pushArray(arg_array: [*c]ObjArray, arg_val: Value) void {
+    var array = arg_array;
+    _ = &array;
+    var val = arg_val;
+    _ = &val;
+    if ((array.*.capacity < (array.*.count + @as(c_int, 1))) and !array.*._static) {
+        var oldCapacity: c_int = array.*.capacity;
+        _ = &oldCapacity;
+        array.*.capacity = if (oldCapacity < @as(c_int, 8)) @as(c_int, 8) else oldCapacity * @as(c_int, 2);
+        array.*.values = @as([*c]Value, @ptrCast(@alignCast(reallocate(@as(?*anyopaque, @ptrCast(array.*.values)), @sizeOf(Value) *% @as(c_ulong, @bitCast(@as(c_long, oldCapacity))), @sizeOf(Value) *% @as(c_ulong, @bitCast(@as(c_long, array.*.capacity)))))));
+    } else if ((array.*.capacity < (array.*.count + @as(c_int, 1))) and (@as(c_int, @intFromBool(array.*._static)) != 0)) {
+        _ = printf("Array is full");
+        return;
+    }
+    (blk: {
+        const tmp = blk_1: {
+            const ref = &array.*.count;
+            const tmp_2 = ref.*;
+            ref.* += 1;
+            break :blk_1 tmp_2;
+        };
+        if (tmp >= 0) break :blk array.*.values + @as(usize, @intCast(tmp)) else break :blk array.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+    }).* = val;
+}
+pub export fn insertArray(arg_arr: [*c]ObjArray, arg_index_1: c_int, arg_value: Value) void {
+    var arr = arg_arr;
+    _ = &arr;
+    var index_1 = arg_index_1;
+    _ = &index_1;
+    var value = arg_value;
+    _ = &value;
+    if ((index_1 < @as(c_int, 0)) or (index_1 > arr.*.count)) {
+        _ = printf("Index out of bounds");
+        return;
+    }
+    if ((arr.*.capacity < (arr.*.count + @as(c_int, 1))) and !arr.*._static) {
+        var oldCapacity: c_int = arr.*.capacity;
+        _ = &oldCapacity;
+        arr.*.capacity = if (oldCapacity < @as(c_int, 8)) @as(c_int, 8) else oldCapacity * @as(c_int, 2);
+        arr.*.values = @as([*c]Value, @ptrCast(@alignCast(reallocate(@as(?*anyopaque, @ptrCast(arr.*.values)), @sizeOf(Value) *% @as(c_ulong, @bitCast(@as(c_long, oldCapacity))), @sizeOf(Value) *% @as(c_ulong, @bitCast(@as(c_long, arr.*.capacity)))))));
+    } else if ((arr.*.capacity < (arr.*.count + @as(c_int, 1))) and (@as(c_int, @intFromBool(arr.*._static)) != 0)) {
+        _ = printf("Array is full");
+        return;
+    }
+    {
+        var i: c_int = arr.*.count;
+        _ = &i;
+        while (i > index_1) : (i -= 1) {
+            (blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk arr.*.values + @as(usize, @intCast(tmp)) else break :blk arr.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).* = (blk: {
+                const tmp = i - @as(c_int, 1);
+                if (tmp >= 0) break :blk arr.*.values + @as(usize, @intCast(tmp)) else break :blk arr.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*;
+        }
+    }
+    (blk: {
+        const tmp = index_1;
+        if (tmp >= 0) break :blk arr.*.values + @as(usize, @intCast(tmp)) else break :blk arr.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+    }).* = value;
+    arr.*.count += 1;
+}
+pub export fn removeArray(arg_arr: [*c]ObjArray, arg_index_1: c_int) Value {
+    var arr = arg_arr;
+    _ = &arr;
+    var index_1 = arg_index_1;
+    _ = &index_1;
+    if ((index_1 < @as(c_int, 0)) or (index_1 >= arr.*.count)) {
+        _ = printf("Index out of bounds");
+        return Value{
+            .type = @as(c_uint, @bitCast(VAL_NIL)),
+            .as = union_unnamed_6{
+                .num_int = @as(c_int, 0),
+            },
+        };
+    }
+    var v: Value = (blk: {
+        const tmp = index_1;
+        if (tmp >= 0) break :blk arr.*.values + @as(usize, @intCast(tmp)) else break :blk arr.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+    }).*;
+    _ = &v;
+    {
+        var i: c_int = index_1;
+        _ = &i;
+        while (i < (arr.*.count - @as(c_int, 1))) : (i += 1) {
+            (blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk arr.*.values + @as(usize, @intCast(tmp)) else break :blk arr.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).* = (blk: {
+                const tmp = i + @as(c_int, 1);
+                if (tmp >= 0) break :blk arr.*.values + @as(usize, @intCast(tmp)) else break :blk arr.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*;
+        }
+    }
+    arr.*.count -= 1;
+    return v;
+}
+pub export fn getArray(arg_arr: [*c]ObjArray, arg_index_1: c_int) Value {
+    var arr = arg_arr;
+    _ = &arr;
+    var index_1 = arg_index_1;
+    _ = &index_1;
+    if ((index_1 < @as(c_int, 0)) or (index_1 >= arr.*.count)) {
+        _ = printf("Index out of bounds");
+        return Value{
+            .type = @as(c_uint, @bitCast(VAL_NIL)),
+            .as = union_unnamed_6{
+                .num_int = @as(c_int, 0),
+            },
+        };
+    }
+    return (blk: {
+        const tmp = index_1;
+        if (tmp >= 0) break :blk arr.*.values + @as(usize, @intCast(tmp)) else break :blk arr.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+    }).*;
+}
+pub export fn popArray(arg_array: [*c]ObjArray) Value {
+    var array = arg_array;
+    _ = &array;
+    if (array.*.count == @as(c_int, 0)) {
+        return Value{
+            .type = @as(c_uint, @bitCast(VAL_NIL)),
+            .as = union_unnamed_6{
+                .num_int = @as(c_int, 0),
+            },
+        };
+    }
+    return (blk: {
+        const tmp = blk_1: {
+            const ref = &array.*.count;
+            ref.* -= 1;
+            break :blk_1 ref.*;
+        };
+        if (tmp >= 0) break :blk array.*.values + @as(usize, @intCast(tmp)) else break :blk array.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+    }).*;
+}
+pub export fn sortArray(arg_array: [*c]ObjArray) void {
+    var array = arg_array;
+    _ = &array;
+    qsort(@as(?*anyopaque, @ptrCast(array.*.values)), @as(usize, @bitCast(@as(c_long, array.*.count))), @sizeOf(Value), &compareValues);
+}
+pub export fn searchArray(arg_array: [*c]ObjArray, arg_value: Value) c_int {
+    var array = arg_array;
+    _ = &array;
+    var value = arg_value;
+    _ = &value;
+    var low: c_int = 0;
+    _ = &low;
+    var high: c_int = array.*.count - @as(c_int, 1);
+    _ = &high;
+    while (low <= high) {
+        var mid: c_int = @divTrunc(low + high, @as(c_int, 2));
+        _ = &mid;
+        var midValue: Value = (blk: {
+            const tmp = mid;
+            if (tmp >= 0) break :blk array.*.values + @as(usize, @intCast(tmp)) else break :blk array.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+        }).*;
+        _ = &midValue;
+        if (valuesEqual(midValue, value)) {
+            return mid;
+        } else if (valuesLess(midValue, value)) {
+            low = mid + @as(c_int, 1);
+        } else {
+            high = mid - @as(c_int, 1);
+        }
+    }
+    return -@as(c_int, 1);
+}
+pub export fn reverseArray(arg_array: [*c]ObjArray) void {
+    var array = arg_array;
+    _ = &array;
+    var i: c_int = 0;
+    _ = &i;
+    var j: c_int = array.*.count - @as(c_int, 1);
+    _ = &j;
+    while (i < j) {
+        var temp: Value = (blk: {
+            const tmp = i;
+            if (tmp >= 0) break :blk array.*.values + @as(usize, @intCast(tmp)) else break :blk array.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+        }).*;
+        _ = &temp;
+        (blk: {
+            const tmp = i;
+            if (tmp >= 0) break :blk array.*.values + @as(usize, @intCast(tmp)) else break :blk array.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+        }).* = (blk: {
+            const tmp = j;
+            if (tmp >= 0) break :blk array.*.values + @as(usize, @intCast(tmp)) else break :blk array.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+        }).*;
+        (blk: {
+            const tmp = j;
+            if (tmp >= 0) break :blk array.*.values + @as(usize, @intCast(tmp)) else break :blk array.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+        }).* = temp;
+        i += 1;
+        j -= 1;
+    }
+}
+pub export fn equalArray(arg_a: [*c]ObjArray, arg_b: [*c]ObjArray) bool {
+    var a = arg_a;
+    _ = &a;
+    var b = arg_b;
+    _ = &b;
+    if (a.*.count != b.*.count) {
+        return @as(c_int, 0) != 0;
+    }
+    {
+        var i: c_int = 0;
+        _ = &i;
+        while (i < a.*.count) : (i += 1) {
+            if (!valuesEqual((blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk a.*.values + @as(usize, @intCast(tmp)) else break :blk a.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*, (blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk b.*.values + @as(usize, @intCast(tmp)) else break :blk b.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*)) {
+                return @as(c_int, 0) != 0;
+            }
+        }
+    }
+    return @as(c_int, 1) != 0;
+}
+pub export fn freeObjectArray(arg_array: [*c]ObjArray) void {
+    var array = arg_array;
+    _ = &array;
+    _ = reallocate(@as(?*anyopaque, @ptrCast(array.*.values)), @sizeOf(Value) *% @as(c_ulong, @bitCast(@as(c_long, array.*.capacity))), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
+    _ = reallocate(@as(?*anyopaque, @ptrCast(array)), @sizeOf(ObjArray), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
+}
+pub export fn sliceArray(arg_array: [*c]ObjArray, arg_start: c_int, arg_end: c_int) [*c]ObjArray {
+    var array = arg_array;
+    _ = &array;
+    var start = arg_start;
+    _ = &start;
+    var end = arg_end;
+    _ = &end;
+    var sliced: [*c]ObjArray = newArrayWithCap(end - start, @as(c_int, 1) != 0);
+    _ = &sliced;
+    {
+        var i: c_int = start;
+        _ = &i;
+        while (i < end) : (i += 1) {
+            pushArray(sliced, (blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk array.*.values + @as(usize, @intCast(tmp)) else break :blk array.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*);
+        }
+    }
+    return sliced;
+}
+pub export fn spliceArray(arg_array: [*c]ObjArray, arg_start: c_int, arg_end: c_int) [*c]ObjArray {
+    var array = arg_array;
+    _ = &array;
+    var start = arg_start;
+    _ = &start;
+    var end = arg_end;
+    _ = &end;
+    if (((((start < @as(c_int, 0)) or (start >= array.*.count)) or (end < @as(c_int, 0))) or (end > array.*.count)) or (start > end)) {
+        _ = printf("Index out of bounds");
+        return null;
+    }
+    var spliced: [*c]ObjArray = newArrayWithCap(end - start, @as(c_int, 0) != 0);
+    _ = &spliced;
+    {
+        var i: c_int = 0;
+        _ = &i;
+        while (i < start) : (i += 1) {
+            pushArray(spliced, (blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk array.*.values + @as(usize, @intCast(tmp)) else break :blk array.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*);
+        }
+    }
+    {
+        var i: c_int = end + @as(c_int, 1);
+        _ = &i;
+        while (i < array.*.count) : (i += 1) {
+            pushArray(spliced, (blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk array.*.values + @as(usize, @intCast(tmp)) else break :blk array.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*);
+        }
+    }
+    return spliced;
+}
+pub export fn addArray(arg_a: [*c]ObjArray, arg_b: [*c]ObjArray) [*c]ObjArray {
+    var a = arg_a;
+    _ = &a;
+    var b = arg_b;
+    _ = &b;
+    if (a.*.count != b.*.count) {
+        _ = printf("Arrays must have the same length");
+        return null;
+    }
+    var _static: bool = (@as(c_int, @intFromBool(a.*._static)) != 0) and (@as(c_int, @intFromBool(b.*._static)) != 0);
+    _ = &_static;
+    var result: [*c]ObjArray = newArrayWithCap(a.*.count, _static);
+    _ = &result;
+    {
+        var i: c_int = 0;
+        _ = &i;
+        while (i < a.*.count) : (i += 1) {
+            var res: Value = add_val((blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk a.*.values + @as(usize, @intCast(tmp)) else break :blk a.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*, (blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk b.*.values + @as(usize, @intCast(tmp)) else break :blk b.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*);
+            _ = &res;
+            pushArray(result, res);
+        }
+    }
+    return result;
+}
+pub export fn subArray(arg_a: [*c]ObjArray, arg_b: [*c]ObjArray) [*c]ObjArray {
+    var a = arg_a;
+    _ = &a;
+    var b = arg_b;
+    _ = &b;
+    if (a.*.count != b.*.count) {
+        _ = printf("Arrays must have the same length");
+        return null;
+    }
+    var _static: bool = (@as(c_int, @intFromBool(a.*._static)) != 0) and (@as(c_int, @intFromBool(b.*._static)) != 0);
+    _ = &_static;
+    var result: [*c]ObjArray = newArrayWithCap(a.*.count, _static);
+    _ = &result;
+    {
+        var i: c_int = 0;
+        _ = &i;
+        while (i < a.*.count) : (i += 1) {
+            var res: Value = sub_val((blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk a.*.values + @as(usize, @intCast(tmp)) else break :blk a.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*, (blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk b.*.values + @as(usize, @intCast(tmp)) else break :blk b.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*);
+            _ = &res;
+            pushArray(result, res);
+        }
+    }
+    return result;
+}
+pub export fn mulArray(arg_a: [*c]ObjArray, arg_b: [*c]ObjArray) [*c]ObjArray {
+    var a = arg_a;
+    _ = &a;
+    var b = arg_b;
+    _ = &b;
+    if (a.*.count != b.*.count) {
+        _ = printf("Arrays must have the same length");
+        return null;
+    }
+    var _static: bool = (@as(c_int, @intFromBool(a.*._static)) != 0) and (@as(c_int, @intFromBool(b.*._static)) != 0);
+    _ = &_static;
+    var result: [*c]ObjArray = newArrayWithCap(a.*.count, _static);
+    _ = &result;
+    {
+        var i: c_int = 0;
+        _ = &i;
+        while (i < a.*.count) : (i += 1) {
+            var res: Value = mul_val((blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk a.*.values + @as(usize, @intCast(tmp)) else break :blk a.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*, (blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk b.*.values + @as(usize, @intCast(tmp)) else break :blk b.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*);
+            _ = &res;
+            pushArray(result, res);
+        }
+    }
+    return result;
+}
+pub export fn divArray(arg_a: [*c]ObjArray, arg_b: [*c]ObjArray) [*c]ObjArray {
+    var a = arg_a;
+    _ = &a;
+    var b = arg_b;
+    _ = &b;
+    if (a.*.count != b.*.count) {
+        _ = printf("Arrays must have the same length");
+        return null;
+    }
+    var _static: bool = (@as(c_int, @intFromBool(a.*._static)) != 0) and (@as(c_int, @intFromBool(b.*._static)) != 0);
+    _ = &_static;
+    var result: [*c]ObjArray = newArrayWithCap(a.*.count, _static);
+    _ = &result;
+    {
+        var i: c_int = 0;
+        _ = &i;
+        while (i < a.*.count) : (i += 1) {
+            var res: Value = div_val((blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk a.*.values + @as(usize, @intCast(tmp)) else break :blk a.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*, (blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk b.*.values + @as(usize, @intCast(tmp)) else break :blk b.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*);
+            _ = &res;
+            pushArray(result, res);
+        }
+    }
+    return result;
+}
+pub export fn sumArray(arg_array: [*c]ObjArray) Value {
+    var array = arg_array;
+    _ = &array;
+    var sum: Value = Value{
+        .type = @as(c_uint, @bitCast(VAL_DOUBLE)),
+        .as = union_unnamed_6{
+            .num_double = 0.0,
+        },
+    };
+    _ = &sum;
+    {
+        var i: c_int = 0;
+        _ = &i;
+        while (i < array.*.count) : (i += 1) {
+            sum = add_val(sum, (blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk array.*.values + @as(usize, @intCast(tmp)) else break :blk array.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*);
+        }
+    }
+    return sum;
+}
+pub export fn minArray(arg_array: [*c]ObjArray) Value {
+    var array = arg_array;
+    _ = &array;
+    if (array.*.count == @as(c_int, 0)) {
+        return Value{
+            .type = @as(c_uint, @bitCast(VAL_NIL)),
+            .as = union_unnamed_6{
+                .num_int = @as(c_int, 0),
+            },
+        };
+    }
+    var _min: Value = array.*.values[@as(c_uint, @intCast(@as(c_int, 0)))];
+    _ = &_min;
+    {
+        var i: c_int = 1;
+        _ = &i;
+        while (i < array.*.count) : (i += 1) {
+            if (valuesLess((blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk array.*.values + @as(usize, @intCast(tmp)) else break :blk array.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*, _min)) {
+                _min = (blk: {
+                    const tmp = i;
+                    if (tmp >= 0) break :blk array.*.values + @as(usize, @intCast(tmp)) else break :blk array.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                }).*;
+            }
+        }
+    }
+    return _min;
+}
+pub export fn maxArray(arg_array: [*c]ObjArray) Value {
+    var array = arg_array;
+    _ = &array;
+    if (array.*.count == @as(c_int, 0)) {
+        return Value{
+            .type = @as(c_uint, @bitCast(VAL_NIL)),
+            .as = union_unnamed_6{
+                .num_int = @as(c_int, 0),
+            },
+        };
+    }
+    var _max: Value = array.*.values[@as(c_uint, @intCast(@as(c_int, 0)))];
+    _ = &_max;
+    {
+        var i: c_int = 1;
+        _ = &i;
+        while (i < array.*.count) : (i += 1) {
+            if (valuesLess(_max, (blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk array.*.values + @as(usize, @intCast(tmp)) else break :blk array.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*)) {
+                _max = (blk: {
+                    const tmp = i;
+                    if (tmp >= 0) break :blk array.*.values + @as(usize, @intCast(tmp)) else break :blk array.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                }).*;
+            }
+        }
+    }
+    return _max;
+}
+pub export fn meanArray(arg_array: [*c]ObjArray) Value {
+    var array = arg_array;
+    _ = &array;
+    if (array.*.count == @as(c_int, 0)) {
+        return Value{
+            .type = @as(c_uint, @bitCast(VAL_NIL)),
+            .as = union_unnamed_6{
+                .num_int = @as(c_int, 0),
+            },
+        };
+    }
+    var sum: Value = array.*.values[@as(c_uint, @intCast(@as(c_int, 0)))];
+    _ = &sum;
+    {
+        var i: c_int = 1;
+        _ = &i;
+        while (i < array.*.count) : (i += 1) {
+            sum = add_val(sum, (blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk array.*.values + @as(usize, @intCast(tmp)) else break :blk array.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*);
+        }
+    }
+    var mean: Value = div_val(sum, Value{
+        .type = @as(c_uint, @bitCast(VAL_DOUBLE)),
+        .as = union_unnamed_6{
+            .num_double = @as(f64, @floatFromInt(array.*.count)),
+        },
+    });
+    _ = &mean;
+    return mean;
+}
+pub export fn varianceArray(arg_array: [*c]ObjArray) Value {
+    var array = arg_array;
+    _ = &array;
+    if (array.*.count == @as(c_int, 0)) {
+        return Value{
+            .type = @as(c_uint, @bitCast(VAL_NIL)),
+            .as = union_unnamed_6{
+                .num_int = @as(c_int, 0),
+            },
+        };
+    }
+    var mean: Value = meanArray(array);
+    _ = &mean;
+    var sum: Value = Value{
+        .type = @as(c_uint, @bitCast(VAL_DOUBLE)),
+        .as = union_unnamed_6{
+            .num_double = 0.0,
+        },
+    };
+    _ = &sum;
+    {
+        var i: c_int = 0;
+        _ = &i;
+        while (i < array.*.count) : (i += 1) {
+            var temp: Value = sub_val((blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk array.*.values + @as(usize, @intCast(tmp)) else break :blk array.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*, mean);
+            _ = &temp;
+            sum = add_val(sum, mul_val(temp, temp));
+        }
+    }
+    var variance: Value = if (array.*.count > @as(c_int, 1)) div_val(sum, Value{
+        .type = @as(c_uint, @bitCast(VAL_DOUBLE)),
+        .as = union_unnamed_6{
+            .num_double = @as(f64, @floatFromInt(array.*.count - @as(c_int, 1))),
+        },
+    }) else Value{
+        .type = @as(c_uint, @bitCast(VAL_NIL)),
+        .as = union_unnamed_6{
+            .num_int = @as(c_int, 0),
+        },
+    };
+    _ = &variance;
+    return variance;
+}
+pub export fn stdDevArray(arg_array: [*c]ObjArray) Value {
+    var array = arg_array;
+    _ = &array;
+    var variance: Value = varianceArray(array);
+    _ = &variance;
+    return Value{
+        .type = @as(c_uint, @bitCast(VAL_DOUBLE)),
+        .as = union_unnamed_6{
+            .num_double = sqrt(variance.as.num_double),
+        },
+    };
+}
+pub export fn lenArray(arg_array: [*c]ObjArray) c_int {
+    var array = arg_array;
+    _ = &array;
+    return array.*.count;
+}
+pub export fn printArray(arg_arr: [*c]ObjArray) void {
+    var arr = arg_arr;
+    _ = &arr;
+    _ = printf("[");
+    {
+        var i: c_int = 0;
+        _ = &i;
+        while (i < arr.*.count) : (i += 1) {
+            printValue((blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk arr.*.values + @as(usize, @intCast(tmp)) else break :blk arr.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*);
+            if (i != (arr.*.count - @as(c_int, 1))) {
+                _ = printf(", ");
+            }
+        }
+    }
+    _ = printf("]");
+}
+pub export fn newArray() [*c]ObjArray {
+    return newArrayWithCap(@as(c_int, 0), @as(c_int, 0) != 0);
+}
+pub export fn newArrayWithCap(arg_capacity: c_int, arg__static: bool) [*c]ObjArray {
+    var capacity = arg_capacity;
+    _ = &capacity;
+    var _static = arg__static;
+    _ = &_static;
+    var array: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjArray), @as(c_uint, @bitCast(OBJ_ARRAY))))));
+    _ = &array;
+    array.*.capacity = capacity;
+    array.*.count = 0;
+    array.*.values = @as([*c]Value, @ptrCast(@alignCast(reallocate(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))), @sizeOf(Value) *% @as(c_ulong, @bitCast(@as(c_long, capacity)))))));
+    array.*._static = _static;
+    return array;
+}
+pub export fn nextObjectArray(arg_array: [*c]ObjArray) Value {
+    var array = arg_array;
+    _ = &array;
+    if (array.*.pos >= array.*.count) {
+        return Value{
+            .type = @as(c_uint, @bitCast(VAL_NIL)),
+            .as = union_unnamed_6{
+                .num_int = @as(c_int, 0),
+            },
+        };
+    }
+    return (blk: {
+        const tmp = blk_1: {
+            const ref = &array.*.pos;
+            const tmp_2 = ref.*;
+            ref.* += 1;
+            break :blk_1 tmp_2;
+        };
+        if (tmp >= 0) break :blk array.*.values + @as(usize, @intCast(tmp)) else break :blk array.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+    }).*;
+}
+pub export fn hasNextObjectArray(arg_array: [*c]ObjArray) bool {
+    var array = arg_array;
+    _ = &array;
+    return array.*.pos < array.*.count;
+}
+pub export fn peekObjectArray(arg_array: [*c]ObjArray, arg_pos: c_int) Value {
+    var array = arg_array;
+    _ = &array;
+    var pos = arg_pos;
+    _ = &pos;
+    if (pos >= array.*.count) {
+        return Value{
+            .type = @as(c_uint, @bitCast(VAL_NIL)),
+            .as = union_unnamed_6{
+                .num_int = @as(c_int, 0),
+            },
+        };
+    }
+    return (blk: {
+        const tmp = pos;
+        if (tmp >= 0) break :blk array.*.values + @as(usize, @intCast(tmp)) else break :blk array.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+    }).*;
+}
+pub export fn resetObjectArray(arg_array: [*c]ObjArray) void {
+    var array = arg_array;
+    _ = &array;
+    array.*.pos = 0;
+}
+pub export fn skipObjectArray(arg_array: [*c]ObjArray, arg_n: c_int) void {
+    var array = arg_array;
+    _ = &array;
+    var n = arg_n;
+    _ = &n;
+    array.*.pos = if ((array.*.pos + n) < array.*.count) array.*.pos + n else array.*.count;
+}
+pub export fn newLinkedList() [*c]ObjLinkedList {
+    var list: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjLinkedList), @as(c_uint, @bitCast(OBJ_LINKED_LIST))))));
+    _ = &list;
+    list.*.head = null;
+    list.*.tail = null;
+    list.*.count = 0;
+    return list;
+}
+pub export fn cloneLinkedList(arg_list: [*c]ObjLinkedList) [*c]ObjLinkedList {
+    var list = arg_list;
+    _ = &list;
+    var newList: [*c]ObjLinkedList = newLinkedList();
+    _ = &newList;
+    var current: [*c]struct_Node = list.*.head;
+    _ = &current;
+    while (current != @as([*c]struct_Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
+        pushBack(newList, current.*.data);
+        current = current.*.next;
+    }
+    return newList;
+}
+pub export fn clearLinkedList(arg_list: [*c]ObjLinkedList) void {
+    var list = arg_list;
+    _ = &list;
+    var current: [*c]struct_Node = list.*.head;
+    _ = &current;
+    while (current != @as([*c]struct_Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
+        var next: [*c]struct_Node = current.*.next;
+        _ = &next;
+        _ = reallocate(@as(?*anyopaque, @ptrCast(current)), @sizeOf(struct_Node), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
+        current = next;
+    }
+    list.*.head = null;
+    list.*.tail = null;
+    list.*.count = 0;
+}
+pub export fn pushFront(arg_list: [*c]ObjLinkedList, arg_value: Value) void {
+    var list = arg_list;
+    _ = &list;
+    var value = arg_value;
+    _ = &value;
+    var node: [*c]struct_Node = @as([*c]struct_Node, @ptrCast(@alignCast(reallocate(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))), @sizeOf(struct_Node) *% @as(c_ulong, @bitCast(@as(c_long, @as(c_int, 1))))))));
+    _ = &node;
+    node.*.data = value;
+    node.*.prev = null;
+    node.*.next = list.*.head;
+    if (list.*.head != @as([*c]struct_Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
+        list.*.head.*.prev = node;
+    }
+    list.*.head = node;
+    if (list.*.tail == @as([*c]struct_Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
+        list.*.tail = node;
+    }
+    list.*.count += 1;
+}
+pub export fn pushBack(arg_list: [*c]ObjLinkedList, arg_value: Value) void {
+    var list = arg_list;
+    _ = &list;
+    var value = arg_value;
+    _ = &value;
+    var node: [*c]struct_Node = @as([*c]struct_Node, @ptrCast(@alignCast(reallocate(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))), @sizeOf(struct_Node) *% @as(c_ulong, @bitCast(@as(c_long, @as(c_int, 1))))))));
+    _ = &node;
+    node.*.data = value;
+    node.*.prev = list.*.tail;
+    node.*.next = null;
+    if (list.*.tail != @as([*c]struct_Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
+        list.*.tail.*.next = node;
+    }
+    list.*.tail = node;
+    if (list.*.head == @as([*c]struct_Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
+        list.*.head = node;
+    }
+    list.*.count += 1;
+}
+pub export fn popFront(arg_list: [*c]ObjLinkedList) Value {
+    var list = arg_list;
+    _ = &list;
+    if (list.*.head == @as([*c]struct_Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
+        return Value{
+            .type = @as(c_uint, @bitCast(VAL_NIL)),
+            .as = union_unnamed_6{
+                .num_int = @as(c_int, 0),
+            },
+        };
+    }
+    var node: [*c]struct_Node = list.*.head;
+    _ = &node;
+    var data: Value = node.*.data;
+    _ = &data;
+    list.*.head = node.*.next;
+    if (list.*.head != @as([*c]struct_Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
+        list.*.head.*.prev = null;
+    }
+    if (list.*.tail == node) {
+        list.*.tail = null;
+    }
+    list.*.count -= 1;
+    _ = reallocate(@as(?*anyopaque, @ptrCast(node)), @sizeOf(struct_Node), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
+    return data;
+}
+pub export fn popBack(arg_list: [*c]ObjLinkedList) Value {
+    var list = arg_list;
+    _ = &list;
+    if (list.*.tail == @as([*c]struct_Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
+        return Value{
+            .type = @as(c_uint, @bitCast(VAL_NIL)),
+            .as = union_unnamed_6{
+                .num_int = @as(c_int, 0),
+            },
+        };
+    }
+    var node: [*c]struct_Node = list.*.tail;
+    _ = &node;
+    var data: Value = node.*.data;
+    _ = &data;
+    list.*.tail = node.*.prev;
+    if (list.*.tail != @as([*c]struct_Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
+        list.*.tail.*.next = null;
+    }
+    if (list.*.head == node) {
+        list.*.head = null;
+    }
+    list.*.count -= 1;
+    _ = reallocate(@as(?*anyopaque, @ptrCast(node)), @sizeOf(struct_Node), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
+    return data;
+}
+pub export fn equalLinkedList(arg_a: [*c]ObjLinkedList, arg_b: [*c]ObjLinkedList) bool {
+    var a = arg_a;
+    _ = &a;
+    var b = arg_b;
+    _ = &b;
+    if (a.*.count != b.*.count) {
+        return @as(c_int, 0) != 0;
+    }
+    var currentA: [*c]struct_Node = a.*.head;
+    _ = &currentA;
+    var currentB: [*c]struct_Node = b.*.head;
+    _ = &currentB;
+    while (currentA != @as([*c]struct_Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
+        if (!valuesEqual(currentA.*.data, currentB.*.data)) {
+            return @as(c_int, 0) != 0;
+        }
+        currentA = currentA.*.next;
+        currentB = currentB.*.next;
+    }
+    return @as(c_int, 1) != 0;
+}
+pub export fn freeObjectLinkedList(arg_list: [*c]ObjLinkedList) void {
+    var list = arg_list;
+    _ = &list;
+    var current: [*c]struct_Node = list.*.head;
+    _ = &current;
+    while (current != @as([*c]struct_Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
+        var next: [*c]struct_Node = current.*.next;
+        _ = &next;
+        _ = reallocate(@as(?*anyopaque, @ptrCast(current)), @sizeOf(struct_Node), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
+        current = next;
+    }
+    _ = reallocate(@as(?*anyopaque, @ptrCast(list)), @sizeOf(ObjLinkedList), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
+}
+pub export fn mergeSort(arg_list: [*c]ObjLinkedList) void {
+    var list = arg_list;
+    _ = &list;
+    if (list.*.count < @as(c_int, 2)) {
+        return;
+    }
+    var left: ObjLinkedList = undefined;
+    _ = &left;
+    var right: ObjLinkedList = undefined;
+    _ = &right;
+    split(list, &left, &right);
+    mergeSort(&left);
+    mergeSort(&right);
+    list.*.head = merge(left.head, right.head);
+    var current: [*c]struct_Node = list.*.head;
+    _ = &current;
+    while (current.*.next != @as([*c]struct_Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
+        current = current.*.next;
+    }
+    list.*.tail = current;
+}
+pub export fn searchLinkedList(arg_list: [*c]ObjLinkedList, arg_value: Value) c_int {
+    var list = arg_list;
+    _ = &list;
+    var value = arg_value;
+    _ = &value;
+    var current: [*c]struct_Node = list.*.head;
+    _ = &current;
+    var index_1: c_int = 0;
+    _ = &index_1;
+    while (current != @as([*c]struct_Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
+        if (valuesEqual(current.*.data, value)) {
+            return index_1;
+        }
+        current = current.*.next;
+        index_1 += 1;
+    }
+    return -@as(c_int, 1);
+}
+pub export fn reverseLinkedList(arg_list: [*c]ObjLinkedList) void {
+    var list = arg_list;
+    _ = &list;
+    var current: [*c]struct_Node = list.*.head;
+    _ = &current;
+    while (current != @as([*c]struct_Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
+        var temp: [*c]struct_Node = current.*.next;
+        _ = &temp;
+        current.*.next = current.*.prev;
+        current.*.prev = temp;
+        current = temp;
+    }
+    var temp: [*c]struct_Node = list.*.head;
+    _ = &temp;
+    list.*.head = list.*.tail;
+    list.*.tail = temp;
+}
+pub export fn mergeLinkedList(arg_a: [*c]ObjLinkedList, arg_b: [*c]ObjLinkedList) [*c]ObjLinkedList {
+    var a = arg_a;
+    _ = &a;
+    var b = arg_b;
+    _ = &b;
+    var result: [*c]ObjLinkedList = newLinkedList();
+    _ = &result;
+    var currentA: [*c]struct_Node = a.*.head;
+    _ = &currentA;
+    var currentB: [*c]struct_Node = b.*.head;
+    _ = &currentB;
+    while ((currentA != @as([*c]struct_Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) and (currentB != @as([*c]struct_Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0)))))))) {
+        if (valueCompare(currentA.*.data, currentB.*.data) < @as(c_int, 0)) {
+            pushBack(result, currentA.*.data);
+            currentA = currentA.*.next;
+        } else {
+            pushBack(result, currentB.*.data);
+            currentB = currentB.*.next;
+        }
+    }
+    while (currentA != @as([*c]struct_Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
+        pushBack(result, currentA.*.data);
+        currentA = currentA.*.next;
+    }
+    while (currentB != @as([*c]struct_Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
+        pushBack(result, currentB.*.data);
+        currentB = currentB.*.next;
+    }
+    return result;
+}
+pub export fn sliceLinkedList(arg_list: [*c]ObjLinkedList, arg_start: c_int, arg_end: c_int) [*c]ObjLinkedList {
+    var list = arg_list;
+    _ = &list;
+    var start = arg_start;
+    _ = &start;
+    var end = arg_end;
+    _ = &end;
+    var sliced: [*c]ObjLinkedList = newLinkedList();
+    _ = &sliced;
+    var current: [*c]struct_Node = list.*.head;
+    _ = &current;
+    var index_1: c_int = 0;
+    _ = &index_1;
+    while (current != @as([*c]struct_Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
+        if ((index_1 >= start) and (index_1 < end)) {
+            pushBack(sliced, current.*.data);
+        }
+        current = current.*.next;
+        index_1 += 1;
+    }
+    return sliced;
+}
+pub export fn spliceLinkedList(arg_list: [*c]ObjLinkedList, arg_start: c_int, arg_end: c_int) [*c]ObjLinkedList {
+    var list = arg_list;
+    _ = &list;
+    var start = arg_start;
+    _ = &start;
+    var end = arg_end;
+    _ = &end;
+    var spliced: [*c]ObjLinkedList = newLinkedList();
+    _ = &spliced;
+    var current: [*c]struct_Node = list.*.head;
+    _ = &current;
+    var index_1: c_int = 0;
+    _ = &index_1;
+    while (current != @as([*c]struct_Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
+        var next: [*c]struct_Node = current.*.next;
+        _ = &next;
+        if ((index_1 >= start) and (index_1 < end)) {
+            pushBack(spliced, current.*.data);
+            if (current.*.prev != @as([*c]struct_Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
+                current.*.prev.*.next = current.*.next;
+            }
+            if (current.*.next != @as([*c]struct_Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
+                current.*.next.*.prev = current.*.prev;
+            }
+            _ = reallocate(@as(?*anyopaque, @ptrCast(current)), @sizeOf(struct_Node), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
+        }
+        current = next;
+        index_1 += 1;
+    }
+    return spliced;
+}
+pub export fn newHashTable() [*c]ObjHashTable {
+    var htable: [*c]ObjHashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjHashTable), @as(c_uint, @bitCast(OBJ_HASH_TABLE))))));
+    _ = &htable;
+    initTable(&htable.*.table);
+    return htable;
+}
+pub export fn cloneHashTable(arg_table: [*c]ObjHashTable) [*c]ObjHashTable {
+    var table = arg_table;
+    _ = &table;
+    var newTable: [*c]ObjHashTable = newHashTable();
+    _ = &newTable;
+    tableAddAll(&table.*.table, &newTable.*.table);
+    return newTable;
+}
+pub export fn clearHashTable(arg_table: [*c]ObjHashTable) void {
+    var table = arg_table;
+    _ = &table;
+    freeTable(&table.*.table);
+    initTable(&table.*.table);
+}
+pub export fn putHashTable(arg_table: [*c]ObjHashTable, arg_key: [*c]ObjString, arg_value: Value) bool {
+    var table = arg_table;
+    _ = &table;
+    var key = arg_key;
+    _ = &key;
+    var value = arg_value;
+    _ = &value;
+    return tableSet(&table.*.table, key, value);
+}
+pub export fn getHashTable(arg_table: [*c]ObjHashTable, arg_key: [*c]ObjString) Value {
+    var table = arg_table;
+    _ = &table;
+    var key = arg_key;
+    _ = &key;
+    var value: Value = undefined;
+    _ = &value;
+    if (tableGet(&table.*.table, key, &value)) {
+        return value;
+    } else {
+        return Value{
+            .type = @as(c_uint, @bitCast(VAL_NIL)),
+            .as = union_unnamed_6{
+                .num_int = @as(c_int, 0),
+            },
+        };
+    }
+    return @import("std").mem.zeroes(Value);
+}
+pub export fn removeHashTable(arg_table: [*c]ObjHashTable, arg_key: [*c]ObjString) bool {
+    var table = arg_table;
+    _ = &table;
+    var key = arg_key;
+    _ = &key;
+    return tableDelete(&table.*.table, key);
+}
+pub export fn freeObjectHashTable(arg_table: [*c]ObjHashTable) void {
+    var table = arg_table;
+    _ = &table;
+    freeTable(&table.*.table);
+    _ = reallocate(@as(?*anyopaque, @ptrCast(table)), @sizeOf(ObjHashTable), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
+}
 pub extern fn mergeHashTable(a: [*c]ObjHashTable, b: [*c]ObjHashTable) [*c]ObjHashTable;
 pub extern fn keysHashTable(table: [*c]ObjHashTable) [*c]ObjArray;
 pub extern fn valuesHashTable(table: [*c]ObjHashTable) [*c]ObjArray;
-pub extern fn newMatrix(rows: c_int, cols: c_int) [*c]ObjMatrix;
-pub extern fn printMatrix(matrix: [*c]ObjMatrix) void;
-pub extern fn setRow(matrix: [*c]ObjMatrix, row: c_int, values: [*c]ObjArray) void;
-pub extern fn setCol(matrix: [*c]ObjMatrix, col: c_int, values: [*c]ObjArray) void;
-pub extern fn setMatrix(matrix: [*c]ObjMatrix, row: c_int, col: c_int, value: Value) void;
-pub extern fn getMatrix(matrix: [*c]ObjMatrix, row: c_int, col: c_int) Value;
-pub extern fn addMatrix(a: [*c]ObjMatrix, b: [*c]ObjMatrix) [*c]ObjMatrix;
-pub extern fn subMatrix(a: [*c]ObjMatrix, b: [*c]ObjMatrix) [*c]ObjMatrix;
-pub extern fn mulMatrix(a: [*c]ObjMatrix, b: [*c]ObjMatrix) [*c]ObjMatrix;
-pub extern fn divMatrix(a: [*c]ObjMatrix, b: [*c]ObjMatrix) [*c]ObjMatrix;
-pub extern fn transposeMatrix(matrix: [*c]ObjMatrix) [*c]ObjMatrix;
-pub extern fn scaleMatrix(matrix: [*c]ObjMatrix, scalar: Value) [*c]ObjMatrix;
+pub export fn newMatrix(arg_rows: c_int, arg_cols: c_int) [*c]ObjMatrix {
+    var rows = arg_rows;
+    _ = &rows;
+    var cols = arg_cols;
+    _ = &cols;
+    var matrix: [*c]ObjMatrix = @as([*c]ObjMatrix, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjMatrix), @as(c_uint, @bitCast(OBJ_MATRIX))))));
+    _ = &matrix;
+    matrix.*.rows = rows;
+    matrix.*.cols = cols;
+    matrix.*.len = rows * cols;
+    matrix.*.data = newArrayWithCap(matrix.*.len, @as(c_int, 1) != 0);
+    {
+        var i: c_int = 0;
+        _ = &i;
+        while (i < matrix.*.len) : (i += 1) {
+            pushArray(matrix.*.data, Value{
+                .type = @as(c_uint, @bitCast(VAL_DOUBLE)),
+                .as = union_unnamed_6{
+                    .num_double = 0.0,
+                },
+            });
+        }
+    }
+    return matrix;
+}
+pub export fn printMatrix(arg_matrix: [*c]ObjMatrix) void {
+    var matrix = arg_matrix;
+    _ = &matrix;
+    if (matrix != @as([*c]ObjMatrix, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
+        if (matrix.*.data.*.count > @as(c_int, 0)) {
+            {
+                {
+                    var i: c_int = 0;
+                    _ = &i;
+                    while (i < matrix.*.len) : (i += 1) {
+                        printValue((blk: {
+                            const tmp = i;
+                            if (tmp >= 0) break :blk matrix.*.data.*.values + @as(usize, @intCast(tmp)) else break :blk matrix.*.data.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                        }).*);
+                        _ = printf(" ");
+                        if (@import("std").zig.c_translation.signedRemainder(i + @as(c_int, 1), matrix.*.cols) == @as(c_int, 0)) {
+                            _ = printf("\n");
+                        }
+                    }
+                }
+            }
+        } else {
+            _ = printf("[]\n");
+        }
+    }
+}
+pub export fn setRow(arg_matrix: [*c]ObjMatrix, arg_row: c_int, arg_values: [*c]ObjArray) void {
+    var matrix = arg_matrix;
+    _ = &matrix;
+    var row = arg_row;
+    _ = &row;
+    var values = arg_values;
+    _ = &values;
+    if ((((matrix != @as([*c]ObjMatrix, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) and (values != @as([*c]ObjArray, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0)))))))) and (row >= @as(c_int, 0))) and (row < matrix.*.rows)) {
+        {
+            var col: c_int = 0;
+            _ = &col;
+            while (col < matrix.*.cols) : (col += 1) {
+                overWriteArray(matrix.*.data, (row * matrix.*.cols) + col, (blk: {
+                    const tmp = col;
+                    if (tmp >= 0) break :blk values.*.values + @as(usize, @intCast(tmp)) else break :blk values.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                }).*);
+            }
+        }
+    }
+}
+pub export fn setCol(arg_matrix: [*c]ObjMatrix, arg_col: c_int, arg_values: [*c]ObjArray) void {
+    var matrix = arg_matrix;
+    _ = &matrix;
+    var col = arg_col;
+    _ = &col;
+    var values = arg_values;
+    _ = &values;
+    if ((((matrix != @as([*c]ObjMatrix, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) and (values != @as([*c]ObjArray, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0)))))))) and (col >= @as(c_int, 0))) and (col < matrix.*.cols)) {
+        {
+            var row: c_int = 0;
+            _ = &row;
+            while (row < matrix.*.rows) : (row += 1) {
+                overWriteArray(matrix.*.data, (row * matrix.*.cols) + col, (blk: {
+                    const tmp = row;
+                    if (tmp >= 0) break :blk values.*.values + @as(usize, @intCast(tmp)) else break :blk values.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                }).*);
+            }
+        }
+    }
+}
+pub export fn setMatrix(arg_matrix: [*c]ObjMatrix, arg_row: c_int, arg_col: c_int, arg_value: Value) void {
+    var matrix = arg_matrix;
+    _ = &matrix;
+    var row = arg_row;
+    _ = &row;
+    var col = arg_col;
+    _ = &col;
+    var value = arg_value;
+    _ = &value;
+    if (((((matrix != @as([*c]ObjMatrix, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) and (row >= @as(c_int, 0))) and (row < matrix.*.rows)) and (col >= @as(c_int, 0))) and (col < matrix.*.cols)) {
+        overWriteArray(matrix.*.data, (row * matrix.*.cols) + col, value);
+    }
+}
+pub export fn getMatrix(arg_matrix: [*c]ObjMatrix, arg_row: c_int, arg_col: c_int) Value {
+    var matrix = arg_matrix;
+    _ = &matrix;
+    var row = arg_row;
+    _ = &row;
+    var col = arg_col;
+    _ = &col;
+    if (((((matrix != @as([*c]ObjMatrix, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) and (row >= @as(c_int, 0))) and (row < matrix.*.rows)) and (col >= @as(c_int, 0))) and (col < matrix.*.cols)) {
+        return (blk: {
+            const tmp = (row * matrix.*.cols) + col;
+            if (tmp >= 0) break :blk matrix.*.data.*.values + @as(usize, @intCast(tmp)) else break :blk matrix.*.data.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+        }).*;
+    }
+    return Value{
+        .type = @as(c_uint, @bitCast(VAL_NIL)),
+        .as = union_unnamed_6{
+            .num_int = @as(c_int, 0),
+        },
+    };
+}
+pub export fn addMatrix(arg_a: [*c]ObjMatrix, arg_b: [*c]ObjMatrix) [*c]ObjMatrix {
+    var a = arg_a;
+    _ = &a;
+    var b = arg_b;
+    _ = &b;
+    if ((a.*.rows != b.*.rows) or (a.*.cols != b.*.cols)) {
+        _ = printf("Matrix dimensions do not match");
+        return null;
+    }
+    var result: [*c]ObjMatrix = newMatrix(a.*.rows, a.*.cols);
+    _ = &result;
+    {
+        var i: c_int = 0;
+        _ = &i;
+        while (i < a.*.len) : (i += 1) {
+            overWriteArray(result.*.data, i, Value{
+                .type = @as(c_uint, @bitCast(VAL_DOUBLE)),
+                .as = union_unnamed_6{
+                    .num_double = (blk: {
+                        const tmp = i;
+                        if (tmp >= 0) break :blk a.*.data.*.values + @as(usize, @intCast(tmp)) else break :blk a.*.data.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                    }).*.as.num_double + (blk: {
+                        const tmp = i;
+                        if (tmp >= 0) break :blk b.*.data.*.values + @as(usize, @intCast(tmp)) else break :blk b.*.data.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                    }).*.as.num_double,
+                },
+            });
+        }
+    }
+    return result;
+}
+pub export fn subMatrix(arg_a: [*c]ObjMatrix, arg_b: [*c]ObjMatrix) [*c]ObjMatrix {
+    var a = arg_a;
+    _ = &a;
+    var b = arg_b;
+    _ = &b;
+    if ((a.*.rows != b.*.rows) or (a.*.cols != b.*.cols)) {
+        _ = printf("Matrix dimensions do not match");
+        return null;
+    }
+    var result: [*c]ObjMatrix = newMatrix(a.*.rows, a.*.cols);
+    _ = &result;
+    {
+        var i: c_int = 0;
+        _ = &i;
+        while (i < a.*.len) : (i += 1) {
+            overWriteArray(result.*.data, i, Value{
+                .type = @as(c_uint, @bitCast(VAL_DOUBLE)),
+                .as = union_unnamed_6{
+                    .num_double = (blk: {
+                        const tmp = i;
+                        if (tmp >= 0) break :blk a.*.data.*.values + @as(usize, @intCast(tmp)) else break :blk a.*.data.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                    }).*.as.num_double - (blk: {
+                        const tmp = i;
+                        if (tmp >= 0) break :blk b.*.data.*.values + @as(usize, @intCast(tmp)) else break :blk b.*.data.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                    }).*.as.num_double,
+                },
+            });
+        }
+    }
+    return result;
+}
+pub export fn mulMatrix(arg_a: [*c]ObjMatrix, arg_b: [*c]ObjMatrix) [*c]ObjMatrix {
+    var a = arg_a;
+    _ = &a;
+    var b = arg_b;
+    _ = &b;
+    if (a.*.cols != b.*.rows) {
+        _ = printf("Matrix dimensions do not match");
+        return null;
+    }
+    var result: [*c]ObjMatrix = newMatrix(a.*.rows, b.*.cols);
+    _ = &result;
+    {
+        var i: c_int = 0;
+        _ = &i;
+        while (i < a.*.rows) : (i += 1) {
+            {
+                var j: c_int = 0;
+                _ = &j;
+                while (j < b.*.cols) : (j += 1) {
+                    var sum: Value = Value{
+                        .type = @as(c_uint, @bitCast(VAL_DOUBLE)),
+                        .as = union_unnamed_6{
+                            .num_double = 0.0,
+                        },
+                    };
+                    _ = &sum;
+                    {
+                        var k: c_int = 0;
+                        _ = &k;
+                        while (k < a.*.cols) : (k += 1) {
+                            var temp: Value = Value{
+                                .type = @as(c_uint, @bitCast(VAL_DOUBLE)),
+                                .as = union_unnamed_6{
+                                    .num_double = getMatrix(a, i, k).as.num_double * getMatrix(b, k, j).as.num_double,
+                                },
+                            };
+                            _ = &temp;
+                            sum = Value{
+                                .type = @as(c_uint, @bitCast(VAL_DOUBLE)),
+                                .as = union_unnamed_6{
+                                    .num_double = sum.as.num_double + temp.as.num_double,
+                                },
+                            };
+                        }
+                    }
+                    setMatrix(result, i, j, sum);
+                }
+            }
+        }
+    }
+    return result;
+}
+pub export fn divMatrix(arg_a: [*c]ObjMatrix, arg_b: [*c]ObjMatrix) [*c]ObjMatrix {
+    var a = arg_a;
+    _ = &a;
+    var b = arg_b;
+    _ = &b;
+    if ((a.*.rows != b.*.rows) or (a.*.cols != b.*.cols)) {
+        _ = printf("Matrix dimensions do not match");
+        return null;
+    }
+    var result: [*c]ObjMatrix = newMatrix(a.*.rows, a.*.cols);
+    _ = &result;
+    {
+        var i: c_int = 0;
+        _ = &i;
+        while (i < a.*.len) : (i += 1) {
+            overWriteArray(result.*.data, i, Value{
+                .type = @as(c_uint, @bitCast(VAL_DOUBLE)),
+                .as = union_unnamed_6{
+                    .num_double = (blk: {
+                        const tmp = i;
+                        if (tmp >= 0) break :blk a.*.data.*.values + @as(usize, @intCast(tmp)) else break :blk a.*.data.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                    }).*.as.num_double / (blk: {
+                        const tmp = i;
+                        if (tmp >= 0) break :blk b.*.data.*.values + @as(usize, @intCast(tmp)) else break :blk b.*.data.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                    }).*.as.num_double,
+                },
+            });
+        }
+    }
+    return result;
+}
+pub export fn transposeMatrix(arg_matrix: [*c]ObjMatrix) [*c]ObjMatrix {
+    var matrix = arg_matrix;
+    _ = &matrix;
+    var result: [*c]ObjMatrix = newMatrix(matrix.*.cols, matrix.*.rows);
+    _ = &result;
+    {
+        var i: c_int = 0;
+        _ = &i;
+        while (i < matrix.*.rows) : (i += 1) {
+            {
+                var j: c_int = 0;
+                _ = &j;
+                while (j < matrix.*.cols) : (j += 1) {
+                    setMatrix(result, j, i, getMatrix(matrix, i, j));
+                }
+            }
+        }
+    }
+    return result;
+}
+pub export fn scaleMatrix(arg_matrix: [*c]ObjMatrix, arg_scalar: Value) [*c]ObjMatrix {
+    var matrix = arg_matrix;
+    _ = &matrix;
+    var scalar = arg_scalar;
+    _ = &scalar;
+    var result: [*c]ObjMatrix = newMatrix(matrix.*.rows, matrix.*.cols);
+    _ = &result;
+    {
+        var i: c_int = 0;
+        _ = &i;
+        while (i < matrix.*.len) : (i += 1) {
+            overWriteArray(result.*.data, i, mul_val((blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk matrix.*.data.*.values + @as(usize, @intCast(tmp)) else break :blk matrix.*.data.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*, scalar));
+        }
+    }
+    return result;
+}
 pub extern fn swapRows(matrix: [*c]ObjMatrix, row1: c_int, row2: c_int) void;
-pub extern fn rref(matrix: [*c]ObjMatrix) void;
-pub extern fn rank(matrix: [*c]ObjMatrix) c_int;
-pub extern fn identityMatrix(n: c_int) [*c]ObjMatrix;
-pub extern fn lu(matrix: [*c]ObjMatrix) [*c]ObjMatrix;
-pub extern fn determinant(matrix: [*c]ObjMatrix) f64;
+pub export fn rref(arg_matrix: [*c]ObjMatrix) void {
+    var matrix = arg_matrix;
+    _ = &matrix;
+    var lead: c_int = 0;
+    _ = &lead;
+    {
+        var r: c_int = 0;
+        _ = &r;
+        while (r < matrix.*.rows) : (r += 1) {
+            if (lead >= matrix.*.cols) {
+                return;
+            }
+            var i: c_int = r;
+            _ = &i;
+            while (getMatrix(matrix, i, lead).as.num_double == 0.0) {
+                i += 1;
+                if (i == matrix.*.rows) {
+                    i = r;
+                    lead += 1;
+                    if (lead == matrix.*.cols) {
+                        return;
+                    }
+                }
+            }
+            swapRow(matrix, i, r);
+            var div_1: Value = getMatrix(matrix, r, lead);
+            _ = &div_1;
+            if (div_1.as.num_double != 0.0) {
+                {
+                    var j: c_int = 0;
+                    _ = &j;
+                    while (j < matrix.*.cols) : (j += 1) {
+                        var temp: Value = Value{
+                            .type = @as(c_uint, @bitCast(VAL_DOUBLE)),
+                            .as = union_unnamed_6{
+                                .num_double = getMatrix(matrix, r, j).as.num_double / div_1.as.num_double,
+                            },
+                        };
+                        _ = &temp;
+                        setMatrix(matrix, r, j, temp);
+                    }
+                }
+            }
+            {
+                var i_1: c_int = 0;
+                _ = &i_1;
+                while (i_1 < matrix.*.rows) : (i_1 += 1) {
+                    if (i_1 != r) {
+                        var sub: Value = getMatrix(matrix, i_1, lead);
+                        _ = &sub;
+                        {
+                            var j: c_int = 0;
+                            _ = &j;
+                            while (j < matrix.*.cols) : (j += 1) {
+                                var temp: Value = Value{
+                                    .type = @as(c_uint, @bitCast(VAL_DOUBLE)),
+                                    .as = union_unnamed_6{
+                                        .num_double = getMatrix(matrix, i_1, j).as.num_double - (getMatrix(matrix, r, j).as.num_double * sub.as.num_double),
+                                    },
+                                };
+                                _ = &temp;
+                                setMatrix(matrix, i_1, j, temp);
+                            }
+                        }
+                    }
+                }
+            }
+            lead += 1;
+        }
+    }
+}
+pub export fn rank(arg_matrix: [*c]ObjMatrix) c_int {
+    var matrix = arg_matrix;
+    _ = &matrix;
+    var copy: [*c]ObjMatrix = newMatrix(matrix.*.rows, matrix.*.cols);
+    _ = &copy;
+    {
+        var i: c_int = 0;
+        _ = &i;
+        while (i < matrix.*.len) : (i += 1) {
+            (blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk copy.*.data.*.values + @as(usize, @intCast(tmp)) else break :blk copy.*.data.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).* = (blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk matrix.*.data.*.values + @as(usize, @intCast(tmp)) else break :blk matrix.*.data.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*;
+        }
+    }
+    rref(copy);
+    var rank_1: c_int = 0;
+    _ = &rank_1;
+    {
+        var i: c_int = 0;
+        _ = &i;
+        while (i < copy.*.rows) : (i += 1) {
+            {
+                var j: c_int = 0;
+                _ = &j;
+                while (j < copy.*.cols) : (j += 1) {
+                    if (getMatrix(copy, i, j).as.num_double != 0.0) {
+                        rank_1 += 1;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    freeObjectArray(copy.*.data);
+    _ = reallocate(@as(?*anyopaque, @ptrCast(copy)), @sizeOf(ObjMatrix), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
+    return rank_1;
+}
+pub export fn identityMatrix(arg_n: c_int) [*c]ObjMatrix {
+    var n = arg_n;
+    _ = &n;
+    var result: [*c]ObjMatrix = newMatrix(n, n);
+    _ = &result;
+    {
+        var i: c_int = 0;
+        _ = &i;
+        while (i < n) : (i += 1) {
+            setMatrix(result, i, i, Value{
+                .type = @as(c_uint, @bitCast(VAL_DOUBLE)),
+                .as = union_unnamed_6{
+                    .num_double = 1.0,
+                },
+            });
+        }
+    }
+    return result;
+}
+pub export fn lu(arg_matrix: [*c]ObjMatrix) [*c]ObjMatrix {
+    var matrix = arg_matrix;
+    _ = &matrix;
+    var L: [*c]ObjMatrix = newMatrix(matrix.*.rows, matrix.*.cols);
+    _ = &L;
+    var U: [*c]ObjMatrix = newMatrix(matrix.*.rows, matrix.*.cols);
+    _ = &U;
+    {
+        var i: c_int = 0;
+        _ = &i;
+        while (i < matrix.*.rows) : (i += 1) {
+            {
+                var j: c_int = 0;
+                _ = &j;
+                while (j < matrix.*.cols) : (j += 1) {
+                    if (j < i) {
+                        setMatrix(L, i, j, getMatrix(matrix, i, j));
+                    } else if (j == i) {
+                        setMatrix(L, i, j, Value{
+                            .type = @as(c_uint, @bitCast(VAL_DOUBLE)),
+                            .as = union_unnamed_6{
+                                .num_double = 1.0,
+                            },
+                        });
+                        setMatrix(U, i, j, getMatrix(matrix, i, j));
+                    } else {
+                        setMatrix(L, i, j, Value{
+                            .type = @as(c_uint, @bitCast(VAL_DOUBLE)),
+                            .as = union_unnamed_6{
+                                .num_double = 0.0,
+                            },
+                        });
+                        setMatrix(U, i, j, getMatrix(matrix, i, j));
+                    }
+                }
+            }
+        }
+    }
+    {
+        var i: c_int = 0;
+        _ = &i;
+        while (i < matrix.*.rows) : (i += 1) {
+            {
+                var j: c_int = 0;
+                _ = &j;
+                while (j < matrix.*.cols) : (j += 1) {
+                    if (j < i) {
+                        setMatrix(U, i, j, Value{
+                            .type = @as(c_uint, @bitCast(VAL_DOUBLE)),
+                            .as = union_unnamed_6{
+                                .num_double = 0.0,
+                            },
+                        });
+                    } else if (j == i) {
+                        setMatrix(L, i, j, Value{
+                            .type = @as(c_uint, @bitCast(VAL_DOUBLE)),
+                            .as = union_unnamed_6{
+                                .num_double = 1.0,
+                            },
+                        });
+                    } else {
+                        var sum: Value = Value{
+                            .type = @as(c_uint, @bitCast(VAL_DOUBLE)),
+                            .as = union_unnamed_6{
+                                .num_double = 0.0,
+                            },
+                        };
+                        _ = &sum;
+                        {
+                            var k: c_int = 0;
+                            _ = &k;
+                            while (k < i) : (k += 1) {
+                                var temp: Value = Value{
+                                    .type = @as(c_uint, @bitCast(VAL_DOUBLE)),
+                                    .as = union_unnamed_6{
+                                        .num_double = getMatrix(L, i, k).as.num_double * getMatrix(U, k, j).as.num_double,
+                                    },
+                                };
+                                _ = &temp;
+                                sum = Value{
+                                    .type = @as(c_uint, @bitCast(VAL_DOUBLE)),
+                                    .as = union_unnamed_6{
+                                        .num_double = sum.as.num_double + temp.as.num_double,
+                                    },
+                                };
+                            }
+                        }
+                        setMatrix(U, i, j, sub_val(getMatrix(matrix, i, j), sum));
+                    }
+                }
+            }
+        }
+    }
+    var result: [*c]ObjMatrix = newMatrix(@as(c_int, 2), @as(c_int, 1));
+    _ = &result;
+    setMatrix(result, @as(c_int, 0), @as(c_int, 0), Value{
+        .type = @as(c_uint, @bitCast(VAL_OBJ)),
+        .as = union_unnamed_6{
+            .obj = @as([*c]Obj, @ptrCast(@alignCast(L))),
+        },
+    });
+    setMatrix(result, @as(c_int, 1), @as(c_int, 0), Value{
+        .type = @as(c_uint, @bitCast(VAL_OBJ)),
+        .as = union_unnamed_6{
+            .obj = @as([*c]Obj, @ptrCast(@alignCast(U))),
+        },
+    });
+    return result;
+}
+pub export fn determinant(arg_matrix: [*c]ObjMatrix) f64 {
+    var matrix = arg_matrix;
+    _ = &matrix;
+    if (matrix.*.rows != matrix.*.cols) {
+        return 0.0;
+    }
+    var n: c_int = matrix.*.rows;
+    _ = &n;
+    var copy: [*c]ObjMatrix = copyMatrix(matrix);
+    _ = &copy;
+    var det: f64 = 1.0;
+    _ = &det;
+    if (n == @as(c_int, 2)) {
+        var a: Value = getMatrix(copy, @as(c_int, 0), @as(c_int, 0));
+        _ = &a;
+        var b: Value = getMatrix(copy, @as(c_int, 0), @as(c_int, 1));
+        _ = &b;
+        var c: Value = getMatrix(copy, @as(c_int, 1), @as(c_int, 0));
+        _ = &c;
+        var d: Value = getMatrix(copy, @as(c_int, 1), @as(c_int, 1));
+        _ = &d;
+        var det_1: f64 = undefined;
+        _ = &det_1;
+        if ((((a.type == @as(c_uint, @bitCast(VAL_DOUBLE))) and (b.type == @as(c_uint, @bitCast(VAL_DOUBLE)))) and (c.type == @as(c_uint, @bitCast(VAL_DOUBLE)))) and (d.type == @as(c_uint, @bitCast(VAL_DOUBLE)))) {
+            var a_val: f64 = a.as.num_double;
+            _ = &a_val;
+            var b_val: f64 = b.as.num_double;
+            _ = &b_val;
+            var c_val: f64 = c.as.num_double;
+            _ = &c_val;
+            var d_val: f64 = d.as.num_double;
+            _ = &d_val;
+            det_1 = (a_val * d_val) - (b_val * c_val);
+        } else {
+            var a_val: c_int = a.as.num_int;
+            _ = &a_val;
+            var b_val: c_int = b.as.num_int;
+            _ = &b_val;
+            var c_val: c_int = c.as.num_int;
+            _ = &c_val;
+            var d_val: c_int = d.as.num_int;
+            _ = &d_val;
+            det_1 = @as(f64, @floatFromInt((a_val * d_val) - (b_val * c_val)));
+        }
+        return det_1;
+    }
+    {
+        var i: c_int = 0;
+        _ = &i;
+        while (i < n) : (i += 1) {
+            {
+                var j: c_int = i + @as(c_int, 1);
+                _ = &j;
+                while (j < n) : (j += 1) {
+                    var factor: f64 = undefined;
+                    _ = &factor;
+                    if ((getMatrix(copy, j, i).type == @as(c_uint, @bitCast(VAL_DOUBLE))) and (getMatrix(copy, i, i).type == @as(c_uint, @bitCast(VAL_DOUBLE)))) {
+                        factor = getMatrix(copy, j, i).as.num_double / getMatrix(copy, i, i).as.num_double;
+                    } else {
+                        var numerator: c_int = getMatrix(copy, j, i).as.num_int;
+                        _ = &numerator;
+                        var denominator: c_int = getMatrix(copy, i, i).as.num_int;
+                        _ = &denominator;
+                        factor = @as(f64, @floatFromInt(numerator)) / @as(f64, @floatFromInt(denominator));
+                    }
+                    {
+                        var k: c_int = i;
+                        _ = &k;
+                        while (k < n) : (k += 1) {
+                            var newValue: f64 = undefined;
+                            _ = &newValue;
+                            if ((getMatrix(copy, j, k).type == @as(c_uint, @bitCast(VAL_DOUBLE))) and (getMatrix(copy, i, k).type == @as(c_uint, @bitCast(VAL_DOUBLE)))) {
+                                newValue = getMatrix(copy, j, k).as.num_double - (factor * getMatrix(copy, i, k).as.num_double);
+                            } else {
+                                var value1: c_int = getMatrix(copy, j, k).as.num_int;
+                                _ = &value1;
+                                var value2: c_int = getMatrix(copy, i, k).as.num_int;
+                                _ = &value2;
+                                newValue = @as(f64, @floatFromInt(value1)) - (factor * @as(f64, @floatFromInt(value2)));
+                            }
+                            setMatrix(copy, j, k, Value{
+                                .type = @as(c_uint, @bitCast(VAL_DOUBLE)),
+                                .as = union_unnamed_6{
+                                    .num_double = newValue,
+                                },
+                            });
+                        }
+                    }
+                }
+            }
+            if (getMatrix(copy, i, i).type == @as(c_uint, @bitCast(VAL_DOUBLE))) {
+                det *= getMatrix(copy, i, i).as.num_double;
+            } else {
+                var value: c_int = getMatrix(copy, i, i).as.num_int;
+                _ = &value;
+                det *= @as(f64, @floatFromInt(value));
+            }
+        }
+    }
+    freeObjectArray(copy.*.data);
+    _ = reallocate(@as(?*anyopaque, @ptrCast(copy)), @sizeOf(ObjMatrix), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
+    return det;
+}
 pub extern fn inverseMatrix(matrix: [*c]ObjMatrix) [*c]ObjMatrix;
 pub extern fn equalMatrix(a: [*c]ObjMatrix, b: [*c]ObjMatrix) bool;
-pub extern fn solveMatrix(matrix: [*c]ObjMatrix, vector: [*c]ObjArray) [*c]ObjArray;
-pub extern fn newFloatVector(size: c_int) [*c]FloatVector;
-pub extern fn cloneFloatVector(vector: [*c]FloatVector) [*c]FloatVector;
-pub extern fn clearFloatVector(vector: [*c]FloatVector) void;
-pub extern fn freeFloatVector(vector: [*c]FloatVector) void;
-pub extern fn fromArray(array: [*c]ObjArray) [*c]FloatVector;
-pub extern fn pushFloatVector(vector: [*c]FloatVector, value: f64) void;
-pub extern fn insertFloatVector(vector: [*c]FloatVector, index: c_int, value: f64) void;
-pub extern fn getFloatVector(vector: [*c]FloatVector, index: c_int) f64;
-pub extern fn popFloatVector(vector: [*c]FloatVector) f64;
-pub extern fn removeFloatVector(vector: [*c]FloatVector, index: c_int) f64;
-pub extern fn printFloatVector(vector: [*c]FloatVector) void;
-pub extern fn mergeFloatVector(a: [*c]FloatVector, b: [*c]FloatVector) [*c]FloatVector;
-pub extern fn sliceFloatVector(vector: [*c]FloatVector, start: c_int, end: c_int) [*c]FloatVector;
-pub extern fn spliceFloatVector(vector: [*c]FloatVector, start: c_int, end: c_int) [*c]FloatVector;
-pub extern fn sumFloatVector(vector: [*c]FloatVector) f64;
-pub extern fn meanFloatVector(vector: [*c]FloatVector) f64;
-pub extern fn varianceFloatVector(vector: [*c]FloatVector) f64;
-pub extern fn stdDevFloatVector(vector: [*c]FloatVector) f64;
-pub extern fn maxFloatVector(vector: [*c]FloatVector) f64;
-pub extern fn minFloatVector(vector: [*c]FloatVector) f64;
-pub extern fn addFloatVector(a: [*c]FloatVector, b: [*c]FloatVector) [*c]FloatVector;
-pub extern fn subFloatVector(a: [*c]FloatVector, b: [*c]FloatVector) [*c]FloatVector;
-pub extern fn mulFloatVector(a: [*c]FloatVector, b: [*c]FloatVector) [*c]FloatVector;
-pub extern fn divFloatVector(a: [*c]FloatVector, b: [*c]FloatVector) [*c]FloatVector;
-pub extern fn equalFloatVector(a: [*c]FloatVector, b: [*c]FloatVector) bool;
-pub extern fn scaleFloatVector(vector: [*c]FloatVector, scalar: f64) [*c]FloatVector;
-pub extern fn singleAddFloatVector(a: [*c]FloatVector, b: f64) [*c]FloatVector;
-pub extern fn singleSubFloatVector(a: [*c]FloatVector, b: f64) [*c]FloatVector;
+pub export fn solveMatrix(arg_matrix: [*c]ObjMatrix, arg_vector: [*c]ObjArray) [*c]ObjArray {
+    var matrix = arg_matrix;
+    _ = &matrix;
+    var vector = arg_vector;
+    _ = &vector;
+    return null;
+}
+pub export fn newFloatVector(arg_size: c_int) [*c]FloatVector {
+    var size = arg_size;
+    _ = &size;
+    var vector: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(allocateObject(@sizeOf(FloatVector), @as(c_uint, @bitCast(OBJ_FVECTOR))))));
+    _ = &vector;
+    vector.*.size = size;
+    vector.*.count = 0;
+    vector.*.data = @as([*c]f64, @ptrCast(@alignCast(reallocate(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))), @sizeOf(f64) *% @as(c_ulong, @bitCast(@as(c_long, size)))))));
+    return vector;
+}
+pub export fn cloneFloatVector(arg_vector: [*c]FloatVector) [*c]FloatVector {
+    var vector = arg_vector;
+    _ = &vector;
+    var newVector: [*c]FloatVector = newFloatVector(vector.*.size);
+    _ = &newVector;
+    {
+        var i: c_int = 0;
+        _ = &i;
+        while (i < vector.*.count) : (i += 1) {
+            pushFloatVector(newVector, (blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*);
+        }
+    }
+    return newVector;
+}
+pub export fn clearFloatVector(arg_vector: [*c]FloatVector) void {
+    var vector = arg_vector;
+    _ = &vector;
+    vector.*.count = 0;
+    vector.*.sorted = @as(c_int, 1) != 0;
+}
+pub export fn freeFloatVector(arg_vector: [*c]FloatVector) void {
+    var vector = arg_vector;
+    _ = &vector;
+    _ = reallocate(@as(?*anyopaque, @ptrCast(vector.*.data)), @sizeOf(f32) *% @as(c_ulong, @bitCast(@as(c_long, vector.*.size))), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
+    _ = reallocate(@as(?*anyopaque, @ptrCast(vector)), @sizeOf(FloatVector), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
+}
+pub export fn fromArray(arg_array: [*c]ObjArray) [*c]FloatVector {
+    var array = arg_array;
+    _ = &array;
+    var vector: [*c]FloatVector = newFloatVector(array.*.count);
+    _ = &vector;
+    {
+        var i: c_int = 0;
+        _ = &i;
+        while (i < array.*.count) : (i += 1) {
+            if ((blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk array.*.values + @as(usize, @intCast(tmp)) else break :blk array.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*.type == @as(c_uint, @bitCast(VAL_DOUBLE))) {
+                pushFloatVector(vector, (blk: {
+                    const tmp = i;
+                    if (tmp >= 0) break :blk array.*.values + @as(usize, @intCast(tmp)) else break :blk array.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                }).*.as.num_double);
+            } else if ((blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk array.*.values + @as(usize, @intCast(tmp)) else break :blk array.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*.type == @as(c_uint, @bitCast(VAL_INT))) {
+                pushFloatVector(vector, @as(f64, @floatFromInt((blk: {
+                    const tmp = i;
+                    if (tmp >= 0) break :blk array.*.values + @as(usize, @intCast(tmp)) else break :blk array.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                }).*.as.num_int)));
+            } else {
+                continue;
+            }
+        }
+    }
+    return vector;
+}
+pub export fn pushFloatVector(arg_vector: [*c]FloatVector, arg_value: f64) void {
+    var vector = arg_vector;
+    _ = &vector;
+    var value = arg_value;
+    _ = &value;
+    if ((vector.*.count + @as(c_int, 1)) > vector.*.size) {
+        _ = printf("Vector is full\n");
+        return;
+    }
+    (blk: {
+        const tmp = vector.*.count;
+        if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+    }).* = value;
+    vector.*.count += 1;
+    if ((vector.*.count > @as(c_int, 1)) and ((blk: {
+        const tmp = vector.*.count - @as(c_int, 2);
+        if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+    }).* > value)) {
+        vector.*.sorted = @as(c_int, 0) != 0;
+    }
+}
+pub export fn insertFloatVector(arg_vector: [*c]FloatVector, arg_index_1: c_int, arg_value: f64) void {
+    var vector = arg_vector;
+    _ = &vector;
+    var index_1 = arg_index_1;
+    _ = &index_1;
+    var value = arg_value;
+    _ = &value;
+    if ((index_1 < @as(c_int, 0)) or (index_1 >= vector.*.size)) {
+        _ = printf("Index out of bounds\n");
+        return;
+    }
+    {
+        var i: c_int = vector.*.count;
+        _ = &i;
+        while (i > index_1) : (i -= 1) {
+            (blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).* = (blk: {
+                const tmp = i - @as(c_int, 1);
+                if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*;
+        }
+    }
+    (blk: {
+        const tmp = index_1;
+        if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+    }).* = value;
+    vector.*.count += 1;
+    if ((vector.*.count > @as(c_int, 1)) and ((blk: {
+        const tmp = index_1;
+        if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+    }).* < (blk: {
+        const tmp = index_1 - @as(c_int, 1);
+        if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+    }).*)) {
+        vector.*.sorted = @as(c_int, 0) != 0;
+    }
+}
+pub export fn getFloatVector(arg_vector: [*c]FloatVector, arg_index_1: c_int) f64 {
+    var vector = arg_vector;
+    _ = &vector;
+    var index_1 = arg_index_1;
+    _ = &index_1;
+    if ((index_1 < @as(c_int, 0)) or (index_1 >= vector.*.count)) {
+        _ = printf("Index out of bounds\n");
+        return 0;
+    }
+    return (blk: {
+        const tmp = index_1;
+        if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+    }).*;
+}
+pub export fn popFloatVector(arg_vector: [*c]FloatVector) f64 {
+    var vector = arg_vector;
+    _ = &vector;
+    if (vector.*.count == @as(c_int, 0)) {
+        _ = printf("Vector is empty\n");
+        return 0;
+    }
+    var poppedValue: f64 = (blk: {
+        const tmp = blk_1: {
+            const ref = &vector.*.count;
+            ref.* -= 1;
+            break :blk_1 ref.*;
+        };
+        if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+    }).*;
+    _ = &poppedValue;
+    if (vector.*.count == @as(c_int, 0)) {
+        vector.*.sorted = @as(c_int, 1) != 0;
+    }
+    return poppedValue;
+}
+pub export fn removeFloatVector(arg_vector: [*c]FloatVector, arg_index_1: c_int) f64 {
+    var vector = arg_vector;
+    _ = &vector;
+    var index_1 = arg_index_1;
+    _ = &index_1;
+    if ((index_1 < @as(c_int, 0)) or (index_1 >= vector.*.count)) {
+        _ = printf("Index out of bounds\n");
+        return 0;
+    }
+    var removedValue: f64 = (blk: {
+        const tmp = index_1;
+        if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+    }).*;
+    _ = &removedValue;
+    {
+        var i: c_int = index_1;
+        _ = &i;
+        while (i < (vector.*.count - @as(c_int, 1))) : (i += 1) {
+            (blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).* = (blk: {
+                const tmp = i + @as(c_int, 1);
+                if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*;
+        }
+    }
+    vector.*.count -= 1;
+    if (((@as(c_int, @intFromBool(vector.*.sorted)) != 0) and (index_1 > @as(c_int, 0))) and ((blk: {
+        const tmp = index_1;
+        if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+    }).* < (blk: {
+        const tmp = index_1 - @as(c_int, 1);
+        if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+    }).*)) {
+        vector.*.sorted = @as(c_int, 0) != 0;
+    }
+    return removedValue;
+}
+pub export fn printFloatVector(arg_vector: [*c]FloatVector) void {
+    var vector = arg_vector;
+    _ = &vector;
+    _ = printf("[");
+    {
+        var i: c_int = 0;
+        _ = &i;
+        while (i < vector.*.count) : (i += 1) {
+            _ = printf("%.2f ", (blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*);
+        }
+    }
+    _ = printf("]");
+    _ = printf("\n");
+}
+pub export fn mergeFloatVector(arg_a: [*c]FloatVector, arg_b: [*c]FloatVector) [*c]FloatVector {
+    var a = arg_a;
+    _ = &a;
+    var b = arg_b;
+    _ = &b;
+    var result: [*c]FloatVector = newFloatVector(a.*.size + b.*.size);
+    _ = &result;
+    {
+        var i: c_int = 0;
+        _ = &i;
+        while (i < a.*.count) : (i += 1) {
+            pushFloatVector(result, (blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk a.*.data + @as(usize, @intCast(tmp)) else break :blk a.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*);
+        }
+    }
+    {
+        var i: c_int = 0;
+        _ = &i;
+        while (i < b.*.count) : (i += 1) {
+            pushFloatVector(result, (blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk b.*.data + @as(usize, @intCast(tmp)) else break :blk b.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*);
+        }
+    }
+    return result;
+}
+pub export fn sliceFloatVector(arg_vector: [*c]FloatVector, arg_start: c_int, arg_end: c_int) [*c]FloatVector {
+    var vector = arg_vector;
+    _ = &vector;
+    var start = arg_start;
+    _ = &start;
+    var end = arg_end;
+    _ = &end;
+    if ((((start < @as(c_int, 0)) or (start >= vector.*.count)) or (end < @as(c_int, 0))) or (end >= vector.*.count)) {
+        _ = printf("Index out of bounds\n");
+        return null;
+    }
+    var result: [*c]FloatVector = newFloatVector((end - start) + @as(c_int, 1));
+    _ = &result;
+    {
+        var i: c_int = start;
+        _ = &i;
+        while (i <= end) : (i += 1) {
+            pushFloatVector(result, (blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*);
+        }
+    }
+    return result;
+}
+pub export fn spliceFloatVector(arg_vector: [*c]FloatVector, arg_start: c_int, arg_end: c_int) [*c]FloatVector {
+    var vector = arg_vector;
+    _ = &vector;
+    var start = arg_start;
+    _ = &start;
+    var end = arg_end;
+    _ = &end;
+    if ((((start < @as(c_int, 0)) or (start >= vector.*.count)) or (end < @as(c_int, 0))) or (end >= vector.*.count)) {
+        _ = printf("Index out of bounds\n");
+        return null;
+    }
+    var result: [*c]FloatVector = newFloatVector(vector.*.size);
+    _ = &result;
+    {
+        var i: c_int = 0;
+        _ = &i;
+        while (i < start) : (i += 1) {
+            pushFloatVector(result, (blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*);
+        }
+    }
+    {
+        var i: c_int = end + @as(c_int, 1);
+        _ = &i;
+        while (i < vector.*.count) : (i += 1) {
+            pushFloatVector(result, (blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*);
+        }
+    }
+    return result;
+}
+pub export fn sumFloatVector(arg_vector: [*c]FloatVector) f64 {
+    var vector = arg_vector;
+    _ = &vector;
+    var sum: f64 = 0;
+    _ = &sum;
+    var simdSize: usize = @as(usize, @bitCast(@as(c_long, vector.*.count - @import("std").zig.c_translation.signedRemainder(vector.*.count, @as(c_int, 4)))));
+    _ = &simdSize;
+    var simd_sum: __m256 = @as(__m256, @bitCast(_mm256_setzero_pd()));
+    _ = &simd_sum;
+    {
+        var i: usize = 0;
+        _ = &i;
+        while (i < simdSize) : (i +%= @as(usize, @bitCast(@as(c_long, @as(c_int, 4))))) {
+            var simd_arr: __m256 = @as(__m256, @bitCast(_mm256_loadu_pd(&vector.*.data[i])));
+            _ = &simd_arr;
+            simd_sum = @as(__m256, @bitCast(_mm256_add_pd(@as(__m256d, @bitCast(simd_arr)), @as(__m256d, @bitCast(simd_sum)))));
+        }
+    }
+    {
+        var i: usize = simdSize;
+        _ = &i;
+        while (i < @as(usize, @bitCast(@as(c_long, vector.*.count)))) : (i +%= 1) {
+            sum += vector.*.data[i];
+        }
+    }
+    var simd_sum_arr: [4]f64 = undefined;
+    _ = &simd_sum_arr;
+    _mm256_storeu_pd(@as([*c]f64, @ptrCast(@alignCast(&simd_sum_arr))), @as(__m256d, @bitCast(simd_sum)));
+    {
+        var i: c_int = 0;
+        _ = &i;
+        while (i < @as(c_int, 4)) : (i += 1) {
+            sum += simd_sum_arr[@as(c_uint, @intCast(i))];
+        }
+    }
+    return sum;
+}
+pub export fn meanFloatVector(arg_vector: [*c]FloatVector) f64 {
+    var vector = arg_vector;
+    _ = &vector;
+    return sumFloatVector(vector) / @as(f64, @floatFromInt(vector.*.count));
+}
+pub export fn varianceFloatVector(arg_vector: [*c]FloatVector) f64 {
+    var vector = arg_vector;
+    _ = &vector;
+    var mean: f64 = meanFloatVector(vector);
+    _ = &mean;
+    var variance: f64 = 0;
+    _ = &variance;
+    var simdSize: usize = @as(usize, @bitCast(@as(c_long, vector.*.count - @import("std").zig.c_translation.signedRemainder(vector.*.count, @as(c_int, 4)))));
+    _ = &simdSize;
+    var simd_variance: __m256 = @as(__m256, @bitCast(_mm256_setzero_pd()));
+    _ = &simd_variance;
+    {
+        var i: usize = 0;
+        _ = &i;
+        while (i < simdSize) : (i +%= @as(usize, @bitCast(@as(c_long, @as(c_int, 4))))) {
+            var simd_arr: __m256 = @as(__m256, @bitCast(_mm256_loadu_pd(&vector.*.data[i])));
+            _ = &simd_arr;
+            var simd_diff: __m256 = @as(__m256, @bitCast(_mm256_sub_pd(@as(__m256d, @bitCast(simd_arr)), _mm256_set1_pd(mean))));
+            _ = &simd_diff;
+            simd_variance = @as(__m256, @bitCast(_mm256_fmadd_pd(@as(__m256d, @bitCast(simd_diff)), @as(__m256d, @bitCast(simd_diff)), @as(__m256d, @bitCast(simd_variance)))));
+        }
+    }
+    {
+        var i: usize = simdSize;
+        _ = &i;
+        while (i < @as(usize, @bitCast(@as(c_long, vector.*.count)))) : (i +%= 1) {
+            variance += (vector.*.data[i] - mean) * (vector.*.data[i] - mean);
+        }
+    }
+    var simd_variance_arr: [4]f64 = undefined;
+    _ = &simd_variance_arr;
+    _mm256_storeu_pd(@as([*c]f64, @ptrCast(@alignCast(&simd_variance_arr))), @as(__m256d, @bitCast(simd_variance)));
+    {
+        var i: c_int = 0;
+        _ = &i;
+        while (i < @as(c_int, 4)) : (i += 1) {
+            variance += simd_variance_arr[@as(c_uint, @intCast(i))];
+        }
+    }
+    return variance / @as(f64, @floatFromInt(vector.*.count - @as(c_int, 1)));
+}
+pub export fn stdDevFloatVector(arg_vector: [*c]FloatVector) f64 {
+    var vector = arg_vector;
+    _ = &vector;
+    return sqrt(varianceFloatVector(vector));
+}
+pub export fn maxFloatVector(arg_vector: [*c]FloatVector) f64 {
+    var vector = arg_vector;
+    _ = &vector;
+    var _max: f64 = vector.*.data[@as(c_uint, @intCast(@as(c_int, 0)))];
+    _ = &_max;
+    {
+        var i: c_int = 1;
+        _ = &i;
+        while (i < vector.*.count) : (i += 1) {
+            if ((blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).* > _max) {
+                _max = (blk: {
+                    const tmp = i;
+                    if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                }).*;
+            }
+        }
+    }
+    return _max;
+}
+pub export fn minFloatVector(arg_vector: [*c]FloatVector) f64 {
+    var vector = arg_vector;
+    _ = &vector;
+    var min: f64 = vector.*.data[@as(c_uint, @intCast(@as(c_int, 0)))];
+    _ = &min;
+    {
+        var i: c_int = 1;
+        _ = &i;
+        while (i < vector.*.count) : (i += 1) {
+            if ((blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).* < min) {
+                min = (blk: {
+                    const tmp = i;
+                    if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                }).*;
+            }
+        }
+    }
+    return min;
+}
+pub export fn addFloatVector(arg_vector1: [*c]FloatVector, arg_vector2: [*c]FloatVector) [*c]FloatVector {
+    var vector1 = arg_vector1;
+    _ = &vector1;
+    var vector2 = arg_vector2;
+    _ = &vector2;
+    if (vector1.*.size != vector2.*.size) {
+        _ = printf("Vectors are not of the same size\n");
+        return null;
+    }
+    var result: [*c]FloatVector = newFloatVector(vector1.*.size);
+    _ = &result;
+    var simdSize: usize = @as(usize, @bitCast(@as(c_long, vector1.*.count - @import("std").zig.c_translation.signedRemainder(vector1.*.count, @as(c_int, 4)))));
+    _ = &simdSize;
+    {
+        var i: usize = 0;
+        _ = &i;
+        while (i < simdSize) : (i +%= @as(usize, @bitCast(@as(c_long, @as(c_int, 4))))) {
+            var simd_arr1: __m256 = @as(__m256, @bitCast(_mm256_loadu_pd(&vector1.*.data[i])));
+            _ = &simd_arr1;
+            var simd_arr2: __m256 = @as(__m256, @bitCast(_mm256_loadu_pd(&vector2.*.data[i])));
+            _ = &simd_arr2;
+            var simd_result: __m256 = @as(__m256, @bitCast(_mm256_add_pd(@as(__m256d, @bitCast(simd_arr1)), @as(__m256d, @bitCast(simd_arr2)))));
+            _ = &simd_result;
+            _mm256_storeu_pd(&result.*.data[i], @as(__m256d, @bitCast(simd_result)));
+        }
+    }
+    {
+        var i: usize = simdSize;
+        _ = &i;
+        while (i < @as(usize, @bitCast(@as(c_long, vector1.*.count)))) : (i +%= 1) {
+            result.*.data[i] = vector1.*.data[i] + vector2.*.data[i];
+        }
+    }
+    result.*.count = vector1.*.count;
+    return result;
+}
+pub export fn subFloatVector(arg_vector1: [*c]FloatVector, arg_vector2: [*c]FloatVector) [*c]FloatVector {
+    var vector1 = arg_vector1;
+    _ = &vector1;
+    var vector2 = arg_vector2;
+    _ = &vector2;
+    if (vector1.*.size != vector2.*.size) {
+        _ = printf("Vectors are not of the same size\n");
+        return null;
+    }
+    var result: [*c]FloatVector = newFloatVector(vector1.*.size);
+    _ = &result;
+    var simdSize: usize = @as(usize, @bitCast(@as(c_long, vector1.*.count - @import("std").zig.c_translation.signedRemainder(vector1.*.count, @as(c_int, 4)))));
+    _ = &simdSize;
+    {
+        var i: usize = 0;
+        _ = &i;
+        while (i < simdSize) : (i +%= @as(usize, @bitCast(@as(c_long, @as(c_int, 4))))) {
+            var simd_arr1: __m256 = @as(__m256, @bitCast(_mm256_loadu_pd(&vector1.*.data[i])));
+            _ = &simd_arr1;
+            var simd_arr2: __m256 = @as(__m256, @bitCast(_mm256_loadu_pd(&vector2.*.data[i])));
+            _ = &simd_arr2;
+            var simd_result: __m256 = @as(__m256, @bitCast(_mm256_sub_pd(@as(__m256d, @bitCast(simd_arr1)), @as(__m256d, @bitCast(simd_arr2)))));
+            _ = &simd_result;
+            _mm256_storeu_pd(&result.*.data[i], @as(__m256d, @bitCast(simd_result)));
+        }
+    }
+    {
+        var i: usize = simdSize;
+        _ = &i;
+        while (i < @as(usize, @bitCast(@as(c_long, vector1.*.count)))) : (i +%= 1) {
+            result.*.data[i] = vector1.*.data[i] - vector2.*.data[i];
+        }
+    }
+    result.*.count = vector1.*.count;
+    return result;
+}
+pub export fn mulFloatVector(arg_vector1: [*c]FloatVector, arg_vector2: [*c]FloatVector) [*c]FloatVector {
+    var vector1 = arg_vector1;
+    _ = &vector1;
+    var vector2 = arg_vector2;
+    _ = &vector2;
+    if (vector1.*.size != vector2.*.size) {
+        _ = printf("Vectors are not of the same size\n");
+        return null;
+    }
+    var result: [*c]FloatVector = newFloatVector(vector1.*.size);
+    _ = &result;
+    var simdSize: usize = @as(usize, @bitCast(@as(c_long, vector1.*.count - @import("std").zig.c_translation.signedRemainder(vector1.*.count, @as(c_int, 4)))));
+    _ = &simdSize;
+    {
+        var i: usize = 0;
+        _ = &i;
+        while (i < simdSize) : (i +%= @as(usize, @bitCast(@as(c_long, @as(c_int, 4))))) {
+            var simd_arr1: __m256 = @as(__m256, @bitCast(_mm256_loadu_pd(&vector1.*.data[i])));
+            _ = &simd_arr1;
+            var simd_arr2: __m256 = @as(__m256, @bitCast(_mm256_loadu_pd(&vector2.*.data[i])));
+            _ = &simd_arr2;
+            var simd_result: __m256 = @as(__m256, @bitCast(_mm256_mul_pd(@as(__m256d, @bitCast(simd_arr1)), @as(__m256d, @bitCast(simd_arr2)))));
+            _ = &simd_result;
+            _mm256_storeu_pd(&result.*.data[i], @as(__m256d, @bitCast(simd_result)));
+        }
+    }
+    {
+        var i: usize = simdSize;
+        _ = &i;
+        while (i < @as(usize, @bitCast(@as(c_long, vector1.*.count)))) : (i +%= 1) {
+            result.*.data[i] = vector1.*.data[i] * vector2.*.data[i];
+        }
+    }
+    result.*.count = vector1.*.count;
+    return result;
+}
+pub export fn divFloatVector(arg_vector1: [*c]FloatVector, arg_vector2: [*c]FloatVector) [*c]FloatVector {
+    var vector1 = arg_vector1;
+    _ = &vector1;
+    var vector2 = arg_vector2;
+    _ = &vector2;
+    if (vector1.*.size != vector2.*.size) {
+        _ = printf("Vectors are not of the same size\n");
+        return null;
+    }
+    var result: [*c]FloatVector = newFloatVector(vector1.*.size);
+    _ = &result;
+    var simdSize: usize = @as(usize, @bitCast(@as(c_long, vector1.*.count - @import("std").zig.c_translation.signedRemainder(vector1.*.count, @as(c_int, 4)))));
+    _ = &simdSize;
+    {
+        var i: usize = 0;
+        _ = &i;
+        while (i < simdSize) : (i +%= @as(usize, @bitCast(@as(c_long, @as(c_int, 4))))) {
+            var simd_arr1: __m256 = @as(__m256, @bitCast(_mm256_loadu_pd(&vector1.*.data[i])));
+            _ = &simd_arr1;
+            var simd_arr2: __m256 = @as(__m256, @bitCast(_mm256_loadu_pd(&vector2.*.data[i])));
+            _ = &simd_arr2;
+            var simd_result: __m256 = @as(__m256, @bitCast(_mm256_div_pd(@as(__m256d, @bitCast(simd_arr1)), @as(__m256d, @bitCast(simd_arr2)))));
+            _ = &simd_result;
+            _mm256_storeu_pd(&result.*.data[i], @as(__m256d, @bitCast(simd_result)));
+        }
+    }
+    {
+        var i: usize = simdSize;
+        _ = &i;
+        while (i < @as(usize, @bitCast(@as(c_long, vector1.*.count)))) : (i +%= 1) {
+            result.*.data[i] = vector1.*.data[i] / vector2.*.data[i];
+        }
+    }
+    result.*.count = vector1.*.count;
+    return result;
+}
+pub export fn equalFloatVector(arg_a: [*c]FloatVector, arg_b: [*c]FloatVector) bool {
+    var a = arg_a;
+    _ = &a;
+    var b = arg_b;
+    _ = &b;
+    if (a.*.count != b.*.count) {
+        return @as(c_int, 0) != 0;
+    }
+    {
+        var i: c_int = 0;
+        _ = &i;
+        while (i < a.*.count) : (i += 1) {
+            if ((blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk a.*.data + @as(usize, @intCast(tmp)) else break :blk a.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).* != (blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk b.*.data + @as(usize, @intCast(tmp)) else break :blk b.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*) {
+                return @as(c_int, 0) != 0;
+            }
+        }
+    }
+    return @as(c_int, 1) != 0;
+}
+pub export fn scaleFloatVector(arg_vector: [*c]FloatVector, arg_scalar: f64) [*c]FloatVector {
+    var vector = arg_vector;
+    _ = &vector;
+    var scalar = arg_scalar;
+    _ = &scalar;
+    var result: [*c]FloatVector = newFloatVector(vector.*.size);
+    _ = &result;
+    var simdSize: usize = @as(usize, @bitCast(@as(c_long, vector.*.count - @import("std").zig.c_translation.signedRemainder(vector.*.count, @as(c_int, 4)))));
+    _ = &simdSize;
+    {
+        var i: usize = 0;
+        _ = &i;
+        while (i < simdSize) : (i +%= @as(usize, @bitCast(@as(c_long, @as(c_int, 4))))) {
+            var simd_arr1: __m256 = @as(__m256, @bitCast(_mm256_loadu_pd(&vector.*.data[i])));
+            _ = &simd_arr1;
+            var simd_scalar: __m256 = @as(__m256, @bitCast(_mm256_set1_pd(scalar)));
+            _ = &simd_scalar;
+            var simd_result: __m256 = @as(__m256, @bitCast(_mm256_mul_pd(@as(__m256d, @bitCast(simd_arr1)), @as(__m256d, @bitCast(simd_scalar)))));
+            _ = &simd_result;
+            _mm256_storeu_pd(&result.*.data[i], @as(__m256d, @bitCast(simd_result)));
+        }
+    }
+    {
+        var i: usize = simdSize;
+        _ = &i;
+        while (i < @as(usize, @bitCast(@as(c_long, vector.*.count)))) : (i +%= 1) {
+            result.*.data[i] = vector.*.data[i] * scalar;
+        }
+    }
+    result.*.count = vector.*.count;
+    return result;
+}
+pub export fn singleAddFloatVector(arg_a: [*c]FloatVector, arg_b: f64) [*c]FloatVector {
+    var a = arg_a;
+    _ = &a;
+    var b = arg_b;
+    _ = &b;
+    var result: [*c]FloatVector = newFloatVector(a.*.size);
+    _ = &result;
+    var simdSize: usize = @as(usize, @bitCast(@as(c_long, a.*.count - @import("std").zig.c_translation.signedRemainder(a.*.count, @as(c_int, 4)))));
+    _ = &simdSize;
+    {
+        var i: usize = 0;
+        _ = &i;
+        while (i < simdSize) : (i +%= @as(usize, @bitCast(@as(c_long, @as(c_int, 4))))) {
+            var simd_arr1: __m256 = @as(__m256, @bitCast(_mm256_loadu_pd(&a.*.data[i])));
+            _ = &simd_arr1;
+            var simd_scalar: __m256 = @as(__m256, @bitCast(_mm256_set1_pd(b)));
+            _ = &simd_scalar;
+            var simd_result: __m256 = @as(__m256, @bitCast(_mm256_add_pd(@as(__m256d, @bitCast(simd_arr1)), @as(__m256d, @bitCast(simd_scalar)))));
+            _ = &simd_result;
+            _mm256_storeu_pd(&result.*.data[i], @as(__m256d, @bitCast(simd_result)));
+        }
+    }
+    {
+        var i: usize = simdSize;
+        _ = &i;
+        while (i < @as(usize, @bitCast(@as(c_long, a.*.count)))) : (i +%= 1) {
+            result.*.data[i] = a.*.data[i] + b;
+        }
+    }
+    result.*.count = a.*.count;
+    return result;
+}
+pub export fn singleSubFloatVector(arg_a: [*c]FloatVector, arg_b: f64) [*c]FloatVector {
+    var a = arg_a;
+    _ = &a;
+    var b = arg_b;
+    _ = &b;
+    var result: [*c]FloatVector = newFloatVector(a.*.size);
+    _ = &result;
+    var simdSize: usize = @as(usize, @bitCast(@as(c_long, a.*.count - @import("std").zig.c_translation.signedRemainder(a.*.count, @as(c_int, 4)))));
+    _ = &simdSize;
+    {
+        var i: usize = 0;
+        _ = &i;
+        while (i < simdSize) : (i +%= @as(usize, @bitCast(@as(c_long, @as(c_int, 4))))) {
+            var simd_arr1: __m256 = @as(__m256, @bitCast(_mm256_loadu_pd(&a.*.data[i])));
+            _ = &simd_arr1;
+            var simd_scalar: __m256 = @as(__m256, @bitCast(_mm256_set1_pd(b)));
+            _ = &simd_scalar;
+            var simd_result: __m256 = @as(__m256, @bitCast(_mm256_sub_pd(@as(__m256d, @bitCast(simd_arr1)), @as(__m256d, @bitCast(simd_scalar)))));
+            _ = &simd_result;
+            _mm256_storeu_pd(&result.*.data[i], @as(__m256d, @bitCast(simd_result)));
+        }
+    }
+    {
+        var i: usize = simdSize;
+        _ = &i;
+        while (i < @as(usize, @bitCast(@as(c_long, a.*.count)))) : (i +%= 1) {
+            result.*.data[i] = a.*.data[i] - b;
+        }
+    }
+    result.*.count = a.*.count;
+    return result;
+}
 pub extern fn singleMulFloatVector(a: [*c]FloatVector, b: f64) [*c]FloatVector;
-pub extern fn singleDivFloatVector(a: [*c]FloatVector, b: f64) [*c]FloatVector;
-pub extern fn sortFloatVector(vector: [*c]FloatVector) void;
-pub extern fn reverseFloatVector(vector: [*c]FloatVector) void;
-pub extern fn nextFloatVector(vector: [*c]FloatVector) f64;
-pub extern fn hasNextFloatVector(vector: [*c]FloatVector) bool;
-pub extern fn peekFloatVector(vector: [*c]FloatVector, pos: c_int) f64;
-pub extern fn resetFloatVector(vector: [*c]FloatVector) void;
-pub extern fn skipFloatVector(vector: [*c]FloatVector, n: c_int) void;
-pub extern fn searchFloatVector(vector: [*c]FloatVector, value: f64) c_int;
-pub extern fn linspace(start: f64, end: f64, n: c_int) [*c]FloatVector;
-pub extern fn interp1(x: [*c]FloatVector, y: [*c]FloatVector, x0: f64) f64;
-pub extern fn dotProduct(a: [*c]FloatVector, b: [*c]FloatVector) f64;
-pub extern fn crossProduct(a: [*c]FloatVector, b: [*c]FloatVector) [*c]FloatVector;
-pub extern fn magnitude(vector: [*c]FloatVector) f64;
-pub extern fn normalize(vector: [*c]FloatVector) [*c]FloatVector;
-pub extern fn projection(a: [*c]FloatVector, b: [*c]FloatVector) [*c]FloatVector;
-pub extern fn rejection(a: [*c]FloatVector, b: [*c]FloatVector) [*c]FloatVector;
-pub extern fn reflection(a: [*c]FloatVector, b: [*c]FloatVector) [*c]FloatVector;
-pub extern fn refraction(a: [*c]FloatVector, b: [*c]FloatVector, n1: f64, n2: f64) [*c]FloatVector;
-pub extern fn angle(a: [*c]FloatVector, b: [*c]FloatVector) f64;
-pub extern fn printObject(value: Value) void;
+pub export fn singleDivFloatVector(arg_a: [*c]FloatVector, arg_b: f64) [*c]FloatVector {
+    var a = arg_a;
+    _ = &a;
+    var b = arg_b;
+    _ = &b;
+    return scaleFloatVector(a, 1.0 / b);
+}
+pub export fn sortFloatVector(arg_vector: [*c]FloatVector) void {
+    var vector = arg_vector;
+    _ = &vector;
+    if (vector.*.sorted) return;
+    qsort(@as(?*anyopaque, @ptrCast(vector.*.data)), @as(usize, @bitCast(@as(c_long, vector.*.count))), @sizeOf(f64), &compare_double);
+}
+pub export fn reverseFloatVector(arg_vector: [*c]FloatVector) void {
+    var vector = arg_vector;
+    _ = &vector;
+    {
+        var i: c_int = 0;
+        _ = &i;
+        while (i < @divTrunc(vector.*.count, @as(c_int, 2))) : (i += 1) {
+            var temp: f64 = (blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*;
+            _ = &temp;
+            (blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).* = (blk: {
+                const tmp = (vector.*.count - i) - @as(c_int, 1);
+                if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*;
+            (blk: {
+                const tmp = (vector.*.count - i) - @as(c_int, 1);
+                if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).* = temp;
+        }
+    }
+}
+pub export fn nextFloatVector(arg_vector: [*c]FloatVector) f64 {
+    var vector = arg_vector;
+    _ = &vector;
+    if (hasNextFloatVector(vector)) {
+        return (blk: {
+            const tmp = blk_1: {
+                const ref = &vector.*.pos;
+                const tmp_2 = ref.*;
+                ref.* += 1;
+                break :blk_1 tmp_2;
+            };
+            if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+        }).*;
+    }
+    return 0.0;
+}
+pub export fn hasNextFloatVector(arg_vector: [*c]FloatVector) bool {
+    var vector = arg_vector;
+    _ = &vector;
+    return vector.*.pos < vector.*.count;
+}
+pub export fn peekFloatVector(arg_vector: [*c]FloatVector, arg_pos: c_int) f64 {
+    var vector = arg_vector;
+    _ = &vector;
+    var pos = arg_pos;
+    _ = &pos;
+    if (pos < vector.*.count) {
+        return (blk: {
+            const tmp = pos;
+            if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+        }).*;
+    }
+    return 0.0;
+}
+pub export fn resetFloatVector(arg_vector: [*c]FloatVector) void {
+    var vector = arg_vector;
+    _ = &vector;
+    vector.*.pos = 0;
+}
+pub export fn skipFloatVector(arg_vector: [*c]FloatVector, arg_n: c_int) void {
+    var vector = arg_vector;
+    _ = &vector;
+    var n = arg_n;
+    _ = &n;
+    vector.*.pos = if ((vector.*.pos + n) < vector.*.count) vector.*.pos + n else vector.*.count;
+}
+pub export fn searchFloatVector(arg_vector: [*c]FloatVector, arg_value: f64) c_int {
+    var vector = arg_vector;
+    _ = &vector;
+    var value = arg_value;
+    _ = &value;
+    if (vector.*.sorted) {
+        return binarySearchFloatVector(vector, value);
+    } else {
+        {
+            var i: c_int = 0;
+            _ = &i;
+            while (i < vector.*.count) : (i += 1) {
+                if ((blk: {
+                    const tmp = i;
+                    if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                }).* == value) {
+                    return i;
+                }
+            }
+        }
+    }
+    return 0;
+}
+pub export fn linspace(arg_start: f64, arg_end: f64, arg_n: c_int) [*c]FloatVector {
+    var start = arg_start;
+    _ = &start;
+    var end = arg_end;
+    _ = &end;
+    var n = arg_n;
+    _ = &n;
+    var result: [*c]FloatVector = newFloatVector(n);
+    _ = &result;
+    var step: f64 = (end - start) / @as(f64, @floatFromInt(n - @as(c_int, 1)));
+    _ = &step;
+    {
+        var i: c_int = 0;
+        _ = &i;
+        while (i < n) : (i += 1) {
+            (blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk result.*.data + @as(usize, @intCast(tmp)) else break :blk result.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).* = start + (@as(f64, @floatFromInt(i)) * step);
+        }
+    }
+    result.*.count = n;
+    return result;
+}
+pub export fn interp1(arg_x: [*c]FloatVector, arg_y: [*c]FloatVector, arg_x0: f64) f64 {
+    var x = arg_x;
+    _ = &x;
+    var y = arg_y;
+    _ = &y;
+    var x0 = arg_x0;
+    _ = &x0;
+    if (x.*.count != y.*.count) {
+        _ = printf("x and y must have the same length\n");
+        return 0;
+    }
+    if ((x0 < x.*.data[@as(c_uint, @intCast(@as(c_int, 0)))]) or (x0 > (blk: {
+        const tmp = x.*.count - @as(c_int, 1);
+        if (tmp >= 0) break :blk x.*.data + @as(usize, @intCast(tmp)) else break :blk x.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+    }).*)) {
+        _ = printf("x0 is out of bounds\n");
+        return 0;
+    }
+    var i: c_int = 0;
+    _ = &i;
+    while (x0 > (blk: {
+        const tmp = i;
+        if (tmp >= 0) break :blk x.*.data + @as(usize, @intCast(tmp)) else break :blk x.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+    }).*) {
+        i += 1;
+    }
+    if (x0 == (blk: {
+        const tmp = i;
+        if (tmp >= 0) break :blk x.*.data + @as(usize, @intCast(tmp)) else break :blk x.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+    }).*) {
+        return (blk: {
+            const tmp = i;
+            if (tmp >= 0) break :blk y.*.data + @as(usize, @intCast(tmp)) else break :blk y.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+        }).*;
+    }
+    var slope: f64 = ((blk: {
+        const tmp = i;
+        if (tmp >= 0) break :blk y.*.data + @as(usize, @intCast(tmp)) else break :blk y.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+    }).* - (blk: {
+        const tmp = i - @as(c_int, 1);
+        if (tmp >= 0) break :blk y.*.data + @as(usize, @intCast(tmp)) else break :blk y.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+    }).*) / ((blk: {
+        const tmp = i;
+        if (tmp >= 0) break :blk x.*.data + @as(usize, @intCast(tmp)) else break :blk x.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+    }).* - (blk: {
+        const tmp = i - @as(c_int, 1);
+        if (tmp >= 0) break :blk x.*.data + @as(usize, @intCast(tmp)) else break :blk x.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+    }).*);
+    _ = &slope;
+    return (blk: {
+        const tmp = i - @as(c_int, 1);
+        if (tmp >= 0) break :blk y.*.data + @as(usize, @intCast(tmp)) else break :blk y.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+    }).* + (slope * (x0 - (blk: {
+        const tmp = i - @as(c_int, 1);
+        if (tmp >= 0) break :blk x.*.data + @as(usize, @intCast(tmp)) else break :blk x.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+    }).*));
+}
+pub export fn dotProduct(arg_a: [*c]FloatVector, arg_b: [*c]FloatVector) f64 {
+    var a = arg_a;
+    _ = &a;
+    var b = arg_b;
+    _ = &b;
+    if ((a.*.size != @as(c_int, 3)) and (b.*.size != @as(c_int, 3))) {
+        _ = printf("Vectors are not of size 3\n");
+        return 0;
+    }
+    return ((a.*.data[@as(c_uint, @intCast(@as(c_int, 0)))] * b.*.data[@as(c_uint, @intCast(@as(c_int, 0)))]) + (a.*.data[@as(c_uint, @intCast(@as(c_int, 1)))] * b.*.data[@as(c_uint, @intCast(@as(c_int, 1)))])) + (a.*.data[@as(c_uint, @intCast(@as(c_int, 2)))] * b.*.data[@as(c_uint, @intCast(@as(c_int, 2)))]);
+}
+pub export fn crossProduct(arg_a: [*c]FloatVector, arg_b: [*c]FloatVector) [*c]FloatVector {
+    var a = arg_a;
+    _ = &a;
+    var b = arg_b;
+    _ = &b;
+    if ((a.*.size != @as(c_int, 3)) and (b.*.size != @as(c_int, 3))) {
+        _ = printf("Vectors are not of size 3\n");
+        return null;
+    }
+    var result: [*c]FloatVector = newFloatVector(@as(c_int, 3));
+    _ = &result;
+    result.*.data[@as(c_uint, @intCast(@as(c_int, 0)))] = (a.*.data[@as(c_uint, @intCast(@as(c_int, 1)))] * b.*.data[@as(c_uint, @intCast(@as(c_int, 2)))]) - (a.*.data[@as(c_uint, @intCast(@as(c_int, 2)))] * b.*.data[@as(c_uint, @intCast(@as(c_int, 1)))]);
+    result.*.data[@as(c_uint, @intCast(@as(c_int, 1)))] = (a.*.data[@as(c_uint, @intCast(@as(c_int, 2)))] * b.*.data[@as(c_uint, @intCast(@as(c_int, 0)))]) - (a.*.data[@as(c_uint, @intCast(@as(c_int, 0)))] * b.*.data[@as(c_uint, @intCast(@as(c_int, 2)))]);
+    result.*.data[@as(c_uint, @intCast(@as(c_int, 2)))] = (a.*.data[@as(c_uint, @intCast(@as(c_int, 0)))] * b.*.data[@as(c_uint, @intCast(@as(c_int, 1)))]) - (a.*.data[@as(c_uint, @intCast(@as(c_int, 1)))] * b.*.data[@as(c_uint, @intCast(@as(c_int, 0)))]);
+    result.*.count = 3;
+    return result;
+}
+pub export fn magnitude(arg_vector: [*c]FloatVector) f64 {
+    var vector = arg_vector;
+    _ = &vector;
+    var sum: f64 = (pow(vector.*.data[@as(c_uint, @intCast(@as(c_int, 0)))], @as(f64, @floatFromInt(@as(c_int, 2)))) + pow(vector.*.data[@as(c_uint, @intCast(@as(c_int, 1)))], @as(f64, @floatFromInt(@as(c_int, 2))))) + pow(vector.*.data[@as(c_uint, @intCast(@as(c_int, 2)))], @as(f64, @floatFromInt(@as(c_int, 2))));
+    _ = &sum;
+    return sqrt(sum);
+}
+pub export fn normalize(arg_vector: [*c]FloatVector) [*c]FloatVector {
+    var vector = arg_vector;
+    _ = &vector;
+    var mag: f64 = magnitude(vector);
+    _ = &mag;
+    if (mag == @as(f64, @floatFromInt(@as(c_int, 0)))) {
+        _ = printf("Cannot normalize a zero vector\n");
+        return null;
+    }
+    return scaleFloatVector(vector, 1.0 / mag);
+}
+pub export fn projection(arg_a: [*c]FloatVector, arg_b: [*c]FloatVector) [*c]FloatVector {
+    var a = arg_a;
+    _ = &a;
+    var b = arg_b;
+    _ = &b;
+    return scaleFloatVector(b, dotProduct(a, b) / dotProduct(b, b));
+}
+pub export fn rejection(arg_a: [*c]FloatVector, arg_b: [*c]FloatVector) [*c]FloatVector {
+    var a = arg_a;
+    _ = &a;
+    var b = arg_b;
+    _ = &b;
+    return subFloatVector(a, projection(a, b));
+}
+pub export fn reflection(arg_a: [*c]FloatVector, arg_b: [*c]FloatVector) [*c]FloatVector {
+    var a = arg_a;
+    _ = &a;
+    var b = arg_b;
+    _ = &b;
+    return subFloatVector(scaleFloatVector(projection(a, b), @as(f64, @floatFromInt(@as(c_int, 2)))), a);
+}
+pub export fn refraction(arg_a: [*c]FloatVector, arg_b: [*c]FloatVector, arg_n1: f64, arg_n2: f64) [*c]FloatVector {
+    var a = arg_a;
+    _ = &a;
+    var b = arg_b;
+    _ = &b;
+    var n1 = arg_n1;
+    _ = &n1;
+    var n2 = arg_n2;
+    _ = &n2;
+    var dot: f64 = dotProduct(a, b);
+    _ = &dot;
+    var mag_a: f64 = magnitude(a);
+    _ = &mag_a;
+    var mag_b: f64 = magnitude(b);
+    _ = &mag_b;
+    var theta: f64 = acos(dot / (mag_a * mag_b));
+    _ = &theta;
+    var sin_theta_r: f64 = (n1 / n2) * sin(theta);
+    _ = &sin_theta_r;
+    if (sin_theta_r > @as(f64, @floatFromInt(@as(c_int, 1)))) {
+        _ = printf("Total internal reflection\n");
+        return null;
+    }
+    var cos_theta_r: f64 = sqrt(@as(f64, @floatFromInt(@as(c_int, 1))) - pow(sin_theta_r, @as(f64, @floatFromInt(@as(c_int, 2)))));
+    _ = &cos_theta_r;
+    var result: [*c]FloatVector = scaleFloatVector(a, n1 / n2);
+    _ = &result;
+    var temp: [*c]FloatVector = scaleFloatVector(b, ((n1 / n2) * cos_theta_r) - sqrt(@as(f64, @floatFromInt(@as(c_int, 1))) - pow(sin_theta_r, @as(f64, @floatFromInt(@as(c_int, 2))))));
+    _ = &temp;
+    return addFloatVector(result, temp);
+}
+pub export fn angle(arg_a: [*c]FloatVector, arg_b: [*c]FloatVector) f64 {
+    var a = arg_a;
+    _ = &a;
+    var b = arg_b;
+    _ = &b;
+    return acos(dotProduct(a, b) / (magnitude(a) * magnitude(b)));
+}
+pub export fn printObject(arg_value: Value) void {
+    var value = arg_value;
+    _ = &value;
+    while (true) {
+        switch (value.as.obj.*.type) {
+            @as(c_uint, @bitCast(@as(c_int, 6))) => {
+                {
+                    printFunction(@as([*c]ObjBoundMethod, @ptrCast(@alignCast(value.as.obj))).*.method.*.function);
+                    break;
+                }
+            },
+            @as(c_uint, @bitCast(@as(c_int, 7))) => {
+                _ = printf("%s", @as([*c]ObjClass, @ptrCast(@alignCast(value.as.obj))).*.name.*.chars);
+                break;
+            },
+            @as(c_uint, @bitCast(@as(c_int, 0))) => {
+                printFunction(@as([*c]ObjClosure, @ptrCast(@alignCast(value.as.obj))).*.function);
+                break;
+            },
+            @as(c_uint, @bitCast(@as(c_int, 1))) => {
+                printFunction(@as([*c]ObjFunction, @ptrCast(@alignCast(value.as.obj))));
+                break;
+            },
+            @as(c_uint, @bitCast(@as(c_int, 2))) => {
+                _ = printf("%s instance", @as([*c]ObjInstance, @ptrCast(@alignCast(value.as.obj))).*.klass.*.name.*.chars);
+                break;
+            },
+            @as(c_uint, @bitCast(@as(c_int, 3))) => {
+                _ = printf("<native fn>");
+                break;
+            },
+            @as(c_uint, @bitCast(@as(c_int, 4))) => {
+                _ = printf("%s", @as([*c]ObjString, @ptrCast(@alignCast(value.as.obj))).*.chars);
+                break;
+            },
+            @as(c_uint, @bitCast(@as(c_int, 5))) => {
+                _ = printf("upvalue");
+                break;
+            },
+            @as(c_uint, @bitCast(@as(c_int, 8))) => {
+                {
+                    var array: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(value.as.obj)));
+                    _ = &array;
+                    _ = printf("[");
+                    {
+                        var i: c_int = 0;
+                        _ = &i;
+                        while (i < array.*.count) : (i += 1) {
+                            printValue((blk: {
+                                const tmp = i;
+                                if (tmp >= 0) break :blk array.*.values + @as(usize, @intCast(tmp)) else break :blk array.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                            }).*);
+                            if (i != (array.*.count - @as(c_int, 1))) {
+                                _ = printf(", ");
+                            }
+                        }
+                    }
+                    _ = printf("]");
+                    break;
+                }
+            },
+            @as(c_uint, @bitCast(@as(c_int, 12))) => {
+                {
+                    var vector: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(value.as.obj)));
+                    _ = &vector;
+                    _ = printf("[");
+                    {
+                        var i: c_int = 0;
+                        _ = &i;
+                        while (i < vector.*.count) : (i += 1) {
+                            _ = printf("%.2f", (blk: {
+                                const tmp = i;
+                                if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                            }).*);
+                            if (i != (vector.*.count - @as(c_int, 1))) {
+                                _ = printf(", ");
+                            }
+                        }
+                    }
+                    _ = printf("]");
+                    break;
+                }
+            },
+            @as(c_uint, @bitCast(@as(c_int, 9))) => {
+                {
+                    _ = printf("[");
+                    var current: [*c]struct_Node = @as([*c]ObjLinkedList, @ptrCast(@alignCast(value.as.obj))).*.head;
+                    _ = &current;
+                    while (current != @as([*c]struct_Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
+                        printValue(current.*.data);
+                        if (current.*.next != @as([*c]struct_Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
+                            _ = printf(", ");
+                        }
+                        current = current.*.next;
+                    }
+                    _ = printf("]");
+                    break;
+                }
+            },
+            @as(c_uint, @bitCast(@as(c_int, 10))) => {
+                {
+                    var hashtable: [*c]ObjHashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(value.as.obj)));
+                    _ = &hashtable;
+                    _ = printf("{");
+                    var entries: [*c]struct_Entry = hashtable.*.table.entries;
+                    _ = &entries;
+                    var count: c_int = 0;
+                    _ = &count;
+                    {
+                        var i: c_int = 0;
+                        _ = &i;
+                        while (i < hashtable.*.table.capacity) : (i += 1) {
+                            if ((blk: {
+                                const tmp = i;
+                                if (tmp >= 0) break :blk entries + @as(usize, @intCast(tmp)) else break :blk entries - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                            }).*.key != @as([*c]ObjString, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
+                                if (count > @as(c_int, 0)) {
+                                    _ = printf(", ");
+                                }
+                                printValue(Value{
+                                    .type = @as(c_uint, @bitCast(VAL_OBJ)),
+                                    .as = union_unnamed_6{
+                                        .obj = @as([*c]Obj, @ptrCast(@alignCast((blk: {
+                                            const tmp = i;
+                                            if (tmp >= 0) break :blk entries + @as(usize, @intCast(tmp)) else break :blk entries - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                                        }).*.key))),
+                                    },
+                                });
+                                _ = printf(": ");
+                                printValue((blk: {
+                                    const tmp = i;
+                                    if (tmp >= 0) break :blk entries + @as(usize, @intCast(tmp)) else break :blk entries - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                                }).*.value);
+                                count += 1;
+                            }
+                        }
+                    }
+                    _ = printf("}");
+                    break;
+                }
+            },
+            @as(c_uint, @bitCast(@as(c_int, 11))) => {
+                {
+                    printMatrix(@as([*c]ObjMatrix, @ptrCast(@alignCast(value.as.obj))));
+                    break;
+                }
+            },
+            else => {},
+        }
+        break;
+    }
+}
 pub fn isObjType(arg_value: Value, arg_type: ObjType) callconv(.C) bool {
     var value = arg_value;
     _ = &value;
@@ -29702,173 +32998,716 @@ pub extern fn markObject(object: [*c]Obj) void;
 pub extern fn markValue(value: Value) void;
 pub extern fn collectGarbage(...) void;
 pub extern fn freeObjects(...) void;
-pub const __gwchar_t = c_int;
-pub const imaxdiv_t = extern struct {
-    quot: c_long = @import("std").mem.zeroes(c_long),
-    rem: c_long = @import("std").mem.zeroes(c_long),
+pub const CallFrame = extern struct {
+    closure: [*c]ObjClosure = @import("std").mem.zeroes([*c]ObjClosure),
+    ip: [*c]u8 = @import("std").mem.zeroes([*c]u8),
+    slots: [*c]Value = @import("std").mem.zeroes([*c]Value),
 };
-pub extern fn imaxabs(__n: intmax_t) intmax_t;
-pub extern fn imaxdiv(__numer: intmax_t, __denom: intmax_t) imaxdiv_t;
-pub extern fn strtoimax(noalias __nptr: [*c]const u8, noalias __endptr: [*c][*c]u8, __base: c_int) intmax_t;
-pub extern fn strtoumax(noalias __nptr: [*c]const u8, noalias __endptr: [*c][*c]u8, __base: c_int) uintmax_t;
-pub extern fn wcstoimax(noalias __nptr: [*c]const __gwchar_t, noalias __endptr: [*c][*c]__gwchar_t, __base: c_int) intmax_t;
-pub extern fn wcstoumax(noalias __nptr: [*c]const __gwchar_t, noalias __endptr: [*c][*c]__gwchar_t, __base: c_int) uintmax_t;
-pub const struct___va_list_tag_4 = extern struct {
-    gp_offset: c_uint = @import("std").mem.zeroes(c_uint),
-    fp_offset: c_uint = @import("std").mem.zeroes(c_uint),
-    overflow_arg_area: ?*anyopaque = @import("std").mem.zeroes(?*anyopaque),
-    reg_save_area: ?*anyopaque = @import("std").mem.zeroes(?*anyopaque),
+pub const VM = extern struct {
+    frames: [64]CallFrame = @import("std").mem.zeroes([64]CallFrame),
+    frameCount: c_int = @import("std").mem.zeroes(c_int),
+    chunk: [*c]Chunk = @import("std").mem.zeroes([*c]Chunk),
+    ip: [*c]u8 = @import("std").mem.zeroes([*c]u8),
+    stack: [16384]Value = @import("std").mem.zeroes([16384]Value),
+    stackTop: [*c]Value = @import("std").mem.zeroes([*c]Value),
+    globals: struct_Table = @import("std").mem.zeroes(struct_Table),
+    strings: struct_Table = @import("std").mem.zeroes(struct_Table),
+    initString: [*c]ObjString = @import("std").mem.zeroes([*c]ObjString),
+    openUpvalues: [*c]ObjUpvalue = @import("std").mem.zeroes([*c]ObjUpvalue),
+    bytesAllocated: usize = @import("std").mem.zeroes(usize),
+    nextGC: usize = @import("std").mem.zeroes(usize),
+    objects: [*c]Obj = @import("std").mem.zeroes([*c]Obj),
+    grayCount: c_int = @import("std").mem.zeroes(c_int),
+    grayCapacity: c_int = @import("std").mem.zeroes(c_int),
+    grayStack: [*c][*c]Obj = @import("std").mem.zeroes([*c][*c]Obj),
 };
-pub const __builtin_va_list = [1]struct___va_list_tag_4;
-pub const __gnuc_va_list = __builtin_va_list;
-const union_unnamed_5 = extern union {
-    __wch: c_uint,
-    __wchb: [4]u8,
-};
-pub const __mbstate_t = extern struct {
-    __count: c_int = @import("std").mem.zeroes(c_int),
-    __value: union_unnamed_5 = @import("std").mem.zeroes(union_unnamed_5),
-};
-pub const struct__G_fpos_t = extern struct {
-    __pos: __off_t = @import("std").mem.zeroes(__off_t),
-    __state: __mbstate_t = @import("std").mem.zeroes(__mbstate_t),
-};
-pub const __fpos_t = struct__G_fpos_t;
-pub const struct__G_fpos64_t = extern struct {
-    __pos: __off64_t = @import("std").mem.zeroes(__off64_t),
-    __state: __mbstate_t = @import("std").mem.zeroes(__mbstate_t),
-};
-pub const __fpos64_t = struct__G_fpos64_t;
-pub const struct__IO_marker = opaque {};
-pub const _IO_lock_t = anyopaque;
-pub const struct__IO_codecvt = opaque {};
-pub const struct__IO_wide_data = opaque {};
-pub const struct__IO_FILE = extern struct {
-    _flags: c_int = @import("std").mem.zeroes(c_int),
-    _IO_read_ptr: [*c]u8 = @import("std").mem.zeroes([*c]u8),
-    _IO_read_end: [*c]u8 = @import("std").mem.zeroes([*c]u8),
-    _IO_read_base: [*c]u8 = @import("std").mem.zeroes([*c]u8),
-    _IO_write_base: [*c]u8 = @import("std").mem.zeroes([*c]u8),
-    _IO_write_ptr: [*c]u8 = @import("std").mem.zeroes([*c]u8),
-    _IO_write_end: [*c]u8 = @import("std").mem.zeroes([*c]u8),
-    _IO_buf_base: [*c]u8 = @import("std").mem.zeroes([*c]u8),
-    _IO_buf_end: [*c]u8 = @import("std").mem.zeroes([*c]u8),
-    _IO_save_base: [*c]u8 = @import("std").mem.zeroes([*c]u8),
-    _IO_backup_base: [*c]u8 = @import("std").mem.zeroes([*c]u8),
-    _IO_save_end: [*c]u8 = @import("std").mem.zeroes([*c]u8),
-    _markers: ?*struct__IO_marker = @import("std").mem.zeroes(?*struct__IO_marker),
-    _chain: [*c]struct__IO_FILE = @import("std").mem.zeroes([*c]struct__IO_FILE),
-    _fileno: c_int = @import("std").mem.zeroes(c_int),
-    _flags2: c_int = @import("std").mem.zeroes(c_int),
-    _old_offset: __off_t = @import("std").mem.zeroes(__off_t),
-    _cur_column: c_ushort = @import("std").mem.zeroes(c_ushort),
-    _vtable_offset: i8 = @import("std").mem.zeroes(i8),
-    _shortbuf: [1]u8 = @import("std").mem.zeroes([1]u8),
-    _lock: ?*_IO_lock_t = @import("std").mem.zeroes(?*_IO_lock_t),
-    _offset: __off64_t = @import("std").mem.zeroes(__off64_t),
-    _codecvt: ?*struct__IO_codecvt = @import("std").mem.zeroes(?*struct__IO_codecvt),
-    _wide_data: ?*struct__IO_wide_data = @import("std").mem.zeroes(?*struct__IO_wide_data),
-    _freeres_list: [*c]struct__IO_FILE = @import("std").mem.zeroes([*c]struct__IO_FILE),
-    _freeres_buf: ?*anyopaque = @import("std").mem.zeroes(?*anyopaque),
-    __pad5: usize = @import("std").mem.zeroes(usize),
-    _mode: c_int = @import("std").mem.zeroes(c_int),
-    _unused2: [20]u8 = @import("std").mem.zeroes([20]u8),
-};
-pub const __FILE = struct__IO_FILE;
-pub const FILE = struct__IO_FILE;
-pub const va_list = __gnuc_va_list;
-pub const fpos_t = __fpos_t;
-pub extern var stdin: [*c]FILE;
-pub extern var stdout: [*c]FILE;
-pub extern var stderr: [*c]FILE;
-pub extern fn remove(__filename: [*c]const u8) c_int;
-pub extern fn rename(__old: [*c]const u8, __new: [*c]const u8) c_int;
-pub extern fn renameat(__oldfd: c_int, __old: [*c]const u8, __newfd: c_int, __new: [*c]const u8) c_int;
-pub extern fn fclose(__stream: [*c]FILE) c_int;
-pub extern fn tmpfile() [*c]FILE;
-pub extern fn tmpnam([*c]u8) [*c]u8;
-pub extern fn tmpnam_r(__s: [*c]u8) [*c]u8;
-pub extern fn tempnam(__dir: [*c]const u8, __pfx: [*c]const u8) [*c]u8;
-pub extern fn fflush(__stream: [*c]FILE) c_int;
-pub extern fn fflush_unlocked(__stream: [*c]FILE) c_int;
-pub extern fn fopen(__filename: [*c]const u8, __modes: [*c]const u8) [*c]FILE;
-pub extern fn freopen(noalias __filename: [*c]const u8, noalias __modes: [*c]const u8, noalias __stream: [*c]FILE) [*c]FILE;
-pub extern fn fdopen(__fd: c_int, __modes: [*c]const u8) [*c]FILE;
-pub extern fn fmemopen(__s: ?*anyopaque, __len: usize, __modes: [*c]const u8) [*c]FILE;
-pub extern fn open_memstream(__bufloc: [*c][*c]u8, __sizeloc: [*c]usize) [*c]FILE;
-pub extern fn setbuf(noalias __stream: [*c]FILE, noalias __buf: [*c]u8) void;
-pub extern fn setvbuf(noalias __stream: [*c]FILE, noalias __buf: [*c]u8, __modes: c_int, __n: usize) c_int;
-pub extern fn setbuffer(noalias __stream: [*c]FILE, noalias __buf: [*c]u8, __size: usize) void;
-pub extern fn setlinebuf(__stream: [*c]FILE) void;
-pub extern fn fprintf(__stream: [*c]FILE, __format: [*c]const u8, ...) c_int;
-pub extern fn printf(__format: [*c]const u8, ...) c_int;
-pub extern fn sprintf(__s: [*c]u8, __format: [*c]const u8, ...) c_int;
-pub extern fn vfprintf(__s: [*c]FILE, __format: [*c]const u8, __arg: [*c]struct___va_list_tag_4) c_int;
-pub extern fn vprintf(__format: [*c]const u8, __arg: [*c]struct___va_list_tag_4) c_int;
-pub extern fn vsprintf(__s: [*c]u8, __format: [*c]const u8, __arg: [*c]struct___va_list_tag_4) c_int;
-pub extern fn snprintf(__s: [*c]u8, __maxlen: c_ulong, __format: [*c]const u8, ...) c_int;
-pub extern fn vsnprintf(__s: [*c]u8, __maxlen: c_ulong, __format: [*c]const u8, __arg: [*c]struct___va_list_tag_4) c_int;
-pub extern fn vdprintf(__fd: c_int, noalias __fmt: [*c]const u8, __arg: [*c]struct___va_list_tag_4) c_int;
-pub extern fn dprintf(__fd: c_int, noalias __fmt: [*c]const u8, ...) c_int;
-pub extern fn fscanf(noalias __stream: [*c]FILE, noalias __format: [*c]const u8, ...) c_int;
-pub extern fn scanf(noalias __format: [*c]const u8, ...) c_int;
-pub extern fn sscanf(noalias __s: [*c]const u8, noalias __format: [*c]const u8, ...) c_int;
-pub extern fn vfscanf(noalias __s: [*c]FILE, noalias __format: [*c]const u8, __arg: [*c]struct___va_list_tag_4) c_int;
-pub extern fn vscanf(noalias __format: [*c]const u8, __arg: [*c]struct___va_list_tag_4) c_int;
-pub extern fn vsscanf(noalias __s: [*c]const u8, noalias __format: [*c]const u8, __arg: [*c]struct___va_list_tag_4) c_int;
-pub extern fn fgetc(__stream: [*c]FILE) c_int;
-pub extern fn getc(__stream: [*c]FILE) c_int;
-pub extern fn getchar() c_int;
-pub extern fn getc_unlocked(__stream: [*c]FILE) c_int;
-pub extern fn getchar_unlocked() c_int;
-pub extern fn fgetc_unlocked(__stream: [*c]FILE) c_int;
-pub extern fn fputc(__c: c_int, __stream: [*c]FILE) c_int;
-pub extern fn putc(__c: c_int, __stream: [*c]FILE) c_int;
-pub extern fn putchar(__c: c_int) c_int;
-pub extern fn fputc_unlocked(__c: c_int, __stream: [*c]FILE) c_int;
-pub extern fn putc_unlocked(__c: c_int, __stream: [*c]FILE) c_int;
-pub extern fn putchar_unlocked(__c: c_int) c_int;
-pub extern fn getw(__stream: [*c]FILE) c_int;
-pub extern fn putw(__w: c_int, __stream: [*c]FILE) c_int;
-pub extern fn fgets(noalias __s: [*c]u8, __n: c_int, noalias __stream: [*c]FILE) [*c]u8;
-pub extern fn __getdelim(noalias __lineptr: [*c][*c]u8, noalias __n: [*c]usize, __delimiter: c_int, noalias __stream: [*c]FILE) __ssize_t;
-pub extern fn getdelim(noalias __lineptr: [*c][*c]u8, noalias __n: [*c]usize, __delimiter: c_int, noalias __stream: [*c]FILE) __ssize_t;
-pub extern fn getline(noalias __lineptr: [*c][*c]u8, noalias __n: [*c]usize, noalias __stream: [*c]FILE) __ssize_t;
-pub extern fn fputs(noalias __s: [*c]const u8, noalias __stream: [*c]FILE) c_int;
-pub extern fn puts(__s: [*c]const u8) c_int;
-pub extern fn ungetc(__c: c_int, __stream: [*c]FILE) c_int;
-pub extern fn fread(__ptr: ?*anyopaque, __size: c_ulong, __n: c_ulong, __stream: [*c]FILE) c_ulong;
-pub extern fn fwrite(__ptr: ?*const anyopaque, __size: c_ulong, __n: c_ulong, __s: [*c]FILE) c_ulong;
-pub extern fn fread_unlocked(noalias __ptr: ?*anyopaque, __size: usize, __n: usize, noalias __stream: [*c]FILE) usize;
-pub extern fn fwrite_unlocked(noalias __ptr: ?*const anyopaque, __size: usize, __n: usize, noalias __stream: [*c]FILE) usize;
-pub extern fn fseek(__stream: [*c]FILE, __off: c_long, __whence: c_int) c_int;
-pub extern fn ftell(__stream: [*c]FILE) c_long;
-pub extern fn rewind(__stream: [*c]FILE) void;
-pub extern fn fseeko(__stream: [*c]FILE, __off: __off_t, __whence: c_int) c_int;
-pub extern fn ftello(__stream: [*c]FILE) __off_t;
-pub extern fn fgetpos(noalias __stream: [*c]FILE, noalias __pos: [*c]fpos_t) c_int;
-pub extern fn fsetpos(__stream: [*c]FILE, __pos: [*c]const fpos_t) c_int;
-pub extern fn clearerr(__stream: [*c]FILE) void;
-pub extern fn feof(__stream: [*c]FILE) c_int;
-pub extern fn ferror(__stream: [*c]FILE) c_int;
-pub extern fn clearerr_unlocked(__stream: [*c]FILE) void;
-pub extern fn feof_unlocked(__stream: [*c]FILE) c_int;
-pub extern fn ferror_unlocked(__stream: [*c]FILE) c_int;
-pub extern fn perror(__s: [*c]const u8) void;
-pub extern fn fileno(__stream: [*c]FILE) c_int;
-pub extern fn fileno_unlocked(__stream: [*c]FILE) c_int;
-pub extern fn pclose(__stream: [*c]FILE) c_int;
-pub extern fn popen(__command: [*c]const u8, __modes: [*c]const u8) [*c]FILE;
-pub extern fn ctermid(__s: [*c]u8) [*c]u8;
-pub extern fn flockfile(__stream: [*c]FILE) void;
-pub extern fn ftrylockfile(__stream: [*c]FILE) c_int;
-pub extern fn funlockfile(__stream: [*c]FILE) void;
-pub extern fn __uflow([*c]FILE) c_int;
-pub extern fn __overflow([*c]FILE, c_int) c_int;
-pub fn fabs(arg_x: f64) callconv(.C) f64 {
-    var x = arg_x;
-    _ = &x;
-    return if (x < @as(f64, @floatFromInt(@as(c_int, 0)))) -x else x;
+pub const INTERPRET_OK: c_int = 0;
+pub const INTERPRET_COMPILE_ERROR: c_int = 1;
+pub const INTERPRET_RUNTIME_ERROR: c_int = 2;
+pub const InterpretResult = c_uint;
+pub extern var vm: VM;
+pub extern fn initVM() void;
+pub extern fn freeVM() void;
+pub extern fn importCollections() void;
+pub extern fn interpret(source: [*c]const u8) InterpretResult;
+pub extern fn push(value: Value) void;
+pub extern fn pop(...) Value;
+pub extern fn defineNative(name: [*c]const u8, function: NativeFn) void;
+pub extern fn runtimeError(format: [*c]const u8, ...) void;
+pub fn allocateObject(arg_size: usize, arg_type: ObjType) callconv(.C) [*c]Obj {
+    var size = arg_size;
+    _ = &size;
+    var @"type" = arg_type;
+    _ = &@"type";
+    var object: [*c]Obj = @as([*c]Obj, @ptrCast(@alignCast(reallocate(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))), size))));
+    _ = &object;
+    object.*.type = @"type";
+    object.*.isMarked = @as(c_int, 0) != 0;
+    object.*.next = vm.objects;
+    vm.objects = object;
+    _ = printf("%p allocate %zu for %d\n", @as([*c]ObjArray, @ptrCast(@alignCast(object))), size, @"type");
+    return object;
+}
+pub fn add_val(arg_a: Value, arg_b: Value) callconv(.C) Value {
+    var a = arg_a;
+    _ = &a;
+    var b = arg_b;
+    _ = &b;
+    while (true) {
+        switch (a.type) {
+            @as(c_uint, @bitCast(@as(c_int, 2))) => {
+                if (b.type == @as(c_uint, @bitCast(VAL_INT))) {
+                    return Value{
+                        .type = @as(c_uint, @bitCast(VAL_NIL)),
+                        .as = union_unnamed_6{
+                            .num_int = @as(c_int, 0),
+                        },
+                    };
+                    return Value{
+                        .type = @as(c_uint, @bitCast(VAL_INT)),
+                        .as = union_unnamed_6{
+                            .num_int = a.as.num_int + b.as.num_int,
+                        },
+                    };
+                } else if (b.type == @as(c_uint, @bitCast(VAL_DOUBLE))) {
+                    return Value{
+                        .type = @as(c_uint, @bitCast(VAL_NIL)),
+                        .as = union_unnamed_6{
+                            .num_int = @as(c_int, 0),
+                        },
+                    };
+                    return Value{
+                        .type = @as(c_uint, @bitCast(VAL_DOUBLE)),
+                        .as = union_unnamed_6{
+                            .num_double = @as(f64, @floatFromInt(a.as.num_int)) + b.as.num_double,
+                        },
+                    };
+                }
+                break;
+            },
+            @as(c_uint, @bitCast(@as(c_int, 3))) => {
+                if (b.type == @as(c_uint, @bitCast(VAL_INT))) {
+                    return Value{
+                        .type = @as(c_uint, @bitCast(VAL_NIL)),
+                        .as = union_unnamed_6{
+                            .num_int = @as(c_int, 0),
+                        },
+                    };
+                    return Value{
+                        .type = @as(c_uint, @bitCast(VAL_DOUBLE)),
+                        .as = union_unnamed_6{
+                            .num_double = a.as.num_double + @as(f64, @floatFromInt(b.as.num_int)),
+                        },
+                    };
+                } else if (b.type == @as(c_uint, @bitCast(VAL_DOUBLE))) {
+                    return Value{
+                        .type = @as(c_uint, @bitCast(VAL_NIL)),
+                        .as = union_unnamed_6{
+                            .num_int = @as(c_int, 0),
+                        },
+                    };
+                    return Value{
+                        .type = @as(c_uint, @bitCast(VAL_DOUBLE)),
+                        .as = union_unnamed_6{
+                            .num_double = a.as.num_double + b.as.num_double,
+                        },
+                    };
+                }
+                break;
+            },
+            else => break,
+        }
+        break;
+    }
+    return Value{
+        .type = @as(c_uint, @bitCast(VAL_NIL)),
+        .as = union_unnamed_6{
+            .num_int = @as(c_int, 0),
+        },
+    };
+}
+pub fn sub_val(arg_a: Value, arg_b: Value) callconv(.C) Value {
+    var a = arg_a;
+    _ = &a;
+    var b = arg_b;
+    _ = &b;
+    while (true) {
+        switch (a.type) {
+            @as(c_uint, @bitCast(@as(c_int, 2))) => {
+                if (b.type == @as(c_uint, @bitCast(VAL_INT))) {
+                    return Value{
+                        .type = @as(c_uint, @bitCast(VAL_NIL)),
+                        .as = union_unnamed_6{
+                            .num_int = @as(c_int, 0),
+                        },
+                    };
+                    return Value{
+                        .type = @as(c_uint, @bitCast(VAL_INT)),
+                        .as = union_unnamed_6{
+                            .num_int = a.as.num_int - b.as.num_int,
+                        },
+                    };
+                } else if (b.type == @as(c_uint, @bitCast(VAL_DOUBLE))) {
+                    return Value{
+                        .type = @as(c_uint, @bitCast(VAL_NIL)),
+                        .as = union_unnamed_6{
+                            .num_int = @as(c_int, 0),
+                        },
+                    };
+                    return Value{
+                        .type = @as(c_uint, @bitCast(VAL_DOUBLE)),
+                        .as = union_unnamed_6{
+                            .num_double = @as(f64, @floatFromInt(a.as.num_int)) - b.as.num_double,
+                        },
+                    };
+                }
+                break;
+            },
+            @as(c_uint, @bitCast(@as(c_int, 3))) => {
+                if (b.type == @as(c_uint, @bitCast(VAL_INT))) {
+                    return Value{
+                        .type = @as(c_uint, @bitCast(VAL_NIL)),
+                        .as = union_unnamed_6{
+                            .num_int = @as(c_int, 0),
+                        },
+                    };
+                    return Value{
+                        .type = @as(c_uint, @bitCast(VAL_DOUBLE)),
+                        .as = union_unnamed_6{
+                            .num_double = a.as.num_double - @as(f64, @floatFromInt(b.as.num_int)),
+                        },
+                    };
+                } else if (b.type == @as(c_uint, @bitCast(VAL_DOUBLE))) {
+                    return Value{
+                        .type = @as(c_uint, @bitCast(VAL_NIL)),
+                        .as = union_unnamed_6{
+                            .num_int = @as(c_int, 0),
+                        },
+                    };
+                    return Value{
+                        .type = @as(c_uint, @bitCast(VAL_DOUBLE)),
+                        .as = union_unnamed_6{
+                            .num_double = a.as.num_double - b.as.num_double,
+                        },
+                    };
+                }
+                break;
+            },
+            else => break,
+        }
+        break;
+    }
+    return Value{
+        .type = @as(c_uint, @bitCast(VAL_NIL)),
+        .as = union_unnamed_6{
+            .num_int = @as(c_int, 0),
+        },
+    };
+}
+pub fn mul_val(arg_a: Value, arg_b: Value) callconv(.C) Value {
+    var a = arg_a;
+    _ = &a;
+    var b = arg_b;
+    _ = &b;
+    while (true) {
+        switch (a.type) {
+            @as(c_uint, @bitCast(@as(c_int, 2))) => {
+                if (b.type == @as(c_uint, @bitCast(VAL_INT))) {
+                    return Value{
+                        .type = @as(c_uint, @bitCast(VAL_NIL)),
+                        .as = union_unnamed_6{
+                            .num_int = @as(c_int, 0),
+                        },
+                    };
+                    return Value{
+                        .type = @as(c_uint, @bitCast(VAL_INT)),
+                        .as = union_unnamed_6{
+                            .num_int = a.as.num_int * b.as.num_int,
+                        },
+                    };
+                } else if (b.type == @as(c_uint, @bitCast(VAL_DOUBLE))) {
+                    return Value{
+                        .type = @as(c_uint, @bitCast(VAL_NIL)),
+                        .as = union_unnamed_6{
+                            .num_int = @as(c_int, 0),
+                        },
+                    };
+                    return Value{
+                        .type = @as(c_uint, @bitCast(VAL_DOUBLE)),
+                        .as = union_unnamed_6{
+                            .num_double = @as(f64, @floatFromInt(a.as.num_int)) * b.as.num_double,
+                        },
+                    };
+                }
+                break;
+            },
+            @as(c_uint, @bitCast(@as(c_int, 3))) => {
+                if (b.type == @as(c_uint, @bitCast(VAL_INT))) {
+                    return Value{
+                        .type = @as(c_uint, @bitCast(VAL_NIL)),
+                        .as = union_unnamed_6{
+                            .num_int = @as(c_int, 0),
+                        },
+                    };
+                    return Value{
+                        .type = @as(c_uint, @bitCast(VAL_DOUBLE)),
+                        .as = union_unnamed_6{
+                            .num_double = a.as.num_double * @as(f64, @floatFromInt(b.as.num_int)),
+                        },
+                    };
+                } else if (b.type == @as(c_uint, @bitCast(VAL_DOUBLE))) {
+                    return Value{
+                        .type = @as(c_uint, @bitCast(VAL_NIL)),
+                        .as = union_unnamed_6{
+                            .num_int = @as(c_int, 0),
+                        },
+                    };
+                    return Value{
+                        .type = @as(c_uint, @bitCast(VAL_DOUBLE)),
+                        .as = union_unnamed_6{
+                            .num_double = a.as.num_double * b.as.num_double,
+                        },
+                    };
+                }
+                break;
+            },
+            else => break,
+        }
+        break;
+    }
+    return Value{
+        .type = @as(c_uint, @bitCast(VAL_NIL)),
+        .as = union_unnamed_6{
+            .num_int = @as(c_int, 0),
+        },
+    };
+}
+pub fn div_val(arg_a: Value, arg_b: Value) callconv(.C) Value {
+    var a = arg_a;
+    _ = &a;
+    var b = arg_b;
+    _ = &b;
+    while (true) {
+        switch (a.type) {
+            @as(c_uint, @bitCast(@as(c_int, 2))) => {
+                if (b.type == @as(c_uint, @bitCast(VAL_INT))) {
+                    return Value{
+                        .type = @as(c_uint, @bitCast(VAL_NIL)),
+                        .as = union_unnamed_6{
+                            .num_int = @as(c_int, 0),
+                        },
+                    };
+                    return Value{
+                        .type = @as(c_uint, @bitCast(VAL_INT)),
+                        .as = union_unnamed_6{
+                            .num_int = @divTrunc(a.as.num_int, b.as.num_int),
+                        },
+                    };
+                } else if (b.type == @as(c_uint, @bitCast(VAL_DOUBLE))) {
+                    return Value{
+                        .type = @as(c_uint, @bitCast(VAL_NIL)),
+                        .as = union_unnamed_6{
+                            .num_int = @as(c_int, 0),
+                        },
+                    };
+                    return Value{
+                        .type = @as(c_uint, @bitCast(VAL_DOUBLE)),
+                        .as = union_unnamed_6{
+                            .num_double = @as(f64, @floatFromInt(a.as.num_int)) / b.as.num_double,
+                        },
+                    };
+                }
+                break;
+            },
+            @as(c_uint, @bitCast(@as(c_int, 3))) => {
+                if (b.type == @as(c_uint, @bitCast(VAL_INT))) {
+                    return Value{
+                        .type = @as(c_uint, @bitCast(VAL_NIL)),
+                        .as = union_unnamed_6{
+                            .num_int = @as(c_int, 0),
+                        },
+                    };
+                    return Value{
+                        .type = @as(c_uint, @bitCast(VAL_DOUBLE)),
+                        .as = union_unnamed_6{
+                            .num_double = a.as.num_double / @as(f64, @floatFromInt(b.as.num_int)),
+                        },
+                    };
+                } else if (b.type == @as(c_uint, @bitCast(VAL_DOUBLE))) {
+                    return Value{
+                        .type = @as(c_uint, @bitCast(VAL_NIL)),
+                        .as = union_unnamed_6{
+                            .num_int = @as(c_int, 0),
+                        },
+                    };
+                    return Value{
+                        .type = @as(c_uint, @bitCast(VAL_DOUBLE)),
+                        .as = union_unnamed_6{
+                            .num_double = a.as.num_double / b.as.num_double,
+                        },
+                    };
+                }
+                break;
+            },
+            else => break,
+        }
+        break;
+    }
+    return Value{
+        .type = @as(c_uint, @bitCast(VAL_NIL)),
+        .as = union_unnamed_6{
+            .num_int = @as(c_int, 0),
+        },
+    };
+}
+pub export fn cityhash64(arg_buf: [*c]const u8, arg_len: usize) u64 {
+    var buf = arg_buf;
+    _ = &buf;
+    var len = arg_len;
+    _ = &len;
+    var seed: u64 = @as(u64, @bitCast(@as(c_ulong, @truncate(@as(c_ulonglong, 11160318154034397263)))));
+    _ = &seed;
+    const m: u64 = @as(u64, @bitCast(@as(c_ulong, @truncate(@as(c_ulonglong, 14313749767032793493)))));
+    _ = &m;
+    const r: c_int = 47;
+    _ = &r;
+    var h: u64 = seed ^ (len *% m);
+    _ = &h;
+    var data: [*c]const u64 = @as([*c]const u64, @ptrCast(@alignCast(buf)));
+    _ = &data;
+    var end: [*c]const u64 = data + (len / @as(usize, @bitCast(@as(c_long, @as(c_int, 8)))));
+    _ = &end;
+    while (data != end) {
+        var k: u64 = (blk: {
+            const ref = &data;
+            const tmp = ref.*;
+            ref.* += 1;
+            break :blk tmp;
+        }).*;
+        _ = &k;
+        k *%= m;
+        k ^= k >> @intCast(r);
+        k *%= m;
+        h ^= k;
+        h *%= m;
+    }
+    var data2: [*c]const u8 = @as([*c]const u8, @ptrCast(@alignCast(data)));
+    _ = &data2;
+    while (true) {
+        switch (len & @as(usize, @bitCast(@as(c_long, @as(c_int, 7))))) {
+            @as(usize, @bitCast(@as(c_long, @as(c_int, 7)))) => {
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 6)))]))) << @intCast(48);
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 5)))]))) << @intCast(40);
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 4)))]))) << @intCast(32);
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 3)))]))) << @intCast(24);
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 2)))]))) << @intCast(16);
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 1)))]))) << @intCast(8);
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 0)))])));
+                h *%= m;
+            },
+            @as(usize, @bitCast(@as(c_long, @as(c_int, 6)))) => {
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 5)))]))) << @intCast(40);
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 4)))]))) << @intCast(32);
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 3)))]))) << @intCast(24);
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 2)))]))) << @intCast(16);
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 1)))]))) << @intCast(8);
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 0)))])));
+                h *%= m;
+            },
+            @as(usize, @bitCast(@as(c_long, @as(c_int, 5)))) => {
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 4)))]))) << @intCast(32);
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 3)))]))) << @intCast(24);
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 2)))]))) << @intCast(16);
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 1)))]))) << @intCast(8);
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 0)))])));
+                h *%= m;
+            },
+            @as(usize, @bitCast(@as(c_long, @as(c_int, 4)))) => {
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 3)))]))) << @intCast(24);
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 2)))]))) << @intCast(16);
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 1)))]))) << @intCast(8);
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 0)))])));
+                h *%= m;
+            },
+            @as(usize, @bitCast(@as(c_long, @as(c_int, 3)))) => {
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 2)))]))) << @intCast(16);
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 1)))]))) << @intCast(8);
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 0)))])));
+                h *%= m;
+            },
+            @as(usize, @bitCast(@as(c_long, @as(c_int, 2)))) => {
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 1)))]))) << @intCast(8);
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 0)))])));
+                h *%= m;
+            },
+            @as(usize, @bitCast(@as(c_long, @as(c_int, 1)))) => {
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 0)))])));
+                h *%= m;
+            },
+            else => {},
+        }
+        break;
+    }
+    h ^= h >> @intCast(r);
+    h *%= m;
+    h ^= h >> @intCast(r);
+    return h;
+}
+pub fn overWriteArray(arg_array: [*c]ObjArray, arg_index_1: c_int, arg_value: Value) callconv(.C) void {
+    var array = arg_array;
+    _ = &array;
+    var index_1 = arg_index_1;
+    _ = &index_1;
+    var value = arg_value;
+    _ = &value;
+    if ((index_1 < @as(c_int, 0)) or (index_1 >= array.*.count)) {
+        _ = printf("Index out of bounds");
+        return;
+    }
+    (blk: {
+        const tmp = index_1;
+        if (tmp >= 0) break :blk array.*.values + @as(usize, @intCast(tmp)) else break :blk array.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+    }).* = value;
+}
+pub fn compareValues(arg_a: ?*const anyopaque, arg_b: ?*const anyopaque) callconv(.C) c_int {
+    var a = arg_a;
+    _ = &a;
+    var b = arg_b;
+    _ = &b;
+    if ((@as([*c]Value, @ptrCast(@volatileCast(@constCast(a)))).*.type == @as(c_uint, @bitCast(VAL_INT))) and (@as([*c]Value, @ptrCast(@volatileCast(@constCast(b)))).*.type == @as(c_uint, @bitCast(VAL_INT)))) {
+        return @as([*c]Value, @ptrCast(@volatileCast(@constCast(a)))).*.as.num_int - @as([*c]Value, @ptrCast(@volatileCast(@constCast(b)))).*.as.num_int;
+    } else if ((@as([*c]Value, @ptrCast(@volatileCast(@constCast(a)))).*.type == @as(c_uint, @bitCast(VAL_DOUBLE))) and (@as([*c]Value, @ptrCast(@volatileCast(@constCast(b)))).*.type == @as(c_uint, @bitCast(VAL_DOUBLE)))) {
+        return @as(c_int, @intFromFloat(@as([*c]Value, @ptrCast(@volatileCast(@constCast(a)))).*.as.num_double - @as([*c]Value, @ptrCast(@volatileCast(@constCast(b)))).*.as.num_double));
+    } else {
+        return 0;
+    }
+    return 0;
+}
+pub fn valuesLess(arg_a: Value, arg_b: Value) callconv(.C) bool {
+    var a = arg_a;
+    _ = &a;
+    var b = arg_b;
+    _ = &b;
+    if ((a.type == @as(c_uint, @bitCast(VAL_INT))) and (b.type == @as(c_uint, @bitCast(VAL_INT)))) {
+        return a.as.num_int < b.as.num_int;
+    } else if ((a.type == @as(c_uint, @bitCast(VAL_DOUBLE))) and (b.type == @as(c_uint, @bitCast(VAL_DOUBLE)))) {
+        return a.as.num_double < b.as.num_double;
+    }
+    return @as(c_int, 0) != 0;
+}
+pub fn merge(arg_left: [*c]struct_Node, arg_right: [*c]struct_Node) callconv(.C) [*c]struct_Node {
+    var left = arg_left;
+    _ = &left;
+    var right = arg_right;
+    _ = &right;
+    if (left == @as([*c]struct_Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) return right;
+    if (right == @as([*c]struct_Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) return left;
+    if (valueCompare(left.*.data, right.*.data) < @as(c_int, 0)) {
+        left.*.next = merge(left.*.next, right);
+        left.*.next.*.prev = left;
+        left.*.prev = null;
+        return left;
+    } else {
+        right.*.next = merge(left, right.*.next);
+        right.*.next.*.prev = right;
+        right.*.prev = null;
+        return right;
+    }
+    return null;
+}
+pub fn split(arg_list: [*c]ObjLinkedList, arg_left: [*c]ObjLinkedList, arg_right: [*c]ObjLinkedList) callconv(.C) void {
+    var list = arg_list;
+    _ = &list;
+    var left = arg_left;
+    _ = &left;
+    var right = arg_right;
+    _ = &right;
+    var count: c_int = list.*.count;
+    _ = &count;
+    var middle: c_int = @divTrunc(count, @as(c_int, 2));
+    _ = &middle;
+    left.*.head = list.*.head;
+    left.*.count = middle;
+    right.*.count = count - middle;
+    var current: [*c]struct_Node = list.*.head;
+    _ = &current;
+    {
+        var i: c_int = 0;
+        _ = &i;
+        while (i < (middle - @as(c_int, 1))) : (i += 1) {
+            current = current.*.next;
+        }
+    }
+    left.*.tail = current;
+    right.*.head = current.*.next;
+    current.*.next = null;
+    right.*.head.*.prev = null;
+}
+pub export fn swapRow(arg_matrix: [*c]ObjMatrix, arg_row1: c_int, arg_row2: c_int) void {
+    var matrix = arg_matrix;
+    _ = &matrix;
+    var row1 = arg_row1;
+    _ = &row1;
+    var row2 = arg_row2;
+    _ = &row2;
+    if (((((matrix != @as([*c]ObjMatrix, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) and (row1 >= @as(c_int, 0))) and (row1 < matrix.*.rows)) and (row2 >= @as(c_int, 0))) and (row2 < matrix.*.rows)) {
+        {
+            var col: c_int = 0;
+            _ = &col;
+            while (col < matrix.*.cols) : (col += 1) {
+                var temp: Value = (blk: {
+                    const tmp = (row1 * matrix.*.cols) + col;
+                    if (tmp >= 0) break :blk matrix.*.data.*.values + @as(usize, @intCast(tmp)) else break :blk matrix.*.data.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                }).*;
+                _ = &temp;
+                overWriteArray(matrix.*.data, (row1 * matrix.*.cols) + col, (blk: {
+                    const tmp = (row2 * matrix.*.cols) + col;
+                    if (tmp >= 0) break :blk matrix.*.data.*.values + @as(usize, @intCast(tmp)) else break :blk matrix.*.data.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                }).*);
+                overWriteArray(matrix.*.data, (row2 * matrix.*.cols) + col, temp);
+            }
+        }
+    }
+}
+pub fn subsetMatrix(arg_matrix: [*c]ObjMatrix, arg_startRow: c_int, arg_startCol: c_int) callconv(.C) [*c]ObjMatrix {
+    var matrix = arg_matrix;
+    _ = &matrix;
+    var startRow = arg_startRow;
+    _ = &startRow;
+    var startCol = arg_startCol;
+    _ = &startCol;
+    var numRows: c_int = matrix.*.rows - startRow;
+    _ = &numRows;
+    var numCols: c_int = matrix.*.cols - startCol;
+    _ = &numCols;
+    var submatrix: [*c]ObjMatrix = newMatrix(numRows, numCols);
+    _ = &submatrix;
+    {
+        var i: c_int = startRow;
+        _ = &i;
+        while (i < matrix.*.rows) : (i += 1) {
+            {
+                var j: c_int = startCol;
+                _ = &j;
+                while (j < matrix.*.cols) : (j += 1) {
+                    setMatrix(submatrix, i - startRow, j - startCol, getMatrix(matrix, i, j));
+                }
+            }
+        }
+    }
+    return submatrix;
+}
+pub fn copyMatrix(arg_matrix: [*c]ObjMatrix) callconv(.C) [*c]ObjMatrix {
+    var matrix = arg_matrix;
+    _ = &matrix;
+    var copy: [*c]ObjMatrix = newMatrix(matrix.*.rows, matrix.*.cols);
+    _ = &copy;
+    {
+        var i: c_int = 0;
+        _ = &i;
+        while (i < matrix.*.len) : (i += 1) {
+            (blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk copy.*.data.*.values + @as(usize, @intCast(tmp)) else break :blk copy.*.data.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).* = (blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk matrix.*.data.*.values + @as(usize, @intCast(tmp)) else break :blk matrix.*.data.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*;
+        }
+    }
+    return copy;
+}
+pub export fn backSubstitution(arg_matrix: [*c]ObjMatrix, arg_vector: [*c]ObjArray) [*c]ObjArray {
+    var matrix = arg_matrix;
+    _ = &matrix;
+    var vector = arg_vector;
+    _ = &vector;
+    if (matrix.*.rows != matrix.*.cols) {
+        _ = printf("Matrix is not square");
+        return null;
+    }
+    if (matrix.*.rows != vector.*.count) {
+        _ = printf("Matrix and vector dimensions do not match");
+        return null;
+    }
+    var result: [*c]ObjArray = newArrayWithCap(matrix.*.rows, @as(c_int, 1) != 0);
+    _ = &result;
+    {
+        var i: c_int = matrix.*.rows - @as(c_int, 1);
+        _ = &i;
+        while (i >= @as(c_int, 0)) : (i -= 1) {
+            var sum: f64 = 0;
+            _ = &sum;
+            {
+                var j: c_int = i + @as(c_int, 1);
+                _ = &j;
+                while (j < matrix.*.cols) : (j += 1) {
+                    sum += getMatrix(matrix, i, j).as.num_double * (blk: {
+                        const tmp = j;
+                        if (tmp >= 0) break :blk result.*.values + @as(usize, @intCast(tmp)) else break :blk result.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                    }).*.as.num_double;
+                }
+            }
+            var value: f64 = ((blk: {
+                const tmp = i;
+                if (tmp >= 0) break :blk vector.*.values + @as(usize, @intCast(tmp)) else break :blk vector.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*.as.num_double - sum) / getMatrix(matrix, i, i).as.num_double;
+            _ = &value;
+            pushArray(result, Value{
+                .type = @as(c_uint, @bitCast(VAL_DOUBLE)),
+                .as = union_unnamed_6{
+                    .num_double = value,
+                },
+            });
+        }
+    }
+    reverseArray(result);
+    return result;
+}
+pub fn compare_double(arg_a: ?*const anyopaque, arg_b: ?*const anyopaque) callconv(.C) c_int {
+    var a = arg_a;
+    _ = &a;
+    var b = arg_b;
+    _ = &b;
+    return @as(c_int, @intFromFloat(@as([*c]f64, @ptrCast(@volatileCast(@constCast(a)))).* - @as([*c]f64, @ptrCast(@volatileCast(@constCast(b)))).*));
+}
+pub fn binarySearchFloatVector(arg_vector: [*c]FloatVector, arg_value: f64) callconv(.C) c_int {
+    var vector = arg_vector;
+    _ = &vector;
+    var value = arg_value;
+    _ = &value;
+    var left: c_int = 0;
+    _ = &left;
+    var right: c_int = vector.*.count - @as(c_int, 1);
+    _ = &right;
+    while (left <= right) {
+        var mid: c_int = left + @divTrunc(right - left, @as(c_int, 2));
+        _ = &mid;
+        if ((blk: {
+            const tmp = mid;
+            if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+        }).* == value) {
+            return mid;
+        }
+        if ((blk: {
+            const tmp = mid;
+            if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+        }).* < value) {
+            left = mid + @as(c_int, 1);
+        } else {
+            right = mid - @as(c_int, 1);
+        }
+    }
+    return -@as(c_int, 1);
+}
+pub fn printFunction(arg_function: [*c]ObjFunction) callconv(.C) void {
+    var function = arg_function;
+    _ = &function;
+    if (function.*.name == @as([*c]ObjString, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
+        _ = printf("<script>");
+        return;
+    }
+    _ = printf("<fn %s>", function.*.name.*.chars);
 }
 pub const __llvm__ = @as(c_int, 1);
 pub const __clang__ = @as(c_int, 1);
@@ -30308,29 +34147,7 @@ pub const __STDC_UTF_32__ = @as(c_int, 1);
 pub const __GLIBC_MINOR__ = @as(c_int, 35);
 pub const _DEBUG = @as(c_int, 1);
 pub const __GCC_HAVE_DWARF2_CFI_ASM = @as(c_int, 1);
-pub const mufi_value_h = "";
-pub const mufi_common_h = "";
-pub const __STDBOOL_H = "";
-pub const __bool_true_false_are_defined = @as(c_int, 1);
-pub const @"bool" = bool;
-pub const @"true" = @as(c_int, 1);
-pub const @"false" = @as(c_int, 0);
-pub const __STDDEF_H = "";
-pub const __need_ptrdiff_t = "";
-pub const __need_size_t = "";
-pub const __need_wchar_t = "";
-pub const __need_NULL = "";
-pub const __need_max_align_t = "";
-pub const __need_offsetof = "";
-pub const _PTRDIFF_T = "";
-pub const _SIZE_T = "";
-pub const _WCHAR_T = "";
-pub const NULL = @import("std").zig.c_translation.cast(?*anyopaque, @as(c_int, 0));
-pub const __CLANG_MAX_ALIGN_T_DEFINED = "";
-pub const offsetof = @compileError("unable to translate C expr: unexpected token 'an identifier'");
-// /snap/zig/11625/lib/include/__stddef_offsetof.h:16:9
-pub const __CLANG_STDINT_H = "";
-pub const _STDINT_H = @as(c_int, 1);
+pub const _MATH_H = @as(c_int, 1);
 pub const __GLIBC_INTERNAL_STARTING_HEADER_IMPLEMENTATION = "";
 pub const _FEATURES_H = @as(c_int, 1);
 pub const __KERNEL_STRICT_NAMES = "";
@@ -30666,6 +34483,592 @@ pub const __KERNEL_OLD_TIMEVAL_MATCHES_TIMEVAL64 = @as(c_int, 1);
 pub const __FD_SETSIZE = @as(c_int, 1024);
 pub const _BITS_TIME64_H = @as(c_int, 1);
 pub const __TIME64_T_TYPE = __TIME_T_TYPE;
+pub const _BITS_LIBM_SIMD_DECL_STUBS_H = @as(c_int, 1);
+pub const __DECL_SIMD_cos = "";
+pub const __DECL_SIMD_cosf = "";
+pub const __DECL_SIMD_cosl = "";
+pub const __DECL_SIMD_cosf16 = "";
+pub const __DECL_SIMD_cosf32 = "";
+pub const __DECL_SIMD_cosf64 = "";
+pub const __DECL_SIMD_cosf128 = "";
+pub const __DECL_SIMD_cosf32x = "";
+pub const __DECL_SIMD_cosf64x = "";
+pub const __DECL_SIMD_cosf128x = "";
+pub const __DECL_SIMD_sin = "";
+pub const __DECL_SIMD_sinf = "";
+pub const __DECL_SIMD_sinl = "";
+pub const __DECL_SIMD_sinf16 = "";
+pub const __DECL_SIMD_sinf32 = "";
+pub const __DECL_SIMD_sinf64 = "";
+pub const __DECL_SIMD_sinf128 = "";
+pub const __DECL_SIMD_sinf32x = "";
+pub const __DECL_SIMD_sinf64x = "";
+pub const __DECL_SIMD_sinf128x = "";
+pub const __DECL_SIMD_sincos = "";
+pub const __DECL_SIMD_sincosf = "";
+pub const __DECL_SIMD_sincosl = "";
+pub const __DECL_SIMD_sincosf16 = "";
+pub const __DECL_SIMD_sincosf32 = "";
+pub const __DECL_SIMD_sincosf64 = "";
+pub const __DECL_SIMD_sincosf128 = "";
+pub const __DECL_SIMD_sincosf32x = "";
+pub const __DECL_SIMD_sincosf64x = "";
+pub const __DECL_SIMD_sincosf128x = "";
+pub const __DECL_SIMD_log = "";
+pub const __DECL_SIMD_logf = "";
+pub const __DECL_SIMD_logl = "";
+pub const __DECL_SIMD_logf16 = "";
+pub const __DECL_SIMD_logf32 = "";
+pub const __DECL_SIMD_logf64 = "";
+pub const __DECL_SIMD_logf128 = "";
+pub const __DECL_SIMD_logf32x = "";
+pub const __DECL_SIMD_logf64x = "";
+pub const __DECL_SIMD_logf128x = "";
+pub const __DECL_SIMD_exp = "";
+pub const __DECL_SIMD_expf = "";
+pub const __DECL_SIMD_expl = "";
+pub const __DECL_SIMD_expf16 = "";
+pub const __DECL_SIMD_expf32 = "";
+pub const __DECL_SIMD_expf64 = "";
+pub const __DECL_SIMD_expf128 = "";
+pub const __DECL_SIMD_expf32x = "";
+pub const __DECL_SIMD_expf64x = "";
+pub const __DECL_SIMD_expf128x = "";
+pub const __DECL_SIMD_pow = "";
+pub const __DECL_SIMD_powf = "";
+pub const __DECL_SIMD_powl = "";
+pub const __DECL_SIMD_powf16 = "";
+pub const __DECL_SIMD_powf32 = "";
+pub const __DECL_SIMD_powf64 = "";
+pub const __DECL_SIMD_powf128 = "";
+pub const __DECL_SIMD_powf32x = "";
+pub const __DECL_SIMD_powf64x = "";
+pub const __DECL_SIMD_powf128x = "";
+pub const __DECL_SIMD_acos = "";
+pub const __DECL_SIMD_acosf = "";
+pub const __DECL_SIMD_acosl = "";
+pub const __DECL_SIMD_acosf16 = "";
+pub const __DECL_SIMD_acosf32 = "";
+pub const __DECL_SIMD_acosf64 = "";
+pub const __DECL_SIMD_acosf128 = "";
+pub const __DECL_SIMD_acosf32x = "";
+pub const __DECL_SIMD_acosf64x = "";
+pub const __DECL_SIMD_acosf128x = "";
+pub const __DECL_SIMD_atan = "";
+pub const __DECL_SIMD_atanf = "";
+pub const __DECL_SIMD_atanl = "";
+pub const __DECL_SIMD_atanf16 = "";
+pub const __DECL_SIMD_atanf32 = "";
+pub const __DECL_SIMD_atanf64 = "";
+pub const __DECL_SIMD_atanf128 = "";
+pub const __DECL_SIMD_atanf32x = "";
+pub const __DECL_SIMD_atanf64x = "";
+pub const __DECL_SIMD_atanf128x = "";
+pub const __DECL_SIMD_asin = "";
+pub const __DECL_SIMD_asinf = "";
+pub const __DECL_SIMD_asinl = "";
+pub const __DECL_SIMD_asinf16 = "";
+pub const __DECL_SIMD_asinf32 = "";
+pub const __DECL_SIMD_asinf64 = "";
+pub const __DECL_SIMD_asinf128 = "";
+pub const __DECL_SIMD_asinf32x = "";
+pub const __DECL_SIMD_asinf64x = "";
+pub const __DECL_SIMD_asinf128x = "";
+pub const __DECL_SIMD_hypot = "";
+pub const __DECL_SIMD_hypotf = "";
+pub const __DECL_SIMD_hypotl = "";
+pub const __DECL_SIMD_hypotf16 = "";
+pub const __DECL_SIMD_hypotf32 = "";
+pub const __DECL_SIMD_hypotf64 = "";
+pub const __DECL_SIMD_hypotf128 = "";
+pub const __DECL_SIMD_hypotf32x = "";
+pub const __DECL_SIMD_hypotf64x = "";
+pub const __DECL_SIMD_hypotf128x = "";
+pub const __DECL_SIMD_exp2 = "";
+pub const __DECL_SIMD_exp2f = "";
+pub const __DECL_SIMD_exp2l = "";
+pub const __DECL_SIMD_exp2f16 = "";
+pub const __DECL_SIMD_exp2f32 = "";
+pub const __DECL_SIMD_exp2f64 = "";
+pub const __DECL_SIMD_exp2f128 = "";
+pub const __DECL_SIMD_exp2f32x = "";
+pub const __DECL_SIMD_exp2f64x = "";
+pub const __DECL_SIMD_exp2f128x = "";
+pub const __DECL_SIMD_exp10 = "";
+pub const __DECL_SIMD_exp10f = "";
+pub const __DECL_SIMD_exp10l = "";
+pub const __DECL_SIMD_exp10f16 = "";
+pub const __DECL_SIMD_exp10f32 = "";
+pub const __DECL_SIMD_exp10f64 = "";
+pub const __DECL_SIMD_exp10f128 = "";
+pub const __DECL_SIMD_exp10f32x = "";
+pub const __DECL_SIMD_exp10f64x = "";
+pub const __DECL_SIMD_exp10f128x = "";
+pub const __DECL_SIMD_cosh = "";
+pub const __DECL_SIMD_coshf = "";
+pub const __DECL_SIMD_coshl = "";
+pub const __DECL_SIMD_coshf16 = "";
+pub const __DECL_SIMD_coshf32 = "";
+pub const __DECL_SIMD_coshf64 = "";
+pub const __DECL_SIMD_coshf128 = "";
+pub const __DECL_SIMD_coshf32x = "";
+pub const __DECL_SIMD_coshf64x = "";
+pub const __DECL_SIMD_coshf128x = "";
+pub const __DECL_SIMD_expm1 = "";
+pub const __DECL_SIMD_expm1f = "";
+pub const __DECL_SIMD_expm1l = "";
+pub const __DECL_SIMD_expm1f16 = "";
+pub const __DECL_SIMD_expm1f32 = "";
+pub const __DECL_SIMD_expm1f64 = "";
+pub const __DECL_SIMD_expm1f128 = "";
+pub const __DECL_SIMD_expm1f32x = "";
+pub const __DECL_SIMD_expm1f64x = "";
+pub const __DECL_SIMD_expm1f128x = "";
+pub const __DECL_SIMD_sinh = "";
+pub const __DECL_SIMD_sinhf = "";
+pub const __DECL_SIMD_sinhl = "";
+pub const __DECL_SIMD_sinhf16 = "";
+pub const __DECL_SIMD_sinhf32 = "";
+pub const __DECL_SIMD_sinhf64 = "";
+pub const __DECL_SIMD_sinhf128 = "";
+pub const __DECL_SIMD_sinhf32x = "";
+pub const __DECL_SIMD_sinhf64x = "";
+pub const __DECL_SIMD_sinhf128x = "";
+pub const __DECL_SIMD_cbrt = "";
+pub const __DECL_SIMD_cbrtf = "";
+pub const __DECL_SIMD_cbrtl = "";
+pub const __DECL_SIMD_cbrtf16 = "";
+pub const __DECL_SIMD_cbrtf32 = "";
+pub const __DECL_SIMD_cbrtf64 = "";
+pub const __DECL_SIMD_cbrtf128 = "";
+pub const __DECL_SIMD_cbrtf32x = "";
+pub const __DECL_SIMD_cbrtf64x = "";
+pub const __DECL_SIMD_cbrtf128x = "";
+pub const __DECL_SIMD_atan2 = "";
+pub const __DECL_SIMD_atan2f = "";
+pub const __DECL_SIMD_atan2l = "";
+pub const __DECL_SIMD_atan2f16 = "";
+pub const __DECL_SIMD_atan2f32 = "";
+pub const __DECL_SIMD_atan2f64 = "";
+pub const __DECL_SIMD_atan2f128 = "";
+pub const __DECL_SIMD_atan2f32x = "";
+pub const __DECL_SIMD_atan2f64x = "";
+pub const __DECL_SIMD_atan2f128x = "";
+pub const __DECL_SIMD_log10 = "";
+pub const __DECL_SIMD_log10f = "";
+pub const __DECL_SIMD_log10l = "";
+pub const __DECL_SIMD_log10f16 = "";
+pub const __DECL_SIMD_log10f32 = "";
+pub const __DECL_SIMD_log10f64 = "";
+pub const __DECL_SIMD_log10f128 = "";
+pub const __DECL_SIMD_log10f32x = "";
+pub const __DECL_SIMD_log10f64x = "";
+pub const __DECL_SIMD_log10f128x = "";
+pub const __DECL_SIMD_log2 = "";
+pub const __DECL_SIMD_log2f = "";
+pub const __DECL_SIMD_log2l = "";
+pub const __DECL_SIMD_log2f16 = "";
+pub const __DECL_SIMD_log2f32 = "";
+pub const __DECL_SIMD_log2f64 = "";
+pub const __DECL_SIMD_log2f128 = "";
+pub const __DECL_SIMD_log2f32x = "";
+pub const __DECL_SIMD_log2f64x = "";
+pub const __DECL_SIMD_log2f128x = "";
+pub const __DECL_SIMD_log1p = "";
+pub const __DECL_SIMD_log1pf = "";
+pub const __DECL_SIMD_log1pl = "";
+pub const __DECL_SIMD_log1pf16 = "";
+pub const __DECL_SIMD_log1pf32 = "";
+pub const __DECL_SIMD_log1pf64 = "";
+pub const __DECL_SIMD_log1pf128 = "";
+pub const __DECL_SIMD_log1pf32x = "";
+pub const __DECL_SIMD_log1pf64x = "";
+pub const __DECL_SIMD_log1pf128x = "";
+pub const __DECL_SIMD_atanh = "";
+pub const __DECL_SIMD_atanhf = "";
+pub const __DECL_SIMD_atanhl = "";
+pub const __DECL_SIMD_atanhf16 = "";
+pub const __DECL_SIMD_atanhf32 = "";
+pub const __DECL_SIMD_atanhf64 = "";
+pub const __DECL_SIMD_atanhf128 = "";
+pub const __DECL_SIMD_atanhf32x = "";
+pub const __DECL_SIMD_atanhf64x = "";
+pub const __DECL_SIMD_atanhf128x = "";
+pub const __DECL_SIMD_acosh = "";
+pub const __DECL_SIMD_acoshf = "";
+pub const __DECL_SIMD_acoshl = "";
+pub const __DECL_SIMD_acoshf16 = "";
+pub const __DECL_SIMD_acoshf32 = "";
+pub const __DECL_SIMD_acoshf64 = "";
+pub const __DECL_SIMD_acoshf128 = "";
+pub const __DECL_SIMD_acoshf32x = "";
+pub const __DECL_SIMD_acoshf64x = "";
+pub const __DECL_SIMD_acoshf128x = "";
+pub const __DECL_SIMD_erf = "";
+pub const __DECL_SIMD_erff = "";
+pub const __DECL_SIMD_erfl = "";
+pub const __DECL_SIMD_erff16 = "";
+pub const __DECL_SIMD_erff32 = "";
+pub const __DECL_SIMD_erff64 = "";
+pub const __DECL_SIMD_erff128 = "";
+pub const __DECL_SIMD_erff32x = "";
+pub const __DECL_SIMD_erff64x = "";
+pub const __DECL_SIMD_erff128x = "";
+pub const __DECL_SIMD_tanh = "";
+pub const __DECL_SIMD_tanhf = "";
+pub const __DECL_SIMD_tanhl = "";
+pub const __DECL_SIMD_tanhf16 = "";
+pub const __DECL_SIMD_tanhf32 = "";
+pub const __DECL_SIMD_tanhf64 = "";
+pub const __DECL_SIMD_tanhf128 = "";
+pub const __DECL_SIMD_tanhf32x = "";
+pub const __DECL_SIMD_tanhf64x = "";
+pub const __DECL_SIMD_tanhf128x = "";
+pub const __DECL_SIMD_asinh = "";
+pub const __DECL_SIMD_asinhf = "";
+pub const __DECL_SIMD_asinhl = "";
+pub const __DECL_SIMD_asinhf16 = "";
+pub const __DECL_SIMD_asinhf32 = "";
+pub const __DECL_SIMD_asinhf64 = "";
+pub const __DECL_SIMD_asinhf128 = "";
+pub const __DECL_SIMD_asinhf32x = "";
+pub const __DECL_SIMD_asinhf64x = "";
+pub const __DECL_SIMD_asinhf128x = "";
+pub const __DECL_SIMD_erfc = "";
+pub const __DECL_SIMD_erfcf = "";
+pub const __DECL_SIMD_erfcl = "";
+pub const __DECL_SIMD_erfcf16 = "";
+pub const __DECL_SIMD_erfcf32 = "";
+pub const __DECL_SIMD_erfcf64 = "";
+pub const __DECL_SIMD_erfcf128 = "";
+pub const __DECL_SIMD_erfcf32x = "";
+pub const __DECL_SIMD_erfcf64x = "";
+pub const __DECL_SIMD_erfcf128x = "";
+pub const __DECL_SIMD_tan = "";
+pub const __DECL_SIMD_tanf = "";
+pub const __DECL_SIMD_tanl = "";
+pub const __DECL_SIMD_tanf16 = "";
+pub const __DECL_SIMD_tanf32 = "";
+pub const __DECL_SIMD_tanf64 = "";
+pub const __DECL_SIMD_tanf128 = "";
+pub const __DECL_SIMD_tanf32x = "";
+pub const __DECL_SIMD_tanf64x = "";
+pub const __DECL_SIMD_tanf128x = "";
+pub const _BITS_FLOATN_H = "";
+pub const __HAVE_FLOAT128 = @as(c_int, 0);
+pub const __HAVE_DISTINCT_FLOAT128 = @as(c_int, 0);
+pub const __HAVE_FLOAT64X = @as(c_int, 1);
+pub const __HAVE_FLOAT64X_LONG_DOUBLE = @as(c_int, 1);
+pub const _BITS_FLOATN_COMMON_H = "";
+pub const __HAVE_FLOAT16 = @as(c_int, 0);
+pub const __HAVE_FLOAT32 = @as(c_int, 1);
+pub const __HAVE_FLOAT64 = @as(c_int, 1);
+pub const __HAVE_FLOAT32X = @as(c_int, 1);
+pub const __HAVE_FLOAT128X = @as(c_int, 0);
+pub const __HAVE_DISTINCT_FLOAT16 = __HAVE_FLOAT16;
+pub const __HAVE_DISTINCT_FLOAT32 = @as(c_int, 0);
+pub const __HAVE_DISTINCT_FLOAT64 = @as(c_int, 0);
+pub const __HAVE_DISTINCT_FLOAT32X = @as(c_int, 0);
+pub const __HAVE_DISTINCT_FLOAT64X = @as(c_int, 0);
+pub const __HAVE_DISTINCT_FLOAT128X = __HAVE_FLOAT128X;
+pub const __HAVE_FLOAT128_UNLIKE_LDBL = (__HAVE_DISTINCT_FLOAT128 != 0) and (__LDBL_MANT_DIG__ != @as(c_int, 113));
+pub const __HAVE_FLOATN_NOT_TYPEDEF = @as(c_int, 0);
+pub const __f32 = @import("std").zig.c_translation.Macros.F_SUFFIX;
+pub inline fn __f64(x: anytype) @TypeOf(x) {
+    _ = &x;
+    return x;
+}
+pub inline fn __f32x(x: anytype) @TypeOf(x) {
+    _ = &x;
+    return x;
+}
+pub const __f64x = @import("std").zig.c_translation.Macros.L_SUFFIX;
+pub const __CFLOAT32 = @compileError("unable to translate: TODO _Complex");
+// /usr/include/bits/floatn-common.h:149:12
+pub const __CFLOAT64 = @compileError("unable to translate: TODO _Complex");
+// /usr/include/bits/floatn-common.h:160:13
+pub const __CFLOAT32X = @compileError("unable to translate: TODO _Complex");
+// /usr/include/bits/floatn-common.h:169:12
+pub const __CFLOAT64X = @compileError("unable to translate: TODO _Complex");
+// /usr/include/bits/floatn-common.h:178:13
+pub inline fn __builtin_huge_valf32() @TypeOf(__builtin_huge_valf()) {
+    return __builtin_huge_valf();
+}
+pub inline fn __builtin_inff32() @TypeOf(__builtin_inff()) {
+    return __builtin_inff();
+}
+pub inline fn __builtin_nanf32(x: anytype) @TypeOf(__builtin_nanf(x)) {
+    _ = &x;
+    return __builtin_nanf(x);
+}
+pub const __builtin_nansf32 = @compileError("unable to translate macro: undefined identifier `__builtin_nansf`");
+// /usr/include/bits/floatn-common.h:221:12
+pub const __builtin_huge_valf64 = @compileError("unable to translate macro: undefined identifier `__builtin_huge_val`");
+// /usr/include/bits/floatn-common.h:255:13
+pub const __builtin_inff64 = @compileError("unable to translate macro: undefined identifier `__builtin_inf`");
+// /usr/include/bits/floatn-common.h:256:13
+pub const __builtin_nanf64 = @compileError("unable to translate macro: undefined identifier `__builtin_nan`");
+// /usr/include/bits/floatn-common.h:257:13
+pub const __builtin_nansf64 = @compileError("unable to translate macro: undefined identifier `__builtin_nans`");
+// /usr/include/bits/floatn-common.h:258:13
+pub const __builtin_huge_valf32x = @compileError("unable to translate macro: undefined identifier `__builtin_huge_val`");
+// /usr/include/bits/floatn-common.h:272:12
+pub const __builtin_inff32x = @compileError("unable to translate macro: undefined identifier `__builtin_inf`");
+// /usr/include/bits/floatn-common.h:273:12
+pub const __builtin_nanf32x = @compileError("unable to translate macro: undefined identifier `__builtin_nan`");
+// /usr/include/bits/floatn-common.h:274:12
+pub const __builtin_nansf32x = @compileError("unable to translate macro: undefined identifier `__builtin_nans`");
+// /usr/include/bits/floatn-common.h:275:12
+pub const __builtin_huge_valf64x = @compileError("unable to translate macro: undefined identifier `__builtin_huge_vall`");
+// /usr/include/bits/floatn-common.h:289:13
+pub const __builtin_inff64x = @compileError("unable to translate macro: undefined identifier `__builtin_infl`");
+// /usr/include/bits/floatn-common.h:290:13
+pub const __builtin_nanf64x = @compileError("unable to translate macro: undefined identifier `__builtin_nanl`");
+// /usr/include/bits/floatn-common.h:291:13
+pub const __builtin_nansf64x = @compileError("unable to translate macro: undefined identifier `__builtin_nansl`");
+// /usr/include/bits/floatn-common.h:292:13
+pub const HUGE_VAL = @compileError("unable to translate macro: undefined identifier `__builtin_huge_val`");
+// /usr/include/math.h:48:10
+pub const HUGE_VALF = __builtin_huge_valf();
+pub const HUGE_VALL = @compileError("unable to translate macro: undefined identifier `__builtin_huge_vall`");
+// /usr/include/math.h:60:11
+pub const INFINITY = __builtin_inff();
+pub const NAN = __builtin_nanf("");
+pub const __GLIBC_FLT_EVAL_METHOD = @compileError("unable to translate macro: undefined identifier `__FLT_EVAL_METHOD__`");
+// /usr/include/bits/flt-eval-method.h:27:11
+pub const __FP_LOGB0_IS_MIN = @as(c_int, 1);
+pub const __FP_LOGBNAN_IS_MIN = @as(c_int, 1);
+pub const FP_ILOGB0 = -@import("std").zig.c_translation.promoteIntLiteral(c_int, 2147483647, .decimal) - @as(c_int, 1);
+pub const FP_ILOGBNAN = -@import("std").zig.c_translation.promoteIntLiteral(c_int, 2147483647, .decimal) - @as(c_int, 1);
+pub const __SIMD_DECL = @compileError("unable to translate macro: undefined identifier `__DECL_SIMD_`");
+// /usr/include/math.h:276:9
+pub inline fn __MATHCALL_VEC(function: anytype, suffix: anytype, args: anytype) @TypeOf(__SIMD_DECL(__MATH_PRECNAME(function, suffix)) ++ __MATHCALL(function, suffix, args)) {
+    _ = &function;
+    _ = &suffix;
+    _ = &args;
+    return __SIMD_DECL(__MATH_PRECNAME(function, suffix)) ++ __MATHCALL(function, suffix, args);
+}
+pub inline fn __MATHDECL_VEC(@"type": anytype, function: anytype, suffix: anytype, args: anytype) @TypeOf(__SIMD_DECL(__MATH_PRECNAME(function, suffix)) ++ __MATHDECL(@"type", function, suffix, args)) {
+    _ = &@"type";
+    _ = &function;
+    _ = &suffix;
+    _ = &args;
+    return __SIMD_DECL(__MATH_PRECNAME(function, suffix)) ++ __MATHDECL(@"type", function, suffix, args);
+}
+pub inline fn __MATHCALL(function: anytype, suffix: anytype, args: anytype) @TypeOf(__MATHDECL(_Mdouble_, function, suffix, args)) {
+    _ = &function;
+    _ = &suffix;
+    _ = &args;
+    return __MATHDECL(_Mdouble_, function, suffix, args);
+}
+pub const __MATHDECL = @compileError("unable to translate macro: undefined identifier `__`");
+// /usr/include/math.h:288:9
+pub inline fn __MATHCALLX(function: anytype, suffix: anytype, args: anytype, attrib: anytype) @TypeOf(__MATHDECLX(_Mdouble_, function, suffix, args, attrib)) {
+    _ = &function;
+    _ = &suffix;
+    _ = &args;
+    _ = &attrib;
+    return __MATHDECLX(_Mdouble_, function, suffix, args, attrib);
+}
+pub const __MATHDECLX = @compileError("unable to translate macro: undefined identifier `__`");
+// /usr/include/math.h:293:9
+pub const __MATHDECL_1_IMPL = @compileError("unable to translate C expr: unexpected token 'extern'");
+// /usr/include/math.h:296:9
+pub inline fn __MATHDECL_1(@"type": anytype, function: anytype, suffix: anytype, args: anytype) @TypeOf(__MATHDECL_1_IMPL(@"type", function, suffix, args)) {
+    _ = &@"type";
+    _ = &function;
+    _ = &suffix;
+    _ = &args;
+    return __MATHDECL_1_IMPL(@"type", function, suffix, args);
+}
+pub inline fn __MATHDECL_ALIAS(@"type": anytype, function: anytype, suffix: anytype, args: anytype, alias: anytype) @TypeOf(__MATHDECL_1(@"type", function, suffix, args)) {
+    _ = &@"type";
+    _ = &function;
+    _ = &suffix;
+    _ = &args;
+    _ = &alias;
+    return __MATHDECL_1(@"type", function, suffix, args);
+}
+pub const __MATHREDIR = @compileError("unable to translate C expr: unexpected token 'extern'");
+// /usr/include/math.h:305:9
+pub const _Mdouble_ = f64;
+pub inline fn __MATH_PRECNAME(name: anytype, r: anytype) @TypeOf(__CONCAT(name, r)) {
+    _ = &name;
+    _ = &r;
+    return __CONCAT(name, r);
+}
+pub const __MATH_DECLARING_DOUBLE = @as(c_int, 1);
+pub const __MATH_DECLARING_FLOATN = @as(c_int, 0);
+pub const __MATH_DECLARE_LDOUBLE = @as(c_int, 1);
+pub const __MATHCALL_NARROW_ARGS_1 = @compileError("unable to translate macro: undefined identifier `_Marg_`");
+// /usr/include/math.h:550:9
+pub const __MATHCALL_NARROW_ARGS_2 = @compileError("unable to translate macro: undefined identifier `_Marg_`");
+// /usr/include/math.h:551:9
+pub const __MATHCALL_NARROW_ARGS_3 = @compileError("unable to translate macro: undefined identifier `_Marg_`");
+// /usr/include/math.h:552:9
+pub const __MATHCALL_NARROW_NORMAL = @compileError("unable to translate macro: undefined identifier `_Mret_`");
+// /usr/include/math.h:553:9
+pub const __MATHCALL_NARROW_REDIR = @compileError("unable to translate macro: undefined identifier `_Mret_`");
+// /usr/include/math.h:555:9
+pub inline fn __MATHCALL_NARROW(func: anytype, redir: anytype, nargs: anytype) @TypeOf(__MATHCALL_NARROW_NORMAL(func, nargs)) {
+    _ = &func;
+    _ = &redir;
+    _ = &nargs;
+    return __MATHCALL_NARROW_NORMAL(func, nargs);
+}
+pub const __MATH_TG = @compileError("unable to translate macro: undefined identifier `f`");
+// /usr/include/math.h:922:10
+pub const fpclassify = @compileError("unable to translate macro: undefined identifier `__builtin_fpclassify`");
+// /usr/include/math.h:967:11
+pub inline fn signbit(x: anytype) @TypeOf(__builtin_signbit(x)) {
+    _ = &x;
+    return __builtin_signbit(x);
+}
+pub const isfinite = @compileError("unable to translate macro: undefined identifier `__builtin_isfinite`");
+// /usr/include/math.h:994:11
+pub const isnormal = @compileError("unable to translate macro: undefined identifier `__builtin_isnormal`");
+// /usr/include/math.h:1002:11
+pub const MATH_ERRNO = @as(c_int, 1);
+pub const MATH_ERREXCEPT = @as(c_int, 2);
+pub const math_errhandling = MATH_ERRNO | MATH_ERREXCEPT;
+pub const M_E = @as(f64, 2.7182818284590452354);
+pub const M_LOG2E = @as(f64, 1.4426950408889634074);
+pub const M_LOG10E = @as(f64, 0.43429448190325182765);
+pub const M_LN2 = @as(f64, 0.69314718055994530942);
+pub const M_LN10 = @as(f64, 2.30258509299404568402);
+pub const M_PI = @as(f64, 3.14159265358979323846);
+pub const M_PI_2 = @as(f64, 1.57079632679489661923);
+pub const M_PI_4 = @as(f64, 0.78539816339744830962);
+pub const M_1_PI = @as(f64, 0.31830988618379067154);
+pub const M_2_PI = @as(f64, 0.63661977236758134308);
+pub const M_2_SQRTPI = @as(f64, 1.12837916709551257390);
+pub const M_SQRT2 = @as(f64, 1.41421356237309504880);
+pub const M_SQRT1_2 = @as(f64, 0.70710678118654752440);
+pub const isgreater = @compileError("unable to translate macro: undefined identifier `__builtin_isgreater`");
+// /usr/include/math.h:1305:11
+pub const isgreaterequal = @compileError("unable to translate macro: undefined identifier `__builtin_isgreaterequal`");
+// /usr/include/math.h:1306:11
+pub const isless = @compileError("unable to translate macro: undefined identifier `__builtin_isless`");
+// /usr/include/math.h:1307:11
+pub const islessequal = @compileError("unable to translate macro: undefined identifier `__builtin_islessequal`");
+// /usr/include/math.h:1308:11
+pub const islessgreater = @compileError("unable to translate macro: undefined identifier `__builtin_islessgreater`");
+// /usr/include/math.h:1309:11
+pub const isunordered = @compileError("unable to translate macro: undefined identifier `__builtin_isunordered`");
+// /usr/include/math.h:1310:11
+pub const _STDIO_H = @as(c_int, 1);
+pub const __need_size_t = "";
+pub const __need_NULL = "";
+pub const _SIZE_T = "";
+pub const NULL = @import("std").zig.c_translation.cast(?*anyopaque, @as(c_int, 0));
+pub const __need___va_list = "";
+pub const __GNUC_VA_LIST = "";
+pub const _____fpos_t_defined = @as(c_int, 1);
+pub const ____mbstate_t_defined = @as(c_int, 1);
+pub const _____fpos64_t_defined = @as(c_int, 1);
+pub const ____FILE_defined = @as(c_int, 1);
+pub const __FILE_defined = @as(c_int, 1);
+pub const __struct_FILE_defined = @as(c_int, 1);
+pub const __getc_unlocked_body = @compileError("TODO postfix inc/dec expr");
+// /usr/include/bits/types/struct_FILE.h:102:9
+pub const __putc_unlocked_body = @compileError("TODO postfix inc/dec expr");
+// /usr/include/bits/types/struct_FILE.h:106:9
+pub const _IO_EOF_SEEN = @as(c_int, 0x0010);
+pub inline fn __feof_unlocked_body(_fp: anytype) @TypeOf((_fp.*._flags & _IO_EOF_SEEN) != @as(c_int, 0)) {
+    _ = &_fp;
+    return (_fp.*._flags & _IO_EOF_SEEN) != @as(c_int, 0);
+}
+pub const _IO_ERR_SEEN = @as(c_int, 0x0020);
+pub inline fn __ferror_unlocked_body(_fp: anytype) @TypeOf((_fp.*._flags & _IO_ERR_SEEN) != @as(c_int, 0)) {
+    _ = &_fp;
+    return (_fp.*._flags & _IO_ERR_SEEN) != @as(c_int, 0);
+}
+pub const _IO_USER_LOCK = @import("std").zig.c_translation.promoteIntLiteral(c_int, 0x8000, .hex);
+pub const _VA_LIST_DEFINED = "";
+pub const __off_t_defined = "";
+pub const __ssize_t_defined = "";
+pub const _IOFBF = @as(c_int, 0);
+pub const _IOLBF = @as(c_int, 1);
+pub const _IONBF = @as(c_int, 2);
+pub const BUFSIZ = @as(c_int, 8192);
+pub const EOF = -@as(c_int, 1);
+pub const SEEK_SET = @as(c_int, 0);
+pub const SEEK_CUR = @as(c_int, 1);
+pub const SEEK_END = @as(c_int, 2);
+pub const P_tmpdir = "/tmp";
+pub const _BITS_STDIO_LIM_H = @as(c_int, 1);
+pub const L_tmpnam = @as(c_int, 20);
+pub const TMP_MAX = @import("std").zig.c_translation.promoteIntLiteral(c_int, 238328, .decimal);
+pub const FILENAME_MAX = @as(c_int, 4096);
+pub const L_ctermid = @as(c_int, 9);
+pub const FOPEN_MAX = @as(c_int, 16);
+pub const __attr_dealloc_fclose = __attr_dealloc(fclose, @as(c_int, 1));
+pub const _STRING_H = @as(c_int, 1);
+pub const _BITS_TYPES_LOCALE_T_H = @as(c_int, 1);
+pub const _BITS_TYPES___LOCALE_T_H = @as(c_int, 1);
+pub const _STRINGS_H = @as(c_int, 1);
+pub const _TIME_H = @as(c_int, 1);
+pub const _BITS_TIME_H = @as(c_int, 1);
+pub const CLOCKS_PER_SEC = @import("std").zig.c_translation.cast(__clock_t, @import("std").zig.c_translation.promoteIntLiteral(c_int, 1000000, .decimal));
+pub const CLOCK_REALTIME = @as(c_int, 0);
+pub const CLOCK_MONOTONIC = @as(c_int, 1);
+pub const CLOCK_PROCESS_CPUTIME_ID = @as(c_int, 2);
+pub const CLOCK_THREAD_CPUTIME_ID = @as(c_int, 3);
+pub const CLOCK_MONOTONIC_RAW = @as(c_int, 4);
+pub const CLOCK_REALTIME_COARSE = @as(c_int, 5);
+pub const CLOCK_MONOTONIC_COARSE = @as(c_int, 6);
+pub const CLOCK_BOOTTIME = @as(c_int, 7);
+pub const CLOCK_REALTIME_ALARM = @as(c_int, 8);
+pub const CLOCK_BOOTTIME_ALARM = @as(c_int, 9);
+pub const CLOCK_TAI = @as(c_int, 11);
+pub const TIMER_ABSTIME = @as(c_int, 1);
+pub const __clock_t_defined = @as(c_int, 1);
+pub const __time_t_defined = @as(c_int, 1);
+pub const __struct_tm_defined = @as(c_int, 1);
+pub const _STRUCT_TIMESPEC = @as(c_int, 1);
+pub const _BITS_ENDIAN_H = @as(c_int, 1);
+pub const __LITTLE_ENDIAN = @as(c_int, 1234);
+pub const __BIG_ENDIAN = @as(c_int, 4321);
+pub const __PDP_ENDIAN = @as(c_int, 3412);
+pub const _BITS_ENDIANNESS_H = @as(c_int, 1);
+pub const __BYTE_ORDER = __LITTLE_ENDIAN;
+pub const __FLOAT_WORD_ORDER = __BYTE_ORDER;
+pub inline fn __LONG_LONG_PAIR(HI: anytype, LO: anytype) @TypeOf(HI) {
+    _ = &HI;
+    _ = &LO;
+    return blk: {
+        _ = &LO;
+        break :blk HI;
+    };
+}
+pub const __clockid_t_defined = @as(c_int, 1);
+pub const __timer_t_defined = @as(c_int, 1);
+pub const __itimerspec_defined = @as(c_int, 1);
+pub const __pid_t_defined = "";
+pub const TIME_UTC = @as(c_int, 1);
+pub inline fn __isleap(year: anytype) @TypeOf((@import("std").zig.c_translation.MacroArithmetic.rem(year, @as(c_int, 4)) == @as(c_int, 0)) and ((@import("std").zig.c_translation.MacroArithmetic.rem(year, @as(c_int, 100)) != @as(c_int, 0)) or (@import("std").zig.c_translation.MacroArithmetic.rem(year, @as(c_int, 400)) == @as(c_int, 0)))) {
+    _ = &year;
+    return (@import("std").zig.c_translation.MacroArithmetic.rem(year, @as(c_int, 4)) == @as(c_int, 0)) and ((@import("std").zig.c_translation.MacroArithmetic.rem(year, @as(c_int, 100)) != @as(c_int, 0)) or (@import("std").zig.c_translation.MacroArithmetic.rem(year, @as(c_int, 400)) == @as(c_int, 0)));
+}
+pub const mufi_memory_h = "";
+pub const mufi_common_h = "";
+pub const __STDBOOL_H = "";
+pub const __bool_true_false_are_defined = @as(c_int, 1);
+pub const @"bool" = bool;
+pub const @"true" = @as(c_int, 1);
+pub const @"false" = @as(c_int, 0);
+pub const __STDDEF_H = "";
+pub const __need_ptrdiff_t = "";
+pub const __need_wchar_t = "";
+pub const __need_max_align_t = "";
+pub const __need_offsetof = "";
+pub const _PTRDIFF_T = "";
+pub const _WCHAR_T = "";
+pub const __CLANG_MAX_ALIGN_T_DEFINED = "";
+pub const offsetof = @compileError("unable to translate C expr: unexpected token 'an identifier'");
+// /snap/zig/11625/lib/include/__stddef_offsetof.h:16:9
+pub const __CLANG_STDINT_H = "";
+pub const _STDINT_H = @as(c_int, 1);
 pub const _BITS_WCHAR_H = @as(c_int, 1);
 pub const __WCHAR_MAX = __WCHAR_MAX__;
 pub const __WCHAR_MIN = -__WCHAR_MAX - @as(c_int, 1);
@@ -30831,79 +35234,6 @@ pub inline fn WIFCONTINUED(status: anytype) @TypeOf(__WIFCONTINUED(status)) {
     _ = &status;
     return __WIFCONTINUED(status);
 }
-pub const _BITS_FLOATN_H = "";
-pub const __HAVE_FLOAT128 = @as(c_int, 0);
-pub const __HAVE_DISTINCT_FLOAT128 = @as(c_int, 0);
-pub const __HAVE_FLOAT64X = @as(c_int, 1);
-pub const __HAVE_FLOAT64X_LONG_DOUBLE = @as(c_int, 1);
-pub const _BITS_FLOATN_COMMON_H = "";
-pub const __HAVE_FLOAT16 = @as(c_int, 0);
-pub const __HAVE_FLOAT32 = @as(c_int, 1);
-pub const __HAVE_FLOAT64 = @as(c_int, 1);
-pub const __HAVE_FLOAT32X = @as(c_int, 1);
-pub const __HAVE_FLOAT128X = @as(c_int, 0);
-pub const __HAVE_DISTINCT_FLOAT16 = __HAVE_FLOAT16;
-pub const __HAVE_DISTINCT_FLOAT32 = @as(c_int, 0);
-pub const __HAVE_DISTINCT_FLOAT64 = @as(c_int, 0);
-pub const __HAVE_DISTINCT_FLOAT32X = @as(c_int, 0);
-pub const __HAVE_DISTINCT_FLOAT64X = @as(c_int, 0);
-pub const __HAVE_DISTINCT_FLOAT128X = __HAVE_FLOAT128X;
-pub const __HAVE_FLOAT128_UNLIKE_LDBL = (__HAVE_DISTINCT_FLOAT128 != 0) and (__LDBL_MANT_DIG__ != @as(c_int, 113));
-pub const __HAVE_FLOATN_NOT_TYPEDEF = @as(c_int, 0);
-pub const __f32 = @import("std").zig.c_translation.Macros.F_SUFFIX;
-pub inline fn __f64(x: anytype) @TypeOf(x) {
-    _ = &x;
-    return x;
-}
-pub inline fn __f32x(x: anytype) @TypeOf(x) {
-    _ = &x;
-    return x;
-}
-pub const __f64x = @import("std").zig.c_translation.Macros.L_SUFFIX;
-pub const __CFLOAT32 = @compileError("unable to translate: TODO _Complex");
-// /usr/include/bits/floatn-common.h:149:12
-pub const __CFLOAT64 = @compileError("unable to translate: TODO _Complex");
-// /usr/include/bits/floatn-common.h:160:13
-pub const __CFLOAT32X = @compileError("unable to translate: TODO _Complex");
-// /usr/include/bits/floatn-common.h:169:12
-pub const __CFLOAT64X = @compileError("unable to translate: TODO _Complex");
-// /usr/include/bits/floatn-common.h:178:13
-pub inline fn __builtin_huge_valf32() @TypeOf(__builtin_huge_valf()) {
-    return __builtin_huge_valf();
-}
-pub inline fn __builtin_inff32() @TypeOf(__builtin_inff()) {
-    return __builtin_inff();
-}
-pub inline fn __builtin_nanf32(x: anytype) @TypeOf(__builtin_nanf(x)) {
-    _ = &x;
-    return __builtin_nanf(x);
-}
-pub const __builtin_nansf32 = @compileError("unable to translate macro: undefined identifier `__builtin_nansf`");
-// /usr/include/bits/floatn-common.h:221:12
-pub const __builtin_huge_valf64 = @compileError("unable to translate macro: undefined identifier `__builtin_huge_val`");
-// /usr/include/bits/floatn-common.h:255:13
-pub const __builtin_inff64 = @compileError("unable to translate macro: undefined identifier `__builtin_inf`");
-// /usr/include/bits/floatn-common.h:256:13
-pub const __builtin_nanf64 = @compileError("unable to translate macro: undefined identifier `__builtin_nan`");
-// /usr/include/bits/floatn-common.h:257:13
-pub const __builtin_nansf64 = @compileError("unable to translate macro: undefined identifier `__builtin_nans`");
-// /usr/include/bits/floatn-common.h:258:13
-pub const __builtin_huge_valf32x = @compileError("unable to translate macro: undefined identifier `__builtin_huge_val`");
-// /usr/include/bits/floatn-common.h:272:12
-pub const __builtin_inff32x = @compileError("unable to translate macro: undefined identifier `__builtin_inf`");
-// /usr/include/bits/floatn-common.h:273:12
-pub const __builtin_nanf32x = @compileError("unable to translate macro: undefined identifier `__builtin_nan`");
-// /usr/include/bits/floatn-common.h:274:12
-pub const __builtin_nansf32x = @compileError("unable to translate macro: undefined identifier `__builtin_nans`");
-// /usr/include/bits/floatn-common.h:275:12
-pub const __builtin_huge_valf64x = @compileError("unable to translate macro: undefined identifier `__builtin_huge_vall`");
-// /usr/include/bits/floatn-common.h:289:13
-pub const __builtin_inff64x = @compileError("unable to translate macro: undefined identifier `__builtin_infl`");
-// /usr/include/bits/floatn-common.h:290:13
-pub const __builtin_nanf64x = @compileError("unable to translate macro: undefined identifier `__builtin_nanl`");
-// /usr/include/bits/floatn-common.h:291:13
-pub const __builtin_nansf64x = @compileError("unable to translate macro: undefined identifier `__builtin_nansl`");
-// /usr/include/bits/floatn-common.h:292:13
 pub const __ldiv_t_defined = @as(c_int, 1);
 pub const __lldiv_t_defined = @as(c_int, 1);
 pub const RAND_MAX = @import("std").zig.c_translation.promoteIntLiteral(c_int, 2147483647, .decimal);
@@ -30918,33 +35248,11 @@ pub const __gid_t_defined = "";
 pub const __mode_t_defined = "";
 pub const __nlink_t_defined = "";
 pub const __uid_t_defined = "";
-pub const __off_t_defined = "";
-pub const __pid_t_defined = "";
 pub const __id_t_defined = "";
-pub const __ssize_t_defined = "";
 pub const __daddr_t_defined = "";
 pub const __key_t_defined = "";
-pub const __clock_t_defined = @as(c_int, 1);
-pub const __clockid_t_defined = @as(c_int, 1);
-pub const __time_t_defined = @as(c_int, 1);
-pub const __timer_t_defined = @as(c_int, 1);
 pub const __BIT_TYPES_DEFINED__ = @as(c_int, 1);
 pub const _ENDIAN_H = @as(c_int, 1);
-pub const _BITS_ENDIAN_H = @as(c_int, 1);
-pub const __LITTLE_ENDIAN = @as(c_int, 1234);
-pub const __BIG_ENDIAN = @as(c_int, 4321);
-pub const __PDP_ENDIAN = @as(c_int, 3412);
-pub const _BITS_ENDIANNESS_H = @as(c_int, 1);
-pub const __BYTE_ORDER = __LITTLE_ENDIAN;
-pub const __FLOAT_WORD_ORDER = __BYTE_ORDER;
-pub inline fn __LONG_LONG_PAIR(HI: anytype, LO: anytype) @TypeOf(HI) {
-    _ = &HI;
-    _ = &LO;
-    return blk: {
-        _ = &LO;
-        break :blk HI;
-    };
-}
 pub const LITTLE_ENDIAN = __LITTLE_ENDIAN;
 pub const BIG_ENDIAN = __BIG_ENDIAN;
 pub const PDP_ENDIAN = __PDP_ENDIAN;
@@ -31027,7 +35335,6 @@ pub const __sigset_t_defined = @as(c_int, 1);
 pub const ____sigset_t_defined = "";
 pub const _SIGSET_NWORDS = @import("std").zig.c_translation.MacroArithmetic.div(@as(c_int, 1024), @as(c_int, 8) * @import("std").zig.c_translation.sizeof(c_ulong));
 pub const __timeval_defined = @as(c_int, 1);
-pub const _STRUCT_TIMESPEC = @as(c_int, 1);
 pub const __suseconds_t_defined = "";
 pub const __NFDBITS = @as(c_int, 8) * @import("std").zig.c_translation.cast(c_int, @import("std").zig.c_translation.sizeof(__fd_mask));
 pub inline fn __FD_ELT(d: anytype) @TypeOf(@import("std").zig.c_translation.MacroArithmetic.div(d, __NFDBITS)) {
@@ -31115,10 +35422,7 @@ pub const DEBUG_TRACE_EXECUTION = "";
 pub const DEBUG_STRESS_GC = "";
 pub const DEBUG_LOG_GC = "";
 pub const UINT8_COUNT = UINT8_MAX + @as(c_int, 1);
-pub const _STRING_H = @as(c_int, 1);
-pub const _BITS_TYPES_LOCALE_T_H = @as(c_int, 1);
-pub const _BITS_TYPES___LOCALE_T_H = @as(c_int, 1);
-pub const _STRINGS_H = @as(c_int, 1);
+pub const mufi_value_h = "";
 pub inline fn IS_BOOL(value: anytype) @TypeOf(value.type == VAL_BOOL) {
     _ = &value;
     return value.type == VAL_BOOL;
@@ -31187,7 +35491,6 @@ pub const OBJ_VAL = @compileError("unable to translate C expr: unexpected token 
 // core/../include/value.h:65:9
 pub const COMPLEX_VAL = @compileError("unable to translate C expr: unexpected token '{'");
 // core/../include/value.h:66:9
-pub const mufi_memory_h = "";
 pub const mufi_object_h = "";
 pub const mufi_chunk_h = "";
 pub const mufi_table_h = "";
@@ -37295,208 +41598,25 @@ pub inline fn FREE_ARRAY(@"type": anytype, pointer: anytype, oldCount: anytype) 
     _ = &oldCount;
     return reallocate(pointer, @import("std").zig.c_translation.sizeof(@"type") * oldCount, @as(c_int, 0));
 }
-pub const __CLANG_INTTYPES_H = "";
-pub const _INTTYPES_H = @as(c_int, 1);
-pub const ____gwchar_t_defined = @as(c_int, 1);
-pub const __PRI64_PREFIX = "l";
-pub const __PRIPTR_PREFIX = "l";
-pub const PRId8 = "d";
-pub const PRId16 = "d";
-pub const PRId32 = "d";
-pub const PRId64 = __PRI64_PREFIX ++ "d";
-pub const PRIdLEAST8 = "d";
-pub const PRIdLEAST16 = "d";
-pub const PRIdLEAST32 = "d";
-pub const PRIdLEAST64 = __PRI64_PREFIX ++ "d";
-pub const PRIdFAST8 = "d";
-pub const PRIdFAST16 = __PRIPTR_PREFIX ++ "d";
-pub const PRIdFAST32 = __PRIPTR_PREFIX ++ "d";
-pub const PRIdFAST64 = __PRI64_PREFIX ++ "d";
-pub const PRIi8 = "i";
-pub const PRIi16 = "i";
-pub const PRIi32 = "i";
-pub const PRIi64 = __PRI64_PREFIX ++ "i";
-pub const PRIiLEAST8 = "i";
-pub const PRIiLEAST16 = "i";
-pub const PRIiLEAST32 = "i";
-pub const PRIiLEAST64 = __PRI64_PREFIX ++ "i";
-pub const PRIiFAST8 = "i";
-pub const PRIiFAST16 = __PRIPTR_PREFIX ++ "i";
-pub const PRIiFAST32 = __PRIPTR_PREFIX ++ "i";
-pub const PRIiFAST64 = __PRI64_PREFIX ++ "i";
-pub const PRIo8 = "o";
-pub const PRIo16 = "o";
-pub const PRIo32 = "o";
-pub const PRIo64 = __PRI64_PREFIX ++ "o";
-pub const PRIoLEAST8 = "o";
-pub const PRIoLEAST16 = "o";
-pub const PRIoLEAST32 = "o";
-pub const PRIoLEAST64 = __PRI64_PREFIX ++ "o";
-pub const PRIoFAST8 = "o";
-pub const PRIoFAST16 = __PRIPTR_PREFIX ++ "o";
-pub const PRIoFAST32 = __PRIPTR_PREFIX ++ "o";
-pub const PRIoFAST64 = __PRI64_PREFIX ++ "o";
-pub const PRIu8 = "u";
-pub const PRIu16 = "u";
-pub const PRIu32 = "u";
-pub const PRIu64 = __PRI64_PREFIX ++ "u";
-pub const PRIuLEAST8 = "u";
-pub const PRIuLEAST16 = "u";
-pub const PRIuLEAST32 = "u";
-pub const PRIuLEAST64 = __PRI64_PREFIX ++ "u";
-pub const PRIuFAST8 = "u";
-pub const PRIuFAST16 = __PRIPTR_PREFIX ++ "u";
-pub const PRIuFAST32 = __PRIPTR_PREFIX ++ "u";
-pub const PRIuFAST64 = __PRI64_PREFIX ++ "u";
-pub const PRIx8 = "x";
-pub const PRIx16 = "x";
-pub const PRIx32 = "x";
-pub const PRIx64 = __PRI64_PREFIX ++ "x";
-pub const PRIxLEAST8 = "x";
-pub const PRIxLEAST16 = "x";
-pub const PRIxLEAST32 = "x";
-pub const PRIxLEAST64 = __PRI64_PREFIX ++ "x";
-pub const PRIxFAST8 = "x";
-pub const PRIxFAST16 = __PRIPTR_PREFIX ++ "x";
-pub const PRIxFAST32 = __PRIPTR_PREFIX ++ "x";
-pub const PRIxFAST64 = __PRI64_PREFIX ++ "x";
-pub const PRIX8 = "X";
-pub const PRIX16 = "X";
-pub const PRIX32 = "X";
-pub const PRIX64 = __PRI64_PREFIX ++ "X";
-pub const PRIXLEAST8 = "X";
-pub const PRIXLEAST16 = "X";
-pub const PRIXLEAST32 = "X";
-pub const PRIXLEAST64 = __PRI64_PREFIX ++ "X";
-pub const PRIXFAST8 = "X";
-pub const PRIXFAST16 = __PRIPTR_PREFIX ++ "X";
-pub const PRIXFAST32 = __PRIPTR_PREFIX ++ "X";
-pub const PRIXFAST64 = __PRI64_PREFIX ++ "X";
-pub const PRIdMAX = __PRI64_PREFIX ++ "d";
-pub const PRIiMAX = __PRI64_PREFIX ++ "i";
-pub const PRIoMAX = __PRI64_PREFIX ++ "o";
-pub const PRIuMAX = __PRI64_PREFIX ++ "u";
-pub const PRIxMAX = __PRI64_PREFIX ++ "x";
-pub const PRIXMAX = __PRI64_PREFIX ++ "X";
-pub const PRIdPTR = __PRIPTR_PREFIX ++ "d";
-pub const PRIiPTR = __PRIPTR_PREFIX ++ "i";
-pub const PRIoPTR = __PRIPTR_PREFIX ++ "o";
-pub const PRIuPTR = __PRIPTR_PREFIX ++ "u";
-pub const PRIxPTR = __PRIPTR_PREFIX ++ "x";
-pub const PRIXPTR = __PRIPTR_PREFIX ++ "X";
-pub const SCNd8 = "hhd";
-pub const SCNd16 = "hd";
-pub const SCNd32 = "d";
-pub const SCNd64 = __PRI64_PREFIX ++ "d";
-pub const SCNdLEAST8 = "hhd";
-pub const SCNdLEAST16 = "hd";
-pub const SCNdLEAST32 = "d";
-pub const SCNdLEAST64 = __PRI64_PREFIX ++ "d";
-pub const SCNdFAST8 = "hhd";
-pub const SCNdFAST16 = __PRIPTR_PREFIX ++ "d";
-pub const SCNdFAST32 = __PRIPTR_PREFIX ++ "d";
-pub const SCNdFAST64 = __PRI64_PREFIX ++ "d";
-pub const SCNi8 = "hhi";
-pub const SCNi16 = "hi";
-pub const SCNi32 = "i";
-pub const SCNi64 = __PRI64_PREFIX ++ "i";
-pub const SCNiLEAST8 = "hhi";
-pub const SCNiLEAST16 = "hi";
-pub const SCNiLEAST32 = "i";
-pub const SCNiLEAST64 = __PRI64_PREFIX ++ "i";
-pub const SCNiFAST8 = "hhi";
-pub const SCNiFAST16 = __PRIPTR_PREFIX ++ "i";
-pub const SCNiFAST32 = __PRIPTR_PREFIX ++ "i";
-pub const SCNiFAST64 = __PRI64_PREFIX ++ "i";
-pub const SCNu8 = "hhu";
-pub const SCNu16 = "hu";
-pub const SCNu32 = "u";
-pub const SCNu64 = __PRI64_PREFIX ++ "u";
-pub const SCNuLEAST8 = "hhu";
-pub const SCNuLEAST16 = "hu";
-pub const SCNuLEAST32 = "u";
-pub const SCNuLEAST64 = __PRI64_PREFIX ++ "u";
-pub const SCNuFAST8 = "hhu";
-pub const SCNuFAST16 = __PRIPTR_PREFIX ++ "u";
-pub const SCNuFAST32 = __PRIPTR_PREFIX ++ "u";
-pub const SCNuFAST64 = __PRI64_PREFIX ++ "u";
-pub const SCNo8 = "hho";
-pub const SCNo16 = "ho";
-pub const SCNo32 = "o";
-pub const SCNo64 = __PRI64_PREFIX ++ "o";
-pub const SCNoLEAST8 = "hho";
-pub const SCNoLEAST16 = "ho";
-pub const SCNoLEAST32 = "o";
-pub const SCNoLEAST64 = __PRI64_PREFIX ++ "o";
-pub const SCNoFAST8 = "hho";
-pub const SCNoFAST16 = __PRIPTR_PREFIX ++ "o";
-pub const SCNoFAST32 = __PRIPTR_PREFIX ++ "o";
-pub const SCNoFAST64 = __PRI64_PREFIX ++ "o";
-pub const SCNx8 = "hhx";
-pub const SCNx16 = "hx";
-pub const SCNx32 = "x";
-pub const SCNx64 = __PRI64_PREFIX ++ "x";
-pub const SCNxLEAST8 = "hhx";
-pub const SCNxLEAST16 = "hx";
-pub const SCNxLEAST32 = "x";
-pub const SCNxLEAST64 = __PRI64_PREFIX ++ "x";
-pub const SCNxFAST8 = "hhx";
-pub const SCNxFAST16 = __PRIPTR_PREFIX ++ "x";
-pub const SCNxFAST32 = __PRIPTR_PREFIX ++ "x";
-pub const SCNxFAST64 = __PRI64_PREFIX ++ "x";
-pub const SCNdMAX = __PRI64_PREFIX ++ "d";
-pub const SCNiMAX = __PRI64_PREFIX ++ "i";
-pub const SCNoMAX = __PRI64_PREFIX ++ "o";
-pub const SCNuMAX = __PRI64_PREFIX ++ "u";
-pub const SCNxMAX = __PRI64_PREFIX ++ "x";
-pub const SCNdPTR = __PRIPTR_PREFIX ++ "d";
-pub const SCNiPTR = __PRIPTR_PREFIX ++ "i";
-pub const SCNoPTR = __PRIPTR_PREFIX ++ "o";
-pub const SCNuPTR = __PRIPTR_PREFIX ++ "u";
-pub const SCNxPTR = __PRIPTR_PREFIX ++ "x";
-pub const _STDIO_H = @as(c_int, 1);
-pub const __need___va_list = "";
-pub const __GNUC_VA_LIST = "";
-pub const _____fpos_t_defined = @as(c_int, 1);
-pub const ____mbstate_t_defined = @as(c_int, 1);
-pub const _____fpos64_t_defined = @as(c_int, 1);
-pub const ____FILE_defined = @as(c_int, 1);
-pub const __FILE_defined = @as(c_int, 1);
-pub const __struct_FILE_defined = @as(c_int, 1);
-pub const __getc_unlocked_body = @compileError("TODO postfix inc/dec expr");
-// /usr/include/bits/types/struct_FILE.h:102:9
-pub const __putc_unlocked_body = @compileError("TODO postfix inc/dec expr");
-// /usr/include/bits/types/struct_FILE.h:106:9
-pub const _IO_EOF_SEEN = @as(c_int, 0x0010);
-pub inline fn __feof_unlocked_body(_fp: anytype) @TypeOf((_fp.*._flags & _IO_EOF_SEEN) != @as(c_int, 0)) {
-    _ = &_fp;
-    return (_fp.*._flags & _IO_EOF_SEEN) != @as(c_int, 0);
-}
-pub const _IO_ERR_SEEN = @as(c_int, 0x0020);
-pub inline fn __ferror_unlocked_body(_fp: anytype) @TypeOf((_fp.*._flags & _IO_ERR_SEEN) != @as(c_int, 0)) {
-    _ = &_fp;
-    return (_fp.*._flags & _IO_ERR_SEEN) != @as(c_int, 0);
-}
-pub const _IO_USER_LOCK = @import("std").zig.c_translation.promoteIntLiteral(c_int, 0x8000, .hex);
-pub const _VA_LIST_DEFINED = "";
-pub const _IOFBF = @as(c_int, 0);
-pub const _IOLBF = @as(c_int, 1);
-pub const _IONBF = @as(c_int, 2);
-pub const BUFSIZ = @as(c_int, 8192);
-pub const EOF = -@as(c_int, 1);
-pub const SEEK_SET = @as(c_int, 0);
-pub const SEEK_CUR = @as(c_int, 1);
-pub const SEEK_END = @as(c_int, 2);
-pub const P_tmpdir = "/tmp";
-pub const _BITS_STDIO_LIM_H = @as(c_int, 1);
-pub const L_tmpnam = @as(c_int, 20);
-pub const TMP_MAX = @import("std").zig.c_translation.promoteIntLiteral(c_int, 238328, .decimal);
-pub const FILENAME_MAX = @as(c_int, 4096);
-pub const L_ctermid = @as(c_int, 9);
-pub const FOPEN_MAX = @as(c_int, 16);
-pub const __attr_dealloc_fclose = __attr_dealloc(fclose, @as(c_int, 1));
-pub const timeval = struct_timeval;
+pub const mufi_vm_h = "";
+pub const FRAMES_MAX = @as(c_int, 64);
+pub const STACK_MAX = FRAMES_MAX * UINT8_COUNT;
+pub const ALLOCATE_OBJ = @compileError("unable to translate C expr: unexpected token ')'");
+// core/object.c:12:9
+pub const ARITHMETIC_OP = @compileError("unable to translate C expr: unexpected token 'switch'");
+// core/object.c:29:9
+pub const _G_fpos_t = struct__G_fpos_t;
+pub const _G_fpos64_t = struct__G_fpos64_t;
+pub const _IO_marker = struct__IO_marker;
+pub const _IO_codecvt = struct__IO_codecvt;
+pub const _IO_wide_data = struct__IO_wide_data;
+pub const _IO_FILE = struct__IO_FILE;
+pub const __locale_struct = struct___locale_struct;
+pub const tm = struct_tm;
 pub const timespec = struct_timespec;
+pub const itimerspec = struct_itimerspec;
+pub const sigevent = struct_sigevent;
+pub const timeval = struct_timeval;
 pub const __pthread_internal_list = struct___pthread_internal_list;
 pub const __pthread_internal_slist = struct___pthread_internal_slist;
 pub const __pthread_mutex_s = struct___pthread_mutex_s;
@@ -37504,15 +41624,8 @@ pub const __pthread_rwlock_arch_t = struct___pthread_rwlock_arch_t;
 pub const __pthread_cond_s = struct___pthread_cond_s;
 pub const random_data = struct_random_data;
 pub const drand48_data = struct_drand48_data;
-pub const __locale_struct = struct___locale_struct;
-pub const Node = struct_Node;
 pub const Entry = struct_Entry;
 pub const Table = struct_Table;
 pub const __uintr_frame = struct___uintr_frame;
 pub const __tile1024i_str = struct___tile1024i_str;
-pub const _G_fpos_t = struct__G_fpos_t;
-pub const _G_fpos64_t = struct__G_fpos64_t;
-pub const _IO_marker = struct__IO_marker;
-pub const _IO_codecvt = struct__IO_codecvt;
-pub const _IO_wide_data = struct__IO_wide_data;
-pub const _IO_FILE = struct__IO_FILE;
+pub const Node = struct_Node;
