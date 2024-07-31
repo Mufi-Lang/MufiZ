@@ -37428,23 +37428,19 @@ pub inline fn AS_FVECTOR(value: anytype) [*c]FloatVector {
 }
 pub const AS_ITERATOR = @compileError("unable to translate macro: undefined identifier `ObjIterator`");
 // core/../include/object.h:73:9
-pub const ALLOCATE = @compileError("unable to translate C expr: unexpected token ')'");
-// core/../include/memory.h:21:9
+pub inline fn ALLOCATE(@"type": anytype, count: usize) [*c]@TypeOf(@"type"){
+    return reallocate(null, 0, @import("std").zig.c_translation.sizeof(@"type")*count);
+}
 pub inline fn GROW_CAPACITY(capacity: anytype) @TypeOf(if (capacity < @as(c_int, 8)) @as(c_int, 8) else capacity * @as(c_int, 2)) {
-    _ = &capacity;
     return if (capacity < @as(c_int, 8)) @as(c_int, 8) else capacity * @as(c_int, 2);
 }
 pub inline fn FREE(@"type": anytype, pointer: anytype) @TypeOf(reallocate(pointer, @import("std").zig.c_translation.sizeof(@"type"), @as(c_int, 0))) {
-    _ = &@"type";
-    _ = &pointer;
     return reallocate(pointer, @import("std").zig.c_translation.sizeof(@"type"), @as(c_int, 0));
 }
-pub const GROW_ARRAY = @compileError("unable to translate C expr: unexpected token ')'");
-// core/../include/memory.h:34:9
+pub inline fn GROW_ARRAY(@"type": anytype, pointer: anytype, oldCount: usize, newCount: usize) [*c]@TypeOf(@"type"){
+    return reallocate(pointer, @import("std").zig.c_translation.sizeof(@"type")*oldCount, @import("std").zig.c_translation.sizeof(@"type")*newCount);
+}
 pub inline fn FREE_ARRAY(@"type": anytype, pointer: anytype, oldCount: anytype) @TypeOf(reallocate(pointer, @import("std").zig.c_translation.sizeof(@"type") * oldCount, @as(c_int, 0))) {
-    _ = &@"type";
-    _ = &pointer;
-    _ = &oldCount;
     return reallocate(pointer, @import("std").zig.c_translation.sizeof(@"type") * oldCount, @as(c_int, 0));
 }
 pub const mufi_compiler_h = "";

@@ -41,7 +41,6 @@
 #define IS_HASH_TABLE(value) isObjType(value, OBJ_HASH_TABLE)
 #define IS_MATRIX(value) isObjType(value, OBJ_MATRIX)
 #define IS_FVECTOR(value) isObjType(value, OBJ_FVECTOR)
-#define IS_ITERATOR(value) isObjType(value, OBJ_ITERATOR)
 
 #define NOT_ARRAY_TYPES(values, n) \
     ((notObjTypes((ObjTypeCheckParams){values, OBJ_ARRAY, n})) && \
@@ -70,7 +69,6 @@
 #define AS_HASH_TABLE(value) ((ObjHashTable *)AS_OBJ(value))
 #define AS_MATRIX(value) ((ObjMatrix *)AS_OBJ(value))
 #define AS_FVECTOR(value) ((FloatVector *)AS_OBJ(value))
-#define AS_ITERATOR(value) ((ObjIterator *)AS_OBJ(value))
 
 //> Object Type
 //> An object type is a type of an object in Mufi

@@ -1278,7 +1278,7 @@ ObjArray *backSubstitution(ObjMatrix *matrix, ObjArray *vector) {
   return result;
 }
 
-ObjArray *solveMatrix(ObjMatrix *matrix, ObjArray *vector) {}
+//ObjArray *solveMatrix(ObjMatrix *matrix, ObjArray *vector) {}
 /*------------------------------------------------------------------------------*/
 
 /*-------------------------- Float Vector Functions
@@ -2011,6 +2011,7 @@ int searchFloatVector(FloatVector *vector, double value) {
       }
     }
   }
+  return -1;
 }
 
 FloatVector *linspace(double start, double end, int n) {
