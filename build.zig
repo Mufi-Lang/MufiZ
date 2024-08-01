@@ -114,6 +114,14 @@ pub fn build(b: *std.Build) !void {
         .root_source_file = b.path("lib/cstd.zig"),
     });
 
+    // const lib_vm = b.addStaticLibrary(.{
+    //     .name = "libmufiz_vm",
+    //     .target = target,
+    //     .optimize = .ReleaseFast,
+    //     .link_libc = true,
+    //     .root_source_file = b.path("lib/vm.zig"),
+    // });
+
     // const lib_obj = b.addStaticLibrary(.{
     //     .name = "libmufiz_obj",
     //     .target = target,
@@ -128,6 +136,7 @@ pub fn build(b: *std.Build) !void {
     lib_compiler.addIncludePath(b.path("include"));
     lib_debug.addIncludePath(b.path("include"));
     lib_cstd.addIncludePath(b.path("include"));
+    //lib_vm.addIncludePath(b.path("include"));
 
     lib_table.linkLibrary(lib_value);
     lib_table.linkLibrary(lib_memory);
@@ -149,12 +158,14 @@ pub fn build(b: *std.Build) !void {
     exe.linkLibrary(lib_compiler);
     exe.linkLibrary(lib_debug);
     exe.linkLibrary(lib_cstd);
+    //exe.linkLibrary(lib_vm);
 
     exe_check.linkLibrary(lib_table);
     exe_check.linkLibrary(lib_chunk);
     exe_check.linkLibrary(lib_compiler);
     exe_check.linkLibrary(lib_debug);
     exe_check.linkLibrary(lib_cstd);
+    //exe_check.linkLibrary(lib_vm);
 
     exe.linkLibrary(lib_scanner);
     exe_check.linkLibrary(lib_scanner);
