@@ -4,6 +4,10 @@ const vm_h = @import("vm.zig");
 const value_h = @import("value.zig");
 const Value = value_h.Value;
 const vm = vm_h.vm;
+const table_h = @import("table.zig");
+const chunk_h = @import("chunk.zig");
+const markTable = table_h.markTable;
+const freeTable = table_h.freeTable;
 
 pub const GC_HEAP_GROW_FACTOR = @as(c_int, 2);
 pub const GC_IDLE: c_int = 0;
@@ -87,7 +91,7 @@ pub fn markObject(arg_object: [*c]Obj) void {
 pub export fn markValue(arg_value: Value) void {
     var value = arg_value;
     _ = &value;
-    if (value.type == @as(c_uint, @bitCast(VAL_OBJ))) {
+    if (value.type == @as(c_uint, @bitCast(.VAL_OBJ))) {
         markObject(value.as.obj);
     }
 }
@@ -115,94 +119,94 @@ pub fn freeObject(arg_object: [*c]Obj) callconv(.C) void {
         switch (object.*.type) {
             @as(c_uint, @bitCast(@as(c_int, 6))) => {
                 {
-                    _ = reallocate(@as(?*anyopaque, @ptrCast(object)), @sizeOf(ObjBoundMethod), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
+                    _ = reallocate(@as(?*anyopaque, @ptrCast(object)), @sizeOf(obj_h.ObjBoundMethod), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
                     break;
                 }
             },
             @as(c_uint, @bitCast(@as(c_int, 7))) => {
                 {
-                    var klass: [*c]ObjClass = @as([*c]ObjClass, @ptrCast(@alignCast(object)));
+                    var klass: [*c]obj_h.ObjClass = @as([*c]obj_h.ObjClass, @ptrCast(@alignCast(object)));
                     _ = &klass;
                     freeTable(&klass.*.methods);
-                    _ = reallocate(@as(?*anyopaque, @ptrCast(object)), @sizeOf(ObjClass), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
+                    _ = reallocate(@as(?*anyopaque, @ptrCast(object)), @sizeOf(obj_h.ObjClass), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
                     break;
                 }
             },
             @as(c_uint, @bitCast(@as(c_int, 0))) => {
                 {
-                    var closure: [*c]ObjClosure = @as([*c]ObjClosure, @ptrCast(@alignCast(object)));
+                    var closure: [*c]obj_h.ObjClosure = @as([*c]obj_h.ObjClosure, @ptrCast(@alignCast(object)));
                     _ = &closure;
-                    _ = reallocate(@as(?*anyopaque, @ptrCast(closure.*.upvalues)), @sizeOf([*c]ObjUpvalue) *% @as(c_ulong, @bitCast(@as(c_long, closure.*.upvalueCount))), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
-                    _ = reallocate(@as(?*anyopaque, @ptrCast(object)), @sizeOf(ObjClosure), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
+                    _ = reallocate(@as(?*anyopaque, @ptrCast(closure.*.upvalues)), @sizeOf([*c]obj_h.ObjUpvalue) *% @as(c_ulong, @bitCast(@as(c_long, closure.*.upvalueCount))), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
+                    _ = reallocate(@as(?*anyopaque, @ptrCast(object)), @sizeOf(obj_h.ObjClosure), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
                     break;
                 }
             },
             @as(c_uint, @bitCast(@as(c_int, 1))) => {
                 {
-                    var function: [*c]ObjFunction = @as([*c]ObjFunction, @ptrCast(@alignCast(object)));
+                    var function: [*c]obj_h.ObjFunction = @as([*c]obj_h.ObjFunction, @ptrCast(@alignCast(object)));
                     _ = &function;
-                    freeChunk(&function.*.chunk);
-                    _ = reallocate(@as(?*anyopaque, @ptrCast(object)), @sizeOf(ObjFunction), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
+                    chunk_h.freeChunk(&function.*.chunk);
+                    _ = reallocate(@as(?*anyopaque, @ptrCast(object)), @sizeOf(obj_h.ObjFunction), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
                     break;
                 }
             },
             @as(c_uint, @bitCast(@as(c_int, 2))) => {
                 {
-                    var instance: [*c]ObjInstance = @as([*c]ObjInstance, @ptrCast(@alignCast(object)));
+                    var instance: [*c]obj_h.ObjInstance = @as([*c]obj_h.ObjInstance, @ptrCast(@alignCast(object)));
                     _ = &instance;
                     freeTable(&instance.*.fields);
-                    _ = reallocate(@as(?*anyopaque, @ptrCast(object)), @sizeOf(ObjInstance), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
+                    _ = reallocate(@as(?*anyopaque, @ptrCast(object)), @sizeOf(obj_h.ObjInstance), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
                     break;
                 }
             },
             @as(c_uint, @bitCast(@as(c_int, 3))) => {
-                _ = reallocate(@as(?*anyopaque, @ptrCast(object)), @sizeOf(ObjNative), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
+                _ = reallocate(@as(?*anyopaque, @ptrCast(object)), @sizeOf(obj_h.ObjNative), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
                 break;
             },
             @as(c_uint, @bitCast(@as(c_int, 4))) => {
                 {
-                    var string: [*c]ObjString = @as([*c]ObjString, @ptrCast(@alignCast(object)));
+                    var string: [*c]obj_h.ObjString = @as([*c]obj_h.ObjString, @ptrCast(@alignCast(object)));
                     _ = &string;
                     _ = reallocate(@as(?*anyopaque, @ptrCast(string.*.chars)), @sizeOf(u8) *% @as(c_ulong, @bitCast(@as(c_long, string.*.length + @as(c_int, 1)))), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
-                    _ = reallocate(@as(?*anyopaque, @ptrCast(object)), @sizeOf(ObjString), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
+                    _ = reallocate(@as(?*anyopaque, @ptrCast(object)), @sizeOf(obj_h.ObjString), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
                     break;
                 }
             },
             @as(c_uint, @bitCast(@as(c_int, 5))) => {
                 {
-                    _ = reallocate(@as(?*anyopaque, @ptrCast(object)), @sizeOf(ObjUpvalue), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
+                    _ = reallocate(@as(?*anyopaque, @ptrCast(object)), @sizeOf(obj_h.ObjUpvalue), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
                     break;
                 }
             },
             @as(c_uint, @bitCast(@as(c_int, 8))) => {
                 {
-                    var array: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(object)));
+                    var array: [*c]obj_h.ObjArray = @as([*c]obj_h.ObjArray, @ptrCast(@alignCast(object)));
                     _ = &array;
-                    freeObjectArray(array);
+                    obj_h.freeObjectArray(array);
                     break;
                 }
             },
             @as(c_uint, @bitCast(@as(c_int, 9))) => {
                 {
-                    var linkedList: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(object)));
+                    var linkedList: [*c]obj_h.ObjLinkedList = @as([*c]obj_h.ObjLinkedList, @ptrCast(@alignCast(object)));
                     _ = &linkedList;
-                    freeObjectLinkedList(linkedList);
+                    obj_h.freeObjectLinkedList(linkedList);
                     break;
                 }
             },
             @as(c_uint, @bitCast(@as(c_int, 10))) => {
                 {
-                    var hashTable: [*c]ObjHashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(object)));
+                    var hashTable: [*c]obj_h.ObjHashTable = @as([*c]obj_h.ObjHashTable, @ptrCast(@alignCast(object)));
                     _ = &hashTable;
-                    freeObjectHashTable(hashTable);
+                    obj_h.freeObjectHashTable(hashTable);
                     break;
                 }
             },
             @as(c_uint, @bitCast(@as(c_int, 12))) => {
                 {
-                    var fvector: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(object)));
+                    var fvector: [*c]obj_h.FloatVector = @as([*c]obj_h.FloatVector, @ptrCast(@alignCast(object)));
                     _ = &fvector;
-                    freeFloatVector(fvector);
+                    obj_h.freeFloatVector(fvector);
                     break;
                 }
             },
@@ -243,9 +247,9 @@ pub export fn incrementalGC() void {
                         markTable(&vm.strings);
                         markObject(@as([*c]Obj, @ptrCast(@alignCast(vm.initString))));
                         {
-                            var upvalue: [*c]ObjUpvalue = vm.openUpvalues;
+                            var upvalue: [*c]obj_h.ObjUpvalue = vm.openUpvalues;
                             _ = &upvalue;
-                            while (upvalue != @as([*c]ObjUpvalue, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) : (upvalue = upvalue.*.next) {
+                            while (upvalue != @as([*c]obj_h.ObjUpvalue, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) : (upvalue = upvalue.*.next) {
                                 markObject(@as([*c]Obj, @ptrCast(@alignCast(upvalue))));
                             }
                         }
@@ -264,7 +268,7 @@ pub export fn incrementalGC() void {
                             if (tmp >= 0) break :blk vm.grayStack + @as(usize, @intCast(tmp)) else break :blk vm.grayStack - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
                         }).*;
                         _ = &object;
-                        blackenObject(object);
+                        obj_h.blackenObject(object);
                         workDone += 1;
                     }
                     if (vm.grayCount == @as(c_int, 0)) {
