@@ -13,14 +13,14 @@ const print = std.debug.print;
 
 pub const ValueType = enum(c_int) { VAL_BOOL = 0, VAL_NIL = 1, VAL_INT = 2, VAL_DOUBLE = 3, VAL_OBJ = 4, VAL_COMPLEX = 5 };
 
-pub const Complex = struct {
+pub const Complex = extern struct {
     r: f64,
     i: f64,
 };
 
 pub const Value = extern struct {
     type: ValueType,
-    as: union {
+    as: extern union {
         boolean: bool,
         num_double: f64,
         num_int: c_int,
@@ -186,7 +186,6 @@ pub fn valuesEqual(a: Value, b: Value) bool {
             const c_b: Complex = b.as.complex;
             return (c_a.r == c_b.r) and (c_a.i == c_b.i);
         },
-        else => return false,
     }
 }
 
@@ -262,7 +261,6 @@ pub fn printValue(value: Value) void {
         .VAL_OBJ => {
             obj_h.printObject(value);
         },
-        else => {},
     }
 }
 

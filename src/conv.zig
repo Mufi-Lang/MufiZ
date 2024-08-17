@@ -2,62 +2,53 @@ const std = @import("std");
 const JValue = std.json.Value;
 const core = @import("core.zig");
 const Value = core.Value;
+const ValueType = core.ValueType;
 const Obj = core.Obj;
 const ObjType = core.ObjType;
 const ObjString = core.ObjString;
 const ObjClass = core.ObjClass;
 const ObjInstance = core.ObjInstance;
-pub const VAL_INT = core.VAL_INT;
-pub const VAL_BOOL = core.VAL_BOOL;
-pub const VAL_DOUBLE = core.VAL_DOUBLE;
-pub const VAL_NIL = core.VAL_NIL;
-pub const VAL_OBJ = core.VAL_OBJ;
-pub const OBJ_STRING = core.OBJ_STRING;
-pub const OBJ_CLASS = core.OBJ_CLASS;
-pub const VAL_COMPLEX = core.VAL_COMPLEX;
+
 pub const Complex = core.Complex;
-pub const OBJ_INSTANCE = core.OBJ_INSTANCE;
 
 /// Returns the type of the given value
 pub fn what_is(val: Value) []const u8 {
     switch (val.type) {
-        VAL_INT => return "Integer",
-        VAL_DOUBLE => return "Double",
-        VAL_BOOL => return "Boolean",
-        VAL_NIL => return "NIL",
-        VAL_OBJ => {
+        .VAL_INT => return "Integer",
+        .VAL_DOUBLE => return "Double",
+        .VAL_BOOL => return "Boolean",
+        .VAL_NIL => return "NIL",
+        .VAL_OBJ => {
             const obj = as_obj(val);
             switch (obj.?.type) {
-                core.OBJ_CLOSURE => return "Closure",
-                core.OBJ_FUNCTION => return "Function",
-                core.OBJ_INSTANCE => return "Instance",
-                core.OBJ_NATIVE => return "Native",
-                core.OBJ_STRING => return "String",
-                core.OBJ_UPVALUE => return "Upvalue",
-                core.OBJ_BOUND_METHOD => return "Bound Method",
-                core.OBJ_CLASS => return "Class",
-                core.OBJ_ARRAY => return "Array",
-                core.OBJ_LINKED_LIST => return "Linked List",
-                core.OBJ_HASH_TABLE => return "Hash Table",
-                core.OBJ_MATRIX => return "Matrix",
-                core.OBJ_FVECTOR => return "Float Vector",
-                else => return "Unknown Object Type",
+                .OBJ_CLOSURE => return "Closure",
+                .OBJ_FUNCTION => return "Function",
+                .OBJ_INSTANCE => return "Instance",
+                .OBJ_NATIVE => return "Native",
+                .OBJ_STRING => return "String",
+                .OBJ_UPVALUE => return "Upvalue",
+                .OBJ_BOUND_METHOD => return "Bound Method",
+                .OBJ_CLASS => return "Class",
+                .OBJ_ARRAY => return "Array",
+                .OBJ_LINKED_LIST => return "Linked List",
+                .OBJ_HASH_TABLE => return "Hash Table",
+                .OBJ_MATRIX => return "Matrix",
+                .OBJ_FVECTOR => return "Float Vector",
             }
         },
-        VAL_COMPLEX => return "Complex",
-        else => return "Unknown",
+        .VAL_COMPLEX => return "Complex",
     }
 }
 
 /// Checks if the given range has the correct type
 pub fn type_check(n: usize, values: [*c]Value, val_type: i32) bool {
     const check_fn = switch (val_type) {
-        VAL_INT => &is_int,
-        VAL_DOUBLE => &is_double,
-        VAL_BOOL => &is_bool,
-        VAL_NIL => &is_nil,
-        VAL_OBJ => &is_obj,
-        VAL_COMPLEX => &is_complex,
+        0 => &is_int,
+        1 => &is_double,
+        2 => &is_bool,
+        3 => &is_nil,
+        4 => &is_obj,
+        5 => &is_complex,
         6 => &is_prim_num,
         else => return false,
     };
@@ -76,32 +67,32 @@ pub fn cstr(s: []u8) [*c]u8 {
 
 /// Checks if the given value is a bool
 pub fn is_bool(val: Value) bool {
-    return val.type == VAL_BOOL;
+    return val.type == .VAL_BOOL;
 }
 
 /// Checks if the given value is nil
 pub fn is_nil(val: Value) bool {
-    return val.type == VAL_NIL;
+    return val.type == .VAL_NIL;
 }
 
 /// Checks if the given value is an integer
 pub fn is_int(val: Value) bool {
-    return val.type == VAL_INT;
+    return val.type == .VAL_INT;
 }
 
 /// Checks if the given value is a double
 pub fn is_double(val: Value) bool {
-    return val.type == VAL_DOUBLE;
+    return val.type == .VAL_DOUBLE;
 }
 
 /// Checks if the given value is an object
 pub fn is_obj(val: Value) bool {
-    return val.type == VAL_OBJ;
+    return val.type == .VAL_OBJ;
 }
 
 /// Checks if the given value is a complex number
 pub fn is_complex(val: Value) bool {
-    return val.type == VAL_COMPLEX;
+    return val.type == .VAL_COMPLEX;
 }
 
 pub fn is_prim_num(val: Value) bool {
@@ -115,33 +106,33 @@ pub fn is_obj_type(val: Value, ty: ObjType) bool {
 
 /// Checks if the given object is a string
 pub fn is_string(val: Value) bool {
-    return is_obj(val) and is_obj_type(val, OBJ_STRING);
+    return is_obj(val) and is_obj_type(val, .OBJ_STRING);
 }
 
 /// Checks if the given object is a class
 pub fn is_class(val: Value) bool {
-    return is_obj(val) and is_obj_type(val, OBJ_CLASS);
+    return is_obj(val) and is_obj_type(val, .OBJ_CLASS);
 }
 
 /// Checks if the given object is an instance
 pub fn is_instance(val: Value) bool {
-    return is_obj(val) and is_obj_type(val, OBJ_INSTANCE);
+    return is_obj(val) and is_obj_type(val, .OBJ_INSTANCE);
 }
 
 /// Casts a value to a boolean
 pub fn bool_val(b: bool) Value {
-    return .{ .type = VAL_BOOL, .as = .{ .boolean = b } };
+    return .{ .type = .VAL_BOOL, .as = .{ .boolean = b } };
 }
 
 /// Casts a value to an integer
 pub fn int_val(i: i32) Value {
-    return .{ .type = VAL_INT, .as = .{ .num_int = i } };
+    return .{ .type = .VAL_INT, .as = .{ .num_int = i } };
 }
 
 /// Casts a value to a complex number
 pub fn complex_val(r: f64, i: f64) Value {
     const complex = Complex{ .r = r, .i = i };
-    return .{ .type = VAL_COMPLEX, .as = .{ .complex = complex } };
+    return .{ .type = .VAL_COMPLEX, .as = .{ .complex = complex } };
 }
 
 /// Returns a nil value
@@ -151,12 +142,12 @@ pub fn nil_val() Value {
 
 /// Returns a double value
 pub fn double_val(f: f64) Value {
-    return .{ .type = VAL_DOUBLE, .as = .{ .num_double = f } };
+    return .{ .type = .VAL_DOUBLE, .as = .{ .num_double = f } };
 }
 
 /// Returns an object value
 pub fn obj_val(o: ?*Obj) Value {
-    return .{ .type = VAL_OBJ, .as = .{ .obj = @ptrCast(o) } };
+    return .{ .type = .VAL_OBJ, .as = .{ .obj = @ptrCast(o) } };
 }
 
 /// Casts a value to an object
@@ -186,16 +177,16 @@ pub fn as_complex(val: Value) Complex {
 
 pub fn as_num_double(val: Value) f64 {
     return switch (val.type) {
-        VAL_INT => @floatFromInt(val.as.num_int),
-        VAL_DOUBLE => val.as.num_double,
+        .VAL_INT => @floatFromInt(val.as.num_int),
+        .VAL_DOUBLE => val.as.num_double,
         else => 0.0,
     };
 }
 
 pub fn as_num_int(val: Value) i32 {
     return switch (val.type) {
-        VAL_INT => val.as.num_int,
-        VAL_DOUBLE => @intFromFloat(val.as.num_double),
+        .VAL_INT => val.as.num_int,
+        .VAL_DOUBLE => @intFromFloat(val.as.num_double),
         else => 0,
     };
 }
@@ -222,7 +213,7 @@ pub fn string_val(s: []u8) Value {
     const chars: [*c]const u8 = @ptrCast(@alignCast(s.ptr));
     const length: c_int = @intCast(s.len);
     const obj_str = core.copyString(chars, length);
-    return .{ .type = VAL_OBJ, .as = .{ .obj = @ptrCast(obj_str) } };
+    return .{ .type = .VAL_OBJ, .as = .{ .obj = @ptrCast(obj_str) } };
 }
 
 /// Casts a value to an instance

@@ -50,69 +50,69 @@ pub fn build(b: *std.Build) !void {
         b.enable_wasmtime = true;
     }
 
-    const lib_scanner = b.addStaticLibrary(.{
-        .name = "libmufiz_scanner",
-        .root_source_file = b.path("lib/scanner.zig"),
-        .target = target,
-        .optimize = .ReleaseFast,
-        .link_libc = true,
-    });
+    // const lib_scanner = b.addStaticLibrary(.{
+    //     .name = "libmufiz_scanner",
+    //     .root_source_file = b.path("lib/scanner.zig"),
+    //     .target = target,
+    //     .optimize = .ReleaseFast,
+    //     .link_libc = true,
+    // });
 
-    const lib_table = b.addStaticLibrary(.{
-        .name = "libmufiz_table",
-        .target = target,
-        .optimize = .ReleaseFast,
-        .link_libc = true,
-        .root_source_file = b.path("lib/table.zig"),
-    });
+    // const lib_table = b.addStaticLibrary(.{
+    //     .name = "libmufiz_table",
+    //     .target = target,
+    //     .optimize = .ReleaseFast,
+    //     .link_libc = true,
+    //     .root_source_file = b.path("lib/table.zig"),
+    // });
 
-    const lib_value = b.addStaticLibrary(.{
-        .name = "libmufiz_value",
-        .target = target,
-        .optimize = .ReleaseFast,
-        .link_libc = true,
-        .root_source_file = b.path("lib/value.zig"),
-    });
+    // const lib_value = b.addStaticLibrary(.{
+    //     .name = "libmufiz_value",
+    //     .target = target,
+    //     .optimize = .ReleaseFast,
+    //     .link_libc = true,
+    //     .root_source_file = b.path("lib/value.zig"),
+    // });
 
-    const lib_memory = b.addStaticLibrary(.{
-        .name = "libmufiz_memory",
-        .target = target,
-        .optimize = .ReleaseFast,
-        .link_libc = true,
-        .root_source_file = b.path("lib/memory.zig"),
-    });
+    // const lib_memory = b.addStaticLibrary(.{
+    //     .name = "libmufiz_memory",
+    //     .target = target,
+    //     .optimize = .ReleaseFast,
+    //     .link_libc = true,
+    //     .root_source_file = b.path("lib/memory.zig"),
+    // });
 
-    const lib_chunk = b.addStaticLibrary(.{
-        .name = "libmufiz_chunk",
-        .target = target,
-        .optimize = .ReleaseFast,
-        .link_libc = true,
-        .root_source_file = b.path("lib/chunk.zig"),
-    });
+    // const lib_chunk = b.addStaticLibrary(.{
+    //     .name = "libmufiz_chunk",
+    //     .target = target,
+    //     .optimize = .ReleaseFast,
+    //     .link_libc = true,
+    //     .root_source_file = b.path("lib/chunk.zig"),
+    // });
 
-    const lib_compiler = b.addStaticLibrary(.{
-        .name = "libmufiz_compiler",
-        .target = target,
-        .optimize = .ReleaseFast,
-        .link_libc = true,
-        .root_source_file = b.path("lib/compiler.zig"),
-    });
+    // const lib_compiler = b.addStaticLibrary(.{
+    //     .name = "libmufiz_compiler",
+    //     .target = target,
+    //     .optimize = .ReleaseFast,
+    //     .link_libc = true,
+    //     .root_source_file = b.path("lib/compiler.zig"),
+    // });
 
-    const lib_debug = b.addStaticLibrary(.{
-        .name = "libmufiz_debug",
-        .target = target,
-        .optimize = .ReleaseFast,
-        .link_libc = true,
-        .root_source_file = b.path("lib/debug.zig"),
-    });
+    // const lib_debug = b.addStaticLibrary(.{
+    //     .name = "libmufiz_debug",
+    //     .target = target,
+    //     .optimize = .ReleaseFast,
+    //     .link_libc = true,
+    //     .root_source_file = b.path("lib/debug.zig"),
+    // });
 
-    const lib_cstd = b.addStaticLibrary(.{
-        .name = "libmufiz_cstd",
-        .target = target,
-        .optimize = .ReleaseFast,
-        .link_libc = true,
-        .root_source_file = b.path("lib/cstd.zig"),
-    });
+    // const lib_cstd = b.addStaticLibrary(.{
+    //     .name = "libmufiz_cstd",
+    //     .target = target,
+    //     .optimize = .ReleaseFast,
+    //     .link_libc = true,
+    //     .root_source_file = b.path("lib/cstd.zig"),
+    // });
 
     // const lib_vm = b.addStaticLibrary(.{
     //     .name = "libmufiz_vm",
@@ -130,82 +130,79 @@ pub fn build(b: *std.Build) !void {
     //     .root_source_file = b.path("lib/object.zig"),
     // });
 
-    lib_value.addIncludePath(b.path("include"));
-    lib_memory.addIncludePath(b.path("include"));
-    lib_chunk.addIncludePath(b.path("include"));
-    lib_compiler.addIncludePath(b.path("include"));
-    lib_debug.addIncludePath(b.path("include"));
-    lib_cstd.addIncludePath(b.path("include"));
-    //lib_vm.addIncludePath(b.path("include"));
+    // lib_value.addIncludePath(b.path("include"));
+    // lib_memory.addIncludePath(b.path("include"));
+    // lib_chunk.addIncludePath(b.path("include"));
+    // lib_compiler.addIncludePath(b.path("include"));
+    // lib_debug.addIncludePath(b.path("include"));
+    // lib_cstd.addIncludePath(b.path("include"));
+    // //lib_vm.addIncludePath(b.path("include"));
 
-    lib_table.linkLibrary(lib_value);
-    lib_table.linkLibrary(lib_memory);
-    //lib_table.linkLibrary(lib_obj);
-    lib_table.addCSourceFiles(.{
-        .root = b.path("core"),
-        .files = &.{
-            //    "value.c",
-            //"memory.c",
-            "object.c",
-        },
-        .flags = c_flags,
-    });
+    // lib_table.linkLibrary(lib_value);
+    // lib_table.linkLibrary(lib_memory);
+    // //lib_table.linkLibrary(lib_obj);
+    // lib_table.addCSourceFiles(.{
+    //     .root = b.path("core"),
+    //     .files = &.{
+    //         //    "value.c",
+    //         //"memory.c",
+    //         "object.c",
+    //     },
+    //     .flags = c_flags,
+    // });
 
-    lib_table.addIncludePath(b.path("include"));
+    // lib_table.addIncludePath(b.path("include"));
 
-    exe.linkLibrary(lib_table);
-    exe.linkLibrary(lib_chunk);
-    exe.linkLibrary(lib_compiler);
-    exe.linkLibrary(lib_debug);
-    exe.linkLibrary(lib_cstd);
-    //exe.linkLibrary(lib_vm);
+    // exe.linkLibrary(lib_table);
+    // exe.linkLibrary(lib_chunk);
+    // exe.linkLibrary(lib_compiler);
+    // exe.linkLibrary(lib_debug);
+    // exe.linkLibrary(lib_cstd);
+    // //exe.linkLibrary(lib_vm);
 
-    exe_check.linkLibrary(lib_table);
-    exe_check.linkLibrary(lib_chunk);
-    exe_check.linkLibrary(lib_compiler);
-    exe_check.linkLibrary(lib_debug);
-    exe_check.linkLibrary(lib_cstd);
-    //exe_check.linkLibrary(lib_vm);
+    // exe_check.linkLibrary(lib_table);
+    // exe_check.linkLibrary(lib_chunk);
+    // exe_check.linkLibrary(lib_compiler);
+    // exe_check.linkLibrary(lib_debug);
+    // exe_check.linkLibrary(lib_cstd);
+    // //exe_check.linkLibrary(lib_vm);
 
-    exe.linkLibrary(lib_scanner);
-    exe_check.linkLibrary(lib_scanner);
+    // exe.linkLibrary(lib_scanner);
+    // exe_check.linkLibrary(lib_scanner);
 
-    const c_files: []const []const u8 = &.{
-        //   "chunk.c",
-        //  "compiler.c",
-        // "debug.c",
-        "vm.c",
-        // "cstd.c",
-    };
+    // const c_files: []const []const u8 = &.{
+    //     //   "chunk.c",
+    //     //  "compiler.c",
+    //     // "debug.c",
+    //     "vm.c",
+    //     // "cstd.c",
+    // };
 
-    // zig fmt: off
-    exe.addCSourceFiles(.{
-        .root = b.path("core"),
-        .files = c_files,
-        .flags = c_flags
-    });
+    // // zig fmt: off
+    // exe.addCSourceFiles(.{
+    //     .root = b.path("core"),
+    //     .files = c_files,
+    //     .flags = c_flags
+    // });
 
-    exe_check.addCSourceFiles(.{
-        .root = b.path("core"),
-        .files = c_files,
-        .flags = c_flags
-    });
+    // exe_check.addCSourceFiles(.{
+    //     .root = b.path("core"),
+    //     .files = c_files,
+    //     .flags = c_flags
+    // });
 
-    exe.addIncludePath(b.path("include"));
-    exe_check.addIncludePath(b.path("include"));
-    exe.linkSystemLibrary("m");
-    exe_check.linkSystemLibrary("m");
+    // exe.addIncludePath(b.path("include"));
+    // exe_check.addIncludePath(b.path("include"));
+    // exe.linkSystemLibrary("m");
+    // exe_check.linkSystemLibrary("m");
 
-    const clap = b.dependency("clap", .{
-        .target = target,
-        .optimize = .ReleaseSafe
-    });
+    const clap = b.dependency("clap", .{ .target = target, .optimize = .ReleaseSafe });
 
     exe.root_module.addImport("clap", clap.module("clap"));
     exe_check.root_module.addImport("clap", clap.module("clap"));
 
     const options = b.addOptions();
-    const net  = b.option(bool, "enable_net", "Enable Network features") orelse true;
+    const net = b.option(bool, "enable_net", "Enable Network features") orelse true;
     const fs = b.option(bool, "enable_fs", "Enable File System features") orelse true;
     const sandbox = b.option(bool, "sandbox", "Enable Sandbox Mode (REPL only)") orelse false;
     options.addOption(bool, "enable_net", net);
@@ -241,10 +238,10 @@ pub fn build(b: *std.Build) !void {
 
     const exe_test = b.addTest(.{ .root_source_file = b.path("lib/main.zig"), .target = target, .optimize = optimize });
     exe_test.linkLibC();
-    exe_test.addCSourceFiles(.{ .root = b.path("core"), .files = c_files, .flags = c_flags });
-    exe_test.linkLibrary(lib_scanner);
-    exe_test.linkLibrary(lib_table);
-    exe_test.addIncludePath(b.path("include"));
+    //  exe_test.addCSourceFiles(.{ .root = b.path("core"), .files = c_files, .flags = c_flags });
+    // exe_test.linkLibrary(lib_scanner);
+    // exe_test.linkLibrary(lib_table);
+    //   exe_test.addIncludePath(b.path("include"));
     const run_exe_test = b.addRunArtifact(exe_test);
 
     const test_step = b.step("test", "Run Test Suite");

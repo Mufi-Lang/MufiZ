@@ -9,7 +9,7 @@ const Table = table_h.Table;
 const Value = value_h.Value;
 const Chunk = chunk_h.Chunk;
 const AS_OBJ = value_h.AS_OBJ;
-const vm = vm_h.vm;
+var vm: vm_h.VM = vm_h.vm;
 const printf = @cImport(@cInclude("stdio.h")).printf;
 const push = vm_h.push;
 const pop = vm_h.pop;
@@ -124,20 +124,20 @@ pub inline fn _mm256_set_pd(a: f64, b: f64, c: f64, d: f64) __m256d {
     };
 }
 
-pub const Obj = struct {
+pub const Obj = extern struct {
     type: ObjType,
     isMarked: bool,
     next: [*c]Obj,
 };
 
-pub const ObjString = struct {
+pub const ObjString = extern struct {
     obj: Obj,
     length: c_int,
     chars: [*c]u8,
     hash: u64,
 };
 
-const ObjType = enum(c_int) {
+pub const ObjType = enum(c_int) {
     OBJ_CLOSURE = 0,
     OBJ_FUNCTION = 1,
     OBJ_INSTANCE = 2,
@@ -153,25 +153,25 @@ const ObjType = enum(c_int) {
     OBJ_FVECTOR = 12,
 };
 
-pub const Node = struct {
+pub const Node = extern struct {
     data: Value,
     prev: [*c]Node,
     next: [*c]Node,
 };
 
-pub const ObjLinkedList = struct {
+pub const ObjLinkedList = extern struct {
     obj: Obj,
     head: [*c]Node,
     tail: [*c]Node,
     count: c_int,
 };
 
-pub const ObjHashTable = struct {
+pub const ObjHashTable = extern struct {
     obj: Obj,
     table: Table,
 };
 
-pub const ObjArray = struct {
+pub const ObjArray = extern struct {
     obj: Obj,
     capacity: c_int,
     count: c_int,
@@ -180,7 +180,7 @@ pub const ObjArray = struct {
     values: [*c]Value,
 };
 
-pub const ObjMatrix = struct {
+pub const ObjMatrix = extern struct {
     obj: Obj,
     rows: c_int,
     cols: c_int,
@@ -188,7 +188,7 @@ pub const ObjMatrix = struct {
     data: [*c]ObjArray = @import("std").mem.zeroes([*c]ObjArray),
 };
 
-pub const FloatVector = struct {
+pub const FloatVector = extern struct {
     obj: Obj,
     size: c_int,
     count: c_int,
@@ -197,7 +197,7 @@ pub const FloatVector = struct {
     sorted: bool,
 };
 
-pub const ObjFunction = struct {
+pub const ObjFunction = extern struct {
     obj: Obj,
     arity: c_int,
     upvalueCount: c_int,
@@ -206,7 +206,7 @@ pub const ObjFunction = struct {
 };
 
 pub const NativeFn = ?*const fn (c_int, [*c]Value) callconv(.C) Value;
-pub const ObjNative = struct {
+pub const ObjNative = extern struct {
     obj: Obj,
     function: NativeFn,
 };
@@ -295,48 +295,48 @@ pub export fn cityhash64(arg_buf: [*c]const u8, arg_len: usize) u64 {
                 h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 5)))]))) << @intCast(40);
                 h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 4)))]))) << @intCast(32);
                 h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 3)))]))) << @intCast(24);
-                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 2)))]))) << @intCast(16);
-                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 1)))]))) << @intCast(8);
-                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 0)))])));
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[2]))) << @intCast(16);
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[1]))) << @intCast(8);
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[0])));
                 h *%= m;
             },
             @as(usize, @bitCast(@as(c_long, @as(c_int, 6)))) => {
                 h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 5)))]))) << @intCast(40);
                 h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 4)))]))) << @intCast(32);
                 h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 3)))]))) << @intCast(24);
-                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 2)))]))) << @intCast(16);
-                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 1)))]))) << @intCast(8);
-                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 0)))])));
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[2]))) << @intCast(16);
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[1]))) << @intCast(8);
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[0])));
                 h *%= m;
             },
             @as(usize, @bitCast(@as(c_long, @as(c_int, 5)))) => {
                 h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 4)))]))) << @intCast(32);
                 h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 3)))]))) << @intCast(24);
-                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 2)))]))) << @intCast(16);
-                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 1)))]))) << @intCast(8);
-                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 0)))])));
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[2]))) << @intCast(16);
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[1]))) << @intCast(8);
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[0])));
                 h *%= m;
             },
             @as(usize, @bitCast(@as(c_long, @as(c_int, 4)))) => {
                 h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 3)))]))) << @intCast(24);
-                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 2)))]))) << @intCast(16);
-                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 1)))]))) << @intCast(8);
-                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 0)))])));
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[2]))) << @intCast(16);
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[1]))) << @intCast(8);
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[0])));
                 h *%= m;
             },
             @as(usize, @bitCast(@as(c_long, @as(c_int, 3)))) => {
-                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 2)))]))) << @intCast(16);
-                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 1)))]))) << @intCast(8);
-                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 0)))])));
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[2]))) << @intCast(16);
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[1]))) << @intCast(8);
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[0])));
                 h *%= m;
             },
             @as(usize, @bitCast(@as(c_long, @as(c_int, 2)))) => {
-                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 1)))]))) << @intCast(8);
-                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 0)))])));
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[1]))) << @intCast(8);
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[0])));
                 h *%= m;
             },
             @as(usize, @bitCast(@as(c_long, @as(c_int, 1)))) => {
-                h ^= @as(u64, @bitCast(@as(c_ulong, data2[@as(c_uint, @intCast(@as(c_int, 0)))])));
+                h ^= @as(u64, @bitCast(@as(c_ulong, data2[0])));
                 h *%= m;
             },
             else => {},
@@ -356,17 +356,17 @@ pub fn add_val(arg_a: Value, arg_b: Value) callconv(.C) Value {
     _ = &b;
     while (true) {
         switch (a.type) {
-            @as(c_uint, @bitCast(@as(c_int, 2))) => {
-                if (b.type == @as(c_uint, @bitCast(.VAL_INT))) {
+            .VAL_INT => {
+                if (b.type == .VAL_INT) {
                     return Value{
-                        .type = @as(c_uint, @bitCast(.VAL_INT)),
+                        .type = .VAL_INT,
                         .as = .{
                             .num_int = a.as.num_int + b.as.num_int,
                         },
                     };
-                } else if (b.type == @as(c_uint, @bitCast(.VAL_DOUBLE))) {
+                } else if (b.type == .VAL_DOUBLE) {
                     return Value{
-                        .type = @as(c_uint, @bitCast(.VAL_DOUBLE)),
+                        .type = .VAL_DOUBLE,
                         .as = .{
                             .num_double = @as(f64, @floatFromInt(a.as.num_int)) + b.as.num_double,
                         },
@@ -374,17 +374,17 @@ pub fn add_val(arg_a: Value, arg_b: Value) callconv(.C) Value {
                 }
                 break;
             },
-            @as(c_uint, @bitCast(@as(c_int, 3))) => {
-                if (b.type == @as(c_uint, @bitCast(.VAL_INT))) {
+            .VAL_DOUBLE => {
+                if (b.type == .VAL_INT) {
                     return Value{
-                        .type = @as(c_uint, @bitCast(.VAL_DOUBLE)),
+                        .type = .VAL_DOUBLE,
                         .as = .{
                             .num_double = a.as.num_double + @as(f64, @floatFromInt(b.as.num_int)),
                         },
                     };
-                } else if (b.type == @as(c_uint, @bitCast(.VAL_DOUBLE))) {
+                } else if (b.type == .VAL_DOUBLE) {
                     return Value{
-                        .type = @as(c_uint, @bitCast(.VAL_DOUBLE)),
+                        .type = .VAL_DOUBLE,
                         .as = .{
                             .num_double = a.as.num_double + b.as.num_double,
                         },
@@ -397,7 +397,7 @@ pub fn add_val(arg_a: Value, arg_b: Value) callconv(.C) Value {
         break;
     }
     return Value{
-        .type = @as(c_uint, @bitCast(.VAL_NIL)),
+        .type = .VAL_NIL,
         .as = .{
             .num_int = @as(c_int, 0),
         },
@@ -411,16 +411,16 @@ pub fn sub_val(arg_a: Value, arg_b: Value) callconv(.C) Value {
     while (true) {
         switch (a.type) {
             @as(c_uint, @bitCast(@as(c_int, 2))) => {
-                if (b.type == @as(c_uint, @bitCast(.VAL_INT))) {
+                if (b.type == .VAL_INT) {
                     return Value{
-                        .type = @as(c_uint, @bitCast(.VAL_INT)),
+                        .type = .VAL_INT,
                         .as = .{
                             .num_int = a.as.num_int - b.as.num_int,
                         },
                     };
-                } else if (b.type == @as(c_uint, @bitCast(.VAL_DOUBLE))) {
+                } else if (b.type == .VAL_DOUBLE) {
                     return Value{
-                        .type = @as(c_uint, @bitCast(.VAL_DOUBLE)),
+                        .type = .VAL_DOUBLE,
                         .as = .{
                             .num_double = @as(f64, @floatFromInt(a.as.num_int)) - b.as.num_double,
                         },
@@ -429,16 +429,16 @@ pub fn sub_val(arg_a: Value, arg_b: Value) callconv(.C) Value {
                 break;
             },
             @as(c_uint, @bitCast(@as(c_int, 3))) => {
-                if (b.type == @as(c_uint, @bitCast(.VAL_INT))) {
+                if (b.type == .VAL_INT) {
                     return Value{
-                        .type = @as(c_uint, @bitCast(.VAL_DOUBLE)),
+                        .type = .VAL_DOUBLE,
                         .as = .{
                             .num_double = a.as.num_double - @as(f64, @floatFromInt(b.as.num_int)),
                         },
                     };
-                } else if (b.type == @as(c_uint, @bitCast(.VAL_DOUBLE))) {
+                } else if (b.type == .VAL_DOUBLE) {
                     return Value{
-                        .type = @as(c_uint, @bitCast(.VAL_DOUBLE)),
+                        .type = .VAL_DOUBLE,
                         .as = .{
                             .num_double = a.as.num_double - b.as.num_double,
                         },
@@ -451,7 +451,7 @@ pub fn sub_val(arg_a: Value, arg_b: Value) callconv(.C) Value {
         break;
     }
     return Value{
-        .type = @as(c_uint, @bitCast(.VAL_NIL)),
+        .type = .VAL_NIL,
         .as = .{
             .num_int = @as(c_int, 0),
         },
@@ -465,16 +465,16 @@ pub fn mul_val(arg_a: Value, arg_b: Value) callconv(.C) Value {
     while (true) {
         switch (a.type) {
             @as(c_uint, @bitCast(@as(c_int, 2))) => {
-                if (b.type == @as(c_uint, @bitCast(.VAL_INT))) {
+                if (b.type == .VAL_INT) {
                     return Value{
-                        .type = @as(c_uint, @bitCast(.VAL_INT)),
+                        .type = .VAL_INT,
                         .as = .{
                             .num_int = a.as.num_int * b.as.num_int,
                         },
                     };
-                } else if (b.type == @as(c_uint, @bitCast(.VAL_DOUBLE))) {
+                } else if (b.type == .VAL_DOUBLE) {
                     return Value{
-                        .type = @as(c_uint, @bitCast(.VAL_DOUBLE)),
+                        .type = .VAL_DOUBLE,
                         .as = .{
                             .num_double = @as(f64, @floatFromInt(a.as.num_int)) * b.as.num_double,
                         },
@@ -483,16 +483,16 @@ pub fn mul_val(arg_a: Value, arg_b: Value) callconv(.C) Value {
                 break;
             },
             @as(c_uint, @bitCast(@as(c_int, 3))) => {
-                if (b.type == @as(c_uint, @bitCast(.VAL_INT))) {
+                if (b.type == .VAL_INT) {
                     return Value{
-                        .type = @as(c_uint, @bitCast(.VAL_DOUBLE)),
+                        .type = .VAL_DOUBLE,
                         .as = .{
                             .num_double = a.as.num_double * @as(f64, @floatFromInt(b.as.num_int)),
                         },
                     };
-                } else if (b.type == @as(c_uint, @bitCast(.VAL_DOUBLE))) {
+                } else if (b.type == .VAL_DOUBLE) {
                     return Value{
-                        .type = @as(c_uint, @bitCast(.VAL_DOUBLE)),
+                        .type = .VAL_DOUBLE,
                         .as = .{
                             .num_double = a.as.num_double * b.as.num_double,
                         },
@@ -505,7 +505,7 @@ pub fn mul_val(arg_a: Value, arg_b: Value) callconv(.C) Value {
         break;
     }
     return Value{
-        .type = @as(c_uint, @bitCast(.VAL_NIL)),
+        .type = .VAL_NIL,
         .as = .{
             .num_int = @as(c_int, 0),
         },
@@ -519,16 +519,16 @@ pub fn div_val(arg_a: Value, arg_b: Value) callconv(.C) Value {
     while (true) {
         switch (a.type) {
             @as(c_uint, @bitCast(@as(c_int, 2))) => {
-                if (b.type == @as(c_uint, @bitCast(.VAL_INT))) {
+                if (b.type == .VAL_INT) {
                     return Value{
-                        .type = @as(c_uint, @bitCast(.VAL_INT)),
+                        .type = .VAL_INT,
                         .as = .{
                             .num_int = @divTrunc(a.as.num_int, b.as.num_int),
                         },
                     };
-                } else if (b.type == @as(c_uint, @bitCast(.VAL_DOUBLE))) {
+                } else if (b.type == .VAL_DOUBLE) {
                     return Value{
-                        .type = @as(c_uint, @bitCast(.VAL_DOUBLE)),
+                        .type = .VAL_DOUBLE,
                         .as = .{
                             .num_double = @as(f64, @floatFromInt(a.as.num_int)) / b.as.num_double,
                         },
@@ -537,16 +537,16 @@ pub fn div_val(arg_a: Value, arg_b: Value) callconv(.C) Value {
                 break;
             },
             @as(c_uint, @bitCast(@as(c_int, 3))) => {
-                if (b.type == @as(c_uint, @bitCast(.VAL_INT))) {
+                if (b.type == .VAL_INT) {
                     return Value{
-                        .type = @as(c_uint, @bitCast(.VAL_DOUBLE)),
+                        .type = .VAL_DOUBLE,
                         .as = .{
                             .num_double = a.as.num_double / @as(f64, @floatFromInt(b.as.num_int)),
                         },
                     };
-                } else if (b.type == @as(c_uint, @bitCast(.VAL_DOUBLE))) {
+                } else if (b.type == .VAL_DOUBLE) {
                     return Value{
-                        .type = @as(c_uint, @bitCast(.VAL_DOUBLE)),
+                        .type = .VAL_DOUBLE,
                         .as = .{
                             .num_double = a.as.num_double / b.as.num_double,
                         },
@@ -559,7 +559,7 @@ pub fn div_val(arg_a: Value, arg_b: Value) callconv(.C) Value {
         break;
     }
     return Value{
-        .type = @as(c_uint, @bitCast(.VAL_NIL)),
+        .type = .VAL_NIL,
         .as = .{
             .num_int = @as(c_int, 0),
         },
@@ -691,7 +691,7 @@ pub export fn newBoundMethod(arg_receiver: Value, arg_method: [*c]ObjClosure) [*
     _ = &receiver;
     var method = arg_method;
     _ = &method;
-    var bound: [*c]ObjBoundMethod = @as([*c]ObjBoundMethod, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjBoundMethod), @as(c_uint, @bitCast(.OBJ_BOUND_METHOD))))));
+    var bound: [*c]ObjBoundMethod = @as([*c]ObjBoundMethod, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjBoundMethod), .OBJ_BOUND_METHOD))));
     _ = &bound;
     bound.*.receiver = receiver;
     bound.*.method = method;
@@ -700,7 +700,7 @@ pub export fn newBoundMethod(arg_receiver: Value, arg_method: [*c]ObjClosure) [*
 pub export fn newClass(arg_name: [*c]ObjString) [*c]ObjClass {
     var name = arg_name;
     _ = &name;
-    var klass: [*c]ObjClass = @as([*c]ObjClass, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjClass), @as(c_uint, @bitCast(.OBJ_CLASS))))));
+    var klass: [*c]ObjClass = @as([*c]ObjClass, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjClass), .OBJ_CLASS))));
     _ = &klass;
     klass.*.name = name;
     table_h.initTable(&klass.*.methods);
@@ -721,7 +721,7 @@ pub export fn newClosure(arg_function: [*c]ObjFunction) [*c]ObjClosure {
             }).* = null;
         }
     }
-    var closure: [*c]ObjClosure = @as([*c]ObjClosure, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjClosure), @as(c_uint, @bitCast(.OBJ_CLOSURE))))));
+    var closure: [*c]ObjClosure = @as([*c]ObjClosure, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjClosure), .OBJ_CLOSURE))));
     _ = &closure;
     closure.*.function = function;
     closure.*.upvalues = upvalues;
@@ -730,7 +730,7 @@ pub export fn newClosure(arg_function: [*c]ObjFunction) [*c]ObjClosure {
 }
 
 pub export fn newFunction() [*c]ObjFunction {
-    var function: [*c]ObjFunction = @as([*c]ObjFunction, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjFunction), @as(c_uint, @bitCast(.OBJ_FUNCTION))))));
+    var function: [*c]ObjFunction = @as([*c]ObjFunction, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjFunction), .OBJ_FUNCTION))));
     _ = &function;
     function.*.arity = 0;
     function.*.upvalueCount = 0;
@@ -742,7 +742,7 @@ pub export fn newFunction() [*c]ObjFunction {
 pub export fn newInstance(arg_klass: [*c]ObjClass) [*c]ObjInstance {
     var klass = arg_klass;
     _ = &klass;
-    var instance: [*c]ObjInstance = @as([*c]ObjInstance, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjInstance), @as(c_uint, @bitCast(.OBJ_INSTANCE))))));
+    var instance: [*c]ObjInstance = @as([*c]ObjInstance, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjInstance), .OBJ_INSTANCE))));
     _ = &instance;
     instance.*.klass = klass;
     table_h.initTable(&instance.*.fields);
@@ -752,7 +752,7 @@ pub export fn newInstance(arg_klass: [*c]ObjClass) [*c]ObjInstance {
 pub export fn newNative(arg_function: NativeFn) [*c]ObjNative {
     var function = arg_function;
     _ = &function;
-    var native: [*c]ObjNative = @as([*c]ObjNative, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjNative), @as(c_uint, @bitCast(.OBJ_NATIVE))))));
+    var native: [*c]ObjNative = @as([*c]ObjNative, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjNative), .OBJ_NATIVE))));
     _ = &native;
     native.*.function = function;
     return native;
@@ -767,19 +767,19 @@ pub const AllocStringParams = extern struct {
 pub export fn allocateString(arg_params: AllocStringParams) [*c]ObjString {
     var params = arg_params;
     _ = &params;
-    var string: [*c]ObjString = @as([*c]ObjString, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjString), @as(c_uint, @bitCast(.OBJ_STRING))))));
+    var string: [*c]ObjString = @as([*c]ObjString, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjString), .OBJ_STRING))));
     _ = &string;
     string.*.length = params.length;
     string.*.chars = params.chars;
     string.*.hash = params.hash;
     push(Value{
-        .type = @as(c_uint, @bitCast(.VAL_OBJ)),
+        .type = .VAL_OBJ,
         .as = .{
             .obj = @as([*c]Obj, @ptrCast(@alignCast(string))),
         },
     });
     _ = table_h.tableSet(&vm.strings, string, Value{
-        .type = @as(c_uint, @bitCast(.VAL_NIL)),
+        .type = .VAL_NIL,
         .as = .{
             .num_int = @as(c_int, 0),
         },
@@ -843,11 +843,11 @@ pub export fn copyString(arg_chars: [*c]const u8, arg_length: c_int) [*c]ObjStri
 pub export fn newUpvalue(arg_slot: [*c]Value) [*c]ObjUpvalue {
     var slot = arg_slot;
     _ = &slot;
-    var upvalue: [*c]ObjUpvalue = @as([*c]ObjUpvalue, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjUpvalue), @as(c_uint, @bitCast(.OBJ_UPVALUE))))));
+    var upvalue: [*c]ObjUpvalue = @as([*c]ObjUpvalue, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjUpvalue), .OBJ_UPVALUE))));
     _ = &upvalue;
     upvalue.*.location = slot;
     upvalue.*.closed = Value{
-        .type = @as(c_uint, @bitCast(.VAL_NIL)),
+        .type = .VAL_NIL,
         .as = .{
             .num_int = @as(c_int, 0),
         },
@@ -980,7 +980,7 @@ pub export fn removeArray(arg_arr: [*c]ObjArray, arg_index_1: c_int) Value {
     if ((index_1 < @as(c_int, 0)) or (index_1 >= arr.*.count)) {
         _ = printf("Index out of bounds");
         return Value{
-            .type = @as(c_uint, @bitCast(.VAL_NIL)),
+            .type = .VAL_NIL,
             .as = .{
                 .num_int = @as(c_int, 0),
             },
@@ -1015,7 +1015,7 @@ pub export fn getArray(arg_arr: [*c]ObjArray, arg_index_1: c_int) Value {
     if ((index_1 < @as(c_int, 0)) or (index_1 >= arr.*.count)) {
         _ = printf("Index out of bounds");
         return Value{
-            .type = @as(c_uint, @bitCast(.VAL_NIL)),
+            .type = .VAL_NIL,
             .as = .{
                 .num_int = @as(c_int, 0),
             },
@@ -1031,7 +1031,7 @@ pub export fn popArray(arg_array: [*c]ObjArray) Value {
     _ = &array;
     if (array.*.count == @as(c_int, 0)) {
         return Value{
-            .type = @as(c_uint, @bitCast(.VAL_NIL)),
+            .type = .VAL_NIL,
             .as = .{
                 .num_int = @as(c_int, 0),
             },
@@ -1056,9 +1056,9 @@ pub fn valuesLess(arg_a: Value, arg_b: Value) callconv(.C) bool {
     _ = &a;
     var b = arg_b;
     _ = &b;
-    if ((a.type == @as(c_uint, @bitCast(.VAL_INT))) and (b.type == @as(c_uint, @bitCast(.VAL_INT)))) {
+    if ((a.type == .VAL_INT) and (b.type == .VAL_INT)) {
         return a.as.num_int < b.as.num_int;
-    } else if ((a.type == @as(c_uint, @bitCast(.VAL_DOUBLE))) and (b.type == @as(c_uint, @bitCast(.VAL_DOUBLE)))) {
+    } else if ((a.type == .VAL_DOUBLE) and (b.type == .VAL_DOUBLE)) {
         return a.as.num_double < b.as.num_double;
     }
     return @as(c_int, 0) != 0;
@@ -1329,7 +1329,7 @@ pub export fn sumArray(arg_array: [*c]ObjArray) Value {
     var array = arg_array;
     _ = &array;
     var sum: Value = Value{
-        .type = @as(c_uint, @bitCast(.VAL_DOUBLE)),
+        .type = .VAL_DOUBLE,
         .as = .{
             .num_double = 0.0,
         },
@@ -1352,13 +1352,13 @@ pub export fn minArray(arg_array: [*c]ObjArray) Value {
     _ = &array;
     if (array.*.count == @as(c_int, 0)) {
         return Value{
-            .type = @as(c_uint, @bitCast(.VAL_NIL)),
+            .type = .VAL_NIL,
             .as = .{
                 .num_int = @as(c_int, 0),
             },
         };
     }
-    var _min: Value = array.*.values[@as(c_uint, @intCast(@as(c_int, 0)))];
+    var _min: Value = array.*.values[0];
     _ = &_min;
     {
         var i: c_int = 1;
@@ -1382,13 +1382,13 @@ pub export fn maxArray(arg_array: [*c]ObjArray) Value {
     _ = &array;
     if (array.*.count == @as(c_int, 0)) {
         return Value{
-            .type = @as(c_uint, @bitCast(.VAL_NIL)),
+            .type = .VAL_NIL,
             .as = .{
                 .num_int = @as(c_int, 0),
             },
         };
     }
-    var _max: Value = array.*.values[@as(c_uint, @intCast(@as(c_int, 0)))];
+    var _max: Value = array.*.values[0];
     _ = &_max;
     {
         var i: c_int = 1;
@@ -1412,13 +1412,13 @@ pub export fn meanArray(arg_array: [*c]ObjArray) Value {
     _ = &array;
     if (array.*.count == @as(c_int, 0)) {
         return Value{
-            .type = @as(c_uint, @bitCast(.VAL_NIL)),
+            .type = .VAL_NIL,
             .as = .{
                 .num_int = @as(c_int, 0),
             },
         };
     }
-    var sum: Value = array.*.values[@as(c_uint, @intCast(@as(c_int, 0)))];
+    var sum: Value = array.*.values[0];
     _ = &sum;
     {
         var i: c_int = 1;
@@ -1431,7 +1431,7 @@ pub export fn meanArray(arg_array: [*c]ObjArray) Value {
         }
     }
     var mean: Value = div_val(sum, Value{
-        .type = @as(c_uint, @bitCast(.VAL_DOUBLE)),
+        .type = .VAL_DOUBLE,
         .as = .{
             .num_double = @as(f64, @floatFromInt(array.*.count)),
         },
@@ -1444,7 +1444,7 @@ pub export fn varianceArray(arg_array: [*c]ObjArray) Value {
     _ = &array;
     if (array.*.count == @as(c_int, 0)) {
         return Value{
-            .type = @as(c_uint, @bitCast(.VAL_NIL)),
+            .type = .VAL_NIL,
             .as = .{
                 .num_int = @as(c_int, 0),
             },
@@ -1453,7 +1453,7 @@ pub export fn varianceArray(arg_array: [*c]ObjArray) Value {
     var mean: Value = meanArray(array);
     _ = &mean;
     var sum: Value = Value{
-        .type = @as(c_uint, @bitCast(.VAL_DOUBLE)),
+        .type = .VAL_DOUBLE,
         .as = .{
             .num_double = 0.0,
         },
@@ -1472,12 +1472,12 @@ pub export fn varianceArray(arg_array: [*c]ObjArray) Value {
         }
     }
     var variance: Value = if (array.*.count > @as(c_int, 1)) div_val(sum, Value{
-        .type = @as(c_uint, @bitCast(.VAL_DOUBLE)),
+        .type = .VAL_DOUBLE,
         .as = .{
             .num_double = @as(f64, @floatFromInt(array.*.count - @as(c_int, 1))),
         },
     }) else Value{
-        .type = @as(c_uint, @bitCast(.VAL_NIL)),
+        .type = .VAL_NIL,
         .as = .{
             .num_int = @as(c_int, 0),
         },
@@ -1491,7 +1491,7 @@ pub export fn stdDevArray(arg_array: [*c]ObjArray) Value {
     var variance: Value = varianceArray(array);
     _ = &variance;
     return Value{
-        .type = @as(c_uint, @bitCast(.VAL_DOUBLE)),
+        .type = .VAL_DOUBLE,
         .as = .{
             .num_double = @sqrt(variance.as.num_double),
         },
@@ -1668,7 +1668,7 @@ pub export fn backSubstitution(arg_matrix: [*c]ObjMatrix, arg_vector: [*c]ObjArr
             }).*.as.num_double - sum) / getMatrix(matrix, i, i).as.num_double;
             _ = &value;
             pushArray(result, Value{
-                .type = @as(c_uint, @bitCast(.VAL_DOUBLE)),
+                .type = .VAL_DOUBLE,
                 .as = .{
                     .num_double = value,
                 },
@@ -1730,7 +1730,7 @@ pub export fn newArrayWithCap(arg_capacity: c_int, arg__static: bool) [*c]ObjArr
     _ = &capacity;
     var _static = arg__static;
     _ = &_static;
-    var array: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjArray), @as(c_uint, @bitCast(.OBJ_ARRAY))))));
+    var array: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjArray), .OBJ_ARRAY))));
     _ = &array;
     array.*.capacity = capacity;
     array.*.count = 0;
@@ -1743,7 +1743,7 @@ pub export fn nextObjectArray(arg_array: [*c]ObjArray) Value {
     _ = &array;
     if (array.*.pos >= array.*.count) {
         return Value{
-            .type = @as(c_uint, @bitCast(.VAL_NIL)),
+            .type = .VAL_NIL,
             .as = .{
                 .num_int = @as(c_int, 0),
             },
@@ -1771,7 +1771,7 @@ pub export fn peekObjectArray(arg_array: [*c]ObjArray, arg_pos: c_int) Value {
     _ = &pos;
     if (pos >= array.*.count) {
         return Value{
-            .type = @as(c_uint, @bitCast(.VAL_NIL)),
+            .type = .VAL_NIL,
             .as = .{
                 .num_int = @as(c_int, 0),
             },
@@ -1795,7 +1795,7 @@ pub export fn skipObjectArray(arg_array: [*c]ObjArray, arg_n: c_int) void {
     array.*.pos = if ((array.*.pos + n) < array.*.count) array.*.pos + n else array.*.count;
 }
 pub export fn newLinkedList() [*c]ObjLinkedList {
-    var list: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjLinkedList), @as(c_uint, @bitCast(.OBJ_LINKED_LIST))))));
+    var list: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjLinkedList), .OBJ_LINKED_LIST))));
     _ = &list;
     list.*.head = null;
     list.*.tail = null;
@@ -1873,7 +1873,7 @@ pub export fn popFront(arg_list: [*c]ObjLinkedList) Value {
     _ = &list;
     if (list.*.head == @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
         return Value{
-            .type = @as(c_uint, @bitCast(.VAL_NIL)),
+            .type = .VAL_NIL,
             .as = .{
                 .num_int = @as(c_int, 0),
             },
@@ -1899,7 +1899,7 @@ pub export fn popBack(arg_list: [*c]ObjLinkedList) Value {
     _ = &list;
     if (list.*.tail == @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
         return Value{
-            .type = @as(c_uint, @bitCast(.VAL_NIL)),
+            .type = .VAL_NIL,
             .as = .{
                 .num_int = @as(c_int, 0),
             },
@@ -2094,7 +2094,7 @@ pub export fn spliceLinkedList(arg_list: [*c]ObjLinkedList, arg_start: c_int, ar
     return spliced;
 }
 pub export fn newHashTable() [*c]ObjHashTable {
-    var htable: [*c]ObjHashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjHashTable), @as(c_uint, @bitCast(.OBJ_HASH_TABLE))))));
+    var htable: [*c]ObjHashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjHashTable), .OBJ_HASH_TABLE))));
     _ = &htable;
     table_h.initTable(&htable.*.table);
     return htable;
@@ -2133,7 +2133,7 @@ pub export fn getHashTable(arg_table: [*c]ObjHashTable, arg_key: [*c]ObjString) 
         return value;
     } else {
         return Value{
-            .type = @as(c_uint, @bitCast(.VAL_NIL)),
+            .type = .VAL_NIL,
             .as = .{
                 .num_int = @as(c_int, 0),
             },
@@ -2162,7 +2162,7 @@ pub export fn newMatrix(arg_rows: c_int, arg_cols: c_int) [*c]ObjMatrix {
     _ = &rows;
     var cols = arg_cols;
     _ = &cols;
-    var matrix: [*c]ObjMatrix = @as([*c]ObjMatrix, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjMatrix), @as(c_uint, @bitCast(.OBJ_MATRIX))))));
+    var matrix: [*c]ObjMatrix = @as([*c]ObjMatrix, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjMatrix), .OBJ_MATRIX))));
     _ = &matrix;
     matrix.*.rows = rows;
     matrix.*.cols = cols;
@@ -2173,7 +2173,7 @@ pub export fn newMatrix(arg_rows: c_int, arg_cols: c_int) [*c]ObjMatrix {
         _ = &i;
         while (i < matrix.*.len) : (i += 1) {
             pushArray(matrix.*.data, Value{
-                .type = @as(c_uint, @bitCast(.VAL_DOUBLE)),
+                .type = .VAL_DOUBLE,
                 .as = .{
                     .num_double = 0.0,
                 },
@@ -2275,7 +2275,7 @@ pub export fn getMatrix(arg_matrix: [*c]ObjMatrix, arg_row: c_int, arg_col: c_in
         }).*;
     }
     return Value{
-        .type = @as(c_uint, @bitCast(.VAL_NIL)),
+        .type = .VAL_NIL,
         .as = .{
             .num_int = @as(c_int, 0),
         },
@@ -2297,7 +2297,7 @@ pub export fn addMatrix(arg_a: [*c]ObjMatrix, arg_b: [*c]ObjMatrix) [*c]ObjMatri
         _ = &i;
         while (i < a.*.len) : (i += 1) {
             overWriteArray(result.*.data, i, Value{
-                .type = @as(c_uint, @bitCast(.VAL_DOUBLE)),
+                .type = .VAL_DOUBLE,
                 .as = .{
                     .num_double = (blk: {
                         const tmp = i;
@@ -2328,7 +2328,7 @@ pub export fn subMatrix(arg_a: [*c]ObjMatrix, arg_b: [*c]ObjMatrix) [*c]ObjMatri
         _ = &i;
         while (i < a.*.len) : (i += 1) {
             overWriteArray(result.*.data, i, Value{
-                .type = @as(c_uint, @bitCast(.VAL_DOUBLE)),
+                .type = .VAL_DOUBLE,
                 .as = .{
                     .num_double = (blk: {
                         const tmp = i;
@@ -2363,7 +2363,7 @@ pub export fn mulMatrix(arg_a: [*c]ObjMatrix, arg_b: [*c]ObjMatrix) [*c]ObjMatri
                 _ = &j;
                 while (j < b.*.cols) : (j += 1) {
                     var sum: Value = Value{
-                        .type = @as(c_uint, @bitCast(.VAL_DOUBLE)),
+                        .type = .VAL_DOUBLE,
                         .as = .{
                             .num_double = 0.0,
                         },
@@ -2374,14 +2374,14 @@ pub export fn mulMatrix(arg_a: [*c]ObjMatrix, arg_b: [*c]ObjMatrix) [*c]ObjMatri
                         _ = &k;
                         while (k < a.*.cols) : (k += 1) {
                             var temp: Value = Value{
-                                .type = @as(c_uint, @bitCast(.VAL_DOUBLE)),
+                                .type = .VAL_DOUBLE,
                                 .as = .{
                                     .num_double = getMatrix(a, i, k).as.num_double * getMatrix(b, k, j).as.num_double,
                                 },
                             };
                             _ = &temp;
                             sum = Value{
-                                .type = @as(c_uint, @bitCast(.VAL_DOUBLE)),
+                                .type = .VAL_DOUBLE,
                                 .as = .{
                                     .num_double = sum.as.num_double + temp.as.num_double,
                                 },
@@ -2411,7 +2411,7 @@ pub export fn divMatrix(arg_a: [*c]ObjMatrix, arg_b: [*c]ObjMatrix) [*c]ObjMatri
         _ = &i;
         while (i < a.*.len) : (i += 1) {
             overWriteArray(result.*.data, i, Value{
-                .type = @as(c_uint, @bitCast(.VAL_DOUBLE)),
+                .type = .VAL_DOUBLE,
                 .as = .{
                     .num_double = (blk: {
                         const tmp = i;
@@ -2499,7 +2499,7 @@ pub export fn rref(arg_matrix: [*c]ObjMatrix) void {
                     _ = &j;
                     while (j < matrix.*.cols) : (j += 1) {
                         var temp: Value = Value{
-                            .type = @as(c_uint, @bitCast(.VAL_DOUBLE)),
+                            .type = .VAL_DOUBLE,
                             .as = .{
                                 .num_double = getMatrix(matrix, r, j).as.num_double / div_1.as.num_double,
                             },
@@ -2521,7 +2521,7 @@ pub export fn rref(arg_matrix: [*c]ObjMatrix) void {
                             _ = &j;
                             while (j < matrix.*.cols) : (j += 1) {
                                 var temp: Value = Value{
-                                    .type = @as(c_uint, @bitCast(.VAL_DOUBLE)),
+                                    .type = .VAL_DOUBLE,
                                     .as = .{
                                         .num_double = getMatrix(matrix, i_1, j).as.num_double - (getMatrix(matrix, r, j).as.num_double * sub.as.num_double),
                                     },
@@ -2588,7 +2588,7 @@ pub export fn identityMatrix(arg_n: c_int) [*c]ObjMatrix {
         _ = &i;
         while (i < n) : (i += 1) {
             setMatrix(result, i, i, Value{
-                .type = @as(c_uint, @bitCast(.VAL_DOUBLE)),
+                .type = .VAL_DOUBLE,
                 .as = .{
                     .num_double = 1.0,
                 },
@@ -2616,7 +2616,7 @@ pub export fn lu(arg_matrix: [*c]ObjMatrix) [*c]ObjMatrix {
                         setMatrix(L, i, j, getMatrix(matrix, i, j));
                     } else if (j == i) {
                         setMatrix(L, i, j, Value{
-                            .type = @as(c_uint, @bitCast(.VAL_DOUBLE)),
+                            .type = .VAL_DOUBLE,
                             .as = .{
                                 .num_double = 1.0,
                             },
@@ -2624,7 +2624,7 @@ pub export fn lu(arg_matrix: [*c]ObjMatrix) [*c]ObjMatrix {
                         setMatrix(U, i, j, getMatrix(matrix, i, j));
                     } else {
                         setMatrix(L, i, j, Value{
-                            .type = @as(c_uint, @bitCast(.VAL_DOUBLE)),
+                            .type = .VAL_DOUBLE,
                             .as = .{
                                 .num_double = 0.0,
                             },
@@ -2645,21 +2645,21 @@ pub export fn lu(arg_matrix: [*c]ObjMatrix) [*c]ObjMatrix {
                 while (j < matrix.*.cols) : (j += 1) {
                     if (j < i) {
                         setMatrix(U, i, j, Value{
-                            .type = @as(c_uint, @bitCast(.VAL_DOUBLE)),
+                            .type = .VAL_DOUBLE,
                             .as = .{
                                 .num_double = 0.0,
                             },
                         });
                     } else if (j == i) {
                         setMatrix(L, i, j, Value{
-                            .type = @as(c_uint, @bitCast(.VAL_DOUBLE)),
+                            .type = .VAL_DOUBLE,
                             .as = .{
                                 .num_double = 1.0,
                             },
                         });
                     } else {
                         var sum: Value = Value{
-                            .type = @as(c_uint, @bitCast(.VAL_DOUBLE)),
+                            .type = .VAL_DOUBLE,
                             .as = .{
                                 .num_double = 0.0,
                             },
@@ -2670,14 +2670,14 @@ pub export fn lu(arg_matrix: [*c]ObjMatrix) [*c]ObjMatrix {
                             _ = &k;
                             while (k < i) : (k += 1) {
                                 var temp: Value = Value{
-                                    .type = @as(c_uint, @bitCast(.VAL_DOUBLE)),
+                                    .type = .VAL_DOUBLE,
                                     .as = .{
                                         .num_double = getMatrix(L, i, k).as.num_double * getMatrix(U, k, j).as.num_double,
                                     },
                                 };
                                 _ = &temp;
                                 sum = Value{
-                                    .type = @as(c_uint, @bitCast(.VAL_DOUBLE)),
+                                    .type = .VAL_DOUBLE,
                                     .as = .{
                                         .num_double = sum.as.num_double + temp.as.num_double,
                                     },
@@ -2693,13 +2693,13 @@ pub export fn lu(arg_matrix: [*c]ObjMatrix) [*c]ObjMatrix {
     var result: [*c]ObjMatrix = newMatrix(@as(c_int, 2), @as(c_int, 1));
     _ = &result;
     setMatrix(result, @as(c_int, 0), @as(c_int, 0), Value{
-        .type = @as(c_uint, @bitCast(.VAL_OBJ)),
+        .type = .VAL_OBJ,
         .as = .{
             .obj = @as([*c]Obj, @ptrCast(@alignCast(L))),
         },
     });
     setMatrix(result, @as(c_int, 1), @as(c_int, 0), Value{
-        .type = @as(c_uint, @bitCast(.VAL_OBJ)),
+        .type = .VAL_OBJ,
         .as = .{
             .obj = @as([*c]Obj, @ptrCast(@alignCast(U))),
         },
@@ -2729,7 +2729,7 @@ pub export fn determinant(arg_matrix: [*c]ObjMatrix) f64 {
         _ = &d;
         var det_1: f64 = undefined;
         _ = &det_1;
-        if ((((a.type == @as(c_uint, @bitCast(.VAL_DOUBLE))) and (b.type == @as(c_uint, @bitCast(.VAL_DOUBLE)))) and (c.type == @as(c_uint, @bitCast(.VAL_DOUBLE)))) and (d.type == @as(c_uint, @bitCast(.VAL_DOUBLE)))) {
+        if ((((a.type == .VAL_DOUBLE) and (b.type == .VAL_DOUBLE)) and (c.type == .VAL_DOUBLE)) and (d.type == .VAL_DOUBLE)) {
             var a_val: f64 = a.as.num_double;
             _ = &a_val;
             var b_val: f64 = b.as.num_double;
@@ -2762,7 +2762,7 @@ pub export fn determinant(arg_matrix: [*c]ObjMatrix) f64 {
                 while (j < n) : (j += 1) {
                     var factor: f64 = undefined;
                     _ = &factor;
-                    if ((getMatrix(copy, j, i).type == @as(c_uint, @bitCast(.VAL_DOUBLE))) and (getMatrix(copy, i, i).type == @as(c_uint, @bitCast(.VAL_DOUBLE)))) {
+                    if ((getMatrix(copy, j, i).type == .VAL_DOUBLE) and (getMatrix(copy, i, i).type == .VAL_DOUBLE)) {
                         factor = getMatrix(copy, j, i).as.num_double / getMatrix(copy, i, i).as.num_double;
                     } else {
                         var numerator: c_int = getMatrix(copy, j, i).as.num_int;
@@ -2777,7 +2777,7 @@ pub export fn determinant(arg_matrix: [*c]ObjMatrix) f64 {
                         while (k < n) : (k += 1) {
                             var newValue: f64 = undefined;
                             _ = &newValue;
-                            if ((getMatrix(copy, j, k).type == @as(c_uint, @bitCast(.VAL_DOUBLE))) and (getMatrix(copy, i, k).type == @as(c_uint, @bitCast(.VAL_DOUBLE)))) {
+                            if ((getMatrix(copy, j, k).type == .VAL_DOUBLE) and (getMatrix(copy, i, k).type == .VAL_DOUBLE)) {
                                 newValue = getMatrix(copy, j, k).as.num_double - (factor * getMatrix(copy, i, k).as.num_double);
                             } else {
                                 var value1: c_int = getMatrix(copy, j, k).as.num_int;
@@ -2787,7 +2787,7 @@ pub export fn determinant(arg_matrix: [*c]ObjMatrix) f64 {
                                 newValue = @as(f64, @floatFromInt(value1)) - (factor * @as(f64, @floatFromInt(value2)));
                             }
                             setMatrix(copy, j, k, Value{
-                                .type = @as(c_uint, @bitCast(.VAL_DOUBLE)),
+                                .type = .VAL_DOUBLE,
                                 .as = .{
                                     .num_double = newValue,
                                 },
@@ -2796,7 +2796,7 @@ pub export fn determinant(arg_matrix: [*c]ObjMatrix) f64 {
                     }
                 }
             }
-            if (getMatrix(copy, i, i).type == @as(c_uint, @bitCast(.VAL_DOUBLE))) {
+            if (getMatrix(copy, i, i).type == .VAL_DOUBLE) {
                 det *= getMatrix(copy, i, i).as.num_double;
             } else {
                 var value: c_int = getMatrix(copy, i, i).as.num_int;
@@ -2815,7 +2815,7 @@ pub extern fn solveMatrix(matrix: [*c]ObjMatrix, vector: [*c]ObjArray) [*c]ObjAr
 pub export fn newFloatVector(arg_size: c_int) [*c]FloatVector {
     var size = arg_size;
     _ = &size;
-    var vector: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(allocateObject(@sizeOf(FloatVector), @as(c_uint, @bitCast(.OBJ_FVECTOR))))));
+    var vector: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(allocateObject(@sizeOf(FloatVector), .OBJ_FVECTOR))));
     _ = &vector;
     vector.*.size = size;
     vector.*.count = 0;
@@ -2863,7 +2863,7 @@ pub export fn fromArray(arg_array: [*c]ObjArray) [*c]FloatVector {
             if ((blk: {
                 const tmp = i;
                 if (tmp >= 0) break :blk array.*.values + @as(usize, @intCast(tmp)) else break :blk array.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-            }).*.type == @as(c_uint, @bitCast(.VAL_DOUBLE))) {
+            }).*.type == .VAL_DOUBLE) {
                 pushFloatVector(vector, (blk: {
                     const tmp = i;
                     if (tmp >= 0) break :blk array.*.values + @as(usize, @intCast(tmp)) else break :blk array.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
@@ -2871,7 +2871,7 @@ pub export fn fromArray(arg_array: [*c]ObjArray) [*c]FloatVector {
             } else if ((blk: {
                 const tmp = i;
                 if (tmp >= 0) break :blk array.*.values + @as(usize, @intCast(tmp)) else break :blk array.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-            }).*.type == @as(c_uint, @bitCast(.VAL_INT))) {
+            }).*.type == .VAL_INT) {
                 pushFloatVector(vector, @as(f64, @floatFromInt((blk: {
                     const tmp = i;
                     if (tmp >= 0) break :blk array.*.values + @as(usize, @intCast(tmp)) else break :blk array.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
@@ -3184,7 +3184,7 @@ pub export fn varianceFloatVector(arg_vector: [*c]FloatVector) f64 {
             _ = &simd_arr;
             var simd_diff: __m256 = @as(__m256, @bitCast(_mm256_sub_pd(@as(__m256d, @bitCast(simd_arr)), _mm256_set1_pd(mean))));
             _ = &simd_diff;
-            simd_variance = @as(__m256, @bitCast(_mm256_add_pd(@as(__m256d, @bitCast(simd_diff)), @as(__m256d, @bitCast(simd_diff)), @as(__m256d, @bitCast(simd_variance)))));
+            //simd_variance = @as(__m256, @bitCast(_mm256_add_pd(@as(__m256d, @bitCast(simd_diff)), @as(__m256d, @bitCast(simd_diff)), @as(__m256d, @bitCast(simd_variance)))));
         }
     }
     {
@@ -3214,7 +3214,7 @@ pub export fn stdDevFloatVector(arg_vector: [*c]FloatVector) f64 {
 pub export fn maxFloatVector(arg_vector: [*c]FloatVector) f64 {
     var vector = arg_vector;
     _ = &vector;
-    var _max: f64 = vector.*.data[@as(c_uint, @intCast(@as(c_int, 0)))];
+    var _max: f64 = vector.*.data[0];
     _ = &_max;
     {
         var i: c_int = 1;
@@ -3237,7 +3237,7 @@ pub export fn maxFloatVector(arg_vector: [*c]FloatVector) f64 {
 pub export fn minFloatVector(arg_vector: [*c]FloatVector) f64 {
     var vector = arg_vector;
     _ = &vector;
-    var min: f64 = vector.*.data[@as(c_uint, @intCast(@as(c_int, 0)))];
+    var min: f64 = vector.*.data[0];
     _ = &min;
     {
         var i: c_int = 1;
@@ -3665,7 +3665,7 @@ pub export fn interp1(arg_x: [*c]FloatVector, arg_y: [*c]FloatVector, arg_x0: f6
         _ = printf("x and y must have the same length\n");
         return 0;
     }
-    if ((x0 < x.*.data[@as(c_uint, @intCast(@as(c_int, 0)))]) or (x0 > (blk: {
+    if ((x0 < x.*.data[0]) or (x0 > (blk: {
         const tmp = x.*.count - @as(c_int, 1);
         if (tmp >= 0) break :blk x.*.data + @as(usize, @intCast(tmp)) else break :blk x.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
     }).*)) {
@@ -3720,7 +3720,7 @@ pub export fn dotProduct(arg_a: [*c]FloatVector, arg_b: [*c]FloatVector) f64 {
         _ = printf("Vectors are not of size 3\n");
         return 0;
     }
-    return ((a.*.data[@as(c_uint, @intCast(@as(c_int, 0)))] * b.*.data[@as(c_uint, @intCast(@as(c_int, 0)))]) + (a.*.data[@as(c_uint, @intCast(@as(c_int, 1)))] * b.*.data[@as(c_uint, @intCast(@as(c_int, 1)))])) + (a.*.data[@as(c_uint, @intCast(@as(c_int, 2)))] * b.*.data[@as(c_uint, @intCast(@as(c_int, 2)))]);
+    return ((a.*.data[0] * b.*.data[0]) + (a.*.data[1] * b.*.data[1])) + (a.*.data[2] * b.*.data[2]);
 }
 pub export fn crossProduct(arg_a: [*c]FloatVector, arg_b: [*c]FloatVector) [*c]FloatVector {
     var a = arg_a;
@@ -3733,16 +3733,16 @@ pub export fn crossProduct(arg_a: [*c]FloatVector, arg_b: [*c]FloatVector) [*c]F
     }
     var result: [*c]FloatVector = newFloatVector(@as(c_int, 3));
     _ = &result;
-    result.*.data[@as(c_uint, @intCast(@as(c_int, 0)))] = (a.*.data[@as(c_uint, @intCast(@as(c_int, 1)))] * b.*.data[@as(c_uint, @intCast(@as(c_int, 2)))]) - (a.*.data[@as(c_uint, @intCast(@as(c_int, 2)))] * b.*.data[@as(c_uint, @intCast(@as(c_int, 1)))]);
-    result.*.data[@as(c_uint, @intCast(@as(c_int, 1)))] = (a.*.data[@as(c_uint, @intCast(@as(c_int, 2)))] * b.*.data[@as(c_uint, @intCast(@as(c_int, 0)))]) - (a.*.data[@as(c_uint, @intCast(@as(c_int, 0)))] * b.*.data[@as(c_uint, @intCast(@as(c_int, 2)))]);
-    result.*.data[@as(c_uint, @intCast(@as(c_int, 2)))] = (a.*.data[@as(c_uint, @intCast(@as(c_int, 0)))] * b.*.data[@as(c_uint, @intCast(@as(c_int, 1)))]) - (a.*.data[@as(c_uint, @intCast(@as(c_int, 1)))] * b.*.data[@as(c_uint, @intCast(@as(c_int, 0)))]);
+    result.*.data[0] = (a.*.data[1] * b.*.data[2]) - (a.*.data[2] * b.*.data[1]);
+    result.*.data[1] = (a.*.data[2] * b.*.data[0]) - (a.*.data[0] * b.*.data[2]);
+    result.*.data[2] = (a.*.data[0] * b.*.data[1]) - (a.*.data[1] * b.*.data[0]);
     result.*.count = 3;
     return result;
 }
 pub export fn magnitude(arg_vector: [*c]FloatVector) f64 {
     var vector = arg_vector;
     _ = &vector;
-    var sum: f64 = (std.math.pow(f64, vector.*.data[@as(c_uint, @intCast(@as(c_int, 0)))], @as(f64, @floatFromInt(@as(c_int, 2)))) + std.math.pow(f64, vector.*.data[@as(c_uint, @intCast(@as(c_int, 1)))], @as(f64, @floatFromInt(@as(c_int, 2))))) + std.math.pow(f64, vector.*.data[@as(c_uint, @intCast(@as(c_int, 2)))], @as(f64, @floatFromInt(@as(c_int, 2))));
+    var sum: f64 = (std.math.pow(f64, vector.*.data[0], @as(f64, @floatFromInt(@as(c_int, 2)))) + std.math.pow(f64, vector.*.data[1], @as(f64, @floatFromInt(@as(c_int, 2))))) + std.math.pow(f64, vector.*.data[2], @as(f64, @floatFromInt(@as(c_int, 2))));
     _ = &sum;
     return @sqrt(sum);
 }
@@ -3821,41 +3821,41 @@ pub export fn printObject(arg_value: Value) void {
     _ = &value;
     while (true) {
         switch (value.as.obj.*.type) {
-            @as(c_uint, @bitCast(@as(c_int, 6))) => {
+            .OBJ_BOUND_METHOD => {
                 {
                     printFunction(@as([*c]ObjBoundMethod, @ptrCast(@alignCast(value.as.obj))).*.method.*.function);
                     break;
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 7))) => {
+            .OBJ_CLASS => {
                 _ = printf("%s", @as([*c]ObjClass, @ptrCast(@alignCast(value.as.obj))).*.name.*.chars);
                 break;
             },
-            @as(c_uint, @bitCast(@as(c_int, 0))) => {
+            .OBJ_CLOSURE => {
                 printFunction(@as([*c]ObjClosure, @ptrCast(@alignCast(value.as.obj))).*.function);
                 break;
             },
-            @as(c_uint, @bitCast(@as(c_int, 1))) => {
+            .OBJ_FUNCTION => {
                 printFunction(@as([*c]ObjFunction, @ptrCast(@alignCast(value.as.obj))));
                 break;
             },
-            @as(c_uint, @bitCast(@as(c_int, 2))) => {
+            .OBJ_INSTANCE => {
                 _ = printf("%s instance", @as([*c]ObjInstance, @ptrCast(@alignCast(value.as.obj))).*.klass.*.name.*.chars);
                 break;
             },
-            @as(c_uint, @bitCast(@as(c_int, 3))) => {
+            .OBJ_NATIVE => {
                 _ = printf("<native fn>");
                 break;
             },
-            @as(c_uint, @bitCast(@as(c_int, 4))) => {
+            .OBJ_STRING => {
                 _ = printf("%s", @as([*c]ObjString, @ptrCast(@alignCast(value.as.obj))).*.chars);
                 break;
             },
-            @as(c_uint, @bitCast(@as(c_int, 5))) => {
+            .OBJ_UPVALUE => {
                 _ = printf("upvalue");
                 break;
             },
-            @as(c_uint, @bitCast(@as(c_int, 8))) => {
+            .OBJ_ARRAY => {
                 {
                     var array: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(value.as.obj)));
                     _ = &array;
@@ -3877,7 +3877,7 @@ pub export fn printObject(arg_value: Value) void {
                     break;
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 12))) => {
+            .OBJ_FVECTOR => {
                 {
                     var vector: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(value.as.obj)));
                     _ = &vector;
@@ -3899,7 +3899,7 @@ pub export fn printObject(arg_value: Value) void {
                     break;
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 9))) => {
+            .OBJ_LINKED_LIST => {
                 {
                     _ = printf("[");
                     var current: [*c]Node = @as([*c]ObjLinkedList, @ptrCast(@alignCast(value.as.obj))).*.head;
@@ -3915,7 +3915,7 @@ pub export fn printObject(arg_value: Value) void {
                     break;
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 10))) => {
+            .OBJ_HASH_TABLE => {
                 {
                     var hashtable: [*c]ObjHashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(value.as.obj)));
                     _ = &hashtable;
@@ -3936,7 +3936,7 @@ pub export fn printObject(arg_value: Value) void {
                                     _ = printf(", ");
                                 }
                                 value_h.printValue(Value{
-                                    .type = @as(c_uint, @bitCast(.VAL_OBJ)),
+                                    .type = .VAL_OBJ,
                                     .as = .{
                                         .obj = @as([*c]Obj, @ptrCast(@alignCast((blk: {
                                             const tmp = i;
@@ -3957,13 +3957,12 @@ pub export fn printObject(arg_value: Value) void {
                     break;
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 11))) => {
+            .OBJ_MATRIX => {
                 {
                     printMatrix(@as([*c]ObjMatrix, @ptrCast(@alignCast(value.as.obj))));
                     break;
                 }
             },
-            else => {},
         }
         break;
     }
@@ -3973,7 +3972,7 @@ pub fn isObjType(arg_value: Value, arg_type: ObjType) callconv(.C) bool {
     _ = &value;
     var @"type" = arg_type;
     _ = &@"type";
-    return (value.type == @as(c_uint, @bitCast(.VAL_OBJ))) and (value.as.obj.*.type == @"type");
+    return (value.type == .VAL_OBJ) and (value.as.obj.*.type == @"type");
 }
 
 pub const ObjTypeCheckParams = extern struct {

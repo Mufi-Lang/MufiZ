@@ -11,12 +11,12 @@ pub fn int(argc: c_int, args: [*c]Value) callconv(.C) Value {
     if (argc != 1) return stdlib_error("int() expects one argument!", .{ .argn = argc });
 
     switch (args[0].type) {
-        conv.VAL_DOUBLE => {
+        .VAL_DOUBLE => {
             const d = @ceil(conv.as_double(args[0]));
             const i: i32 = @intFromFloat(d);
             return conv.int_val(i);
         },
-        conv.VAL_OBJ => {
+        .VAL_OBJ => {
             if (conv.is_obj_type(args[0], conv.OBJ_STRING)) {
                 const s = conv.as_zstring(args[0]);
                 const i = std.fmt.parseInt(i32, s, 10) catch 0;
@@ -34,12 +34,12 @@ pub fn double(argc: c_int, args: [*c]Value) callconv(.C) Value {
     if (argc != 1) return stdlib_error("double() expects one argument!", .{ .argn = argc });
 
     switch (args[0].type) {
-        conv.VAL_INT => {
+        .VAL_INT => {
             const i = conv.as_int(args[0]);
             const d: f64 = @floatFromInt(i);
             return conv.double_val(d);
         },
-        conv.VAL_OBJ => {
+        .VAL_OBJ => {
             if (conv.is_obj_type(args[0], conv.OBJ_STRING)) {
                 const s = conv.as_zstring(args[0]);
                 const d = std.fmt.parseFloat(f64, s) catch 0.0;
@@ -58,17 +58,17 @@ pub fn str(argc: c_int, args: [*c]Value) callconv(.C) Value {
     const value = args[0];
     var s: []u8 = undefined;
     switch (value.type) {
-        conv.VAL_INT => {
+        .VAL_INT => {
             const i = conv.as_int(value);
             s = std.fmt.allocPrint(GlobalAlloc, "{d}", .{i}) catch return conv.nil_val();
         },
-        conv.VAL_DOUBLE => {
+        .VAL_DOUBLE => {
             const d = conv.as_double(value);
             s = std.fmt.allocPrint(GlobalAlloc, "{}", .{d}) catch return conv.nil_val();
         },
-        conv.VAL_COMPLEX => {
+        .VAL_COMPLEX => {
             const c = conv.as_complex(value);
-            s = std.fmt.allocPrint(GlobalAlloc, "{}+{}i", .{c.r, c.i}) catch return conv.nil_val();
+            s = std.fmt.allocPrint(GlobalAlloc, "{}+{}i", .{ c.r, c.i }) catch return conv.nil_val();
         },
         else => return conv.nil_val(),
     }

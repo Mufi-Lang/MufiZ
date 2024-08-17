@@ -52,7 +52,7 @@ pub const OpCode = enum(c_int) {
     OP_ITERATOR_HAS_NEXT = 46,
 };
 
-pub const Chunk = struct {
+pub const Chunk = extern struct {
     count: i32,
     capacity: i32,
     code: [*c]u8,

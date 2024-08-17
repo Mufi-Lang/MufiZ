@@ -91,7 +91,7 @@ pub fn markObject(arg_object: [*c]Obj) void {
 pub export fn markValue(arg_value: Value) void {
     var value = arg_value;
     _ = &value;
-    if (value.type == @as(c_uint, @bitCast(.VAL_OBJ))) {
+    if (value.type == .VAL_OBJ) {
         markObject(value.as.obj);
     }
 }
@@ -304,4 +304,8 @@ pub export fn incrementalGC() void {
             break;
         }
     }
+}
+
+pub inline fn FREE_ARRAY(@"type": anytype, pointer: anytype, oldCount: anytype) @TypeOf(reallocate(pointer, @import("std").zig.c_translation.sizeof(@"type") * oldCount, @as(c_int, 0))) {
+    return reallocate(pointer, @import("std").zig.c_translation.sizeof(@"type") * oldCount, @as(c_int, 0));
 }

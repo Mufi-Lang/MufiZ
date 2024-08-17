@@ -80,7 +80,7 @@ pub export fn adjustCapacity(table: *Table, capacity: c_int) callconv(.C) void {
 
     for (0..c) |i| {
         entries[i].key = null;
-        entries[i].value = .{ .type = VAL_NIL, .as = .{ .num_int = 0 } };
+        entries[i].value = .{ .type = .VAL_NIL, .as = .{ .num_int = 0 } };
     }
     table.*.count = 0;
 
@@ -104,7 +104,7 @@ pub export fn tableSet(table: *Table, key: ?*ObjString, value: Value) bool {
     }
     const entry: [*c]Entry = findEntry(table.*.entries, table.*.capacity, key);
     const isNewKey: bool = entry.*.key == null or entry.*.deleted;
-    if (isNewKey and (entry.*.value.type == VAL_NIL)) {
+    if (isNewKey and (entry.*.value.type == .VAL_NIL)) {
         if (entry.*.deleted) {
             entry.*.deleted = false; // reusing deleted entry
         } else {
@@ -141,7 +141,7 @@ pub export fn tableFindString(table: *Table, chars: [*c]const u8, length: c_int,
     while (true) {
         const entry: [*c]Entry = &table.*.entries[index];
         if (entry.*.key == null) {
-            if (entry.*.value.type == VAL_NIL) return null;
+            if (entry.*.value.type == .VAL_NIL) return null;
         } else if (!entry.*.deleted and ((entry.*.key.?.length == length) and (entry.*.key.?.hash == hash)) and (memcmp(@ptrCast(entry.*.key.?.chars), @ptrCast(chars), @as(usize, @intCast(length))) == 0)) {
             return entry.*.key;
         }

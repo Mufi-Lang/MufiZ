@@ -1,6 +1,6 @@
 const std = @import("std");
 const Value = core.value_h.Value;
-const vm = @cImport(@cInclude("vm.h"));
+const vm = @import("vm.zig");
 const conv = @import("conv.zig");
 const core = @import("core.zig");
 const enable_net = @import("features").enable_net;

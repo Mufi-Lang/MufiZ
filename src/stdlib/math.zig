@@ -97,7 +97,7 @@ pub fn complex(argc: c_int, args: [*c]Value) callconv(.C) Value {
 pub fn abs(argc: c_int, args: [*c]Value) callconv(.C) Value {
     if (argc != 1) return stdlib_error("abs() expects one argument!", .{ .argn = argc });
     switch (args[0].type) {
-        conv.VAL_COMPLEX => {
+        .VAL_COMPLEX => {
             const c = conv.as_complex(args[0]);
             return conv.double_val(@sqrt(c.r * c.r + c.i * c.i));
         },
@@ -115,7 +115,7 @@ pub fn abs(argc: c_int, args: [*c]Value) callconv(.C) Value {
 
 pub fn phase(argc: c_int, args: [*c]Value) callconv(.C) Value {
     if (argc != 1) return stdlib_error("phase() expects one argument!", .{ .argn = argc });
-    if (!type_check(1, args, conv.VAL_COMPLEX)) return stdlib_error("phase() expects a Complex!", .{ .value_type = conv.what_is(args[0]) });
+    if (!type_check(1, args, 5)) return stdlib_error("phase() expects a Complex!", .{ .value_type = conv.what_is(args[0]) });
     const c = conv.as_complex(args[0]);
     return conv.double_val(std.math.atan2(c.i, c.r));
 }

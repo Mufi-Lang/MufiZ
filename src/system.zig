@@ -64,8 +64,8 @@ pub const Runner = struct {
 
     fn run(str: []u8) InterpreterError!void {
         const result = vm_h.interpret(conv.cstr(str));
-        if (result == vm_h.INTERPRET_COMPILE_ERROR) return InterpreterError.CompileError;
-        if (result == vm_h.INTERPRET_RUNTIME_ERROR) return InterpreterError.RuntimeError;
+        if (result == .INTERPRET_COMPILE_ERROR) return InterpreterError.CompileError;
+        if (result == .INTERPRET_RUNTIME_ERROR) return InterpreterError.RuntimeError;
     }
 
     pub fn setMain(self: *Self, main: []u8) !void {

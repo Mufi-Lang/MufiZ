@@ -12,6 +12,7 @@ const print = @import("std").debug.print;
 const stdlib_h = @cImport(@cInclude("stdlib.h"));
 const atoi = stdlib_h.atoi;
 const strtod = stdlib_h.strtod;
+const OpCode = chunk_h.OpCode;
 
 pub const Parser = extern struct { current: Token, previous: Token, hadError: bool, panicMode: bool };
 
@@ -81,10 +82,10 @@ pub fn errorAt(arg_token: [*c]Token, arg_message: [*c]const u8) callconv(.C) voi
     if (parser.panicMode) return;
     parser.panicMode = @as(c_int, 1) != 0;
     print("[line {d}] Error", .{token.*.line});
-    if (.TOKEN.*.type == .TOKEN_EOF) {
+    if (token.*.type == .TOKEN_EOF) {
         print(" at end", .{});
-    } else if (.TOKEN.*.type == .TOKEN_ERROR) {} else {
-        print(" at '{s}'", .{token.*.start[0..token.*.length]});
+    } else if (token.*.type == .TOKEN_ERROR) {} else {
+        print(" at '{s}'", .{token.*.start[0..@intCast(token.*.length)]});
     }
     print(": {s}\n", .{message});
     parser.hadError = @as(c_int, 1) != 0;
@@ -148,7 +149,7 @@ pub fn emitBytes(arg_byte1: u8, arg_byte2: u8) callconv(.C) void {
 pub fn emitLoop(arg_loopStart: c_int) callconv(.C) void {
     var loopStart = arg_loopStart;
     _ = &loopStart;
-    emitByte(@as(u8, .OP_LOOP));
+    emitByte(@intCast(@intFromEnum(OpCode.OP_LOOP)));
     var offset: c_int = (currentChunk().*.count - loopStart) + @as(c_int, 2);
     _ = &offset;
     if (offset > @as(c_int, 65535)) {
@@ -168,11 +169,11 @@ pub fn emitJump(arg_instruction: u8) callconv(.C) c_int {
 }
 pub fn emitReturn() callconv(.C) void {
     if (current.*.type == @as(c_uint, @bitCast(TYPE_INITIALIZER))) {
-        emitBytes(@as(u8, @bitCast(@as(i8, @truncate(.OP_GET_LOCAL)))), @as(u8, @bitCast(@as(i8, @truncate(@as(c_int, 0))))));
+        emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), 0);
     } else {
-        emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_NIL)))));
+        emitByte(@intCast(@intFromEnum(OpCode.OP_NIL)));
     }
-    emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_RETURN)))));
+    emitByte(@intCast(@intFromEnum(OpCode.OP_RETURN)));
 }
 pub fn makeConstant(arg_value: Value) callconv(.C) u8 {
     var value = arg_value;
@@ -188,7 +189,7 @@ pub fn makeConstant(arg_value: Value) callconv(.C) u8 {
 pub fn emitConstant(arg_value: Value) callconv(.C) void {
     var value = arg_value;
     _ = &value;
-    emitBytes(@as(u8, @bitCast(@as(i8, @truncate(.OP_CONSTANT)))), makeConstant(value));
+    emitBytes(@intCast(@intFromEnum(OpCode.OP_CONSTANT)), makeConstant(value));
 }
 pub fn patchJump(arg_offset: c_int) callconv(.C) void {
     var offset = arg_offset;
@@ -234,10 +235,10 @@ pub fn initCompiler(arg_compiler: [*c]Compiler, arg_type: FunctionType) callconv
     local.*.depth = 0;
     local.*.isCaptured = @as(c_int, 0) != 0;
     if (@"type" != @as(c_uint, @bitCast(TYPE_FUNCTION))) {
-        local.*.name.start = "self";
+        local.*.name.start = @ptrCast(@constCast("self"));
         local.*.name.length = 4;
     } else {
-        local.*.name.start = "";
+        local.*.name.start = @ptrCast(@constCast(""));
         local.*.name.length = 0;
     }
 }
@@ -255,9 +256,9 @@ pub fn endScope() callconv(.C) void {
     current.*.scopeDepth -= 1;
     while ((current.*.localCount > @as(c_int, 0)) and (current.*.locals[@as(c_uint, @intCast(current.*.localCount - @as(c_int, 1)))].depth > current.*.scopeDepth)) {
         if (current.*.locals[@as(c_uint, @intCast(current.*.localCount - @as(c_int, 1)))].isCaptured) {
-            emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_CLOSE_UPVALUE)))));
+            emitByte(@intCast(@intFromEnum(OpCode.OP_CLOSE_UPVALUE)));
         } else {
-            emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_POP)))));
+            emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
         }
         current.*.localCount -= 1;
     }
@@ -301,9 +302,8 @@ pub fn declaration() callconv(.C) void {
     }
 }
 pub fn getRule(arg_type: TokenType) callconv(.C) [*c]ParseRule {
-    var @"type" = arg_type;
-    _ = &@"type";
-    return &rules[@"type"];
+    const index: usize = @intCast(@intFromEnum(arg_type));
+    return &rules[index];
 }
 pub fn parsePrecedence(arg_precedence: Precedence) callconv(.C) void {
     var precedence = arg_precedence;
@@ -332,7 +332,7 @@ pub fn identifierConstant(arg_name: [*c]Token) callconv(.C) u8 {
     var name = arg_name;
     _ = &name;
     return makeConstant(Value{
-        .type = @as(c_uint, @bitCast(.VAL_OBJ)),
+        .type = .VAL_OBJ,
         .as = .{
             .obj = @as([*c]object_h.Obj, @ptrCast(@alignCast(object_h.copyString(name.*.start, name.*.length)))),
         },
@@ -480,7 +480,7 @@ pub fn defineVariable(arg_global: u8) callconv(.C) void {
         markInitialized();
         return;
     }
-    emitBytes(@as(u8, @bitCast(@as(i8, @truncate(.OP_DEFINE_GLOBAL)))), global);
+    emitBytes(@intCast(@intFromEnum(OpCode.OP_DEFINE_GLOBAL)), global);
 }
 pub fn argumentList() callconv(.C) u8 {
     var argCount: u8 = 0;
@@ -501,9 +501,9 @@ pub fn argumentList() callconv(.C) u8 {
 pub fn and_(arg_canAssign: bool) callconv(.C) void {
     var canAssign = arg_canAssign;
     _ = &canAssign;
-    var endJump: c_int = emitJump(@as(u8, @bitCast(@as(i8, @truncate(.OP_JUMP_IF_FALSE)))));
+    var endJump: c_int = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
     _ = &endJump;
-    emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_POP)))));
+    emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
     parsePrecedence(@as(c_uint, @bitCast(PREC_AND)));
     patchJump(endJump);
 }
@@ -517,52 +517,52 @@ pub fn binary(arg_canAssign: bool) callconv(.C) void {
     parsePrecedence(rule.*.precedence +% @as(c_uint, @bitCast(@as(c_int, 1))));
     while (true) {
         switch (operatorType) {
-            @as(c_uint, @bitCast(@as(c_int, 13))) => {
-                emitBytes(@as(u8, @bitCast(@as(i8, @truncate(.OP_EQUAL)))), @as(u8, @bitCast(@as(i8, @truncate(.OP_NOT)))));
+            .TOKEN_BANG_EQUAL => {
+                emitBytes(@intCast(@intFromEnum(OpCode.OP_EQUAL)), @intCast(@intFromEnum(OpCode.OP_NOT)));
                 break;
             },
-            @as(c_uint, @bitCast(@as(c_int, 15))) => {
-                emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_EQUAL)))));
+            .TOKEN_EQUAL_EQUAL => {
+                emitByte(@intCast(@intFromEnum(OpCode.OP_EQUAL)));
                 break;
             },
-            @as(c_uint, @bitCast(@as(c_int, 16))) => {
-                emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_GREATER)))));
+            .TOKEN_GREATER => {
+                emitByte(@intCast(@intFromEnum(OpCode.OP_GREATER)));
                 break;
             },
-            @as(c_uint, @bitCast(@as(c_int, 17))) => {
-                emitBytes(@as(u8, @bitCast(@as(i8, @truncate(.OP_LESS)))), @as(u8, @bitCast(@as(i8, @truncate(.OP_NOT)))));
+            .TOKEN_GREATER_EQUAL => {
+                emitBytes(@intCast(@intFromEnum(OpCode.OP_LESS)), @intCast(@intFromEnum(OpCode.OP_NOT)));
                 break;
             },
-            @as(c_uint, @bitCast(@as(c_int, 18))) => {
-                emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_LESS)))));
+            .TOKEN_LESS => {
+                emitByte(@intCast(@intFromEnum(OpCode.OP_LESS)));
                 break;
             },
-            @as(c_uint, @bitCast(@as(c_int, 19))) => {
-                emitBytes(@as(u8, @bitCast(@as(i8, @truncate(.OP_GREATER)))), @as(u8, @bitCast(@as(i8, @truncate(.OP_NOT)))));
+            .TOKEN_LESS_EQUAL => {
+                emitBytes(@intCast(@intFromEnum(OpCode.OP_GREATER)), @intCast(@intFromEnum(OpCode.OP_NOT)));
                 break;
             },
-            @as(c_uint, @bitCast(@as(c_int, 7))) => {
-                emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_ADD)))));
+            .TOKEN_PLUS => {
+                emitByte(@intCast(@intFromEnum(OpCode.OP_ADD)));
                 break;
             },
-            @as(c_uint, @bitCast(@as(c_int, 6))) => {
-                emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_SUBTRACT)))));
+            .TOKEN_MINUS => {
+                emitByte(@intCast(@intFromEnum(OpCode.OP_SUBTRACT)));
                 break;
             },
-            @as(c_uint, @bitCast(@as(c_int, 10))) => {
-                emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_MULTIPLY)))));
+            .TOKEN_STAR => {
+                emitByte(@intCast(@intFromEnum(OpCode.OP_MULTIPLY)));
                 break;
             },
-            @as(c_uint, @bitCast(@as(c_int, 9))) => {
-                emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_DIVIDE)))));
+            .TOKEN_SLASH => {
+                emitByte(@intCast(@intFromEnum(OpCode.OP_DIVIDE)));
                 break;
             },
-            @as(c_uint, @bitCast(@as(c_int, 11))) => {
-                emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_MODULO)))));
+            .TOKEN_PERCENT => {
+                emitByte(@intCast(@intFromEnum(OpCode.OP_MODULO)));
                 break;
             },
-            @as(c_uint, @bitCast(@as(c_int, 51))) => {
-                emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_EXPONENT)))));
+            .TOKEN_HAT => {
+                emitByte(@intCast(@intFromEnum(OpCode.OP_EXPONENT)));
                 break;
             },
             else => return,
@@ -575,7 +575,7 @@ pub fn call(arg_canAssign: bool) callconv(.C) void {
     _ = &canAssign;
     var argCount: u8 = argumentList();
     _ = &argCount;
-    emitBytes(@as(u8, @bitCast(@as(i8, @truncate(.OP_CALL)))), argCount);
+    emitBytes(@intCast(@intFromEnum(OpCode.OP_CALL)), argCount);
 }
 pub fn dot(arg_canAssign: bool) callconv(.C) void {
     var canAssign = arg_canAssign;
@@ -585,14 +585,14 @@ pub fn dot(arg_canAssign: bool) callconv(.C) void {
     _ = &name;
     if ((@as(c_int, @intFromBool(canAssign)) != 0) and (@as(c_int, @intFromBool(match(.TOKEN_EQUAL))) != 0)) {
         expression();
-        emitBytes(@as(u8, @bitCast(@as(i8, @truncate(.OP_SET_PROPERTY)))), name);
+        emitBytes(@intCast(@intFromEnum(OpCode.OP_SET_PROPERTY)), name);
     } else if (match(.TOKEN_LEFT_PAREN)) {
         var argCount: u8 = argumentList();
         _ = &argCount;
-        emitBytes(@as(u8, @bitCast(@as(i8, @truncate(.OP_INVOKE)))), name);
+        emitBytes(@intCast(@intFromEnum(OpCode.OP_INVOKE)), name);
         emitByte(argCount);
     } else {
-        emitBytes(@as(u8, @bitCast(@as(i8, @truncate(.OP_GET_PROPERTY)))), name);
+        emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_PROPERTY)), name);
     }
 }
 pub fn literal(arg_canAssign: bool) callconv(.C) void {
@@ -600,16 +600,16 @@ pub fn literal(arg_canAssign: bool) callconv(.C) void {
     _ = &canAssign;
     while (true) {
         switch (parser.previous.type) {
-            @as(c_uint, @bitCast(@as(c_int, 27))) => {
-                emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_FALSE)))));
+            .TOKEN_FALSE => {
+                emitByte(@intCast(@intFromEnum(OpCode.OP_FALSE)));
                 break;
             },
-            @as(c_uint, @bitCast(@as(c_int, 33))) => {
-                emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_NIL)))));
+            .TOKEN_NIL => {
+                emitByte(@intCast(@intFromEnum(OpCode.OP_NIL)));
                 break;
             },
-            @as(c_uint, @bitCast(@as(c_int, 39))) => {
-                emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_TRUE)))));
+            .TOKEN_TRUE => {
+                emitByte(@intCast(@intFromEnum(OpCode.OP_TRUE)));
                 break;
             },
             else => return,
@@ -630,7 +630,7 @@ pub fn number(arg_canAssign: bool) callconv(.C) void {
         var value: c_int = atoi(parser.previous.start);
         _ = &value;
         emitConstant(Value{
-            .type = @as(c_uint, @bitCast(.VAL_INT)),
+            .type = .VAL_INT,
             .as = .{
                 .num_int = value,
             },
@@ -639,7 +639,7 @@ pub fn number(arg_canAssign: bool) callconv(.C) void {
         var value: f64 = strtod(parser.previous.start, null);
         _ = &value;
         emitConstant(Value{
-            .type = @as(c_uint, @bitCast(.VAL_DOUBLE)),
+            .type = .VAL_DOUBLE,
             .as = .{
                 .num_double = value,
             },
@@ -649,12 +649,12 @@ pub fn number(arg_canAssign: bool) callconv(.C) void {
 pub fn or_(arg_canAssign: bool) callconv(.C) void {
     var canAssign = arg_canAssign;
     _ = &canAssign;
-    var elseJump: c_int = emitJump(@as(u8, @bitCast(@as(i8, @truncate(.OP_JUMP_IF_FALSE)))));
+    var elseJump: c_int = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
     _ = &elseJump;
-    var endJump: c_int = emitJump(@as(u8, @bitCast(@as(i8, @truncate(.OP_JUMP)))));
+    var endJump: c_int = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
     _ = &endJump;
     patchJump(elseJump);
-    emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_POP)))));
+    emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
     parsePrecedence(@as(c_uint, @bitCast(PREC_OR)));
     patchJump(endJump);
 }
@@ -662,7 +662,7 @@ pub fn string(arg_canAssign: bool) callconv(.C) void {
     var canAssign = arg_canAssign;
     _ = &canAssign;
     emitConstant(Value{
-        .type = @as(c_uint, @bitCast(.VAL_OBJ)),
+        .type = .VAL_OBJ,
         .as = .{
             .obj = @as([*c]object_h.Obj, @ptrCast(@alignCast(object_h.copyString(parser.previous.start + @as(usize, @bitCast(@as(isize, @intCast(@as(c_int, 1))))), parser.previous.length - @as(c_int, 2))))),
         },
@@ -684,7 +684,7 @@ pub fn array(arg_canAssign: bool) callconv(.C) void {
         }
     }
     consume(.TOKEN_RIGHT_SQPAREN, "Expect ']' after array elements.");
-    emitBytes(@as(u8, @bitCast(@as(i8, @truncate(.OP_ARRAY)))), argCount);
+    emitBytes(@intCast(@intFromEnum(OpCode.OP_ARRAY)), argCount);
 }
 pub fn fvector(arg_canAssign: bool) callconv(.C) void {
     var canAssign = arg_canAssign;
@@ -702,7 +702,7 @@ pub fn fvector(arg_canAssign: bool) callconv(.C) void {
         }
     }
     consume(.TOKEN_RIGHT_BRACE, "Expect '}' after vector elements.");
-    emitBytes(@as(u8, @bitCast(@as(i8, @truncate(.OP_FVECTOR)))), argCount);
+    emitBytes(@intCast(@intFromEnum(OpCode.OP_FVECTOR)), argCount);
 }
 pub fn namedVariable(arg_name: Token, arg_canAssign: bool) callconv(.C) void {
     var name = arg_name;
@@ -716,19 +716,19 @@ pub fn namedVariable(arg_name: Token, arg_canAssign: bool) callconv(.C) void {
     var arg: c_int = resolveLocal(current, &name);
     _ = &arg;
     if (arg != -@as(c_int, 1)) {
-        getOp = @as(u8, @bitCast(@as(i8, @truncate(.OP_GET_LOCAL))));
-        setOp = @as(u8, @bitCast(@as(i8, @truncate(.OP_SET_LOCAL))));
+        getOp = @intCast(@intFromEnum(OpCode.OP_GET_LOCAL));
+        setOp = @intCast(@intFromEnum(OpCode.OP_SET_LOCAL));
     } else if ((blk: {
         const tmp = resolveUpvalue(current, &name);
         arg = tmp;
         break :blk tmp;
     }) != -@as(c_int, 1)) {
-        getOp = @as(u8, @bitCast(@as(i8, @truncate(.OP_GET_UPVALUE))));
-        setOp = @as(u8, @bitCast(@as(i8, @truncate(.OP_SET_UPVALUE))));
+        getOp = @intCast(@intFromEnum(OpCode.OP_GET_UPVALUE));
+        setOp = @intCast(@intFromEnum(OpCode.OP_SET_UPVALUE));
     } else {
         arg = @as(c_int, @bitCast(@as(c_uint, identifierConstant(&name))));
-        getOp = @as(u8, @bitCast(@as(i8, @truncate(.OP_GET_GLOBAL))));
-        setOp = @as(u8, @bitCast(@as(i8, @truncate(.OP_SET_GLOBAL))));
+        getOp = @intCast(@intFromEnum(OpCode.OP_GET_GLOBAL));
+        setOp = @intCast(@intFromEnum(OpCode.OP_SET_GLOBAL));
     }
     if ((@as(c_int, @intFromBool(canAssign)) != 0) and (@as(c_int, @intFromBool(match(.TOKEN_EQUAL))) != 0)) {
         expression();
@@ -738,20 +738,20 @@ pub fn namedVariable(arg_name: Token, arg_canAssign: bool) callconv(.C) void {
         expression();
         while (true) {
             switch (parser.previous.type) {
-                @as(c_uint, @bitCast(@as(c_int, 45))) => {
-                    emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_ADD)))));
+                .TOKEN_PLUS_EQUAL => {
+                    emitByte(@intCast(@intFromEnum(OpCode.OP_ADD)));
                     break;
                 },
-                @as(c_uint, @bitCast(@as(c_int, 46))) => {
-                    emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_SUBTRACT)))));
+                .TOKEN_MINUS_EQUAL => {
+                    emitByte(@intCast(@intFromEnum(OpCode.OP_SUBTRACT)));
                     break;
                 },
-                @as(c_uint, @bitCast(@as(c_int, 47))) => {
-                    emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_MULTIPLY)))));
+                .TOKEN_STAR_EQUAL => {
+                    emitByte(@intCast(@intFromEnum(OpCode.OP_MULTIPLY)));
                     break;
                 },
-                @as(c_uint, @bitCast(@as(c_int, 48))) => {
-                    emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_DIVIDE)))));
+                .TOKEN_SLASH_EQUAL => {
+                    emitByte(@intCast(@intFromEnum(OpCode.OP_DIVIDE)));
                     break;
                 },
                 else => return,
@@ -761,25 +761,25 @@ pub fn namedVariable(arg_name: Token, arg_canAssign: bool) callconv(.C) void {
         emitBytes(setOp, @as(u8, @bitCast(@as(i8, @truncate(arg)))));
     } else if (match(.TOKEN_PLUS_PLUS)) {
         emitBytes(getOp, @as(u8, @bitCast(@as(i8, @truncate(arg)))));
-        emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_CONSTANT)))));
+        emitByte(@intCast(@intFromEnum(OpCode.OP_CONSTANT)));
         emitByte(makeConstant(Value{
-            .type = @as(c_uint, @bitCast(.VAL_INT)),
+            .type = .VAL_INT,
             .as = .{
                 .num_int = @as(c_int, 1),
             },
         }));
-        emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_ADD)))));
+        emitByte(@intCast(@intFromEnum(OpCode.OP_ADD)));
         emitBytes(setOp, @as(u8, @bitCast(@as(i8, @truncate(arg)))));
     } else if (match(.TOKEN_MINUS_MINUS)) {
         emitBytes(getOp, @as(u8, @bitCast(@as(i8, @truncate(arg)))));
-        emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_CONSTANT)))));
+        emitByte(@intCast(@intFromEnum(OpCode.OP_CONSTANT)));
         emitByte(makeConstant(Value{
-            .type = @as(c_uint, @bitCast(.VAL_INT)),
+            .type = .VAL_INT,
             .as = .{
                 .num_int = @as(c_int, 1),
             },
         }));
-        emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_SUBTRACT)))));
+        emitByte(@intCast(@intFromEnum(OpCode.OP_SUBTRACT)));
         emitBytes(setOp, @as(u8, @bitCast(@as(i8, @truncate(arg)))));
     } else {
         emitBytes(getOp, @as(u8, @bitCast(@as(i8, @truncate(arg)))));
@@ -794,9 +794,9 @@ pub fn index_(arg_canAssign: bool) callconv(.C) void {
         consume(.TOKEN_RIGHT_SQPAREN, "Expect ']' after index.");
         if ((@as(c_int, @intFromBool(canAssign)) != 0) and (@as(c_int, @intFromBool(match(.TOKEN_EQUAL))) != 0)) {
             expression();
-            emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_INDEX_SET)))));
+            emitByte(@intCast(@intFromEnum(OpCode.OP_INDEX_SET)));
         } else {
-            emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_INDEX_GET)))));
+            emitByte(@intCast(@intFromEnum(OpCode.OP_INDEX_GET)));
         }
     } else {
         vm_h.runtimeError("Only arrays support indexing.");
@@ -813,7 +813,7 @@ pub fn syntheticToken(arg_text: [*c]const u8) callconv(.C) Token {
     _ = &text;
     var token: Token = Token{
         .type = @import("std").mem.zeroes(TokenType),
-        .start = text,
+        .start = @constCast(text),
         .length = @as(c_int, @bitCast(@as(c_uint, @truncate(scanner_h.strlen(text))))),
         .line = 0,
     };
@@ -837,11 +837,11 @@ pub fn super_(arg_canAssign: bool) callconv(.C) void {
         var argCount: u8 = argumentList();
         _ = &argCount;
         namedVariable(syntheticToken("super"), @as(c_int, 0) != 0);
-        emitBytes(@as(u8, @bitCast(@as(i8, @truncate(.OP_SUPER_INVOKE)))), name);
+        emitBytes(@intCast(@intFromEnum(OpCode.OP_SUPER_INVOKE)), name);
         emitByte(argCount);
     } else {
         namedVariable(syntheticToken("super"), @as(c_int, 0) != 0);
-        emitBytes(@as(u8, @bitCast(@as(i8, @truncate(.OP_GET_SUPER)))), name);
+        emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_SUPER)), name);
     }
 }
 pub fn self_(arg_canAssign: bool) callconv(.C) void {
@@ -866,12 +866,12 @@ pub fn unary(arg_canAssign: bool) callconv(.C) void {
     parsePrecedence(@as(c_uint, @bitCast(PREC_UNARY)));
     while (true) {
         switch (operatorType) {
-            @as(c_uint, @bitCast(@as(c_int, 12))) => {
-                emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_NOT)))));
+            .TOKEN_BANG => {
+                emitByte(@intCast(@intFromEnum(OpCode.OP_NOT)));
                 break;
             },
-            @as(c_uint, @bitCast(@as(c_int, 6))) => {
-                emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_NEGATE)))));
+            .TOKEN_MINUS => {
+                emitByte(@intCast(@intFromEnum(OpCode.OP_NEGATE)));
                 break;
             },
             else => return,
@@ -1182,8 +1182,8 @@ pub fn function(arg_type: FunctionType) callconv(.C) void {
     block();
     var function_1: [*c]ObjFunction = endCompiler();
     _ = &function_1;
-    emitBytes(@as(u8, @bitCast(@as(i8, @truncate(.OP_CLOSURE)))), makeConstant(Value{
-        .type = @as(c_uint, @bitCast(.VAL_OBJ)),
+    emitBytes(@intCast(@intFromEnum(OpCode.OP_CLOSURE)), makeConstant(Value{
+        .type = .VAL_OBJ,
         .as = .{
             .obj = @as([*c]object_h.Obj, @ptrCast(@alignCast(function_1))),
         },
@@ -1207,7 +1207,7 @@ pub fn method() callconv(.C) void {
         @"type" = @as(c_uint, @bitCast(TYPE_INITIALIZER));
     }
     function(@"type");
-    emitBytes(@as(u8, @bitCast(@as(i8, @truncate(.OP_METHOD)))), constant);
+    emitBytes(@intCast(@intFromEnum(OpCode.OP_METHOD)), constant);
 }
 
 pub fn classDeclaration() callconv(.C) void {
@@ -1217,7 +1217,7 @@ pub fn classDeclaration() callconv(.C) void {
     var nameConstant: u8 = identifierConstant(&parser.previous);
     _ = &nameConstant;
     declareVariable();
-    emitBytes(@as(u8, @bitCast(@as(i8, @truncate(.OP_CLASS)))), nameConstant);
+    emitBytes(@intCast(@intFromEnum(OpCode.OP_CLASS)), nameConstant);
     defineVariable(nameConstant);
     var classCompiler: ClassCompiler = undefined;
     _ = &classCompiler;
@@ -1234,7 +1234,7 @@ pub fn classDeclaration() callconv(.C) void {
         addLocal(syntheticToken("super"));
         defineVariable(@as(u8, @bitCast(@as(i8, @truncate(@as(c_int, 0))))));
         namedVariable(className, @as(c_int, 0) != 0);
-        emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_INHERIT)))));
+        emitByte(@intCast(@intFromEnum(OpCode.OP_INHERIT)));
         currentClass.*.hasSuperClass = @as(c_int, 1) != 0;
     }
     namedVariable(className, @as(c_int, 0) != 0);
@@ -1243,7 +1243,7 @@ pub fn classDeclaration() callconv(.C) void {
         method();
     }
     consume(.TOKEN_RIGHT_BRACE, "Expect '}' after class body.");
-    emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_POP)))));
+    emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
     if (classCompiler.hasSuperClass) {
         endScope();
     }
@@ -1262,7 +1262,7 @@ pub fn varDeclaration() callconv(.C) void {
     if (match(.TOKEN_EQUAL)) {
         expression();
     } else {
-        emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_NIL)))));
+        emitByte(@intCast(@intFromEnum(OpCode.OP_NIL)));
     }
     consume(.TOKEN_SEMICOLON, "Expect ';' after variable declaration.");
     defineVariable(global);
@@ -1270,7 +1270,7 @@ pub fn varDeclaration() callconv(.C) void {
 pub fn expressionStatement() callconv(.C) void {
     expression();
     consume(.TOKEN_SEMICOLON, "Expect ';' after expression.");
-    emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_POP)))));
+    emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
 }
 pub fn forStatement() callconv(.C) void {
     beginScope();
@@ -1287,16 +1287,16 @@ pub fn forStatement() callconv(.C) void {
     if (!match(.TOKEN_SEMICOLON)) {
         expression();
         consume(.TOKEN_SEMICOLON, "Expect ';' after loop condition.");
-        exitJump = emitJump(@as(u8, @bitCast(@as(i8, @truncate(.OP_JUMP_IF_FALSE)))));
-        emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_POP)))));
+        exitJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
+        emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
     }
     if (!match(.TOKEN_RIGHT_PAREN)) {
-        var bodyJump: c_int = emitJump(@as(u8, @bitCast(@as(i8, @truncate(.OP_JUMP)))));
+        var bodyJump: c_int = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
         _ = &bodyJump;
         var incrementStart: c_int = currentChunk().*.count;
         _ = &incrementStart;
         expression();
-        emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_POP)))));
+        emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
         consume(.TOKEN_RIGHT_PAREN, "Expect ')' after for clauses.");
         emitLoop(loopStart);
         loopStart = incrementStart;
@@ -1306,7 +1306,7 @@ pub fn forStatement() callconv(.C) void {
     emitLoop(loopStart);
     if (exitJump != -@as(c_int, 1)) {
         patchJump(exitJump);
-        emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_POP)))));
+        emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
     }
     endScope();
 }
@@ -1316,33 +1316,33 @@ pub fn eachStatement() callconv(.C) void {
     consume(.TOKEN_LEFT_PAREN, "Expect '(' after 'while'.");
     expression();
     consume(.TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
-    var exitJump: c_int = emitJump(@as(u8, @bitCast(@as(i8, @truncate(.OP_JUMP_IF_DONE)))));
+    var exitJump: c_int = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_DONE)));
     _ = &exitJump;
     var item: Token = Token{
         .type = .TOKEN_ITEM,
-        .start = "item",
+        .start = @ptrCast(@constCast("item")),
         .length = @as(c_int, 4),
         .line = 0,
     };
     _ = &item;
-    emitBytes(@as(u8, @bitCast(@as(i8, @truncate(.OP_SET_GLOBAL)))), identifierConstant(&item));
+    emitBytes(@intCast(@intFromEnum(OpCode.OP_SET_GLOBAL)), identifierConstant(&item));
     statement();
     emitLoop(loopStart);
     patchJump(exitJump);
-    emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_POP)))));
+    emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
 }
 pub fn ifStatement() callconv(.C) void {
     consume(.TOKEN_LEFT_PAREN, "Expect '(' after 'if'.");
     expression();
     consume(.TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
-    var thenJump: c_int = emitJump(@as(u8, @bitCast(@as(i8, @truncate(.OP_JUMP_IF_FALSE)))));
+    var thenJump: c_int = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
     _ = &thenJump;
-    emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_POP)))));
+    emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
     statement();
-    var elseJump: c_int = emitJump(@as(u8, @bitCast(@as(i8, @truncate(.OP_JUMP)))));
+    var elseJump: c_int = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
     _ = &elseJump;
     patchJump(thenJump);
-    emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_POP)))));
+    emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
     if (match(.TOKEN_ELSE)) {
         statement();
     }
@@ -1351,7 +1351,7 @@ pub fn ifStatement() callconv(.C) void {
 pub fn printStatement() callconv(.C) void {
     expression();
     consume(.TOKEN_SEMICOLON, "Expect ';' after value.");
-    emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_PRINT)))));
+    emitByte(@intCast(@intFromEnum(OpCode.OP_PRINT)));
 }
 pub fn returnStatement() callconv(.C) void {
     if (current.*.type == @as(c_uint, @bitCast(TYPE_SCRIPT))) {
@@ -1365,7 +1365,7 @@ pub fn returnStatement() callconv(.C) void {
         }
         expression();
         consume(.TOKEN_SEMICOLON, "Expect ';' after return value.");
-        emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_RETURN)))));
+        emitByte(@intCast(@intFromEnum(OpCode.OP_RETURN)));
     }
 }
 pub fn whileStatement() callconv(.C) void {
@@ -1374,13 +1374,13 @@ pub fn whileStatement() callconv(.C) void {
     consume(.TOKEN_LEFT_PAREN, "Expect '(' after 'while'.");
     expression();
     consume(.TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
-    var exitJump: c_int = emitJump(@as(u8, @bitCast(@as(i8, @truncate(.OP_JUMP_IF_FALSE)))));
+    var exitJump: c_int = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
     _ = &exitJump;
-    emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_POP)))));
+    emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
     statement();
     emitLoop(loopStart);
     patchJump(exitJump);
-    emitByte(@as(u8, @bitCast(@as(i8, @truncate(.OP_POP)))));
+    emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
 }
 pub fn synchronize() callconv(.C) void {
     parser.panicMode = @as(c_int, 0) != 0;
@@ -1388,13 +1388,28 @@ pub fn synchronize() callconv(.C) void {
         if (parser.previous.type == .TOKEN_SEMICOLON) return;
         while (true) {
             switch (parser.current.type) {
-                @as(c_uint, @bitCast(@as(c_int, 25))), @as(c_uint, @bitCast(@as(c_int, 30))), @as(c_uint, @bitCast(@as(c_int, 40))), @as(c_uint, @bitCast(@as(c_int, 28))), @as(c_uint, @bitCast(@as(c_int, 31))), @as(c_uint, @bitCast(@as(c_int, 41))), @as(c_uint, @bitCast(@as(c_int, 35))), @as(c_uint, @bitCast(@as(c_int, 36))) => return,
-                else => {
-                    {}
-                },
+                else => return,
             }
             break;
         }
         advance();
     }
+}
+
+pub export fn compile(arg_source: [*c]const u8) [*c]ObjFunction {
+    var source = arg_source;
+    _ = &source;
+    scanner_h.initScanner(@constCast(source));
+    var compiler: Compiler = undefined;
+    _ = &compiler;
+    initCompiler(&compiler, @as(c_uint, @bitCast(TYPE_SCRIPT)));
+    parser.hadError = @as(c_int, 0) != 0;
+    parser.panicMode = @as(c_int, 0) != 0;
+    advance();
+    while (!match(.TOKEN_EOF)) {
+        declaration();
+    }
+    var function_1: [*c]ObjFunction = endCompiler();
+    _ = &function_1;
+    return if (@as(c_int, @intFromBool(parser.hadError)) != 0) null else function_1;
 }
