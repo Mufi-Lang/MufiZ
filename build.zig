@@ -211,6 +211,7 @@ pub fn build(b: *std.Build) !void {
     options.addOption(bool, "enable_net", net);
     options.addOption(bool, "enable_fs", fs);
     options.addOption(bool, "sandbox", sandbox);
+
     exe.root_module.addOptions("features", options);
     exe_check.root_module.addOptions("features", options);
 
