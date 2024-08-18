@@ -92,7 +92,7 @@ pub export fn adjustCapacity(table: *Table, capacity: c_int) callconv(.C) void {
         dest.*.value = entry.*.value;
         table.*.count += 1;
     }
-    _ = memory.FREE_ARRAY(Entry, table.entries, @as(usize, @intCast(table.*.capacity)));
+    _ = memory.FREE_ARRAY(Entry, table, @as(usize, @intCast(table.*.capacity)));
     table.*.entries = entries;
     table.*.capacity = capacity;
 }

@@ -9,7 +9,6 @@ const Table = table_h.Table;
 const Value = value_h.Value;
 const Chunk = chunk_h.Chunk;
 const AS_OBJ = value_h.AS_OBJ;
-var vm: vm_h.VM = vm_h.vm;
 const printf = @cImport(@cInclude("stdio.h")).printf;
 const push = vm_h.push;
 const pop = vm_h.pop;
@@ -249,9 +248,9 @@ pub fn allocateObject(arg_size: usize, arg_type: ObjType) callconv(.C) [*c]Obj {
     _ = &object;
     object.*.type = @"type";
     object.*.isMarked = @as(c_int, 0) != 0;
-    object.*.next = vm.objects;
-    vm.objects = object;
-    _ = printf("%p allocate %zu for %d\n", @as([*c]ObjArray, @ptrCast(@alignCast(object))), size, @"type");
+    object.*.next = vm_h.vm.objects;
+    vm_h.vm.objects = object;
+    _ = printf("%p allocate %zu for %d\n", @as([*c]ObjArray, @ptrCast(@alignCast(object))), size);
     return object;
 }
 
@@ -410,7 +409,7 @@ pub fn sub_val(arg_a: Value, arg_b: Value) callconv(.C) Value {
     _ = &b;
     while (true) {
         switch (a.type) {
-            @as(c_uint, @bitCast(@as(c_int, 2))) => {
+            .VAL_INT => {
                 if (b.type == .VAL_INT) {
                     return Value{
                         .type = .VAL_INT,
@@ -428,7 +427,7 @@ pub fn sub_val(arg_a: Value, arg_b: Value) callconv(.C) Value {
                 }
                 break;
             },
-            @as(c_uint, @bitCast(@as(c_int, 3))) => {
+            .VAL_DOUBLE => {
                 if (b.type == .VAL_INT) {
                     return Value{
                         .type = .VAL_DOUBLE,
@@ -464,7 +463,7 @@ pub fn mul_val(arg_a: Value, arg_b: Value) callconv(.C) Value {
     _ = &b;
     while (true) {
         switch (a.type) {
-            @as(c_uint, @bitCast(@as(c_int, 2))) => {
+            .VAL_INT => {
                 if (b.type == .VAL_INT) {
                     return Value{
                         .type = .VAL_INT,
@@ -482,7 +481,7 @@ pub fn mul_val(arg_a: Value, arg_b: Value) callconv(.C) Value {
                 }
                 break;
             },
-            @as(c_uint, @bitCast(@as(c_int, 3))) => {
+            .VAL_DOUBLE => {
                 if (b.type == .VAL_INT) {
                     return Value{
                         .type = .VAL_DOUBLE,
@@ -518,7 +517,7 @@ pub fn div_val(arg_a: Value, arg_b: Value) callconv(.C) Value {
     _ = &b;
     while (true) {
         switch (a.type) {
-            @as(c_uint, @bitCast(@as(c_int, 2))) => {
+            .VAL_INT => {
                 if (b.type == .VAL_INT) {
                     return Value{
                         .type = .VAL_INT,
@@ -536,7 +535,7 @@ pub fn div_val(arg_a: Value, arg_b: Value) callconv(.C) Value {
                 }
                 break;
             },
-            @as(c_uint, @bitCast(@as(c_int, 3))) => {
+            .VAL_DOUBLE => {
                 if (b.type == .VAL_INT) {
                     return Value{
                         .type = .VAL_DOUBLE,
@@ -778,7 +777,7 @@ pub export fn allocateString(arg_params: AllocStringParams) [*c]ObjString {
             .obj = @as([*c]Obj, @ptrCast(@alignCast(string))),
         },
     });
-    _ = table_h.tableSet(&vm.strings, string, Value{
+    _ = table_h.tableSet(&vm_h.vm.strings, string, Value{
         .type = .VAL_NIL,
         .as = .{
             .num_int = @as(c_int, 0),
@@ -803,7 +802,7 @@ pub export fn takeString(arg_chars: [*c]u8, arg_length: c_int) [*c]ObjString {
     _ = &length;
     var hash: u64 = hashString(chars, length);
     _ = &hash;
-    var interned: [*c]ObjString = table_h.tableFindString(&vm.strings, chars, length, hash);
+    var interned: [*c]ObjString = table_h.tableFindString(&vm_h.vm.strings, chars, length, hash);
     _ = &interned;
     if (interned != @as([*c]ObjString, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
         _ = reallocate(@as(?*anyopaque, @ptrCast(chars)), @sizeOf(u8) *% @as(c_ulong, @bitCast(@as(c_long, length + @as(c_int, 1)))), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
@@ -823,7 +822,7 @@ pub export fn copyString(arg_chars: [*c]const u8, arg_length: c_int) [*c]ObjStri
     _ = &length;
     var hash: u64 = hashString(chars, length);
     _ = &hash;
-    var interned: [*c]ObjString = table_h.tableFindString(&vm.strings, chars, length, hash);
+    var interned: [*c]ObjString = table_h.tableFindString(&vm_h.vm.strings, chars, length, hash);
     _ = &interned;
     if (interned != @as([*c]ObjString, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) return interned;
     var heapChars: [*c]u8 = @as([*c]u8, @ptrCast(@alignCast(reallocate(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))), @sizeOf(u8) *% @as(c_ulong, @bitCast(@as(c_long, length + @as(c_int, 1))))))));
@@ -1049,7 +1048,7 @@ pub export fn popArray(arg_array: [*c]ObjArray) Value {
 pub export fn sortArray(arg_array: [*c]ObjArray) void {
     var array = arg_array;
     _ = &array;
-    @cImport(@cInclude("stdlib.h")).qsort(@as(?*anyopaque, @ptrCast(array.*.values)), @as(usize, @bitCast(@as(c_long, array.*.count))), @sizeOf(Value), &value_h.compareValues);
+    // @cImport(@cInclude("stdlib.h")).qsort(@ptrCast(array.*.values), @as(usize, @bitCast(@as(c_long, array.*.count))), @sizeOf(Value), &value_h.compareValues);
 }
 pub fn valuesLess(arg_a: Value, arg_b: Value) callconv(.C) bool {
     var a = arg_a;

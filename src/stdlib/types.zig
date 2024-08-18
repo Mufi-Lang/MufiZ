@@ -17,7 +17,7 @@ pub fn int(argc: c_int, args: [*c]Value) callconv(.C) Value {
             return conv.int_val(i);
         },
         .VAL_OBJ => {
-            if (conv.is_obj_type(args[0], conv.OBJ_STRING)) {
+            if (conv.is_obj_type(args[0], .OBJ_STRING)) {
                 const s = conv.as_zstring(args[0]);
                 const i = std.fmt.parseInt(i32, s, 10) catch 0;
                 return conv.int_val(i);
@@ -40,7 +40,7 @@ pub fn double(argc: c_int, args: [*c]Value) callconv(.C) Value {
             return conv.double_val(d);
         },
         .VAL_OBJ => {
-            if (conv.is_obj_type(args[0], conv.OBJ_STRING)) {
+            if (conv.is_obj_type(args[0], .OBJ_STRING)) {
                 const s = conv.as_zstring(args[0]);
                 const d = std.fmt.parseFloat(f64, s) catch 0.0;
                 return conv.double_val(d);

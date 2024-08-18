@@ -284,7 +284,6 @@ pub fn valueToString(value: Value) [*c]u8 {
         .VAL_OBJ => {
             return @ptrCast(@constCast("object"));
         },
-        else => return null,
     }
     return null;
 }

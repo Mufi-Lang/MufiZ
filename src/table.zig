@@ -20,7 +20,7 @@ pub const Table = extern struct {
 };
 
 pub const Entry = extern struct {
-    key: ?*ObjString,
+    key: [*c]ObjString,
     value: Value,
     deleted: bool,
 };
@@ -92,7 +92,7 @@ pub export fn adjustCapacity(table: *Table, capacity: c_int) callconv(.C) void {
         dest.*.value = entry.*.value;
         table.*.count += 1;
     }
-    _ = memory.FREE_ARRAY(Entry, table.entries, @as(usize, @intCast(table.*.capacity)));
+    _ = memory.FREE_ARRAY(Entry, table.*.entries, @as(usize, @intCast(table.*.capacity)));
     table.*.entries = entries;
     table.*.capacity = capacity;
 }
@@ -142,7 +142,7 @@ pub export fn tableFindString(table: *Table, chars: [*c]const u8, length: c_int,
         const entry: [*c]Entry = &table.*.entries[index];
         if (entry.*.key == null) {
             if (entry.*.value.type == .VAL_NIL) return null;
-        } else if (!entry.*.deleted and ((entry.*.key.?.length == length) and (entry.*.key.?.hash == hash)) and (memcmp(@ptrCast(entry.*.key.?.chars), @ptrCast(chars), @as(usize, @intCast(length))) == 0)) {
+        } else if (!entry.*.deleted and ((entry.*.key.*.length == length) and (entry.*.key.*.hash == hash)) and (memcmp(@ptrCast(entry.*.key.*.chars), @ptrCast(chars), @as(usize, @intCast(length))) == 0)) {
             return entry.*.key;
         }
         index = (index + 1) & @as(usize, @intCast(table.*.capacity - 1));
@@ -153,7 +153,7 @@ pub export fn tableFindString(table: *Table, chars: [*c]const u8, length: c_int,
 pub export fn tableRemoveWhite(table: *Table) callconv(.C) void {
     for (0..@as(usize, @intCast(table.*.capacity))) |i| {
         const entry: [*c]Entry = &table.*.entries[i];
-        if (entry.*.key != null and !entry.*.key.?.obj.isMarked) {
+        if (entry.*.key != null and !entry.*.key.*.obj.isMarked) {
             _ = tableDelete(table, entry.*.key);
         }
     }

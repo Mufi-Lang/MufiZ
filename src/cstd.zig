@@ -4,7 +4,8 @@ const table_h = @import("table.zig");
 const Entry = table_h.Entry;
 const entries_ = table_h.entries_;
 const Value = value_h.Value;
-const runtimeError = @import("vm.zig").runtimeError;
+const vm_h = @import("vm.zig");
+const runtimeError = vm_h.runtimeError;
 const valuesEqual = value_h.valuesEqual;
 const valueToString = value_h.valueToString;
 const isObjType = obj_h.isObjType;
@@ -19,7 +20,6 @@ const Obj = obj_h.Obj;
 const Node = obj_h.Node;
 const ObjTypeCheckParams = obj_h.ObjTypeCheckParams;
 const printf = @cImport(@cInclude("stdio.h")).printf;
-const vm = @import("vm.zig").vm;
 
 pub export fn assert_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     var argCount = arg_argCount;
@@ -174,7 +174,7 @@ pub export fn peek_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
             },
         };
     }
-    var pos: c_int = if (args[1].type == .VAL_DOUBLE)  @intFromFloat(args[1].as.num_double) else args[1].as.num_int;
+    var pos: c_int = if (args[1].type == .VAL_DOUBLE) @intFromFloat(args[1].as.num_double) else args[1].as.num_int;
     _ = &pos;
     var peek: Value = Value{
         .type = .VAL_NIL,
@@ -573,7 +573,7 @@ pub export fn slice_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
-            @as(c_uint, @bitCast(@as(c_int, 8))) => {
+            .OBJ_ARRAY => {
                 {
                     var a: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &a;
@@ -591,7 +591,7 @@ pub export fn slice_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     };
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 12))) => {
+            .OBJ_FVECTOR => {
                 {
                     var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &f;
@@ -609,7 +609,7 @@ pub export fn slice_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     };
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 9))) => {
+            .OBJ_LINKED_LIST => {
                 {
                     var l: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &l;
@@ -670,7 +670,7 @@ pub export fn splice_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
-            @as(c_uint, @bitCast(@as(c_int, 8))) => {
+            .OBJ_ARRAY => {
                 {
                     var a: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &a;
@@ -688,13 +688,13 @@ pub export fn splice_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     };
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 12))) => {
+            .OBJ_FVECTOR => {
                 {
                     var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &f;
                     var start: c_int = if (args[1].type == .VAL_DOUBLE) @intFromFloat(args[1].as.num_double) else args[1].as.num_int;
                     _ = &start;
-                    var end: c_int = if (args[2].type == .VAL_DOUBLE)  @intFromFloat(args[2].as.num_double) else args[2].as.num_int;
+                    var end: c_int = if (args[2].type == .VAL_DOUBLE) @intFromFloat(args[2].as.num_double) else args[2].as.num_int;
                     _ = &end;
                     var s: [*c]FloatVector = obj_h.spliceFloatVector(f, start, end);
                     _ = &s;
@@ -706,7 +706,7 @@ pub export fn splice_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     };
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 9))) => {
+            .OBJ_LINKED_LIST => {
                 {
                     var l: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &l;
@@ -758,7 +758,7 @@ pub export fn push_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
-           .OBJ_ARRAY => {
+            .OBJ_ARRAY => {
                 {
                     var a: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &a;
@@ -803,7 +803,7 @@ pub export fn push_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                                     },
                                 };
                             }
-                            obj_h.pushFloatVector(f, );
+                            obj_h.pushFloatVector(f, 0.0);
                         }
                     }
                     return Value{
@@ -887,14 +887,14 @@ pub export fn pop_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
-            @as(c_uint, @bitCast(@as(c_int, 8))) => {
+            .OBJ_ARRAY => {
                 {
                     var a: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &a;
                     return obj_h.popArray(a);
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 12))) => {
+            .OBJ_FVECTOR => {
                 {
                     var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &f;
@@ -906,7 +906,7 @@ pub export fn pop_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     };
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 9))) => {
+            .OBJ_LINKED_LIST => {
                 {
                     var l: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &l;
@@ -972,7 +972,7 @@ pub export fn nth_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
-            @as(c_uint, @bitCast(@as(c_int, 11))) => {
+            .OBJ_MATRIX => {
                 {
                     if ((argCount == @as(c_int, 3)) and ((args[2].type == .VAL_INT) or (args[2].type == .VAL_DOUBLE))) {
                         var m: [*c]ObjMatrix = @as([*c]ObjMatrix, @ptrCast(@alignCast(args[0].as.obj)));
@@ -986,7 +986,7 @@ pub export fn nth_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     break;
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 12))) => {
+            .OBJ_FVECTOR => {
                 {
                     var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &f;
@@ -1002,7 +1002,7 @@ pub export fn nth_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     };
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 8))) => {
+            .OBJ_ARRAY => {
                 {
                     var a: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &a;
@@ -1017,7 +1017,7 @@ pub export fn nth_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     break;
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 9))) => {
+            .OBJ_LINKED_LIST => {
                 {
                     var l: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &l;
@@ -1082,7 +1082,7 @@ pub export fn sort_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
-            @as(c_uint, @bitCast(@as(c_int, 8))) => {
+            .OBJ_ARRAY => {
                 {
                     var a: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &a;
@@ -1095,7 +1095,7 @@ pub export fn sort_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     };
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 12))) => {
+            .OBJ_FVECTOR => {
                 {
                     var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &f;
@@ -1108,7 +1108,7 @@ pub export fn sort_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     };
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 9))) => {
+            .OBJ_LINKED_LIST => {
                 {
                     var l: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &l;
@@ -1163,7 +1163,7 @@ pub export fn contains_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
-            .OBJ_ARRAY  => {
+            .OBJ_ARRAY => {
                 {
                     var a: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &a;
@@ -1192,36 +1192,16 @@ pub export fn contains_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     };
                 }
             },
-           .OBJ_FVECTOR => {
-                {
-                    var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &f;
-                    {
-                        var i: c_int = 0;
-                        _ = &i;
-                        while (i < f.*.count) : (i += 1) {
-                            if ((blk: {
-                                const tmp = i;
-                                if (tmp >= 0) break :blk f.*.data + @as(usize, @intCast(tmp)) else break :blk f.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                            }).* == (if (args[1].type == .VAL_INT) @floatFromInt(args[1].as.num_int) else args[1].as.num_double)) {
-                                return Value{
-                                    .type = .VAL_BOOL,
-                                    .as = .{
-                                        .boolean = 1 != 0,
-                                    },
-                                };
-                            }
-                        }
-                    }
-                    return Value{
-                        .type = .VAL_BOOL,
-                        .as = .{
-                            .boolean = @as(c_int, 0) != 0,
-                        },
-                    };
-                }
+            .OBJ_FVECTOR => {
+                //TODO: Implement contains for float vector
+                return Value{
+                    .type = .VAL_BOOL,
+                    .as = .{
+                        .boolean = @as(c_int, 0) != 0,
+                    },
+                };
             },
-            @as(c_uint, @bitCast(@as(c_int, 10))) => {
+            .OBJ_HASH_TABLE => {
                 {
                     var h: [*c]ObjHashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &h;
@@ -1270,7 +1250,7 @@ pub export fn contains_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     };
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 9))) => {
+            .OBJ_LINKED_LIST => {
                 {
                     var l: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &l;
@@ -1353,7 +1333,7 @@ pub export fn insert_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
-            @as(c_uint, @bitCast(@as(c_int, 12))) => {
+            .OBJ_FVECTOR => {
                 {
                     var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &f;
@@ -1377,7 +1357,7 @@ pub export fn insert_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     };
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 8))) => {
+            .OBJ_ARRAY => {
                 {
                     var a: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &a;
@@ -1442,7 +1422,7 @@ pub export fn len_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
-            @as(c_uint, @bitCast(@as(c_int, 8))) => {
+            .OBJ_ARRAY => {
                 {
                     var a: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &a;
@@ -1454,7 +1434,7 @@ pub export fn len_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     };
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 11))) => {
+            .OBJ_MATRIX => {
                 {
                     var m: [*c]ObjMatrix = @as([*c]ObjMatrix, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &m;
@@ -1466,7 +1446,7 @@ pub export fn len_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     };
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 10))) => {
+            .OBJ_HASH_TABLE => {
                 {
                     var h: [*c]ObjHashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &h;
@@ -1478,7 +1458,7 @@ pub export fn len_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     };
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 12))) => {
+            .OBJ_FVECTOR => {
                 {
                     var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &f;
@@ -1490,7 +1470,7 @@ pub export fn len_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     };
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 9))) => {
+            .OBJ_LINKED_LIST => {
                 {
                     var l: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &l;
@@ -1536,7 +1516,7 @@ pub export fn search_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
-            @as(c_uint, @bitCast(@as(c_int, 8))) => {
+            .OBJ_ARRAY => {
                 {
                     var a: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &a;
@@ -1556,11 +1536,11 @@ pub export fn search_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     };
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 12))) => {
+            .OBJ_FVECTOR => {
                 {
                     var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &f;
-                    var result: c_int = obj_h.searchFloatVector(f, if (args[1].type == .VAL_INT) @as(f64, @floatFromInt(args[1].as.num_int else args[1].as.num_double);
+                    var result: c_int = obj_h.searchFloatVector(f, if (args[1].type == .VAL_INT) @floatFromInt(args[1].as.num_int) else args[1].as.num_double);
                     _ = &result;
                     if (result == -1) return Value{
                         .type = .VAL_NIL,
@@ -1576,7 +1556,7 @@ pub export fn search_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     };
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 9))) => {
+            .OBJ_LINKED_LIST => {
                 {
                     var l: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &l;
@@ -1638,7 +1618,7 @@ pub export fn is_empty_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
-            @as(c_uint, @bitCast(@as(c_int, 8))) => {
+            .OBJ_ARRAY => {
                 {
                     var a: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &a;
@@ -1650,7 +1630,7 @@ pub export fn is_empty_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     };
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 10))) => {
+            .OBJ_HASH_TABLE => {
                 {
                     var h: [*c]ObjHashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &h;
@@ -1662,7 +1642,7 @@ pub export fn is_empty_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     };
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 12))) => {
+            .OBJ_FVECTOR => {
                 {
                     var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &f;
@@ -1674,7 +1654,7 @@ pub export fn is_empty_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     };
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 9))) => {
+            .OBJ_LINKED_LIST => {
                 {
                     var l: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &l;
@@ -1718,7 +1698,7 @@ pub export fn equal_list_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
-            @as(c_uint, @bitCast(@as(c_int, 8))) => {
+            .OBJ_ARRAY => {
                 {
                     if (!isObjType(args[1], .OBJ_ARRAY)) {
                         runtimeError("Second argument must be an array.");
@@ -1741,7 +1721,7 @@ pub export fn equal_list_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     };
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 12))) => {
+            .OBJ_FVECTOR => {
                 {
                     if (!isObjType(args[1], .OBJ_FVECTOR)) {
                         runtimeError("Second argument must be a vector.");
@@ -1764,7 +1744,7 @@ pub export fn equal_list_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     };
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 9))) => {
+            .OBJ_LINKED_LIST => {
                 {
                     if (!isObjType(args[1], .OBJ_LINKED_LIST)) {
                         runtimeError("Second argument must be a linked list.");
@@ -1831,7 +1811,7 @@ pub export fn reverse_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
-            @as(c_uint, @bitCast(@as(c_int, 8))) => {
+            .OBJ_ARRAY => {
                 {
                     var a: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &a;
@@ -1844,7 +1824,7 @@ pub export fn reverse_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     };
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 12))) => {
+            .OBJ_FVECTOR => {
                 {
                     var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &f;
@@ -1857,7 +1837,7 @@ pub export fn reverse_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     };
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 9))) => {
+            .OBJ_LINKED_LIST => {
                 {
                     var l: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &l;
@@ -1913,7 +1893,7 @@ pub export fn merge_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
-            @as(c_uint, @bitCast(@as(c_int, 8))) => {
+            .OBJ_ARRAY => {
                 {
                     var a: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &a;
@@ -1929,7 +1909,7 @@ pub export fn merge_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     };
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 9))) => {
+            .OBJ_LINKED_LIST => {
                 {
                     var a: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &a;
@@ -1945,7 +1925,7 @@ pub export fn merge_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     };
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 12))) => {
+            .OBJ_FVECTOR => {
                 {
                     var a: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &a;
@@ -2008,7 +1988,7 @@ pub export fn clone_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
-            @as(c_uint, @bitCast(@as(c_int, 8))) => {
+            .OBJ_ARRAY => {
                 {
                     var a: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &a;
@@ -2022,7 +2002,7 @@ pub export fn clone_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     };
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 12))) => {
+            .OBJ_FVECTOR => {
                 {
                     var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &f;
@@ -2036,7 +2016,7 @@ pub export fn clone_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     };
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 9))) => {
+            .OBJ_LINKED_LIST => {
                 {
                     var l: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &l;
@@ -2050,7 +2030,7 @@ pub export fn clone_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     };
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 10))) => {
+            .OBJ_HASH_TABLE => {
                 {
                     var h: [*c]ObjHashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &h;
@@ -2114,19 +2094,19 @@ pub export fn clear_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
-            @as(c_uint, @bitCast(@as(c_int, 8))) => {
+            .OBJ_ARRAY => {
                 obj_h.clearArray(@as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj))));
                 break;
             },
-            @as(c_uint, @bitCast(@as(c_int, 12))) => {
+            .OBJ_FVECTOR => {
                 obj_h.clearFloatVector(@as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj))));
                 break;
             },
-            @as(c_uint, @bitCast(@as(c_int, 9))) => {
+            .OBJ_LINKED_LIST => {
                 obj_h.clearLinkedList(@as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj))));
                 break;
             },
-            @as(c_uint, @bitCast(@as(c_int, 10))) => {
+            .OBJ_HASH_TABLE => {
                 obj_h.clearHashTable(@as([*c]ObjHashTable, @ptrCast(@alignCast(args[0].as.obj))));
                 break;
             },
@@ -2173,14 +2153,14 @@ pub export fn sum_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
-            @as(c_uint, @bitCast(@as(c_int, 8))) => {
+            .OBJ_ARRAY => {
                 {
                     var a: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &a;
                     return obj_h.sumArray(a);
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 12))) => {
+            .OBJ_FVECTOR => {
                 {
                     var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &f;
@@ -2230,8 +2210,8 @@ pub export fn mean_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
-            @as(c_uint, @bitCast(@as(c_int, 8))) => return obj_h.meanArray(@as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj)))),
-            @as(c_uint, @bitCast(@as(c_int, 12))) => return Value{
+            .OBJ_ARRAY => return obj_h.meanArray(@as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj)))),
+            .OBJ_FVECTOR => return Value{
                 .type = .VAL_DOUBLE,
                 .as = .{
                     .num_double = obj_h.meanFloatVector(@as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)))),
@@ -2275,8 +2255,8 @@ pub export fn std_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
-            @as(c_uint, @bitCast(@as(c_int, 8))) => return obj_h.stdDevArray(@as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj)))),
-            @as(c_uint, @bitCast(@as(c_int, 12))) => return Value{
+            .OBJ_ARRAY => return obj_h.stdDevArray(@as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj)))),
+            .OBJ_FVECTOR => return Value{
                 .type = .VAL_DOUBLE,
                 .as = .{
                     .num_double = obj_h.stdDevFloatVector(@as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)))),
@@ -2320,14 +2300,14 @@ pub export fn var_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
-            @as(c_uint, @bitCast(@as(c_int, 8))) => {
+            .OBJ_ARRAY => {
                 {
                     var a: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &a;
                     return obj_h.varianceArray(a);
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 12))) => {
+            .OBJ_FVECTOR => {
                 {
                     var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &f;
@@ -2377,14 +2357,14 @@ pub export fn maxl_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
-            @as(c_uint, @bitCast(@as(c_int, 8))) => {
+            .OBJ_ARRAY => {
                 {
                     var a: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &a;
                     return obj_h.maxArray(a);
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 12))) => {
+            .OBJ_FVECTOR => {
                 {
                     var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &f;
@@ -2434,14 +2414,14 @@ pub export fn minl_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
-            @as(c_uint, @bitCast(@as(c_int, 8))) => {
+            .OBJ_ARRAY => {
                 {
                     var a: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &a;
                     return obj_h.minArray(a);
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 12))) => {
+            .OBJ_FVECTOR => {
                 {
                     var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &f;
@@ -2645,9 +2625,9 @@ pub export fn refract_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     _ = &a;
     var b: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[1].as.obj)));
     _ = &b;
-    var n1: f64 = if (args[2].type == .VAL_INT) @as(f64, @floatFromInt(args[2].as.num_int else args[2].as.num_double;
+    var n1: f64 = if (args[2].type == .VAL_INT) @floatFromInt(args[2].as.num_int) else args[2].as.num_double;
     _ = &n1;
-    var n2: f64 = if (args[@as(c_uint, @intCast(@as(c_int, 3)))].type == .VAL_INT) @as(f64, @floatFromInt(args[@as(c_uint, @intCast(@as(c_int, 3)))].as.num_int else args[@as(c_uint, @intCast(@as(c_int, 3)))].as.num_double;
+    var n2: f64 = if (args[@as(c_uint, @intCast(@as(c_int, 3)))].type == .VAL_INT) @floatFromInt(args[@as(c_uint, @intCast(@as(c_int, 3)))].as.num_int) else args[@as(c_uint, @intCast(@as(c_int, 3)))].as.num_double;
     _ = &n2;
     var result: [*c]FloatVector = obj_h.refraction(a, b, n1, n2);
     _ = &result;
@@ -2708,7 +2688,7 @@ pub export fn put_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
             },
         };
     }
-    if (!isObjType(args[1], .OBJ_STRING)))) {
+    if (!isObjType(args[1], .OBJ_STRING)) {
         runtimeError("Second argument must be a string.");
         return Value{
             .type = .VAL_NIL,
@@ -2751,7 +2731,7 @@ pub export fn get_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
             },
         };
     }
-    if (!isObjType(args[1], .OBJ_STRING)))) {
+    if (!isObjType(args[1], .OBJ_STRING)) {
         runtimeError("Second argument must be a string.");
         return Value{
             .type = .VAL_NIL,
@@ -2797,7 +2777,7 @@ pub export fn remove_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
             },
         };
     }
-    if (!isObjType(args[1], .OBJ_STRING))) and !((args[1].type == .VAL_INT) or (args[1].type == .VAL_DOUBLE))) {
+    if (!isObjType(args[1], .OBJ_STRING) and !((args[1].type == .VAL_INT) or (args[1].type == .VAL_DOUBLE))) {
         runtimeError("Second argument must be a string or number.");
         return Value{
             .type = .VAL_NIL,
@@ -2808,7 +2788,7 @@ pub export fn remove_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
-            @as(c_uint, @bitCast(@as(c_int, 10))) => {
+            .OBJ_HASH_TABLE => {
                 {
                     var h: [*c]ObjHashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &h;
@@ -2822,12 +2802,12 @@ pub export fn remove_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     };
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 8))) => {
+            .OBJ_ARRAY => {
                 {
                     return obj_h.removeArray(@as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj))), if (args[1].type == .VAL_DOUBLE) @intFromFloat(args[1].as.num_double) else args[1].as.num_int);
                 }
             },
-            @as(c_uint, @bitCast(@as(c_int, 12))) => {
+            .OBJ_FVECTOR => {
                 {
                     return Value{
                         .type = .VAL_DOUBLE,
@@ -3042,7 +3022,7 @@ pub export fn set_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     _ = &matrix;
     var row: c_int = if (args[1].type == .VAL_DOUBLE) @intFromFloat(args[1].as.num_double) else args[1].as.num_int;
     _ = &row;
-    var col: c_int = if (args[2].type == .VAL_DOUBLE) @as(c_int, @intFromFloat(args[2].as.num_DOUBLE else args[2].as.num_int;
+    var col: c_int = if (args[2].type == .VAL_DOUBLE) @intFromFloat(args[2].as.num_double) else args[2].as.num_int;
     _ = &col;
     obj_h.setMatrix(matrix, row, col, args[@as(c_uint, @intCast(@as(c_int, 3)))]);
     return Value{
@@ -3224,20 +3204,20 @@ pub export fn workspace_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
             },
         };
     }
-    var e: [*c]Entry = entries_(&vm.globals);
+    var e: [*c]Entry = entries_(&vm_h.vm.globals);
     _ = &e;
     _ = printf("Workspace:\n");
     {
         var i: c_int = 0;
         _ = &i;
-        while (i < vm.globals.capacity) : (i += 1) {
+        while (i < vm_h.vm.globals.capacity) : (i += 1) {
             if (((blk: {
                 const tmp = i;
                 if (tmp >= 0) break :blk e + @as(usize, @intCast(tmp)) else break :blk e - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
             }).*.key != @as([*c]ObjString, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) and !isObjType((blk: {
                 const tmp = i;
                 if (tmp >= 0) break :blk e + @as(usize, @intCast(tmp)) else break :blk e - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-            }).*.value, .OBJ_NATIVE)))) {
+            }).*.value, .OBJ_NATIVE)) {
                 _ = printf("%s: ", (blk: {
                     const tmp = i;
                     if (tmp >= 0) break :blk e + @as(usize, @intCast(tmp)) else break :blk e - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
@@ -3286,11 +3266,11 @@ pub export fn linspace_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
             },
         };
     }
-    var start: f64 = if (args[0].type == .VAL_INT) @as(f64, @floatFromInt(args[0].as.num_int else args[0].as.num_double;
+    var start: f64 = if (args[0].type == .VAL_INT) @floatFromInt(args[0].as.num_int) else args[0].as.num_double;
     _ = &start;
-    var end: f64 = if (args[1].type == .VAL_INT) @as(f64, @floatFromInt(args[1].as.num_int else args[1].as.num_double;
+    var end: f64 = if (args[1].type == .VAL_INT) @floatFromInt(args[1].as.num_int) else args[1].as.num_double;
     _ = &end;
-    var n: c_int = if (args[2].type == .VAL_DOUBLE) @as(c_int, @intFromFloat(args[2].as.num_DOUBLE else args[2].as.num_int;
+    var n: c_int = if (args[2].type == .VAL_DOUBLE) @intFromFloat(args[2].as.num_double) else args[2].as.num_int;
     _ = &n;
     var a: [*c]FloatVector = obj_h.linspace(start, end, n);
     _ = &a;
@@ -3328,7 +3308,7 @@ pub export fn interp1_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     _ = &x;
     var y: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[1].as.obj)));
     _ = &y;
-    var x0: f64 = if (args[2].type == .VAL_INT) @as(f64, @floatFromInt(args[2].as.num_int else args[2].as.num_double;
+    var x0: f64 = if (args[2].type == .VAL_INT) @floatFromInt(args[2].as.num_int) else args[2].as.num_double;
     _ = &x0;
     var result: f64 = obj_h.interp1(x, y, x0);
     _ = &result;

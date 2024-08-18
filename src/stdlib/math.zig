@@ -101,11 +101,11 @@ pub fn abs(argc: c_int, args: [*c]Value) callconv(.C) Value {
             const c = conv.as_complex(args[0]);
             return conv.double_val(@sqrt(c.r * c.r + c.i * c.i));
         },
-        conv.VAL_DOUBLE => {
+        .VAL_DOUBLE => {
             const d = conv.as_num_double(args[0]);
             return conv.double_val(@abs(d));
         },
-        conv.VAL_INT => {
+        .VAL_INT => {
             const i = conv.as_num_int(args[0]);
             return conv.int_val(@intCast(@abs(i)));
         },
