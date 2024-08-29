@@ -11,15 +11,17 @@ const ObjMatrix = obj_h.ObjMatrix;
 const markTable = table_h.markTable;
 const freeTable = table_h.freeTable;
 
-pub const GC_HEAP_GROW_FACTOR = @as(c_int, 2);
-pub const GC_IDLE: c_int = 0;
-pub const GC_MARK_ROOTS: c_int = 1;
-pub const GC_TRACING: c_int = 2;
-pub const GC_SWEEPING: c_int = 3;
-pub const GCState = c_uint;
+pub const GC_HEAP_GROW_FACTOR = 2;
+
+pub const GCState = enum(c_int) {
+    GC_IDLE = 0,
+    GC_MARK_ROOTS = 1,
+    GC_TRACING = 2,
+    GC_SWEEPING = 3,
+};
 
 pub const GCData = struct {
-    state: GCState = GC_IDLE,
+    state: GCState = .GC_IDLE,
     rootIndex: usize = 0,
     sweepingObject: [*c]Obj = null,
 };
@@ -35,7 +37,17 @@ const free = stdlib.free;
 
 //todo: fix collect garbage debugging
 pub fn reallocate(pointer: ?*anyopaque, oldSize: usize, newSize: usize) ?*anyopaque {
-    vm_h.vm.bytesAllocated += newSize - oldSize;
+    if (newSize > oldSize) {
+        if (vm_h.vm.bytesAllocated > std.math.maxInt(usize) - (newSize - oldSize)) {
+            // Handle overflow error
+            _ = fprintf(stdio.stderr, "Memory allocation would cause overflow.\n");
+            exit(1);
+        }
+        vm_h.vm.bytesAllocated += newSize - oldSize;
+    } else {
+        vm_h.vm.bytesAllocated -= oldSize - newSize;
+    }
+
     if (vm_h.vm.bytesAllocated > vm_h.vm.nextGC) {
         collectGarbage();
     }
@@ -59,11 +71,11 @@ pub fn reallocate(pointer: ?*anyopaque, oldSize: usize, newSize: usize) ?*anyopa
 pub fn markObject(arg_object: [*c]Obj) void {
     var object = arg_object;
     _ = &object;
-    if (object == @as([*c]Obj, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) return;
+    if (object == @as([*c]Obj, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) return;
     if (object.*.isMarked) return;
-    object.*.isMarked = @as(c_int, 1) != 0;
-    if (vm_h.vm.grayCapacity < (vm_h.vm.grayCount + @as(c_int, 1))) {
-        vm_h.vm.grayCapacity = if (vm_h.vm.grayCapacity < @as(c_int, 8)) @as(c_int, 8) else vm_h.vm.grayCapacity * @as(c_int, 2);
+    object.*.isMarked = false;
+    if (vm_h.vm.grayCapacity < (vm_h.vm.grayCount + 1)) {
+        vm_h.vm.grayCapacity = if (vm_h.vm.grayCapacity < 8) 8 else vm_h.vm.grayCapacity * 2;
         vm_h.vm.grayStack = @as([*c][*c]Obj, @ptrCast(@alignCast(realloc(@as(?*anyopaque, @ptrCast(vm_h.vm.grayStack)), @sizeOf([*c]Obj) *% @as(c_ulong, @bitCast(@as(c_long, vm_h.vm.grayCapacity)))))));
     }
     (blk: {
@@ -75,10 +87,10 @@ pub fn markObject(arg_object: [*c]Obj) void {
         };
         if (tmp >= 0) break :blk vm_h.vm.grayStack + @as(usize, @intCast(tmp)) else break :blk vm_h.vm.grayStack - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
     }).* = object;
-    if (vm_h.vm.grayStack == @as([*c][*c]Obj, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
+    if (vm_h.vm.grayStack == null)
         exit(1);
-    }
 }
+
 pub export fn markValue(arg_value: Value) void {
     var value = arg_value;
     _ = &value;
@@ -87,14 +99,14 @@ pub export fn markValue(arg_value: Value) void {
     }
 }
 pub export fn collectGarbage() void {
-    while (gcData.state != @as(c_uint, @bitCast(GC_IDLE))) {
+    while (gcData.state != .GC_IDLE) {
         incrementalGC();
     }
 }
 pub export fn freeObjects() void {
     var object: [*c]Obj = vm_h.vm.objects;
     _ = &object;
-    while (object != @as([*c]Obj, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
+    while (object != @as([*c]Obj, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
         var next: [*c]Obj = object.*.next;
         _ = &next;
         freeObject(object);
@@ -110,7 +122,7 @@ pub fn freeObject(arg_object: [*c]Obj) callconv(.C) void {
         switch (object.*.type) {
             .OBJ_BOUND_METHOD => {
                 {
-                    _ = reallocate(@as(?*anyopaque, @ptrCast(object)), @sizeOf(obj_h.ObjBoundMethod), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
+                    _ = reallocate(@as(?*anyopaque, @ptrCast(object)), @sizeOf(obj_h.ObjBoundMethod), @as(usize, @bitCast(@as(c_long, 0))));
                     break;
                 }
             },
@@ -119,7 +131,7 @@ pub fn freeObject(arg_object: [*c]Obj) callconv(.C) void {
                     var klass: [*c]obj_h.ObjClass = @as([*c]obj_h.ObjClass, @ptrCast(@alignCast(object)));
                     _ = &klass;
                     freeTable(&klass.*.methods);
-                    _ = reallocate(@as(?*anyopaque, @ptrCast(object)), @sizeOf(obj_h.ObjClass), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
+                    _ = reallocate(@as(?*anyopaque, @ptrCast(object)), @sizeOf(obj_h.ObjClass), @as(usize, @bitCast(@as(c_long, 0))));
                     break;
                 }
             },
@@ -127,8 +139,8 @@ pub fn freeObject(arg_object: [*c]Obj) callconv(.C) void {
                 {
                     var closure: [*c]obj_h.ObjClosure = @as([*c]obj_h.ObjClosure, @ptrCast(@alignCast(object)));
                     _ = &closure;
-                    _ = reallocate(@as(?*anyopaque, @ptrCast(closure.*.upvalues)), @sizeOf([*c]obj_h.ObjUpvalue) *% @as(c_ulong, @bitCast(@as(c_long, closure.*.upvalueCount))), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
-                    _ = reallocate(@as(?*anyopaque, @ptrCast(object)), @sizeOf(obj_h.ObjClosure), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
+                    _ = reallocate(@as(?*anyopaque, @ptrCast(closure.*.upvalues)), @sizeOf([*c]obj_h.ObjUpvalue) *% @as(c_ulong, @bitCast(@as(c_long, closure.*.upvalueCount))), @as(usize, @bitCast(@as(c_long, 0))));
+                    _ = reallocate(@as(?*anyopaque, @ptrCast(object)), @sizeOf(obj_h.ObjClosure), @as(usize, @bitCast(@as(c_long, 0))));
                     break;
                 }
             },
@@ -137,7 +149,7 @@ pub fn freeObject(arg_object: [*c]Obj) callconv(.C) void {
                     var function: [*c]obj_h.ObjFunction = @as([*c]obj_h.ObjFunction, @ptrCast(@alignCast(object)));
                     _ = &function;
                     chunk_h.freeChunk(&function.*.chunk);
-                    _ = reallocate(@as(?*anyopaque, @ptrCast(object)), @sizeOf(obj_h.ObjFunction), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
+                    _ = reallocate(@as(?*anyopaque, @ptrCast(object)), @sizeOf(obj_h.ObjFunction), @as(usize, @bitCast(@as(c_long, 0))));
                     break;
                 }
             },
@@ -146,26 +158,26 @@ pub fn freeObject(arg_object: [*c]Obj) callconv(.C) void {
                     var instance: [*c]obj_h.ObjInstance = @as([*c]obj_h.ObjInstance, @ptrCast(@alignCast(object)));
                     _ = &instance;
                     freeTable(&instance.*.fields);
-                    _ = reallocate(@as(?*anyopaque, @ptrCast(object)), @sizeOf(obj_h.ObjInstance), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
+                    _ = reallocate(@as(?*anyopaque, @ptrCast(object)), @sizeOf(obj_h.ObjInstance), @as(usize, @bitCast(@as(c_long, 0))));
                     break;
                 }
             },
             .OBJ_NATIVE => {
-                _ = reallocate(@as(?*anyopaque, @ptrCast(object)), @sizeOf(obj_h.ObjNative), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
+                _ = reallocate(@as(?*anyopaque, @ptrCast(object)), @sizeOf(obj_h.ObjNative), @as(usize, @bitCast(@as(c_long, 0))));
                 break;
             },
             .OBJ_STRING => {
                 {
                     var string: [*c]obj_h.ObjString = @as([*c]obj_h.ObjString, @ptrCast(@alignCast(object)));
                     _ = &string;
-                    _ = reallocate(@as(?*anyopaque, @ptrCast(string.*.chars)), @sizeOf(u8) *% @as(c_ulong, @bitCast(@as(c_long, string.*.length + @as(c_int, 1)))), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
-                    _ = reallocate(@as(?*anyopaque, @ptrCast(object)), @sizeOf(obj_h.ObjString), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
+                    _ = reallocate(@as(?*anyopaque, @ptrCast(string.*.chars)), @sizeOf(u8) *% @as(c_ulong, @bitCast(@as(c_long, string.*.length + 1))), @as(usize, @bitCast(@as(c_long, 0))));
+                    _ = reallocate(@as(?*anyopaque, @ptrCast(object)), @sizeOf(obj_h.ObjString), @as(usize, @bitCast(@as(c_long, 0))));
                     break;
                 }
             },
             .OBJ_UPVALUE => {
                 {
-                    _ = reallocate(@as(?*anyopaque, @ptrCast(object)), @sizeOf(obj_h.ObjUpvalue), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
+                    _ = reallocate(@as(?*anyopaque, @ptrCast(object)), @sizeOf(obj_h.ObjUpvalue), @as(usize, @bitCast(@as(c_long, 0))));
                     break;
                 }
             },
@@ -293,7 +305,7 @@ pub fn blackenObject(arg_object: [*c]Obj) callconv(.C) void {
                     _ = &linkedList;
                     var current: [*c]Node = linkedList.*.head;
                     _ = &current;
-                    while (current != @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
+                    while (current != @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
                         markValue(current.*.data);
                         current = current.*.next;
                     }
@@ -310,17 +322,9 @@ pub fn blackenObject(arg_object: [*c]Obj) callconv(.C) void {
             },
             .OBJ_MATRIX => {
                 {
-                    var matrix: [*c]ObjMatrix = @as([*c]ObjMatrix, @ptrCast(@alignCast(object)));
-                    _ = &matrix;
-                    {
-                        var i: c_int = 0;
-                        _ = &i;
-                        while (i < matrix.*.len) : (i += 1) {
-                            markValue((blk: {
-                                const tmp = i;
-                                if (tmp >= 0) break :blk matrix.*.data.*.values + @as(usize, @intCast(tmp)) else break :blk matrix.*.data.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                            }).*);
-                        }
+                    const matrix: [*c]ObjMatrix = @as([*c]ObjMatrix, @ptrCast(@alignCast(object)));
+                    for (0..@intCast(matrix.*.len)) |i| {
+                        markValue(matrix.*.data.*.values[i]);
                     }
                     break;
                 }
@@ -348,24 +352,25 @@ pub fn markArray(arg_array: [*c]value_h.ValueArray) callconv(.C) void {
 
 pub export fn incrementalGC() void {
     const INCREMENT_LIMIT: c_int = 500;
-    _ = &INCREMENT_LIMIT;
+
     var workDone: c_int = 0;
-    _ = &workDone;
     while (workDone < INCREMENT_LIMIT) {
         while (true) {
             switch (gcData.state) {
-                @as(c_uint, @bitCast(@as(c_int, 0))) => {
-                    gcData.state = @as(c_uint, @bitCast(GC_MARK_ROOTS));
+                .GC_IDLE => {
+                    gcData.state = .GC_MARK_ROOTS;
                     gcData.rootIndex = 0;
                     gcData.sweepingObject = null;
                     break;
                 },
-                @as(c_uint, @bitCast(@as(c_int, 1))) => {
-                    while ((gcData.rootIndex < @as(usize, @bitCast(@divExact(@as(c_long, @bitCast(@intFromPtr(vm_h.vm.stackTop) -% @intFromPtr(@as([*c]Value, @ptrCast(@alignCast(&vm_h.vm.stack)))))), @sizeOf(Value))))) and (workDone < INCREMENT_LIMIT)) : (gcData.rootIndex +%= 1) {
+                .GC_MARK_ROOTS => {
+                    const stackSize: usize = @intCast(@intFromPtr(vm_h.vm.stackTop) - @intFromPtr(&vm_h.vm.stack));
+                    const stackItemCount = stackSize / @sizeOf(Value);
+                    while ((gcData.rootIndex < stackItemCount) and (workDone < INCREMENT_LIMIT)) : (gcData.rootIndex +%= 1) {
                         markValue(vm_h.vm.stack[gcData.rootIndex]);
                         workDone += 1;
                     }
-                    if (gcData.rootIndex >= @as(usize, @bitCast(@divExact(@as(c_long, @bitCast(@intFromPtr(vm_h.vm.stackTop) -% @intFromPtr(@as([*c]Value, @ptrCast(@alignCast(&vm_h.vm.stack)))))), @sizeOf(Value))))) {
+                    if (gcData.rootIndex >= stackItemCount) {
                         {
                             var i: c_int = 0;
                             _ = &i;
@@ -379,16 +384,16 @@ pub export fn incrementalGC() void {
                         {
                             var upvalue: [*c]obj_h.ObjUpvalue = vm_h.vm.openUpvalues;
                             _ = &upvalue;
-                            while (upvalue != @as([*c]obj_h.ObjUpvalue, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) : (upvalue = upvalue.*.next) {
+                            while (upvalue != null) : (upvalue = upvalue.*.next) {
                                 markObject(@as([*c]Obj, @ptrCast(@alignCast(upvalue))));
                             }
                         }
-                        gcData.state = @as(c_uint, @bitCast(GC_TRACING));
+                        gcData.state = .GC_TRACING;
                     }
                     break;
                 },
-                @as(c_uint, @bitCast(@as(c_int, 2))) => {
-                    while ((vm_h.vm.grayCount > @as(c_int, 0)) and (workDone < INCREMENT_LIMIT)) {
+                .GC_TRACING => {
+                    while ((vm_h.vm.grayCount > 0) and (workDone < INCREMENT_LIMIT)) {
                         var object: [*c]Obj = (blk: {
                             const tmp = blk_1: {
                                 const ref = &vm_h.vm.grayCount;
@@ -401,41 +406,45 @@ pub export fn incrementalGC() void {
                         blackenObject(object);
                         workDone += 1;
                     }
-                    if (vm_h.vm.grayCount == @as(c_int, 0)) {
-                        gcData.state = @as(c_uint, @bitCast(GC_SWEEPING));
+                    if (vm_h.vm.grayCount == 0) {
+                        gcData.state = .GC_SWEEPING;
                         gcData.sweepingObject = vm_h.vm.objects;
                     }
                     break;
                 },
-                @as(c_uint, @bitCast(@as(c_int, 3))) => {
-                    while ((gcData.sweepingObject != @as([*c]Obj, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) and (workDone < INCREMENT_LIMIT)) {
+                .GC_SWEEPING => {
+                    while ((gcData.sweepingObject != null) and (workDone < INCREMENT_LIMIT)) {
                         var next: [*c]Obj = gcData.sweepingObject.*.next;
                         _ = &next;
                         if (!gcData.sweepingObject.*.isMarked) {
                             freeObject(gcData.sweepingObject);
                             vm_h.vm.objects = next;
                         } else {
-                            gcData.sweepingObject.*.isMarked = @as(c_int, 0) != 0;
+                            gcData.sweepingObject.*.isMarked = false;
                         }
                         gcData.sweepingObject = next;
                         workDone += 1;
                     }
-                    if (gcData.sweepingObject == @as([*c]Obj, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
-                        gcData.state = @as(c_uint, @bitCast(GC_IDLE));
-                        vm_h.vm.nextGC = vm_h.vm.bytesAllocated *% 2;
+                    if (gcData.sweepingObject == @as([*c]Obj, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
+                        gcData.state = .GC_IDLE;
+                        // Safe calculation of nextGC
+                        if (vm_h.vm.bytesAllocated > std.math.maxInt(usize) / 2) {
+                            vm_h.vm.nextGC = std.math.maxInt(usize);
+                        } else {
+                            vm_h.vm.nextGC = vm_h.vm.bytesAllocated * 2;
+                        }
                     }
                     break;
                 },
-                else => {},
             }
             break;
         }
-        if (gcData.state == @as(c_uint, @bitCast(GC_IDLE))) {
+        if (gcData.state == .GC_IDLE) {
             break;
         }
     }
 }
 
-pub inline fn FREE_ARRAY(@"type": anytype, pointer: *anyopaque, oldCount: usize) @TypeOf(reallocate(pointer, @import("std").zig.c_translation.sizeof(@"type") * oldCount, @as(c_int, 0))) {
-    return reallocate(@ptrCast(@alignCast(pointer)), @import("std").zig.c_translation.sizeof(@"type") * oldCount, @as(c_int, 0));
+pub inline fn FREE_ARRAY(@"type": anytype, pointer: *anyopaque, oldCount: usize) @TypeOf(reallocate(pointer, @import("std").zig.c_translation.sizeof(@"type") * oldCount, 0)) {
+    return reallocate(@ptrCast(@alignCast(pointer)), @import("std").zig.c_translation.sizeof(@"type") * oldCount, 0);
 }
