@@ -787,12 +787,16 @@ pub export fn allocateString(arg_params: AllocStringParams) [*c]ObjString {
     return string;
 }
 
-pub export fn hashString(arg_key: [*c]const u8, arg_length: c_int) u64 {
-    var key = arg_key;
-    _ = &key;
-    var length = arg_length;
-    _ = &length;
-    return cityhash64(key, @as(usize, @bitCast(@as(c_long, length))));
+pub export fn hashString(key: [*c]const u8, length: c_int) u64 {
+    const FNV_OFFSET_BASIS: u64 = 0xcbf29ce484222325;
+    const FNV_PRIME: u64 = 0x100000001b3;
+
+    var hash = FNV_OFFSET_BASIS;
+    for (0..@intCast(length)) |i| {
+        hash ^= @intCast(key[i]);
+        hash = hash *% FNV_PRIME;
+    }
+    return hash;
 }
 
 pub export fn takeString(arg_chars: [*c]u8, arg_length: c_int) [*c]ObjString {

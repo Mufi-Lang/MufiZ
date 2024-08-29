@@ -34,10 +34,7 @@ const realloc = stdlib.realloc;
 const free = stdlib.free;
 
 //todo: fix collect garbage debugging
-pub fn reallocate(arg_pointer: ?*anyopaque, arg_oldSize: usize, arg_newSize: usize) ?*anyopaque {
-    const pointer = arg_pointer;
-    const oldSize = arg_oldSize;
-    const newSize = arg_newSize;
+pub fn reallocate(pointer: ?*anyopaque, oldSize: usize, newSize: usize) ?*anyopaque {
     vm_h.vm.bytesAllocated += newSize - oldSize;
     if (vm_h.vm.bytesAllocated > vm_h.vm.nextGC) {
         collectGarbage();
@@ -425,7 +422,7 @@ pub export fn incrementalGC() void {
                     }
                     if (gcData.sweepingObject == @as([*c]Obj, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
                         gcData.state = @as(c_uint, @bitCast(GC_IDLE));
-                        vm_h.vm.nextGC = vm_h.vm.bytesAllocated *% @as(usize, @bitCast(@as(c_long, @as(c_int, 2))));
+                        vm_h.vm.nextGC = vm_h.vm.bytesAllocated *% 2;
                     }
                     break;
                 },
@@ -440,5 +437,5 @@ pub export fn incrementalGC() void {
 }
 
 pub inline fn FREE_ARRAY(@"type": anytype, pointer: *anyopaque, oldCount: usize) @TypeOf(reallocate(pointer, @import("std").zig.c_translation.sizeof(@"type") * oldCount, @as(c_int, 0))) {
-    return reallocate(@ptrCast(pointer), @import("std").zig.c_translation.sizeof(@"type") * oldCount, @as(c_int, 0));
+    return reallocate(@ptrCast(@alignCast(pointer)), @import("std").zig.c_translation.sizeof(@"type") * oldCount, @as(c_int, 0));
 }

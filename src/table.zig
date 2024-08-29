@@ -44,7 +44,7 @@ pub export fn initTable(table: *Table) callconv(.C) void {
 }
 
 pub export fn freeTable(table: *Table) callconv(.C) void {
-    _ = memory.FREE_ARRAY(Entry, table.entries, @as(usize, @intCast(table.capacity))) orelse unreachable;
+    _ = reallocate(@ptrCast(@alignCast(table.entries)), @intCast(table.capacity), 0);
     initTable(table);
 }
 
@@ -92,7 +92,7 @@ pub export fn adjustCapacity(table: *Table, capacity: c_int) callconv(.C) void {
         dest.*.value = entry.*.value;
         table.*.count += 1;
     }
-    _ = memory.FREE_ARRAY(Entry, table.*.entries, @as(usize, @intCast(table.*.capacity)));
+    _ = reallocate(table.*.entries, @intCast(table.*.capacity), 0);
     table.*.entries = entries;
     table.*.capacity = capacity;
 }
