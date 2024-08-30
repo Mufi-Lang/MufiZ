@@ -24,6 +24,7 @@ fn defineNative(name: []const u8, fun: NativeFn) void {
 
 pub fn prelude() void {
     defineNative("what_is", &what_is);
+    // defineNative("import", &import);
     defineNative("input", &io.input);
     defineNative("double", &types.double);
     defineNative("int", &types.int);
@@ -95,6 +96,25 @@ pub fn what_is(argc: c_int, args: [*c]Value) callconv(.C) Value {
 
     return conv.nil_val();
 }
+
+// pub fn import(argc: c_int, args: [*c]Value) callconv(.C) Value {
+//     if (argc != 1) return stdlib_error("import() expects 1 argument!", .{ .argn = argc });
+
+//     const module = conv.as_zstring(args[0]);
+//     const eql = std.mem.eql;
+//     if (eql(u8, module, "math")) {
+//         addMath();
+//     } else if (eql(u8, module, "fs")) {
+//         addFs();
+//     } else if (eql(u8, module, "time")) {
+//         addTime();
+//     } else if (eql(u8, module, "net")) {
+//         addNet();
+//     } else {
+//         std.log.warn("Unknown module: {s}", .{module});
+//     }
+//     return conv.nil_val();
+// }
 
 const net_funs = if (enable_net) struct {
     pub fn get(argc: c_int, args: [*c]Value) callconv(.C) Value {

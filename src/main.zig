@@ -31,11 +31,11 @@ const params = clap.parseParamsComptime(
 pub fn main() !void {
     vm_h.initVM();
     defer vm_h.freeVM();
-    //stdlib.prelude();
-    //stdlib.addMath();
-    // stdlib.addTime();
-    // stdlib.addFs();
-    // stdlib.addNet();
+    stdlib.prelude();
+    stdlib.addMath();
+    stdlib.addTime();
+    stdlib.addFs();
+    stdlib.addNet();
     vm_h.importCollections();
     defer {
         const check = Global.deinit();

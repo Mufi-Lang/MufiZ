@@ -6,7 +6,9 @@ pub fn memcmp(s1: ?*const anyopaque, s2: ?*const anyopaque, n: usize) c_int {
     const num: usize = @intCast(n);
 
     for (0..num) |i| {
-        if (str1[i] != str2[i]) return @intCast(str1[i] - str2[i]);
+        if (str1[i] != str2[i]) {
+            return @as(c_int, @intCast(@as(i32, str1[i]) - @as(i32, str2[i])));
+        }
     }
 
     return 0;
