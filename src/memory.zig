@@ -1,4 +1,8 @@
+const std = @import("std");
+const print = std.debug.print;
+
 const obj_h = @import("object.zig");
+const debug_opts = @import("debug");
 const Obj = obj_h.Obj;
 const vm_h = @import("vm.zig");
 const value_h = @import("value.zig");
@@ -27,7 +31,6 @@ pub const GCData = struct {
 };
 
 pub var gcData: GCData = .{};
-const std = @import("std");
 const stdio = @cImport(@cInclude("stdio.h"));
 const stdlib = @cImport(@cInclude("stdlib.h"));
 const exit = std.process.exit;
@@ -38,6 +41,7 @@ const free = stdlib.free;
 //todo: fix collect garbage debugging
 pub fn reallocate(pointer: ?*anyopaque, oldSize: usize, newSize: usize) ?*anyopaque {
     if (newSize > oldSize) {
+        if (debug_opts.@"debug-stress-gc") collectGarbage();
         if (vm_h.vm.bytesAllocated > std.math.maxInt(usize) - (newSize - oldSize)) {
             // Handle overflow error
             _ = fprintf(stdio.stderr, "Memory allocation would cause overflow.\n");
@@ -70,7 +74,14 @@ pub fn reallocate(pointer: ?*anyopaque, oldSize: usize, newSize: usize) ?*anyopa
 
 pub fn markObject(object: [*c]Obj) void {
     if (object == null or object.*.isMarked) return;
-    object.*.isMarked = false;
+
+    if (debug_opts.log_gc) {
+        print("{p} mark ", .{@as(*anyopaque, @ptrCast(@alignCast(object)))});
+        value_h.printValue(value_h.OBJ_VAL(object));
+        print("\n", .{});
+    }
+
+    object.*.isMarked = true;
     if (vm_h.vm.grayCapacity < (vm_h.vm.grayCount + 1)) {
         vm_h.vm.grayCapacity = if (vm_h.vm.grayCapacity < 8) 8 else vm_h.vm.grayCapacity * 2;
         vm_h.vm.grayStack = @ptrCast(@alignCast(realloc(@ptrCast(vm_h.vm.grayStack), @intCast(@sizeOf([*c]Obj) *% vm_h.vm.grayCapacity))));
@@ -103,6 +114,8 @@ pub fn freeObjects() void {
 }
 
 pub fn freeObject(object: [*c]Obj) callconv(.C) void {
+    if (debug_opts.log_gc) print("{p} free type {any}\n", .{ @as(*anyopaque, @ptrCast(@alignCast(object))), object.*.type });
+
     switch (object.*.type) {
         .OBJ_BOUND_METHOD => {
             _ = reallocate(@ptrCast(object), @sizeOf(obj_h.ObjBoundMethod), 0);
@@ -160,130 +173,76 @@ pub fn freeObject(object: [*c]Obj) callconv(.C) void {
     }
 }
 
-pub fn blackenObject(arg_object: [*c]Obj) callconv(.C) void {
-    var object = arg_object;
-    _ = &object;
-    while (true) {
-        switch (object.*.type) {
-            .OBJ_BOUND_METHOD => {
-                {
-                    var bound: [*c]obj_h.ObjBoundMethod = @as([*c]obj_h.ObjBoundMethod, @ptrCast(@alignCast(object)));
-                    _ = &bound;
-                    markValue(bound.*.receiver);
-                    markObject(@as([*c]Obj, @ptrCast(@alignCast(bound.*.method))));
-                    break;
-                }
-            },
-            .OBJ_CLASS => {
-                {
-                    var klass: [*c]obj_h.ObjClass = @as([*c]obj_h.ObjClass, @ptrCast(@alignCast(object)));
-                    _ = &klass;
-                    markObject(@as([*c]Obj, @ptrCast(@alignCast(klass.*.name))));
-                    markTable(&klass.*.methods);
-                    break;
-                }
-            },
-            .OBJ_CLOSURE => {
-                {
-                    var closure: [*c]obj_h.ObjClosure = @as([*c]obj_h.ObjClosure, @ptrCast(@alignCast(object)));
-                    _ = &closure;
-                    markObject(@as([*c]Obj, @ptrCast(@alignCast(closure.*.function))));
-                    {
-                        var i: c_int = 0;
-                        _ = &i;
-                        while (i < closure.*.upvalueCount) : (i += 1) {
-                            markObject(@as([*c]Obj, @ptrCast(@alignCast((blk: {
-                                const tmp = i;
-                                if (tmp >= 0) break :blk closure.*.upvalues + @as(usize, @intCast(tmp)) else break :blk closure.*.upvalues - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                            }).*))));
-                        }
-                    }
-                    break;
-                }
-            },
-            .OBJ_FUNCTION => {
-                {
-                    var function: [*c]obj_h.ObjFunction = @as([*c]obj_h.ObjFunction, @ptrCast(@alignCast(object)));
-                    _ = &function;
-                    markObject(@as([*c]Obj, @ptrCast(@alignCast(function.*.name))));
-                    markArray(&function.*.chunk.constants);
-                    break;
-                }
-            },
-            .OBJ_INSTANCE => {
-                {
-                    var instance: [*c]obj_h.ObjInstance = @ptrCast(@alignCast(object));
-                    _ = &instance;
-                    markObject(@as([*c]Obj, @ptrCast(@alignCast(instance.*.klass))));
-                    markTable(&instance.*.fields);
-                    break;
-                }
-            },
-            .OBJ_UPVALUE => {
-                markValue(@as([*c]obj_h.ObjUpvalue, @ptrCast(@alignCast(object))).*.closed);
-                break;
-            },
-            .OBJ_ARRAY => {
-                var array: [*c]obj_h.ObjArray = @ptrCast(@alignCast(object));
-                _ = &array;
-                {
-                    var i: c_int = 0;
-                    _ = &i;
-                    while (i < array.*.count) : (i += 1) {
-                        markValue((blk: {
-                            const tmp = i;
-                            if (tmp >= 0) break :blk array.*.values + @as(usize, @intCast(tmp)) else break :blk array.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                        }).*);
-                    }
-                }
-                break;
-            },
-            .OBJ_LINKED_LIST => {
-                var linkedList: [*c]obj_h.ObjLinkedList = @ptrCast(@alignCast(object));
-                _ = &linkedList;
-                var current: [*c]Node = linkedList.*.head;
-                _ = &current;
-                while (current != @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
-                    markValue(current.*.data);
-                    current = current.*.next;
-                }
-                break;
-            },
-            .OBJ_HASH_TABLE => {
-                {
-                    var hashTable: [*c]ObjHashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(object)));
-                    _ = &hashTable;
-                    markTable(&hashTable.*.table);
-                    break;
-                }
-            },
-            .OBJ_MATRIX => {
-                {
-                    const matrix: [*c]ObjMatrix = @as([*c]ObjMatrix, @ptrCast(@alignCast(object)));
-                    for (0..@intCast(matrix.*.len)) |i| {
-                        markValue(matrix.*.data.*.values[i]);
-                    }
-                    break;
-                }
-            },
-            else => break,
-        }
-        break;
+pub fn blackenObject(object: [*c]Obj) callconv(.C) void {
+    if (debug_opts.log_gc) {
+        print("{p} blacken ", .{@as(*anyopaque, @ptrCast(@alignCast(object)))});
+        value_h.printValue(value_h.OBJ_VAL(@ptrCast(@alignCast(object))));
+        print("\n", .{});
+    }
+
+    switch (object.*.type) {
+        .OBJ_BOUND_METHOD => {
+            const bound: [*c]obj_h.ObjBoundMethod = @ptrCast(@alignCast(object));
+            markValue(bound.*.receiver);
+            markObject(@ptrCast(@alignCast(bound.*.method)));
+        },
+        .OBJ_CLASS => {
+            var klass: [*c]obj_h.ObjClass = @ptrCast(@alignCast(object));
+            _ = &klass;
+            markObject(@ptrCast(@alignCast(klass.*.name)));
+            markTable(&klass.*.methods);
+        },
+        .OBJ_CLOSURE => {
+            const closure: [*c]obj_h.ObjClosure = @ptrCast(@alignCast(object));
+            markObject(@ptrCast(@alignCast(closure.*.function)));
+            for (0..@intCast(closure.*.upvalueCount)) |i| {
+                markObject(@ptrCast(@alignCast(closure.*.upvalues[i])));
+            }
+        },
+        .OBJ_FUNCTION => {
+            const function: [*c]obj_h.ObjFunction = @ptrCast(@alignCast(object));
+            markObject(@ptrCast(@alignCast(function.*.name)));
+            markArray(&function.*.chunk.constants);
+        },
+        .OBJ_INSTANCE => {
+            const instance: [*c]obj_h.ObjInstance = @ptrCast(@alignCast(object));
+            markObject(@ptrCast(@alignCast(instance.*.klass)));
+            markTable(&instance.*.fields);
+        },
+        .OBJ_UPVALUE => {
+            markValue(@as([*c]obj_h.ObjUpvalue, @ptrCast(@alignCast(object))).*.closed);
+        },
+        .OBJ_ARRAY => {
+            const array: [*c]obj_h.ObjArray = @ptrCast(@alignCast(object));
+            for (0..@intCast(array.*.count)) |i| {
+                markValue(array.*.values[i]);
+            }
+        },
+        .OBJ_LINKED_LIST => {
+            const linkedList: [*c]obj_h.ObjLinkedList = @ptrCast(@alignCast(object));
+            var current: [*c]Node = linkedList.*.head;
+            while (current != null) {
+                markValue(current.*.data);
+                current = current.*.next;
+            }
+        },
+        .OBJ_HASH_TABLE => {
+            const hashTable: [*c]ObjHashTable = @ptrCast(@alignCast(object));
+            markTable(&hashTable.*.table);
+        },
+        .OBJ_MATRIX => {
+            const matrix: [*c]ObjMatrix = @as([*c]ObjMatrix, @ptrCast(@alignCast(object)));
+            for (0..@intCast(matrix.*.len)) |i| {
+                markValue(matrix.*.data.*.values[i]);
+            }
+        },
+        else => {},
     }
 }
 
-pub fn markArray(arg_array: [*c]value_h.ValueArray) callconv(.C) void {
-    var array = arg_array;
-    _ = &array;
-    {
-        var i: c_int = 0;
-        _ = &i;
-        while (i < array.*.count) : (i += 1) {
-            markValue((blk: {
-                const tmp = i;
-                if (tmp >= 0) break :blk array.*.values + @as(usize, @intCast(tmp)) else break :blk array.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-            }).*);
-        }
+pub fn markArray(array: [*c]value_h.ValueArray) callconv(.C) void {
+    for (0..@intCast(array.*.count)) |i| {
+        markValue(array.*.values[i]);
     }
 }
 
@@ -292,89 +251,70 @@ pub fn incrementalGC() void {
 
     var workDone: c_int = 0;
     while (workDone < INCREMENT_LIMIT) {
-        while (true) {
-            switch (gcData.state) {
-                .GC_IDLE => {
-                    gcData.state = .GC_MARK_ROOTS;
-                    gcData.rootIndex = 0;
-                    gcData.sweepingObject = null;
-                    break;
-                },
-                .GC_MARK_ROOTS => {
-                    const stackSize: usize = @intCast(@intFromPtr(vm_h.vm.stackTop) - @intFromPtr(&vm_h.vm.stack));
-                    const stackItemCount = stackSize / @sizeOf(Value);
-                    while ((gcData.rootIndex < stackItemCount) and (workDone < INCREMENT_LIMIT)) : (gcData.rootIndex +%= 1) {
-                        markValue(vm_h.vm.stack[gcData.rootIndex]);
-                        workDone += 1;
+        switch (gcData.state) {
+            .GC_IDLE => {
+                gcData.state = .GC_MARK_ROOTS;
+                gcData.rootIndex = 0;
+                gcData.sweepingObject = null;
+            },
+            .GC_MARK_ROOTS => {
+                const stackSize: usize = @intCast(@intFromPtr(vm_h.vm.stackTop) - @intFromPtr(&vm_h.vm.stack));
+                const stackItemCount = stackSize / @sizeOf(Value);
+                while ((gcData.rootIndex < stackItemCount) and (workDone < INCREMENT_LIMIT)) : (gcData.rootIndex +%= 1) {
+                    markValue(vm_h.vm.stack[gcData.rootIndex]);
+                    workDone += 1;
+                }
+                if (gcData.rootIndex >= stackItemCount) {
+                    for (0..@intCast(vm_h.vm.frameCount)) |i| {
+                        markObject(@ptrCast(@alignCast(vm_h.vm.frames[i].closure)));
                     }
-                    if (gcData.rootIndex >= stackItemCount) {
-                        {
-                            var i: c_int = 0;
-                            _ = &i;
-                            while (i < vm_h.vm.frameCount) : (i += 1) {
-                                markObject(@as([*c]Obj, @ptrCast(@alignCast(vm_h.vm.frames[@as(c_uint, @intCast(i))].closure))));
-                            }
-                        }
-                        markTable(&vm_h.vm.globals);
-                        markTable(&vm_h.vm.strings);
-                        markObject(@as([*c]Obj, @ptrCast(@alignCast(vm_h.vm.initString))));
-                        {
-                            var upvalue: [*c]obj_h.ObjUpvalue = vm_h.vm.openUpvalues;
-                            _ = &upvalue;
-                            while (upvalue != null) : (upvalue = upvalue.*.next) {
-                                markObject(@as([*c]Obj, @ptrCast(@alignCast(upvalue))));
-                            }
-                        }
-                        gcData.state = .GC_TRACING;
+                    markTable(&vm_h.vm.globals);
+                    markTable(&vm_h.vm.strings);
+                    markObject(@ptrCast(@alignCast(vm_h.vm.initString)));
+
+                    var upvalue: [*c]obj_h.ObjUpvalue = vm_h.vm.openUpvalues;
+
+                    while (upvalue != null) : (upvalue = upvalue.*.next) {
+                        markObject(@ptrCast(@alignCast(upvalue)));
                     }
-                    break;
-                },
-                .GC_TRACING => {
-                    while ((vm_h.vm.grayCount > 0) and (workDone < INCREMENT_LIMIT)) {
-                        var object: [*c]Obj = (blk: {
-                            const tmp = blk_1: {
-                                const ref = &vm_h.vm.grayCount;
-                                ref.* -= 1;
-                                break :blk_1 ref.*;
-                            };
-                            if (tmp >= 0) break :blk vm_h.vm.grayStack + @as(usize, @intCast(tmp)) else break :blk vm_h.vm.grayStack - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                        }).*;
-                        _ = &object;
-                        blackenObject(object);
-                        workDone += 1;
+
+                    gcData.state = .GC_TRACING;
+                }
+            },
+            .GC_TRACING => {
+                while ((vm_h.vm.grayCount > 0) and (workDone < INCREMENT_LIMIT)) {
+                    vm_h.vm.grayCount -= 1;
+                    const object = vm_h.vm.grayStack[@intCast(vm_h.vm.grayCount)];
+                    blackenObject(object);
+                    workDone += 1;
+                }
+                if (vm_h.vm.grayCount == 0) {
+                    gcData.state = .GC_SWEEPING;
+                    gcData.sweepingObject = vm_h.vm.objects;
+                }
+            },
+            .GC_SWEEPING => {
+                while ((gcData.sweepingObject != null) and (workDone < INCREMENT_LIMIT)) {
+                    const next: [*c]Obj = gcData.sweepingObject.*.next;
+                    if (!gcData.sweepingObject.*.isMarked) {
+                        freeObject(gcData.sweepingObject);
+                        vm_h.vm.objects = next;
+                    } else {
+                        gcData.sweepingObject.*.isMarked = false;
                     }
-                    if (vm_h.vm.grayCount == 0) {
-                        gcData.state = .GC_SWEEPING;
-                        gcData.sweepingObject = vm_h.vm.objects;
+                    gcData.sweepingObject = next;
+                    workDone += 1;
+                }
+                if (gcData.sweepingObject == null) {
+                    gcData.state = .GC_IDLE;
+                    // Safe calculation of nextGC
+                    if (vm_h.vm.bytesAllocated > std.math.maxInt(usize) / 2) {
+                        vm_h.vm.nextGC = std.math.maxInt(usize);
+                    } else {
+                        vm_h.vm.nextGC = vm_h.vm.bytesAllocated * 2;
                     }
-                    break;
-                },
-                .GC_SWEEPING => {
-                    while ((gcData.sweepingObject != null) and (workDone < INCREMENT_LIMIT)) {
-                        var next: [*c]Obj = gcData.sweepingObject.*.next;
-                        _ = &next;
-                        if (!gcData.sweepingObject.*.isMarked) {
-                            freeObject(gcData.sweepingObject);
-                            vm_h.vm.objects = next;
-                        } else {
-                            gcData.sweepingObject.*.isMarked = false;
-                        }
-                        gcData.sweepingObject = next;
-                        workDone += 1;
-                    }
-                    if (gcData.sweepingObject == @as([*c]Obj, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
-                        gcData.state = .GC_IDLE;
-                        // Safe calculation of nextGC
-                        if (vm_h.vm.bytesAllocated > std.math.maxInt(usize) / 2) {
-                            vm_h.vm.nextGC = std.math.maxInt(usize);
-                        } else {
-                            vm_h.vm.nextGC = vm_h.vm.bytesAllocated * 2;
-                        }
-                    }
-                    break;
-                },
-            }
-            break;
+                }
+            },
         }
         if (gcData.state == .GC_IDLE) {
             break;

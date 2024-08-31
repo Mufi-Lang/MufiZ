@@ -799,7 +799,7 @@ pub fn index_(arg_canAssign: bool) callconv(.C) void {
             emitByte(@intCast(@intFromEnum(OpCode.OP_INDEX_GET)));
         }
     } else {
-        vm_h.runtimeError("Only arrays support indexing.");
+        vm_h.runtimeError("Only arrays support indexing.", .{});
     }
 }
 pub fn variable(arg_canAssign: bool) callconv(.C) void {
@@ -879,273 +879,273 @@ pub fn unary(arg_canAssign: bool) callconv(.C) void {
         break;
     }
 }
-pub export var rules: [54]ParseRule = [54]ParseRule{
-    ParseRule{
+pub export var rules: [54]ParseRule = .{
+    .{
         .prefix = &grouping,
         .infix = &call,
         .precedence = @as(c_uint, @bitCast(PREC_CALL)),
     },
-    ParseRule{
+    .{
         .prefix = null,
         .infix = null,
         .precedence = @as(c_uint, @bitCast(PREC_NONE)),
     },
-    ParseRule{
+    .{
         .prefix = &fvector,
         .infix = null,
         .precedence = @as(c_uint, @bitCast(PREC_NONE)),
     },
-    ParseRule{
+    .{
         .prefix = null,
         .infix = null,
         .precedence = @as(c_uint, @bitCast(PREC_NONE)),
     },
-    ParseRule{
+    .{
         .prefix = null,
         .infix = null,
         .precedence = @as(c_uint, @bitCast(PREC_NONE)),
     },
-    ParseRule{
+    .{
         .prefix = null,
         .infix = &dot,
         .precedence = @as(c_uint, @bitCast(PREC_CALL)),
     },
-    ParseRule{
+    .{
         .prefix = &unary,
         .infix = &binary,
         .precedence = @as(c_uint, @bitCast(PREC_TERM)),
     },
-    ParseRule{
+    .{
         .prefix = null,
         .infix = &binary,
         .precedence = @as(c_uint, @bitCast(PREC_TERM)),
     },
-    ParseRule{
+    .{
         .prefix = null,
         .infix = null,
         .precedence = @as(c_uint, @bitCast(PREC_NONE)),
     },
-    ParseRule{
+    .{
         .prefix = null,
         .infix = &binary,
         .precedence = @as(c_uint, @bitCast(PREC_FACTOR)),
     },
-    ParseRule{
+    .{
         .prefix = null,
         .infix = &binary,
         .precedence = @as(c_uint, @bitCast(PREC_FACTOR)),
     },
-    ParseRule{
+    .{
         .prefix = null,
         .infix = &binary,
         .precedence = @as(c_uint, @bitCast(PREC_FACTOR)),
     },
-    ParseRule{
+    .{
         .prefix = &unary,
         .infix = null,
         .precedence = @as(c_uint, @bitCast(PREC_NONE)),
     },
-    ParseRule{
+    .{
         .prefix = null,
         .infix = &binary,
         .precedence = @as(c_uint, @bitCast(PREC_EQUALITY)),
     },
-    ParseRule{
+    .{
         .prefix = null,
         .infix = null,
         .precedence = @as(c_uint, @bitCast(PREC_NONE)),
     },
-    ParseRule{
+    .{
         .prefix = null,
         .infix = &binary,
         .precedence = @as(c_uint, @bitCast(PREC_EQUALITY)),
     },
-    ParseRule{
+    .{
         .prefix = null,
         .infix = &binary,
         .precedence = @as(c_uint, @bitCast(PREC_COMPARISON)),
     },
-    ParseRule{
+    .{
         .prefix = null,
         .infix = &binary,
         .precedence = @as(c_uint, @bitCast(PREC_COMPARISON)),
     },
-    ParseRule{
+    .{
         .prefix = null,
         .infix = &binary,
         .precedence = @as(c_uint, @bitCast(PREC_COMPARISON)),
     },
-    ParseRule{
+    .{
         .prefix = null,
         .infix = &binary,
         .precedence = @as(c_uint, @bitCast(PREC_COMPARISON)),
     },
-    ParseRule{
+    .{
         .prefix = &variable,
         .infix = &index_,
         .precedence = @as(c_uint, @bitCast(PREC_NONE)),
     },
-    ParseRule{
+    .{
         .prefix = &string,
         .infix = null,
         .precedence = @as(c_uint, @bitCast(PREC_NONE)),
     },
-    ParseRule{
+    .{
         .prefix = &number,
         .infix = null,
         .precedence = @as(c_uint, @bitCast(PREC_NONE)),
     },
-    ParseRule{
+    .{
         .prefix = &number,
         .infix = null,
         .precedence = @as(c_uint, @bitCast(PREC_NONE)),
     },
-    ParseRule{
+    .{
         .prefix = null,
         .infix = &and_,
         .precedence = @as(c_uint, @bitCast(PREC_AND)),
     },
-    ParseRule{
+    .{
         .prefix = null,
         .infix = null,
         .precedence = @as(c_uint, @bitCast(PREC_NONE)),
     },
-    ParseRule{
+    .{
         .prefix = null,
         .infix = null,
         .precedence = @as(c_uint, @bitCast(PREC_NONE)),
     },
-    ParseRule{
+    .{
         .prefix = &literal,
         .infix = null,
         .precedence = @as(c_uint, @bitCast(PREC_NONE)),
     },
-    ParseRule{
+    .{
         .prefix = null,
         .infix = null,
         .precedence = @as(c_uint, @bitCast(PREC_NONE)),
     },
-    ParseRule{
+    .{
         .prefix = null,
         .infix = null,
         .precedence = @as(c_uint, @bitCast(PREC_NONE)),
     },
-    ParseRule{
+    .{
         .prefix = null,
         .infix = null,
         .precedence = @as(c_uint, @bitCast(PREC_NONE)),
     },
-    ParseRule{
+    .{
         .prefix = null,
         .infix = null,
         .precedence = @as(c_uint, @bitCast(PREC_NONE)),
     },
-    ParseRule{
+    .{
         .prefix = null,
         .infix = null,
         .precedence = @as(c_uint, @bitCast(PREC_NONE)),
     },
-    ParseRule{
+    .{
         .prefix = &literal,
         .infix = null,
         .precedence = @as(c_uint, @bitCast(PREC_NONE)),
     },
-    ParseRule{
+    .{
         .prefix = null,
         .infix = &or_,
         .precedence = @as(c_uint, @bitCast(PREC_OR)),
     },
-    ParseRule{
+    .{
         .prefix = null,
         .infix = null,
         .precedence = @as(c_uint, @bitCast(PREC_NONE)),
     },
-    ParseRule{
+    .{
         .prefix = null,
         .infix = null,
         .precedence = @as(c_uint, @bitCast(PREC_NONE)),
     },
-    ParseRule{
+    .{
         .prefix = &self_,
         .infix = null,
         .precedence = @as(c_uint, @bitCast(PREC_NONE)),
     },
-    ParseRule{
+    .{
         .prefix = &super_,
         .infix = null,
         .precedence = @as(c_uint, @bitCast(PREC_NONE)),
     },
-    ParseRule{
+    .{
         .prefix = &literal,
         .infix = null,
         .precedence = @as(c_uint, @bitCast(PREC_NONE)),
     },
-    ParseRule{
+    .{
         .prefix = null,
         .infix = null,
         .precedence = @as(c_uint, @bitCast(PREC_NONE)),
     },
-    ParseRule{
+    .{
         .prefix = null,
         .infix = null,
         .precedence = @as(c_uint, @bitCast(PREC_NONE)),
     },
-    ParseRule{
+    .{
         .prefix = &item_,
         .infix = null,
         .precedence = @as(c_uint, @bitCast(PREC_NONE)),
     },
-    ParseRule{
+    .{
         .prefix = null,
         .infix = null,
         .precedence = @as(c_uint, @bitCast(PREC_NONE)),
     },
-    ParseRule{
+    .{
         .prefix = null,
         .infix = null,
         .precedence = @as(c_uint, @bitCast(PREC_NONE)),
     },
-    ParseRule{
+    .{
         .prefix = null,
         .infix = null,
         .precedence = @as(c_uint, @bitCast(PREC_NONE)),
     },
-    ParseRule{
+    .{
         .prefix = null,
         .infix = null,
         .precedence = @as(c_uint, @bitCast(PREC_NONE)),
     },
-    ParseRule{
+    .{
         .prefix = null,
         .infix = null,
         .precedence = @as(c_uint, @bitCast(PREC_NONE)),
     },
-    ParseRule{
+    .{
         .prefix = null,
         .infix = null,
         .precedence = @as(c_uint, @bitCast(PREC_NONE)),
     },
-    ParseRule{
+    .{
         .prefix = null,
         .infix = null,
         .precedence = @as(c_uint, @bitCast(PREC_NONE)),
     },
-    ParseRule{
+    .{
         .prefix = null,
         .infix = null,
         .precedence = @as(c_uint, @bitCast(PREC_NONE)),
     },
-    ParseRule{
+    .{
         .prefix = null,
         .infix = &binary,
         .precedence = @as(c_uint, @bitCast(PREC_FACTOR)),
     },
-    ParseRule{
+    .{
         .prefix = &array,
         .infix = null,
         .precedence = @as(c_uint, @bitCast(PREC_INDEX)),
     },
-    ParseRule{
+    .{
         .prefix = null,
         .infix = null,
         .precedence = @as(c_uint, @bitCast(PREC_NONE)),

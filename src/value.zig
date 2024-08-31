@@ -108,8 +108,8 @@ pub inline fn DOUBLE_VAL(value: f64) Value {
     return .{ .VAL_DOUBLE, .{ .num_double = value } };
 }
 
-pub inline fn OBJ_VAL(value: ?*anyopaque) Value {
-    return .{ .VAL_OBJ, .{ .obj = @ptrCast(@alignCast(value)) } };
+pub inline fn OBJ_VAL(value: [*c]Obj) Value {
+    return .{ .type = .VAL_OBJ, .as = .{ .obj = value } };
 }
 
 pub inline fn COMPLEX_VAL(value: Complex) Value {

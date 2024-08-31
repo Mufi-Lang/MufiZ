@@ -117,8 +117,29 @@ const copyString = object_h.copyString;
 const freeObjects = memory_h.freeObjects;
 
 // todo!()
-pub fn runtimeError(format: [*c]const u8, ...) callconv(.C) void {
-    _ = &format;
+pub fn runtimeError(comptime format: []const u8, args: anytype) void {
+    const stderr = std.io.getStdErr().writer();
+    stderr.print(format, args) catch {};
+    stderr.writeByte('\n') catch {};
+
+    var i: i32 = @intCast(vm.frameCount - 1);
+    while (i >= 0) : (i -= 1) {
+        const frame = &vm.frames[@intCast(i)];
+        const function = frame.*.closure.*.function;
+        const instruction: usize = @intFromPtr(frame.ip) - @intFromPtr(function.*.chunk.code) - 1;
+
+        stderr.print("[line {d}] in ", .{function.*.chunk.lines[instruction]}) catch {};
+
+        if (function.*.name == null) {
+            stderr.writeAll("script\n") catch {};
+        } else {
+            const name = function.*.name.*.chars;
+            const len: usize = @intCast(function.*.name.*.length);
+            stderr.print("{s}()\n", .{@as([]u8, @ptrCast(@alignCast(name[0..len])))}) catch {};
+        }
+    }
+
+    resetStack();
 }
 
 pub export fn freeVM() void {
@@ -263,11 +284,11 @@ pub fn call(arg_closure: [*c]ObjClosure, arg_argCount: c_int) callconv(.C) bool 
     var argCount = arg_argCount;
     _ = &argCount;
     if (argCount != closure.*.function.*.arity) {
-        runtimeError("Expected %d arguments but got %d.", closure.*.function.*.arity, argCount);
+        runtimeError("Expected {d} arguments but got {d}.", .{ closure.*.function.*.arity, argCount });
         return @as(c_int, 0) != 0;
     }
     if (vm.frameCount == @as(c_int, 64)) {
-        runtimeError("Stack overflow.");
+        runtimeError("Stack overflow.", .{});
         return @as(c_int, 0) != 0;
     }
     var frame: [*c]CallFrame = &vm.frames[
@@ -321,7 +342,7 @@ pub fn callValue(arg_callee: Value, arg_argCount: c_int) callconv(.C) bool {
                         if (tableGet(&klass.*.methods, vm.initString, &initializer)) {
                             return call(@as([*c]ObjClosure, @ptrCast(@alignCast(initializer.as.obj))), argCount);
                         } else if (argCount != @as(c_int, 0)) {
-                            runtimeError("Expected 0 arguments but got %d.", argCount);
+                            runtimeError("Expected 0 arguments but got {d}.", .{argCount});
                             return @as(c_int, 0) != 0;
                         }
                         return @as(c_int, 1) != 0;
@@ -360,7 +381,7 @@ pub fn callValue(arg_callee: Value, arg_argCount: c_int) callconv(.C) bool {
             break;
         }
     }
-    runtimeError("Can only call functions and classes.");
+    runtimeError("Can only call functions and classes.", .{});
     return @as(c_int, 0) != 0;
 }
 pub fn invokeFromClass(arg_klass: [*c]ObjClass, arg_name: [*c]ObjString, arg_argCount: c_int) callconv(.C) bool {
@@ -373,7 +394,8 @@ pub fn invokeFromClass(arg_klass: [*c]ObjClass, arg_name: [*c]ObjString, arg_arg
     var method: Value = undefined;
     _ = &method;
     if (!tableGet(&klass.*.methods, name, &method)) {
-        runtimeError("Undefined property '%s'.", name.*.chars);
+        const len: usize = @intCast(name.*.length);
+        runtimeError("Undefined property '{s}'.", .{name.*.chars[0..len]});
         return @as(c_int, 0) != 0;
     }
     return call(@as([*c]ObjClosure, @ptrCast(@alignCast(method.as.obj))), argCount);
@@ -386,7 +408,7 @@ pub fn invoke(arg_name: [*c]ObjString, arg_argCount: c_int) callconv(.C) bool {
     var receiver: Value = peek(argCount);
     _ = &receiver;
     if (!object_h.isObjType(receiver, .OBJ_INSTANCE)) {
-        runtimeError("Only instances have methods.");
+        runtimeError("Only instances have methods.", .{});
         return @as(c_int, 0) != 0;
     }
     var instance: [*c]ObjInstance = @as([*c]ObjInstance, @ptrCast(@alignCast(receiver.as.obj)));
@@ -410,7 +432,7 @@ pub fn bindMethod(arg_klass: [*c]ObjClass, arg_name: [*c]ObjString) callconv(.C)
     var method: Value = undefined;
     _ = &method;
     if (!tableGet(&klass.*.methods, name, &method)) {
-        runtimeError("Undefined property '%s'.", name.*.chars);
+        runtimeError("Undefined property '{s}'.", .{@as([]u8, @ptrCast(@alignCast(name.*.chars[0..@intCast(name.*.length)])))});
         return @as(c_int, 0) != 0;
     }
     var bound: [*c]ObjBoundMethod = newBoundMethod(peek(@as(c_int, 0)), @as([*c]ObjClosure, @ptrCast(@alignCast(method.as.obj))));
@@ -572,7 +594,7 @@ pub fn setArray(arg_array: [*c]ObjArray, arg_index_1: c_int, arg_value: Value) c
     var value = arg_value;
     _ = &value;
     if (index_1 >= array.*.count) {
-        runtimeError("Index out of bounds.");
+        runtimeError("Index out of bounds.", .{});
         return;
     }
     (blk: {
@@ -588,7 +610,7 @@ pub fn setFloatVector(arg_fvec: [*c]FloatVector, arg_index_1: c_int, arg_value: 
     var value = arg_value;
     _ = &value;
     if (index_1 >= fvec.*.count) {
-        runtimeError("Index out of bounds.");
+        runtimeError("Index out of bounds.", .{});
         return;
     }
     (blk: {
@@ -711,7 +733,7 @@ pub fn run() callconv(.C) InterpretResult {
                         var value: Value = undefined;
                         _ = &value;
                         if (!table_h.tableGet(&vm.globals, name, &value)) {
-                            runtimeError("Undefined variable '%s'.", name.*.chars);
+                            runtimeError("Undefined variable '{s}'.", .{@as([]u8, @ptrCast(@alignCast(name.*.chars[0..@intCast(name.*.length)])))});
                             return .INTERPRET_RUNTIME_ERROR;
                         }
                         push(value);
@@ -747,7 +769,7 @@ pub fn run() callconv(.C) InterpretResult {
                         _ = &name;
                         if (tableSet(&vm.globals, name, peek(@as(c_int, 0)))) {
                             _ = tableDelete(&vm.globals, name);
-                            runtimeError("Undefined variable '%s'.", name.*.chars);
+                            runtimeError("Undefined variable '{s}'.", .{@as([]u8, @ptrCast(@alignCast(name.*.chars[0..@intCast(name.*.length)])))});
                             return .INTERPRET_RUNTIME_ERROR;
                         }
                         break;
@@ -782,7 +804,7 @@ pub fn run() callconv(.C) InterpretResult {
                 @as(c_int, 12) => {
                     {
                         if (!isObjType(peek(@as(c_int, 0)), .OBJ_INSTANCE)) {
-                            runtimeError("Only instances have properties.");
+                            runtimeError("Only instances have properties.", .{});
                             return .INTERPRET_RUNTIME_ERROR;
                         }
                         var instance: [*c]ObjInstance = @as([*c]ObjInstance, @ptrCast(@alignCast(peek(@as(c_int, 0)).as.obj)));
@@ -812,7 +834,7 @@ pub fn run() callconv(.C) InterpretResult {
                 @as(c_int, 13) => {
                     {
                         if (!isObjType(peek(@as(c_int, 1)), .OBJ_INSTANCE)) {
-                            runtimeError("Only instances have fields.");
+                            runtimeError("Only instances have fields.", .{});
                             return .INTERPRET_RUNTIME_ERROR;
                         }
                         var instance: [*c]ObjInstance = @as([*c]ObjInstance, @ptrCast(@alignCast(peek(@as(c_int, 1)).as.obj)));
@@ -873,13 +895,13 @@ pub fn run() callconv(.C) InterpretResult {
                         _ = &array;
                         printValue(array);
                         if (!isObjType(array, .OBJ_ARRAY)) {
-                            runtimeError("Only arrays support indexing.");
+                            runtimeError("Only arrays support indexing.", .{});
                             return .INTERPRET_RUNTIME_ERROR;
                         }
                         var arrObj: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(array.as.obj)));
                         _ = &arrObj;
                         if ((idx < @as(c_int, 0)) or (idx >= arrObj.*.count)) {
-                            runtimeError("Index out of bounds.");
+                            runtimeError("Index out of bounds.", .{});
                             return .INTERPRET_RUNTIME_ERROR;
                         }
                         push((blk: {
@@ -910,13 +932,13 @@ pub fn run() callconv(.C) InterpretResult {
                         _ = &array;
                         printValue(array);
                         if (!isObjType(array, .OBJ_ARRAY)) {
-                            runtimeError("Only arrays support indexing.");
+                            runtimeError("Only arrays support indexing.", .{});
                             return .INTERPRET_RUNTIME_ERROR;
                         }
                         var arrObj: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(array.as.obj)));
                         _ = &arrObj;
                         if ((idx < @as(c_int, 0)) or (idx >= arrObj.*.count)) {
-                            runtimeError("Index out of bounds.");
+                            runtimeError("Index out of bounds.", .{});
                             return .INTERPRET_RUNTIME_ERROR;
                         }
                         push((blk: {
@@ -935,11 +957,11 @@ pub fn run() callconv(.C) InterpretResult {
                         var array: Value = peek(@as(c_int, 2));
                         _ = &array;
                         if (!isObjType(array, .OBJ_ARRAY)) {
-                            runtimeError("Only arrays support indexing.");
+                            runtimeError("Only arrays support indexing.", .{});
                             return .INTERPRET_RUNTIME_ERROR;
                         }
                         if (!(index_1.type == .VAL_INT)) {
-                            runtimeError("Array index must be an integer.");
+                            runtimeError("Array index must be an integer.", .{});
                             return .INTERPRET_RUNTIME_ERROR;
                         }
                         var idx: c_int = index_1.as.num_int;
@@ -947,7 +969,7 @@ pub fn run() callconv(.C) InterpretResult {
                         var arrObj: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(array.as.obj)));
                         _ = &arrObj;
                         if ((idx < @as(c_int, 0)) or (idx >= arrObj.*.count)) {
-                            runtimeError("Index out of bounds.");
+                            runtimeError("Index out of bounds.", .{});
                             return .INTERPRET_RUNTIME_ERROR;
                         }
                         (blk: {
@@ -1089,7 +1111,7 @@ pub fn run() callconv(.C) InterpretResult {
                                 },
                             });
                         } else {
-                            runtimeError("Operands must be numeric type (double/int/complex).");
+                            runtimeError("Operands must be numeric type (double/int/complex).", .{});
                             return .INTERPRET_RUNTIME_ERROR;
                         }
                         if (!false) break;
@@ -1121,7 +1143,7 @@ pub fn run() callconv(.C) InterpretResult {
                                 },
                             });
                         } else {
-                            runtimeError("Operands must be numeric type (double/int/complex).");
+                            runtimeError("Operands must be numeric type (double/int/complex).", .{});
                             return .INTERPRET_RUNTIME_ERROR;
                         }
                         if (!false) break;
@@ -1224,7 +1246,7 @@ pub fn run() callconv(.C) InterpretResult {
                                         },
                                     });
                                 } else {
-                                    runtimeError("Invalid Binary Operation.");
+                                    runtimeError("Invalid Binary Operation.", .{});
                                     return .INTERPRET_RUNTIME_ERROR;
                                 }
                                 if (!false) break;
@@ -1326,7 +1348,7 @@ pub fn run() callconv(.C) InterpretResult {
                                     },
                                 });
                             } else {
-                                runtimeError("Invalid Binary Operation.");
+                                runtimeError("Invalid Binary Operation.", .{});
                                 return .INTERPRET_RUNTIME_ERROR;
                             }
                             if (!false) break;
@@ -1427,7 +1449,7 @@ pub fn run() callconv(.C) InterpretResult {
                                     },
                                 });
                             } else {
-                                runtimeError("Invalid Binary Operation.");
+                                runtimeError("Invalid Binary Operation.", .{});
                                 return .INTERPRET_RUNTIME_ERROR;
                             }
                             if (!false) break;
@@ -1528,7 +1550,7 @@ pub fn run() callconv(.C) InterpretResult {
                                     },
                                 });
                             } else {
-                                runtimeError("Invalid Binary Operation.");
+                                runtimeError("Invalid Binary Operation.", .{});
                                 return .INTERPRET_RUNTIME_ERROR;
                             }
                             if (!false) break;
@@ -1550,7 +1572,7 @@ pub fn run() callconv(.C) InterpretResult {
                                 },
                             });
                         } else {
-                            runtimeError("Operands must be integers.");
+                            runtimeError("Operands must be integers.", .{});
                             return .INTERPRET_RUNTIME_ERROR;
                         }
                         break;
@@ -1600,7 +1622,7 @@ pub fn run() callconv(.C) InterpretResult {
                                 },
                             });
                         } else {
-                            runtimeError("Operands must be numeric type.");
+                            runtimeError("Operands must be numeric type.", .{});
                             return .INTERPRET_RUNTIME_ERROR;
                         }
                         break;
@@ -1617,7 +1639,7 @@ pub fn run() callconv(.C) InterpretResult {
                 },
                 @as(c_int, 27) => {
                     if ((!(peek(@as(c_int, 0)).type == .VAL_INT) and !(peek(@as(c_int, 0)).type == .VAL_DOUBLE)) and !(peek(@as(c_int, 0)).type == .VAL_COMPLEX)) {
-                        runtimeError("Operand must be a number (int/double).");
+                        runtimeError("Operand must be a number (int/double).", .{});
                         return .INTERPRET_RUNTIME_ERROR;
                     }
                     if (peek(@as(c_int, 0)).type == .VAL_INT) {
@@ -1707,7 +1729,7 @@ pub fn run() callconv(.C) InterpretResult {
                         var val: Value = peek(@as(c_int, 0));
                         _ = &val;
                         if (!isObjType(val, .OBJ_ARRAY) and !isObjType(val, .OBJ_FVECTOR)) {
-                            runtimeError("Operand must be an array or a vector.");
+                            runtimeError("Operand must be an array or a vector.", .{});
                             return .INTERPRET_RUNTIME_ERROR;
                         }
                         if (isObjType(val, .OBJ_ARRAY)) {
@@ -1937,7 +1959,7 @@ pub fn run() callconv(.C) InterpretResult {
                         var superclass: Value = peek(@as(c_int, 1));
                         _ = &superclass;
                         if (!isObjType(superclass, .OBJ_CLASS)) {
-                            runtimeError("Superclass must be a class.");
+                            runtimeError("Superclass must be a class.", .{});
                             return .INTERPRET_RUNTIME_ERROR;
                         }
                         var subclass: [*c]ObjClass = @as([*c]ObjClass, @ptrCast(@alignCast(peek(@as(c_int, 0)).as.obj)));

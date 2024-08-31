@@ -208,10 +208,10 @@ const Got = union(enum) {
 pub fn stdlib_error(message: []const u8, got: Got) Value {
     switch (got) {
         .value_type => |v| {
-            vm.runtimeError("%s Got %s type...", conv.cstr(@constCast(message)), conv.cstr(@constCast(v)));
+            vm.runtimeError("{s} Got {s} type...", .{ message, v });
         },
         .argn => |n| {
-            vm.runtimeError("%s Got %d arguments...", conv.cstr(@constCast(message)), n);
+            vm.runtimeError("{s} Got {d} arguments...", .{ message, n });
         },
     }
     return conv.nil_val();

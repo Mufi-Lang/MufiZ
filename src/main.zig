@@ -8,7 +8,6 @@ const features = @import("features");
 const conv = @import("conv.zig");
 const heap = std.heap;
 pub const vm_h = core.vm_h;
-const testing = std.testing;
 const fs = std.fs;
 const InterpreterError = system.InterpreterError;
 
