@@ -60,9 +60,7 @@ pub const Chunk = extern struct {
     constants: value_h.ValueArray,
 };
 
-pub fn initChunk(arg_chunk: [*c]Chunk) void {
-    var chunk = arg_chunk;
-    _ = &chunk;
+pub fn initChunk(chunk: [*c]Chunk) void {
     chunk.*.count = 0;
     chunk.*.capacity = 0;
     chunk.*.code = null;
@@ -70,37 +68,22 @@ pub fn initChunk(arg_chunk: [*c]Chunk) void {
     value_h.initValueArray(&chunk.*.constants);
 }
 
-pub fn freeChunk(arg_chunk: [*c]Chunk) void {
-    var chunk = arg_chunk;
-    _ = &chunk;
-    _ = memory_h.reallocate(@as(?*anyopaque, @ptrCast(chunk.*.code)), @sizeOf(u8) *% @as(c_ulong, @bitCast(@as(c_long, chunk.*.capacity))), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
-    _ = memory_h.reallocate(@as(?*anyopaque, @ptrCast(chunk.*.lines)), @sizeOf(c_int) *% @as(c_ulong, @bitCast(@as(c_long, chunk.*.capacity))), @as(usize, @bitCast(@as(c_long, @as(c_int, 0)))));
+pub fn freeChunk(chunk: [*c]Chunk) void {
+    _ = memory_h.reallocate(@ptrCast(chunk.*.code), @intCast(@sizeOf(u8) *% chunk.*.capacity), 0);
+    _ = memory_h.reallocate(@ptrCast(chunk.*.lines), @intCast(@sizeOf(c_int) *% chunk.*.capacity), 0);
     value_h.freeValueArray(&chunk.*.constants);
     initChunk(chunk);
 }
 
-pub fn writeChunk(arg_chunk: [*c]Chunk, arg_byte: u8, arg_line: c_int) void {
-    var chunk = arg_chunk;
-    _ = &chunk;
-    var byte = arg_byte;
-    _ = &byte;
-    var line = arg_line;
-    _ = &line;
-    if (chunk.*.capacity < (chunk.*.count + @as(c_int, 1))) {
-        var oldCapacity: c_int = chunk.*.capacity;
-        _ = &oldCapacity;
-        chunk.*.capacity = if (oldCapacity < @as(c_int, 8)) @as(c_int, 8) else oldCapacity * @as(c_int, 2);
-        chunk.*.code = @as([*c]u8, @ptrCast(@alignCast(memory_h.reallocate(@as(?*anyopaque, @ptrCast(chunk.*.code)), @sizeOf(u8) *% @as(c_ulong, @bitCast(@as(c_long, oldCapacity))), @sizeOf(u8) *% @as(c_ulong, @bitCast(@as(c_long, chunk.*.capacity)))))));
-        chunk.*.lines = @as([*c]c_int, @ptrCast(@alignCast(memory_h.reallocate(@as(?*anyopaque, @ptrCast(chunk.*.lines)), @sizeOf(c_int) *% @as(c_ulong, @bitCast(@as(c_long, oldCapacity))), @sizeOf(c_int) *% @as(c_ulong, @bitCast(@as(c_long, chunk.*.capacity)))))));
+pub fn writeChunk(chunk: [*c]Chunk, byte: u8, line: c_int) void {
+    if (chunk.*.capacity < (chunk.*.count + 1)) {
+        const oldCapacity: c_int = chunk.*.capacity;
+        chunk.*.capacity = if (oldCapacity < 8) 8 else oldCapacity * 2;
+        chunk.*.code = @ptrCast(@alignCast(memory_h.reallocate(@ptrCast(chunk.*.code), @intCast(@sizeOf(u8) *% oldCapacity), @intCast(@sizeOf(u8) *% chunk.*.capacity))));
+        chunk.*.lines = @ptrCast(@alignCast(memory_h.reallocate(@ptrCast(chunk.*.lines), @intCast(@sizeOf(c_int) *% oldCapacity), @intCast(@sizeOf(c_int) *% chunk.*.capacity))));
     }
-    (blk: {
-        const tmp = chunk.*.count;
-        if (tmp >= 0) break :blk chunk.*.code + @as(usize, @intCast(tmp)) else break :blk chunk.*.code - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    }).* = byte;
-    (blk: {
-        const tmp = chunk.*.count;
-        if (tmp >= 0) break :blk chunk.*.lines + @as(usize, @intCast(tmp)) else break :blk chunk.*.lines - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    }).* = line;
+    chunk.*.code[@intCast(chunk.*.count)] = byte;
+    chunk.*.lines[@intCast(chunk.*.count)] = line;
     chunk.*.count += 1;
 }
 
@@ -112,5 +95,5 @@ pub fn addConstant(arg_chunk: [*c]Chunk, arg_value: value_h.Value) c_int {
     vm_h.push(value);
     value_h.writeValueArray(&chunk.*.constants, value);
     _ = vm_h.pop();
-    return chunk.*.constants.count - @as(c_int, 1);
+    return chunk.*.constants.count - 1;
 }

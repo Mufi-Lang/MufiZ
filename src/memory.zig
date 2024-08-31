@@ -41,10 +41,10 @@ const free = stdlib.free;
 //todo: fix collect garbage debugging
 pub fn reallocate(pointer: ?*anyopaque, oldSize: usize, newSize: usize) ?*anyopaque {
     if (newSize > oldSize) {
-        if (debug_opts.@"debug-stress-gc") collectGarbage();
+        if (debug_opts.stress_gc) collectGarbage();
         if (vm_h.vm.bytesAllocated > std.math.maxInt(usize) - (newSize - oldSize)) {
             // Handle overflow error
-            _ = fprintf(stdio.stderr, "Memory allocation would cause overflow.\n");
+            print("Memory allocation would cause overflow.\n", .{});
             exit(1);
         }
         vm_h.vm.bytesAllocated += newSize - oldSize;
@@ -61,11 +61,11 @@ pub fn reallocate(pointer: ?*anyopaque, oldSize: usize, newSize: usize) ?*anyopa
     }
     var result: ?*anyopaque = realloc(pointer, newSize);
     if (result == null and newSize > 0) {
-        _ = fprintf(stdio.stderr, "Memory allocation failed. Attempted to allocate %zu bytes.\n", newSize);
+        print("Memory allocation failed. Attempted to allocate {} bytes.\n", .{newSize});
         collectGarbage();
         result = realloc(pointer, newSize);
         if (result == null) {
-            _ = fprintf(stdio.stderr, "Critical error: Memory allocation failed after garbage collection attempt\n");
+            print("Critical error: Memory allocation failed after garbage collection attempt\n", .{});
             exit(1);
         }
     }

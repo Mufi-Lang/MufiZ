@@ -193,7 +193,7 @@ pub fn allocateObject(arg_size: usize, arg_type: ObjType) callconv(.C) [*c]Obj {
     _ = &size;
     var @"type" = arg_type;
     _ = &@"type";
-    var object: [*c]Obj = @as([*c]Obj, @ptrCast(@alignCast(reallocate(@as(?*anyopaque, @ptrFromInt(0)), @as(usize, @bitCast(@as(c_long, 0))), size))));
+    var object: [*c]Obj = @as([*c]Obj, @ptrCast(@alignCast(reallocate(null, 0, size))));
     _ = &object;
     object.*.type = @"type";
     object.*.isMarked = 0 != 0;
@@ -531,7 +531,7 @@ pub fn newClass(arg_name: [*c]ObjString) [*c]ObjClass {
 pub fn newClosure(arg_function: [*c]ObjFunction) [*c]ObjClosure {
     var function = arg_function;
     _ = &function;
-    var upvalues: [*c][*c]ObjUpvalue = @as([*c][*c]ObjUpvalue, @ptrCast(@alignCast(reallocate(@as(?*anyopaque, @ptrFromInt(0)), @as(usize, @bitCast(@as(c_long, 0))), @sizeOf([*c]ObjUpvalue) *% @as(c_ulong, @bitCast(@as(c_long, function.*.upvalueCount)))))));
+    var upvalues: [*c][*c]ObjUpvalue = @as([*c][*c]ObjUpvalue, @ptrCast(@alignCast(reallocate(null, 0, @intCast(@sizeOf([*c]ObjUpvalue) *% function.*.upvalueCount)))));
     _ = &upvalues;
     {
         var i: c_int = 0;
@@ -631,8 +631,8 @@ pub fn takeString(arg_chars: [*c]u8, arg_length: c_int) [*c]ObjString {
     _ = &hash;
     var interned: [*c]ObjString = table_h.tableFindString(&vm_h.vm.strings, chars, length, hash);
     _ = &interned;
-    if (interned != @as([*c]ObjString, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
-        _ = reallocate(@as(?*anyopaque, @ptrCast(chars)), @sizeOf(u8) *% @as(c_ulong, @bitCast(@as(c_long, length + @as(c_int, 1)))), @as(usize, @bitCast(@as(c_long, 0))));
+    if (interned != null) {
+        _ = reallocate(@as(?*anyopaque, @ptrCast(chars)), @intCast(@sizeOf(u8) *% length + 1), 0);
         return interned;
     }
     return allocateString(AllocStringParams{
@@ -651,10 +651,10 @@ pub fn copyString(arg_chars: [*c]const u8, arg_length: c_int) [*c]ObjString {
     _ = &hash;
     var interned: [*c]ObjString = table_h.tableFindString(&vm_h.vm.strings, chars, length, hash);
     _ = &interned;
-    if (interned != @as([*c]ObjString, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) return interned;
-    var heapChars: [*c]u8 = @as([*c]u8, @ptrCast(@alignCast(reallocate(@as(?*anyopaque, @ptrFromInt(0)), @as(usize, @bitCast(@as(c_long, 0))), @sizeOf(u8) *% @as(c_ulong, @bitCast(@as(c_long, length + @as(c_int, 1))))))));
+    if (interned != null) return interned;
+    var heapChars: [*c]u8 = @as([*c]u8, @ptrCast(@alignCast(reallocate(null, 0, @intCast(@sizeOf(u8) *% length + 1)))));
     _ = &heapChars;
-    _ = memcpy(@as(?*anyopaque, @ptrCast(heapChars)), @as(?*const anyopaque, @ptrCast(chars)), @as(c_ulong, @bitCast(@as(c_long, length))));
+    _ = memcpy(@as(?*anyopaque, @ptrCast(heapChars)), @as(?*const anyopaque, @ptrCast(chars)), @intCast(length));
     (blk: {
         const tmp = length;
         if (tmp >= 0) break :blk heapChars + @as(usize, @intCast(tmp)) else break :blk heapChars - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
@@ -744,7 +744,7 @@ pub fn pushArray(arg_array: [*c]ObjArray, arg_val: Value) void {
         var oldCapacity: c_int = array.*.capacity;
         _ = &oldCapacity;
         array.*.capacity = if (oldCapacity < @as(c_int, 8)) @as(c_int, 8) else oldCapacity * @as(c_int, 2);
-        array.*.values = @as([*c]Value, @ptrCast(@alignCast(reallocate(@as(?*anyopaque, @ptrCast(array.*.values)), @sizeOf(Value) *% @as(c_ulong, @bitCast(@as(c_long, oldCapacity))), @sizeOf(Value) *% @as(c_ulong, @bitCast(@as(c_long, array.*.capacity)))))));
+        array.*.values = @as([*c]Value, @ptrCast(@alignCast(reallocate(@as(?*anyopaque, @ptrCast(array.*.values)), @intCast(@sizeOf(Value) *% oldCapacity), @intCast(@sizeOf(Value) *% array.*.capacity)))));
     } else if ((array.*.capacity < (array.*.count + @as(c_int, 1))) and (@as(c_int, @intFromBool(array.*._static)) != 0)) {
         _ = printf("Array is full");
         return;
@@ -774,7 +774,7 @@ pub fn insertArray(arg_arr: [*c]ObjArray, arg_index_1: c_int, arg_value: Value) 
         var oldCapacity: c_int = arr.*.capacity;
         _ = &oldCapacity;
         arr.*.capacity = if (oldCapacity < @as(c_int, 8)) @as(c_int, 8) else oldCapacity * @as(c_int, 2);
-        arr.*.values = @as([*c]Value, @ptrCast(@alignCast(reallocate(@as(?*anyopaque, @ptrCast(arr.*.values)), @sizeOf(Value) *% @as(c_ulong, @bitCast(@as(c_long, oldCapacity))), @sizeOf(Value) *% @as(c_ulong, @bitCast(@as(c_long, arr.*.capacity)))))));
+        arr.*.values = @as([*c]Value, @ptrCast(@alignCast(reallocate(@as(?*anyopaque, @ptrCast(arr.*.values)), @intCast(@sizeOf(Value) *% oldCapacity), @intCast(@sizeOf(Value) *% arr.*.capacity)))));
     } else if ((arr.*.capacity < (arr.*.count + @as(c_int, 1))) and (@as(c_int, @intFromBool(arr.*._static)) != 0)) {
         _ = printf("Array is full");
         return;
@@ -966,13 +966,13 @@ pub fn equalArray(arg_a: [*c]ObjArray, arg_b: [*c]ObjArray) bool {
             }
         }
     }
-    return @as(c_int, 1) != 0;
+    return false;
 }
 pub fn freeObjectArray(arg_array: [*c]ObjArray) void {
     var array = arg_array;
     _ = &array;
-    _ = reallocate(@as(?*anyopaque, @ptrCast(array.*.values)), @sizeOf(Value) *% @as(c_ulong, @bitCast(@as(c_long, array.*.capacity))), @as(usize, @bitCast(@as(c_long, 0))));
-    _ = reallocate(@as(?*anyopaque, @ptrCast(array)), @sizeOf(ObjArray), @as(usize, @bitCast(@as(c_long, 0))));
+    _ = reallocate(@as(?*anyopaque, @ptrCast(array.*.values)), @intCast(@sizeOf(Value) *% array.*.capacity), 0);
+    _ = reallocate(@as(?*anyopaque, @ptrCast(array)), @sizeOf(ObjArray), 0);
 }
 pub fn sliceArray(arg_array: [*c]ObjArray, arg_start: c_int, arg_end: c_int) [*c]ObjArray {
     var array = arg_array;
@@ -981,7 +981,7 @@ pub fn sliceArray(arg_array: [*c]ObjArray, arg_start: c_int, arg_end: c_int) [*c
     _ = &start;
     var end = arg_end;
     _ = &end;
-    var sliced: [*c]ObjArray = newArrayWithCap(end - start, @as(c_int, 1) != 0);
+    var sliced: [*c]ObjArray = newArrayWithCap(end - start, false);
     _ = &sliced;
     {
         var i: c_int = start;
@@ -1379,8 +1379,8 @@ pub fn merge(arg_left: [*c]Node, arg_right: [*c]Node) callconv(.C) [*c]Node {
     _ = &left;
     var right = arg_right;
     _ = &right;
-    if (left == @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) return right;
-    if (right == @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) return left;
+    if (left == null) return right;
+    if (right == null) return left;
     if (value_h.valueCompare(left.*.data, right.*.data) < 0) {
         left.*.next = merge(left.*.next, right);
         left.*.next.*.prev = left;
@@ -1417,7 +1417,7 @@ pub fn swapRow(arg_matrix: [*c]ObjMatrix, arg_row1: c_int, arg_row2: c_int) void
     _ = &row1;
     var row2 = arg_row2;
     _ = &row2;
-    if (((((matrix != @as([*c]ObjMatrix, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) and (row1 >= 0)) and (row1 < matrix.*.rows)) and (row2 >= 0)) and (row2 < matrix.*.rows)) {
+    if (((((matrix != null) and (row1 >= 0)) and (row1 < matrix.*.rows)) and (row2 >= 0)) and (row2 < matrix.*.rows)) {
         {
             var col: c_int = 0;
             _ = &col;
@@ -1469,7 +1469,7 @@ pub fn backSubstitution(arg_matrix: [*c]ObjMatrix, arg_vector: [*c]ObjArray) [*c
         _ = printf("Matrix and vector dimensions do not match");
         return null;
     }
-    var result: [*c]ObjArray = newArrayWithCap(matrix.*.rows, @as(c_int, 1) != 0);
+    var result: [*c]ObjArray = newArrayWithCap(matrix.*.rows, false);
     _ = &result;
     {
         var i: c_int = matrix.*.rows - @as(c_int, 1);
@@ -1541,7 +1541,7 @@ pub fn binarySearchFloatVector(arg_vector: [*c]FloatVector, arg_value: f64) call
 pub fn printFunction(arg_function: [*c]ObjFunction) callconv(.C) void {
     var function = arg_function;
     _ = &function;
-    if (function.*.name == @as([*c]ObjString, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
+    if (function.*.name == null) {
         _ = printf("<script>");
         return;
     }
@@ -1559,7 +1559,7 @@ pub fn newArrayWithCap(arg_capacity: c_int, arg__static: bool) [*c]ObjArray {
     _ = &array;
     array.*.capacity = capacity;
     array.*.count = 0;
-    array.*.values = @as([*c]Value, @ptrCast(@alignCast(reallocate(@as(?*anyopaque, @ptrFromInt(0)), @as(usize, @bitCast(@as(c_long, 0))), @sizeOf(Value) *% @as(c_ulong, @bitCast(@as(c_long, capacity)))))));
+    array.*.values = @as([*c]Value, @ptrCast(@alignCast(reallocate(null, 0, @intCast(@sizeOf(Value) *% capacity)))));
     array.*._static = _static;
     return array;
 }
@@ -1634,7 +1634,7 @@ pub fn cloneLinkedList(arg_list: [*c]ObjLinkedList) [*c]ObjLinkedList {
     _ = &newList;
     var current: [*c]Node = list.*.head;
     _ = &current;
-    while (current != @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
+    while (current != null) {
         pushBack(newList, current.*.data);
         current = current.*.next;
     }
@@ -1645,10 +1645,10 @@ pub fn clearLinkedList(arg_list: [*c]ObjLinkedList) void {
     _ = &list;
     var current: [*c]Node = list.*.head;
     _ = &current;
-    while (current != @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
+    while (current != null) {
         var next: [*c]Node = current.*.next;
         _ = &next;
-        _ = reallocate(@as(?*anyopaque, @ptrCast(current)), @sizeOf(Node), @as(usize, @bitCast(@as(c_long, 0))));
+        _ = reallocate(@as(?*anyopaque, @ptrCast(current)), @sizeOf(Node), 0);
         current = next;
     }
     list.*.head = null;
@@ -1660,16 +1660,16 @@ pub fn pushFront(arg_list: [*c]ObjLinkedList, arg_value: Value) void {
     _ = &list;
     var value = arg_value;
     _ = &value;
-    var node: [*c]Node = @as([*c]Node, @ptrCast(@alignCast(reallocate(@as(?*anyopaque, @ptrFromInt(0)), @as(usize, @bitCast(@as(c_long, 0))), @sizeOf(Node) *% @as(c_ulong, @bitCast(@as(c_long, @as(c_int, 1))))))));
+    var node: [*c]Node = @as([*c]Node, @ptrCast(@alignCast(reallocate(null, 0, @sizeOf(Node) *% 1))));
     _ = &node;
     node.*.data = value;
     node.*.prev = null;
     node.*.next = list.*.head;
-    if (list.*.head != @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
+    if (list.*.head != null) {
         list.*.head.*.prev = node;
     }
     list.*.head = node;
-    if (list.*.tail == @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
+    if (list.*.tail == null) {
         list.*.tail = node;
     }
     list.*.count += 1;
@@ -1679,16 +1679,16 @@ pub fn pushBack(arg_list: [*c]ObjLinkedList, arg_value: Value) void {
     _ = &list;
     var value = arg_value;
     _ = &value;
-    var node: [*c]Node = @as([*c]Node, @ptrCast(@alignCast(reallocate(@as(?*anyopaque, @ptrFromInt(0)), @as(usize, @bitCast(@as(c_long, 0))), @sizeOf(Node) *% @as(c_ulong, @bitCast(@as(c_long, @as(c_int, 1))))))));
+    var node: [*c]Node = @as([*c]Node, @ptrCast(@alignCast(reallocate(null, 0, @sizeOf(Node) *% 1))));
     _ = &node;
     node.*.data = value;
     node.*.prev = list.*.tail;
     node.*.next = null;
-    if (list.*.tail != @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
+    if (list.*.tail != null) {
         list.*.tail.*.next = node;
     }
     list.*.tail = node;
-    if (list.*.head == @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
+    if (list.*.head == null) {
         list.*.head = node;
     }
     list.*.count += 1;
@@ -1696,7 +1696,7 @@ pub fn pushBack(arg_list: [*c]ObjLinkedList, arg_value: Value) void {
 pub fn popFront(arg_list: [*c]ObjLinkedList) Value {
     var list = arg_list;
     _ = &list;
-    if (list.*.head == @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
+    if (list.*.head == null) {
         return Value{
             .type = .VAL_NIL,
             .as = .{
@@ -1709,20 +1709,20 @@ pub fn popFront(arg_list: [*c]ObjLinkedList) Value {
     var data: Value = node.*.data;
     _ = &data;
     list.*.head = node.*.next;
-    if (list.*.head != @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
+    if (list.*.head != null) {
         list.*.head.*.prev = null;
     }
     if (list.*.tail == node) {
         list.*.tail = null;
     }
     list.*.count -= 1;
-    _ = reallocate(@as(?*anyopaque, @ptrCast(node)), @sizeOf(Node), @as(usize, @bitCast(@as(c_long, 0))));
+    _ = reallocate(@as(?*anyopaque, @ptrCast(node)), @sizeOf(Node), 0);
     return data;
 }
 pub fn popBack(arg_list: [*c]ObjLinkedList) Value {
     var list = arg_list;
     _ = &list;
-    if (list.*.tail == @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
+    if (list.*.tail == null) {
         return Value{
             .type = .VAL_NIL,
             .as = .{
@@ -1735,14 +1735,14 @@ pub fn popBack(arg_list: [*c]ObjLinkedList) Value {
     var data: Value = node.*.data;
     _ = &data;
     list.*.tail = node.*.prev;
-    if (list.*.tail != @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
+    if (list.*.tail != null) {
         list.*.tail.*.next = null;
     }
     if (list.*.head == node) {
         list.*.head = null;
     }
     list.*.count -= 1;
-    _ = reallocate(@as(?*anyopaque, @ptrCast(node)), @sizeOf(Node), @as(usize, @bitCast(@as(c_long, 0))));
+    _ = reallocate(@as(?*anyopaque, @ptrCast(node)), @sizeOf(Node), 0);
     return data;
 }
 pub fn equalLinkedList(arg_a: [*c]ObjLinkedList, arg_b: [*c]ObjLinkedList) bool {
@@ -1757,27 +1757,27 @@ pub fn equalLinkedList(arg_a: [*c]ObjLinkedList, arg_b: [*c]ObjLinkedList) bool 
     _ = &currentA;
     var currentB: [*c]Node = b.*.head;
     _ = &currentB;
-    while (currentA != @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
+    while (currentA != null) {
         if (!valuesEqual(currentA.*.data, currentB.*.data)) {
             return 0 != 0;
         }
         currentA = currentA.*.next;
         currentB = currentB.*.next;
     }
-    return @as(c_int, 1) != 0;
+    return false;
 }
 pub fn freeObjectLinkedList(arg_list: [*c]ObjLinkedList) void {
     var list = arg_list;
     _ = &list;
     var current: [*c]Node = list.*.head;
     _ = &current;
-    while (current != @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
+    while (current != null) {
         var next: [*c]Node = current.*.next;
         _ = &next;
-        _ = reallocate(@as(?*anyopaque, @ptrCast(current)), @sizeOf(Node), @as(usize, @bitCast(@as(c_long, 0))));
+        _ = reallocate(@as(?*anyopaque, @ptrCast(current)), @sizeOf(Node), 0);
         current = next;
     }
-    _ = reallocate(@as(?*anyopaque, @ptrCast(list)), @sizeOf(ObjLinkedList), @as(usize, @bitCast(@as(c_long, 0))));
+    _ = reallocate(@as(?*anyopaque, @ptrCast(list)), @sizeOf(ObjLinkedList), 0);
 }
 pub fn mergeSort(arg_list: [*c]ObjLinkedList) void {
     var list = arg_list;
@@ -1795,7 +1795,7 @@ pub fn mergeSort(arg_list: [*c]ObjLinkedList) void {
     list.*.head = merge(left.head, right.head);
     var current: [*c]Node = list.*.head;
     _ = &current;
-    while (current.*.next != @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
+    while (current.*.next != null) {
         current = current.*.next;
     }
     list.*.tail = current;
@@ -1809,7 +1809,7 @@ pub fn searchLinkedList(arg_list: [*c]ObjLinkedList, arg_value: Value) c_int {
     _ = &current;
     var index_1: c_int = 0;
     _ = &index_1;
-    while (current != @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
+    while (current != null) {
         if (valuesEqual(current.*.data, value)) {
             return index_1;
         }
@@ -1823,7 +1823,7 @@ pub fn reverseLinkedList(arg_list: [*c]ObjLinkedList) void {
     _ = &list;
     var current: [*c]Node = list.*.head;
     _ = &current;
-    while (current != @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
+    while (current != null) {
         var temp: [*c]Node = current.*.next;
         _ = &temp;
         current.*.next = current.*.prev;
@@ -1846,7 +1846,7 @@ pub fn mergeLinkedList(arg_a: [*c]ObjLinkedList, arg_b: [*c]ObjLinkedList) [*c]O
     _ = &currentA;
     var currentB: [*c]Node = b.*.head;
     _ = &currentB;
-    while ((currentA != @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) and (currentB != @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0))))))) {
+    while ((currentA != null) and (currentB != null)) {
         if (value_h.valueCompare(currentA.*.data, currentB.*.data) < 0) {
             pushBack(result, currentA.*.data);
             currentA = currentA.*.next;
@@ -1855,11 +1855,11 @@ pub fn mergeLinkedList(arg_a: [*c]ObjLinkedList, arg_b: [*c]ObjLinkedList) [*c]O
             currentB = currentB.*.next;
         }
     }
-    while (currentA != @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
+    while (currentA != null) {
         pushBack(result, currentA.*.data);
         currentA = currentA.*.next;
     }
-    while (currentB != @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
+    while (currentB != null) {
         pushBack(result, currentB.*.data);
         currentB = currentB.*.next;
     }
@@ -1878,7 +1878,7 @@ pub fn sliceLinkedList(arg_list: [*c]ObjLinkedList, arg_start: c_int, arg_end: c
     _ = &current;
     var index_1: c_int = 0;
     _ = &index_1;
-    while (current != @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
+    while (current != null) {
         if ((index_1 >= start) and (index_1 < end)) {
             pushBack(sliced, current.*.data);
         }
@@ -1900,18 +1900,18 @@ pub fn spliceLinkedList(arg_list: [*c]ObjLinkedList, arg_start: c_int, arg_end: 
     _ = &current;
     var index_1: c_int = 0;
     _ = &index_1;
-    while (current != @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
+    while (current != null) {
         var next: [*c]Node = current.*.next;
         _ = &next;
         if ((index_1 >= start) and (index_1 < end)) {
             pushBack(spliced, current.*.data);
-            if (current.*.prev != @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
+            if (current.*.prev != null) {
                 current.*.prev.*.next = current.*.next;
             }
-            if (current.*.next != @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
+            if (current.*.next != null) {
                 current.*.next.*.prev = current.*.prev;
             }
-            _ = reallocate(@as(?*anyopaque, @ptrCast(current)), @sizeOf(Node), @as(usize, @bitCast(@as(c_long, 0))));
+            _ = reallocate(@as(?*anyopaque, @ptrCast(current)), @sizeOf(Node), 0);
         }
         current = next;
         index_1 += 1;
@@ -1977,7 +1977,7 @@ pub fn freeObjectHashTable(arg_table: [*c]ObjHashTable) void {
     var table = arg_table;
     _ = &table;
     table_h.freeTable(&table.*.table);
-    _ = reallocate(@as(?*anyopaque, @ptrCast(table)), @sizeOf(ObjHashTable), @as(usize, @bitCast(@as(c_long, 0))));
+    _ = reallocate(@as(?*anyopaque, @ptrCast(table)), @sizeOf(ObjHashTable), 0);
 }
 pub extern fn mergeHashTable(a: [*c]ObjHashTable, b: [*c]ObjHashTable) [*c]ObjHashTable;
 pub extern fn keysHashTable(table: [*c]ObjHashTable) [*c]ObjArray;
@@ -1992,7 +1992,7 @@ pub fn newMatrix(arg_rows: c_int, arg_cols: c_int) [*c]ObjMatrix {
     matrix.*.rows = rows;
     matrix.*.cols = cols;
     matrix.*.len = rows * cols;
-    matrix.*.data = newArrayWithCap(matrix.*.len, @as(c_int, 1) != 0);
+    matrix.*.data = newArrayWithCap(matrix.*.len, false);
     {
         var i: c_int = 0;
         _ = &i;
@@ -2010,7 +2010,7 @@ pub fn newMatrix(arg_rows: c_int, arg_cols: c_int) [*c]ObjMatrix {
 pub fn printMatrix(arg_matrix: [*c]ObjMatrix) void {
     var matrix = arg_matrix;
     _ = &matrix;
-    if (matrix != @as([*c]ObjMatrix, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
+    if (matrix != null) {
         if (matrix.*.data.*.count > 0) {
             {
                 {
@@ -2040,7 +2040,7 @@ pub fn setRow(arg_matrix: [*c]ObjMatrix, arg_row: c_int, arg_values: [*c]ObjArra
     _ = &row;
     var values = arg_values;
     _ = &values;
-    if ((((matrix != @as([*c]ObjMatrix, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) and (values != @as([*c]ObjArray, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0))))))) and (row >= 0)) and (row < matrix.*.rows)) {
+    if ((((matrix != null) and (values != null)) and (row >= 0)) and (row < matrix.*.rows)) {
         {
             var col: c_int = 0;
             _ = &col;
@@ -2060,7 +2060,7 @@ pub fn setCol(arg_matrix: [*c]ObjMatrix, arg_col: c_int, arg_values: [*c]ObjArra
     _ = &col;
     var values = arg_values;
     _ = &values;
-    if ((((matrix != @as([*c]ObjMatrix, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) and (values != @as([*c]ObjArray, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0))))))) and (col >= 0)) and (col < matrix.*.cols)) {
+    if ((((matrix != null) and (values != null)) and (col >= 0)) and (col < matrix.*.cols)) {
         {
             var row: c_int = 0;
             _ = &row;
@@ -2082,7 +2082,7 @@ pub fn setMatrix(arg_matrix: [*c]ObjMatrix, arg_row: c_int, arg_col: c_int, arg_
     _ = &col;
     var value = arg_value;
     _ = &value;
-    if (((((matrix != @as([*c]ObjMatrix, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) and (row >= 0)) and (row < matrix.*.rows)) and (col >= 0)) and (col < matrix.*.cols)) {
+    if (((((matrix != null) and (row >= 0)) and (row < matrix.*.rows)) and (col >= 0)) and (col < matrix.*.cols)) {
         overWriteArray(matrix.*.data, (row * matrix.*.cols) + col, value);
     }
 }
@@ -2093,7 +2093,7 @@ pub fn getMatrix(arg_matrix: [*c]ObjMatrix, arg_row: c_int, arg_col: c_int) Valu
     _ = &row;
     var col = arg_col;
     _ = &col;
-    if (((((matrix != @as([*c]ObjMatrix, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) and (row >= 0)) and (row < matrix.*.rows)) and (col >= 0)) and (col < matrix.*.cols)) {
+    if (((((matrix != null) and (row >= 0)) and (row < matrix.*.rows)) and (col >= 0)) and (col < matrix.*.cols)) {
         return (blk: {
             const tmp = (row * matrix.*.cols) + col;
             if (tmp >= 0) break :blk matrix.*.data.*.values + @as(usize, @intCast(tmp)) else break :blk matrix.*.data.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
@@ -2399,7 +2399,7 @@ pub fn rank(arg_matrix: [*c]ObjMatrix) c_int {
         }
     }
     freeObjectArray(copy.*.data);
-    _ = reallocate(@as(?*anyopaque, @ptrCast(copy)), @sizeOf(ObjMatrix), @as(usize, @bitCast(@as(c_long, 0))));
+    _ = reallocate(@as(?*anyopaque, @ptrCast(copy)), @sizeOf(ObjMatrix), 0);
     return rank_1;
 }
 pub fn identityMatrix(arg_n: c_int) [*c]ObjMatrix {
@@ -2630,7 +2630,7 @@ pub fn determinant(arg_matrix: [*c]ObjMatrix) f64 {
         }
     }
     freeObjectArray(copy.*.data);
-    _ = reallocate(@as(?*anyopaque, @ptrCast(copy)), @sizeOf(ObjMatrix), @as(usize, @bitCast(@as(c_long, 0))));
+    _ = reallocate(@as(?*anyopaque, @ptrCast(copy)), @sizeOf(ObjMatrix), 0);
     return det;
 }
 pub extern fn inverseMatrix(matrix: [*c]ObjMatrix) [*c]ObjMatrix;
@@ -2643,7 +2643,7 @@ pub fn newFloatVector(arg_size: c_int) [*c]FloatVector {
     _ = &vector;
     vector.*.size = size;
     vector.*.count = 0;
-    vector.*.data = @as([*c]f64, @ptrCast(@alignCast(reallocate(@as(?*anyopaque, @ptrFromInt(0)), @as(usize, @bitCast(@as(c_long, 0))), @sizeOf(f64) *% @as(c_ulong, @bitCast(@as(c_long, size)))))));
+    vector.*.data = @as([*c]f64, @ptrCast(@alignCast(reallocate(null, 0, @intCast(@sizeOf(f64) *% size)))));
     return vector;
 }
 pub fn cloneFloatVector(arg_vector: [*c]FloatVector) [*c]FloatVector {
@@ -2667,13 +2667,13 @@ pub fn clearFloatVector(arg_vector: [*c]FloatVector) void {
     var vector = arg_vector;
     _ = &vector;
     vector.*.count = 0;
-    vector.*.sorted = @as(c_int, 1) != 0;
+    vector.*.sorted = false;
 }
 pub fn freeFloatVector(arg_vector: [*c]FloatVector) void {
     var vector = arg_vector;
     _ = &vector;
-    _ = reallocate(@as(?*anyopaque, @ptrCast(vector.*.data)), @sizeOf(f32) *% @as(c_ulong, @bitCast(@as(c_long, vector.*.size))), @as(usize, @bitCast(@as(c_long, 0))));
-    _ = reallocate(@as(?*anyopaque, @ptrCast(vector)), @sizeOf(FloatVector), @as(usize, @bitCast(@as(c_long, 0))));
+    _ = reallocate(@as(?*anyopaque, @ptrCast(vector.*.data)), @intCast(@sizeOf(f32) *% vector.*.size), 0);
+    _ = reallocate(@as(?*anyopaque, @ptrCast(vector)), @sizeOf(FloatVector), 0);
 }
 pub fn fromArray(arg_array: [*c]ObjArray) [*c]FloatVector {
     var array = arg_array;
@@ -2798,7 +2798,7 @@ pub fn popFloatVector(arg_vector: [*c]FloatVector) f64 {
     }).*;
     _ = &poppedValue;
     if (vector.*.count == 0) {
-        vector.*.sorted = @as(c_int, 1) != 0;
+        vector.*.sorted = false;
     }
     return poppedValue;
 }
@@ -2952,14 +2952,14 @@ pub fn sumFloatVector(arg_vector: [*c]FloatVector) f64 {
     _ = &vector;
     var sum: f64 = 0;
     _ = &sum;
-    var simdSize: usize = @as(usize, @bitCast(@as(c_long, vector.*.count - @import("std").zig.c_translation.signedRemainder(vector.*.count, @as(c_int, 4)))));
+    var simdSize: usize = @intCast(@as(usize, @intCast(vector.*.count)) - @as(usize, @intCast(vector.*.count)) % 4);
     _ = &simdSize;
     var simd_sum: __m256 = @as(__m256, @bitCast(_mm256_setzero_pd()));
     _ = &simd_sum;
     {
         var i: usize = 0;
         _ = &i;
-        while (i < simdSize) : (i +%= @as(usize, @bitCast(@as(c_long, @as(c_int, 4))))) {
+        while (i < simdSize) : (i +%= 4) {
             var simd_arr: __m256 = @as(__m256, @bitCast(_mm256_loadu_pd(&vector.*.data[i])));
             _ = &simd_arr;
             simd_sum = @as(__m256, @bitCast(_mm256_add_pd(@as(__m256d, @bitCast(simd_arr)), @as(__m256d, @bitCast(simd_sum)))));
@@ -2968,7 +2968,7 @@ pub fn sumFloatVector(arg_vector: [*c]FloatVector) f64 {
     {
         var i: usize = simdSize;
         _ = &i;
-        while (i < @as(usize, @bitCast(@as(c_long, vector.*.count)))) : (i +%= 1) {
+        while (i < vector.*.count) : (i +%= 1) {
             sum += vector.*.data[i];
         }
     }
@@ -2996,14 +2996,14 @@ pub fn varianceFloatVector(arg_vector: [*c]FloatVector) f64 {
     _ = &mean;
     var variance: f64 = 0;
     _ = &variance;
-    var simdSize: usize = @as(usize, @bitCast(@as(c_long, vector.*.count - @import("std").zig.c_translation.signedRemainder(vector.*.count, @as(c_int, 4)))));
+    var simdSize: usize = @intCast(@as(usize, @intCast(vector.*.count)) - @as(usize, @intCast(vector.*.count)) % 4);
     _ = &simdSize;
     var simd_variance: __m256 = @as(__m256, @bitCast(_mm256_setzero_pd()));
     _ = &simd_variance;
     {
         var i: usize = 0;
         _ = &i;
-        while (i < simdSize) : (i +%= @as(usize, @bitCast(@as(c_long, @as(c_int, 4))))) {
+        while (i < simdSize) : (i +%= 4) {
             var simd_arr: __m256 = @as(__m256, @bitCast(_mm256_loadu_pd(&vector.*.data[i])));
             _ = &simd_arr;
             var simd_diff: __m256 = @as(__m256, @bitCast(_mm256_sub_pd(@as(__m256d, @bitCast(simd_arr)), _mm256_set1_pd(mean))));
@@ -3014,7 +3014,7 @@ pub fn varianceFloatVector(arg_vector: [*c]FloatVector) f64 {
     {
         var i: usize = simdSize;
         _ = &i;
-        while (i < @as(usize, @bitCast(@as(c_long, vector.*.count)))) : (i +%= 1) {
+        while (i < vector.*.count) : (i +%= 1) {
             variance += (vector.*.data[i] - mean) * (vector.*.data[i] - mean);
         }
     }
@@ -3091,12 +3091,12 @@ pub fn addFloatVector(arg_vector1: [*c]FloatVector, arg_vector2: [*c]FloatVector
     }
     var result: [*c]FloatVector = newFloatVector(vector1.*.size);
     _ = &result;
-    var simdSize: usize = @as(usize, @bitCast(@as(c_long, vector1.*.count - @import("std").zig.c_translation.signedRemainder(vector1.*.count, @as(c_int, 4)))));
+    var simdSize: usize = @intCast(@as(usize, @intCast(vector1.*.count)) - @as(usize, @intCast(vector1.*.count)) % 4);
     _ = &simdSize;
     {
         var i: usize = 0;
         _ = &i;
-        while (i < simdSize) : (i +%= @as(usize, @bitCast(@as(c_long, @as(c_int, 4))))) {
+        while (i < simdSize) : (i +%= 4) {
             var simd_arr1: __m256 = @as(__m256, @bitCast(_mm256_loadu_pd(&vector1.*.data[i])));
             _ = &simd_arr1;
             var simd_arr2: __m256 = @as(__m256, @bitCast(_mm256_loadu_pd(&vector2.*.data[i])));
@@ -3109,7 +3109,7 @@ pub fn addFloatVector(arg_vector1: [*c]FloatVector, arg_vector2: [*c]FloatVector
     {
         var i: usize = simdSize;
         _ = &i;
-        while (i < @as(usize, @bitCast(@as(c_long, vector1.*.count)))) : (i +%= 1) {
+        while (i < vector1.*.count) : (i +%= 1) {
             result.*.data[i] = vector1.*.data[i] + vector2.*.data[i];
         }
     }
@@ -3127,12 +3127,12 @@ pub fn subFloatVector(arg_vector1: [*c]FloatVector, arg_vector2: [*c]FloatVector
     }
     var result: [*c]FloatVector = newFloatVector(vector1.*.size);
     _ = &result;
-    var simdSize: usize = @as(usize, @bitCast(@as(c_long, vector1.*.count - @import("std").zig.c_translation.signedRemainder(vector1.*.count, @as(c_int, 4)))));
+    var simdSize: usize = @intCast(@as(usize, @intCast(vector1.*.count)) - @as(usize, @intCast(vector1.*.count)) % 4);
     _ = &simdSize;
     {
         var i: usize = 0;
         _ = &i;
-        while (i < simdSize) : (i +%= @as(usize, @bitCast(@as(c_long, @as(c_int, 4))))) {
+        while (i < simdSize) : (i +%= 4) {
             var simd_arr1: __m256 = @as(__m256, @bitCast(_mm256_loadu_pd(&vector1.*.data[i])));
             _ = &simd_arr1;
             var simd_arr2: __m256 = @as(__m256, @bitCast(_mm256_loadu_pd(&vector2.*.data[i])));
@@ -3145,7 +3145,7 @@ pub fn subFloatVector(arg_vector1: [*c]FloatVector, arg_vector2: [*c]FloatVector
     {
         var i: usize = simdSize;
         _ = &i;
-        while (i < @as(usize, @bitCast(@as(c_long, vector1.*.count)))) : (i +%= 1) {
+        while (i < vector1.*.count) : (i +%= 1) {
             result.*.data[i] = vector1.*.data[i] - vector2.*.data[i];
         }
     }
@@ -3163,12 +3163,12 @@ pub fn mulFloatVector(arg_vector1: [*c]FloatVector, arg_vector2: [*c]FloatVector
     }
     var result: [*c]FloatVector = newFloatVector(vector1.*.size);
     _ = &result;
-    var simdSize: usize = @as(usize, @bitCast(@as(c_long, vector1.*.count - @import("std").zig.c_translation.signedRemainder(vector1.*.count, @as(c_int, 4)))));
+    var simdSize: usize = @intCast(@as(usize, @intCast(vector1.*.count)) - @as(usize, @intCast(vector1.*.count)) % 4);
     _ = &simdSize;
     {
         var i: usize = 0;
         _ = &i;
-        while (i < simdSize) : (i +%= @as(usize, @bitCast(@as(c_long, @as(c_int, 4))))) {
+        while (i < simdSize) : (i +%= 4) {
             var simd_arr1: __m256 = @as(__m256, @bitCast(_mm256_loadu_pd(&vector1.*.data[i])));
             _ = &simd_arr1;
             var simd_arr2: __m256 = @as(__m256, @bitCast(_mm256_loadu_pd(&vector2.*.data[i])));
@@ -3181,7 +3181,7 @@ pub fn mulFloatVector(arg_vector1: [*c]FloatVector, arg_vector2: [*c]FloatVector
     {
         var i: usize = simdSize;
         _ = &i;
-        while (i < @as(usize, @bitCast(@as(c_long, vector1.*.count)))) : (i +%= 1) {
+        while (i < vector1.*.count) : (i +%= 1) {
             result.*.data[i] = vector1.*.data[i] * vector2.*.data[i];
         }
     }
@@ -3199,12 +3199,12 @@ pub fn divFloatVector(arg_vector1: [*c]FloatVector, arg_vector2: [*c]FloatVector
     }
     var result: [*c]FloatVector = newFloatVector(vector1.*.size);
     _ = &result;
-    var simdSize: usize = @as(usize, @bitCast(@as(c_long, vector1.*.count - @import("std").zig.c_translation.signedRemainder(vector1.*.count, @as(c_int, 4)))));
+    var simdSize: usize = @intCast(@as(usize, @intCast(vector1.*.count)) - @as(usize, @intCast(vector1.*.count)) % 4);
     _ = &simdSize;
     {
         var i: usize = 0;
         _ = &i;
-        while (i < simdSize) : (i +%= @as(usize, @bitCast(@as(c_long, @as(c_int, 4))))) {
+        while (i < simdSize) : (i +%= 4) {
             var simd_arr1: __m256 = @as(__m256, @bitCast(_mm256_loadu_pd(&vector1.*.data[i])));
             _ = &simd_arr1;
             var simd_arr2: __m256 = @as(__m256, @bitCast(_mm256_loadu_pd(&vector2.*.data[i])));
@@ -3217,7 +3217,7 @@ pub fn divFloatVector(arg_vector1: [*c]FloatVector, arg_vector2: [*c]FloatVector
     {
         var i: usize = simdSize;
         _ = &i;
-        while (i < @as(usize, @bitCast(@as(c_long, vector1.*.count)))) : (i +%= 1) {
+        while (i < vector1.*.count) : (i +%= 1) {
             result.*.data[i] = vector1.*.data[i] / vector2.*.data[i];
         }
     }
@@ -3247,7 +3247,7 @@ pub fn equalFloatVector(arg_a: [*c]FloatVector, arg_b: [*c]FloatVector) bool {
             }
         }
     }
-    return @as(c_int, 1) != 0;
+    return false;
 }
 pub fn scaleFloatVector(arg_vector: [*c]FloatVector, arg_scalar: f64) [*c]FloatVector {
     var vector = arg_vector;
@@ -3256,12 +3256,12 @@ pub fn scaleFloatVector(arg_vector: [*c]FloatVector, arg_scalar: f64) [*c]FloatV
     _ = &scalar;
     var result: [*c]FloatVector = newFloatVector(vector.*.size);
     _ = &result;
-    var simdSize: usize = @as(usize, @bitCast(@as(c_long, vector.*.count - @import("std").zig.c_translation.signedRemainder(vector.*.count, @as(c_int, 4)))));
+    var simdSize: usize = @intCast(@as(usize, @intCast(vector.*.count)) - @as(usize, @intCast(vector.*.count)) % 4);
     _ = &simdSize;
     {
         var i: usize = 0;
         _ = &i;
-        while (i < simdSize) : (i +%= @as(usize, @bitCast(@as(c_long, @as(c_int, 4))))) {
+        while (i < simdSize) : (i +%= 4) {
             var simd_arr1: __m256 = @as(__m256, @bitCast(_mm256_loadu_pd(&vector.*.data[i])));
             _ = &simd_arr1;
             var simd_scalar: __m256 = @as(__m256, @bitCast(_mm256_set1_pd(scalar)));
@@ -3274,7 +3274,7 @@ pub fn scaleFloatVector(arg_vector: [*c]FloatVector, arg_scalar: f64) [*c]FloatV
     {
         var i: usize = simdSize;
         _ = &i;
-        while (i < @as(usize, @bitCast(@as(c_long, vector.*.count)))) : (i +%= 1) {
+        while (i < vector.*.count) : (i +%= 1) {
             result.*.data[i] = vector.*.data[i] * scalar;
         }
     }
@@ -3288,12 +3288,12 @@ pub fn singleAddFloatVector(arg_a: [*c]FloatVector, arg_b: f64) [*c]FloatVector 
     _ = &b;
     var result: [*c]FloatVector = newFloatVector(a.*.size);
     _ = &result;
-    var simdSize: usize = @as(usize, @bitCast(@as(c_long, a.*.count - @import("std").zig.c_translation.signedRemainder(a.*.count, @as(c_int, 4)))));
+    var simdSize: usize = @intCast(@as(usize, @intCast(a.*.count)) - @as(usize, @intCast(a.*.count)) % 4);
     _ = &simdSize;
     {
         var i: usize = 0;
         _ = &i;
-        while (i < simdSize) : (i +%= @as(usize, @bitCast(@as(c_long, @as(c_int, 4))))) {
+        while (i < simdSize) : (i +%= 4) {
             var simd_arr1: __m256 = @as(__m256, @bitCast(_mm256_loadu_pd(&a.*.data[i])));
             _ = &simd_arr1;
             var simd_scalar: __m256 = @as(__m256, @bitCast(_mm256_set1_pd(b)));
@@ -3306,7 +3306,7 @@ pub fn singleAddFloatVector(arg_a: [*c]FloatVector, arg_b: f64) [*c]FloatVector 
     {
         var i: usize = simdSize;
         _ = &i;
-        while (i < @as(usize, @bitCast(@as(c_long, a.*.count)))) : (i +%= 1) {
+        while (i < a.*.count) : (i +%= 1) {
             result.*.data[i] = a.*.data[i] + b;
         }
     }
@@ -3320,12 +3320,12 @@ pub fn singleSubFloatVector(arg_a: [*c]FloatVector, arg_b: f64) [*c]FloatVector 
     _ = &b;
     var result: [*c]FloatVector = newFloatVector(a.*.size);
     _ = &result;
-    var simdSize: usize = @as(usize, @bitCast(@as(c_long, a.*.count - @import("std").zig.c_translation.signedRemainder(a.*.count, @as(c_int, 4)))));
+    var simdSize: usize = @intCast(@as(usize, @intCast(a.*.count)) - @as(usize, @intCast(a.*.count)) % 4);
     _ = &simdSize;
     {
         var i: usize = 0;
         _ = &i;
-        while (i < simdSize) : (i +%= @as(usize, @bitCast(@as(c_long, @as(c_int, 4))))) {
+        while (i < simdSize) : (i +%= 4) {
             var simd_arr1: __m256 = @as(__m256, @bitCast(_mm256_loadu_pd(&a.*.data[i])));
             _ = &simd_arr1;
             var simd_scalar: __m256 = @as(__m256, @bitCast(_mm256_set1_pd(b)));
@@ -3338,7 +3338,7 @@ pub fn singleSubFloatVector(arg_a: [*c]FloatVector, arg_b: f64) [*c]FloatVector 
     {
         var i: usize = simdSize;
         _ = &i;
-        while (i < @as(usize, @bitCast(@as(c_long, a.*.count)))) : (i +%= 1) {
+        while (i < a.*.count) : (i +%= 1) {
             result.*.data[i] = a.*.data[i] - b;
         }
     }
@@ -3357,7 +3357,7 @@ pub fn sortFloatVector(arg_vector: [*c]FloatVector) void {
     var vector = arg_vector;
     _ = &vector;
     if (vector.*.sorted) return;
-    qsort(@as(?*anyopaque, @ptrCast(vector.*.data)), @as(usize, @bitCast(@as(c_long, vector.*.count))), @sizeOf(f64), &compare_double);
+    qsort(@as(?*anyopaque, @ptrCast(vector.*.data)), @intCast(vector.*.count), @sizeOf(f64), &compare_double);
 }
 pub fn reverseFloatVector(arg_vector: [*c]FloatVector) void {
     var vector = arg_vector;
@@ -3709,9 +3709,9 @@ pub fn printObject(value: Value) void {
                 _ = printf("[");
                 var current: [*c]Node = @as([*c]ObjLinkedList, @ptrCast(@alignCast(value.as.obj))).*.head;
                 _ = &current;
-                while (current != @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
+                while (current != null) {
                     value_h.printValue(current.*.data);
-                    if (current.*.next != @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
+                    if (current.*.next != null) {
                         _ = printf(", ");
                     }
                     current = current.*.next;
@@ -3735,7 +3735,7 @@ pub fn printObject(value: Value) void {
                         if ((blk: {
                             const tmp = i;
                             if (tmp >= 0) break :blk entries + @as(usize, @intCast(tmp)) else break :blk entries - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                        }).*.key != @as([*c]ObjString, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
+                        }).*.key != null) {
                             if (count > 0) {
                                 _ = printf(", ");
                             }
@@ -3795,5 +3795,5 @@ pub fn notObjTypes(arg_params: ObjTypeCheckParams) callconv(.C) bool {
             }
         }
     }
-    return @as(c_int, 1) != 0;
+    return false;
 }
