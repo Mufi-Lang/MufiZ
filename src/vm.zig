@@ -225,7 +225,7 @@ pub export fn interpret(arg_source: [*c]const u8) InterpretResult {
     _ = &source;
     var function: [*c]ObjFunction = compiler_h.compile(source);
     _ = &function;
-    if (function == @as([*c]ObjFunction, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) return .INTERPRET_COMPILE_ERROR;
+    if (function == null) return .INTERPRET_COMPILE_ERROR;
     push(Value{
         .type = .VAL_OBJ,
         .as = .{
@@ -464,17 +464,17 @@ pub fn captureUpvalue(arg_local: [*c]Value) callconv(.C) [*c]ObjUpvalue {
     _ = &prevUpvalue;
     var upvalue: [*c]ObjUpvalue = vm.openUpvalues;
     _ = &upvalue;
-    while ((upvalue != @as([*c]ObjUpvalue, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) and (upvalue.*.location > local)) {
+    while ((upvalue != null) and (upvalue.*.location > local)) {
         prevUpvalue = upvalue;
         upvalue = upvalue.*.next;
     }
-    while ((upvalue != @as([*c]ObjUpvalue, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) and (upvalue.*.location == local)) {
+    while ((upvalue != null) and (upvalue.*.location == local)) {
         return upvalue;
     }
     var createdUpvalue: [*c]ObjUpvalue = object_h.newUpvalue(local);
     _ = &createdUpvalue;
     createdUpvalue.*.next = upvalue;
-    if (prevUpvalue == @as([*c]ObjUpvalue, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
+    if (prevUpvalue == null) {
         vm.openUpvalues = createdUpvalue;
     } else {
         prevUpvalue.*.next = createdUpvalue;
@@ -484,7 +484,7 @@ pub fn captureUpvalue(arg_local: [*c]Value) callconv(.C) [*c]ObjUpvalue {
 pub fn closeUpvalues(arg_last: [*c]Value) callconv(.C) void {
     var last = arg_last;
     _ = &last;
-    while ((vm.openUpvalues != @as([*c]ObjUpvalue, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) and (vm.openUpvalues.*.location >= last)) {
+    while ((vm.openUpvalues != null) and (vm.openUpvalues.*.location >= last)) {
         var upvalue: [*c]ObjUpvalue = vm.openUpvalues;
         _ = &upvalue;
         upvalue.*.closed = upvalue.*.location.*;
@@ -514,10 +514,10 @@ pub fn concatenate() callconv(.C) void {
     _ = &a;
     var length: c_int = a.*.length + b.*.length;
     _ = &length;
-    var chars: [*c]u8 = @as([*c]u8, @ptrCast(@alignCast(reallocate(@as(?*anyopaque, @ptrFromInt(0)), @as(usize, @bitCast(@as(c_long, 0))), @sizeOf(u8) *% @as(c_ulong, @bitCast(@as(c_long, length + 1)))))));
+    var chars: [*c]u8 = @as([*c]u8, @ptrCast(@alignCast(reallocate(null, 0, @intCast(@sizeOf(u8) *% length + 1)))));
     _ = &chars;
-    _ = memcpy(@as(?*anyopaque, @ptrCast(chars)), @as(?*const anyopaque, @ptrCast(a.*.chars)), @as(c_ulong, @bitCast(@as(c_long, a.*.length))));
-    _ = memcpy(@as(?*anyopaque, @ptrCast(chars + @as(usize, @bitCast(@as(isize, @intCast(a.*.length)))))), @as(?*const anyopaque, @ptrCast(b.*.chars)), @as(c_ulong, @bitCast(@as(c_long, b.*.length))));
+    _ = memcpy(@as(?*anyopaque, @ptrCast(chars)), @as(?*const anyopaque, @ptrCast(a.*.chars)), @intCast(a.*.length));
+    _ = memcpy(@as(?*anyopaque, @ptrCast(chars + @as(usize, @bitCast(@as(isize, @intCast(a.*.length)))))), @as(?*const anyopaque, @ptrCast(b.*.chars)), @intCast(b.*.length));
     (blk: {
         const tmp = length;
         if (tmp >= 0) break :blk chars + @as(usize, @intCast(tmp)) else break :blk chars - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
@@ -643,7 +643,12 @@ pub fn run() callconv(.C) InterpretResult {
         }
 
         print("\n", .{});
-        _ = debug_h.disassembleInstruction(&frame.*.closure.*.function.*.chunk, @as(c_int, @bitCast(@as(c_int, @truncate(@divExact(@as(c_long, @bitCast(@intFromPtr(frame.*.ip) -% @intFromPtr(frame.*.closure.*.function.*.chunk.code))), @sizeOf(u8)))))));
+        const chunk = &frame.*.closure.*.function.*.chunk;
+        const offset = @intFromPtr(frame.*.ip) - @intFromPtr(frame.*.closure.*.function.*.chunk.code);
+        const instruction_index = @divExact(offset, @sizeOf(u8));
+        const c_instruction_index = @as(c_int, @truncate(instruction_index));
+
+        _ = debug_h.disassembleInstruction(chunk, c_instruction_index);
     }
     while (true) {
         var instruction: u8 = undefined;

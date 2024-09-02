@@ -25,7 +25,7 @@ const targets: []const std.Target.Query = &.{
     .{ .cpu_arch = .aarch64, .os_tag = .windows, .abi = .gnu },
     .{ .cpu_arch = .mips64, .os_tag = .linux, .abi = .musl },
     .{ .cpu_arch = .mips64el, .os_tag = .linux, .abi = .musl },
-    .{ .cpu_arch = .mipsel, .os_tag = .linux, .abi = .musl },
+   // .{ .cpu_arch = .mipsel, .os_tag = .linux, .abi = .musl },
     .{ .cpu_arch = .mips, .os_tag = .linux, .abi = .musl },
     .{ .cpu_arch = .powerpc64, .os_tag = .linux, .abi = .gnu },
     .{ .cpu_arch = .powerpc64, .os_tag = .linux, .abi = .musl },
@@ -60,14 +60,14 @@ pub fn build(b: *std.Build) !void {
     options.addOption(bool, "sandbox", sandbox);
 
     const debug_options = b.addOptions();
-    const debug_print_code = b.option(bool, "debug-print-code", "Enables printing the OpCodes for Debugging") orelse false;
-    const debug_trace_execution = b.option(bool, "debug-trace-execution", "Enables Tracing for Debugging") orelse false;
-    const debug_stress_gc = b.option(bool, "debug-stress-gc", "Enables GC Stressing") orelse false;
+    const debug_print_code = b.option(bool, "print_code", "Enables printing the OpCodes for Debugging") orelse false;
+    const debug_trace_execution = b.option(bool, "trace_exec", "Enables Tracing for Debugging") orelse false;
+    const debug_stress_gc = b.option(bool, "stress_gc", "Enables GC Stressing") orelse false;
     const debug_log_gc = b.option(bool, "log_gc", "Enables Logging the GC allocations") orelse false;
 
-    debug_options.addOption(bool, "debug-print-code", debug_print_code);
-    debug_options.addOption(bool, "debug-trace-execution", debug_trace_execution);
-    debug_options.addOption(bool, "debug-stress-gc", debug_stress_gc);
+    debug_options.addOption(bool, "print_code", debug_print_code);
+    debug_options.addOption(bool, "trace_exec", debug_trace_execution);
+    debug_options.addOption(bool, "stress_gc", debug_stress_gc);
     debug_options.addOption(bool, "log_gc", debug_log_gc);
 
     for (targets) |target| {
