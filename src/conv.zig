@@ -20,7 +20,7 @@ pub fn what_is(val: Value) []const u8 {
         .VAL_NIL => return "NIL",
         .VAL_OBJ => {
             const obj = as_obj(val);
-            switch (obj.?.type) {
+            switch (obj.*.type) {
                 .OBJ_CLOSURE => return "Closure",
                 .OBJ_FUNCTION => return "Function",
                 .OBJ_INSTANCE => return "Instance",
@@ -101,7 +101,7 @@ pub fn is_prim_num(val: Value) bool {
 
 /// Checks if the given object is of the given type
 pub fn is_obj_type(val: Value, ty: ObjType) bool {
-    return is_obj(val) and as_obj(val).?.type == ty;
+    return is_obj(val) and as_obj(val).*.type == ty;
 }
 
 /// Checks if the given object is a string
@@ -146,12 +146,12 @@ pub fn double_val(f: f64) Value {
 }
 
 /// Returns an object value
-pub fn obj_val(o: ?*Obj) Value {
+pub fn obj_val(o: [*c]Obj) Value {
     return .{ .type = .VAL_OBJ, .as = .{ .obj = @ptrCast(o) } };
 }
 
 /// Casts a value to an object
-pub fn as_obj(val: Value) ?*Obj {
+pub fn as_obj(val: Value) [*c]Obj {
     return @ptrCast(@alignCast(val.as.obj));
 }
 
@@ -192,20 +192,20 @@ pub fn as_num_int(val: Value) i32 {
 }
 
 /// Casts a value to a string
-pub fn as_string(val: Value) ?*ObjString {
+pub fn as_string(val: Value) [*c]ObjString {
     return @ptrCast(@alignCast(val.as.obj));
 }
 
 /// Casts a value to a class
-pub fn as_class(val: Value) ?*ObjClass {
+pub fn as_class(val: Value) [*c]ObjClass {
     return @ptrCast(@alignCast(val.as.obj));
 }
 
 /// Casts a value to a string (zig string)
 pub fn as_zstring(val: Value) []u8 {
     const objstr = as_string(val);
-    const len: usize = @intCast(objstr.?.length);
-    return @ptrCast(@alignCast(objstr.?.chars[0..len]));
+    const len: usize = @intCast(objstr.*.length);
+    return @ptrCast(@alignCast(objstr.*.chars[0..len]));
 }
 
 /// Returns a string value

@@ -52,8 +52,8 @@ pub export fn entries_(table: *Table) [*c]Entry {
     return table.entries;
 }
 
-pub export fn findEntry(entries: [*]Entry, capacity: c_int, key: ?*ObjString) callconv(.C) *Entry {
-    var index: usize = @as(usize, @intCast(key.?.hash)) & @as(usize, @intCast(capacity - 1));
+pub export fn findEntry(entries: [*]Entry, capacity: c_int, key: [*c]ObjString) callconv(.C) *Entry {
+    var index: usize = @as(usize, @intCast(key.*.hash)) & @as(usize, @intCast(capacity - 1));
     while (true) {
         const entry: *Entry = &entries[index];
         if (entry.*.key == null or entry.*.deleted) {

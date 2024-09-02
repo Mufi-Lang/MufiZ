@@ -32,7 +32,7 @@ pub export fn assert_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -40,15 +40,15 @@ pub export fn assert_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     } else {
-        runtimeError("Assertion failed {s} != {s}", .{ conv.as_zstring(args[0]), conv.as_zstring(args[1]) });
+        runtimeError("Assertion failed {s} != {s}", .{ valueToString(args[0]), valueToString(args[1]) });
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -60,7 +60,7 @@ pub fn iter_nf(argCount: c_int, args: [*c]Value) Value {
     return Value{
         .type = .VAL_NIL,
         .as = .{
-            .num_int = @as(c_int, 0),
+            .num_int = 0,
         },
     };
 }
@@ -74,7 +74,7 @@ pub export fn next_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -83,14 +83,14 @@ pub export fn next_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
     var next: Value = Value{
         .type = .VAL_NIL,
         .as = .{
-            .num_int = @as(c_int, 0),
+            .num_int = 0,
         },
     };
     _ = &next;
@@ -116,7 +116,7 @@ pub export fn hasNext_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -125,11 +125,11 @@ pub export fn hasNext_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
-    var hasNext: bool = @as(c_int, 0) != 0;
+    var hasNext: bool = 0 != 0;
     _ = &hasNext;
     if (isObjType(args[0], .OBJ_ARRAY)) {
         hasNext = obj_h.hasNextObjectArray(@as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj))));
@@ -153,7 +153,7 @@ pub export fn peek_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -162,7 +162,7 @@ pub export fn peek_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -171,7 +171,7 @@ pub export fn peek_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -180,7 +180,7 @@ pub export fn peek_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     var peek: Value = Value{
         .type = .VAL_NIL,
         .as = .{
-            .num_int = @as(c_int, 0),
+            .num_int = 0,
         },
     };
     _ = &peek;
@@ -206,7 +206,7 @@ pub export fn reset_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -215,7 +215,7 @@ pub export fn reset_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -227,7 +227,7 @@ pub export fn reset_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     return Value{
         .type = .VAL_NIL,
         .as = .{
-            .num_int = @as(c_int, 0),
+            .num_int = 0,
         },
     };
 }
@@ -241,7 +241,7 @@ pub export fn skip_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -250,7 +250,7 @@ pub export fn skip_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -259,7 +259,7 @@ pub export fn skip_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -273,7 +273,7 @@ pub export fn skip_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     return Value{
         .type = .VAL_NIL,
         .as = .{
-            .num_int = @as(c_int, 0),
+            .num_int = 0,
         },
     };
 }
@@ -282,7 +282,7 @@ pub export fn array_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     _ = &argCount;
     var args = arg_args;
     _ = &args;
-    if (argCount == @as(c_int, 0)) {
+    if (argCount == 0) {
         var a: [*c]ObjArray = obj_h.newArray();
         _ = &a;
         return Value{
@@ -323,7 +323,7 @@ pub export fn array_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
             return Value{
                 .type = .VAL_NIL,
                 .as = .{
-                    .num_int = @as(c_int, 0),
+                    .num_int = 0,
                 },
             };
         }
@@ -332,7 +332,7 @@ pub export fn array_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
             return Value{
                 .type = .VAL_NIL,
                 .as = .{
-                    .num_int = @as(c_int, 0),
+                    .num_int = 0,
                 },
             };
         }
@@ -349,7 +349,7 @@ pub export fn array_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -360,12 +360,12 @@ pub export fn linkedlist_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     _ = &argCount;
     var args = arg_args;
     _ = &args;
-    if (argCount != @as(c_int, 0)) {
+    if (argCount != 0) {
         runtimeError("linked_list() takes no arguments.", .{});
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -383,12 +383,12 @@ pub export fn hashtable_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     _ = &argCount;
     var args = arg_args;
     _ = &args;
-    if (argCount != @as(c_int, 0)) {
+    if (argCount != 0) {
         runtimeError("hash_table() takes no arguments.", .{});
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -411,7 +411,7 @@ pub export fn matrix_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -438,7 +438,7 @@ pub export fn fvector_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -447,7 +447,7 @@ pub export fn fvector_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -471,7 +471,7 @@ pub export fn fvector_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     return Value{
                         .type = .VAL_NIL,
                         .as = .{
-                            .num_int = @as(c_int, 0),
+                            .num_int = 0,
                         },
                     };
                 }
@@ -508,7 +508,7 @@ pub export fn range_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -559,7 +559,7 @@ pub export fn slice_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -568,7 +568,7 @@ pub export fn slice_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -656,7 +656,7 @@ pub export fn splice_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -665,7 +665,7 @@ pub export fn splice_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -753,7 +753,7 @@ pub export fn push_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -776,7 +776,7 @@ pub export fn push_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     return Value{
                         .type = .VAL_NIL,
                         .as = .{
-                            .num_int = @as(c_int, 0),
+                            .num_int = 0,
                         },
                     };
                 }
@@ -800,7 +800,7 @@ pub export fn push_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                                 return Value{
                                     .type = .VAL_NIL,
                                     .as = .{
-                                        .num_int = @as(c_int, 0),
+                                        .num_int = 0,
                                     },
                                 };
                             }
@@ -810,7 +810,7 @@ pub export fn push_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     return Value{
                         .type = .VAL_NIL,
                         .as = .{
-                            .num_int = @as(c_int, 0),
+                            .num_int = 0,
                         },
                     };
                 }
@@ -832,7 +832,7 @@ pub export fn push_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     return Value{
                         .type = .VAL_NIL,
                         .as = .{
-                            .num_int = @as(c_int, 0),
+                            .num_int = 0,
                         },
                     };
                 }
@@ -842,7 +842,7 @@ pub export fn push_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                 return Value{
                     .type = .VAL_NIL,
                     .as = .{
-                        .num_int = @as(c_int, 0),
+                        .num_int = 0,
                     },
                 };
             },
@@ -861,7 +861,7 @@ pub export fn pop_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -882,7 +882,7 @@ pub export fn pop_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -919,7 +919,7 @@ pub export fn pop_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                 return Value{
                     .type = .VAL_NIL,
                     .as = .{
-                        .num_int = @as(c_int, 0),
+                        .num_int = 0,
                     },
                 };
             },
@@ -958,7 +958,7 @@ pub export fn nth_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -967,7 +967,7 @@ pub export fn nth_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -1009,7 +1009,7 @@ pub export fn nth_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     _ = &a;
                     var index_1: c_int = if (args[1].type == .VAL_DOUBLE) @intFromFloat(args[1].as.num_double) else args[1].as.num_int;
                     _ = &index_1;
-                    if ((index_1 >= @as(c_int, 0)) and (index_1 < a.*.count)) {
+                    if ((index_1 >= 0) and (index_1 < a.*.count)) {
                         return (blk: {
                             const tmp = index_1;
                             if (tmp >= 0) break :blk a.*.values + @as(usize, @intCast(tmp)) else break :blk a.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
@@ -1024,7 +1024,7 @@ pub export fn nth_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     _ = &l;
                     var index_1: c_int = if (args[1].type == .VAL_DOUBLE) @intFromFloat(args[1].as.num_double) else args[1].as.num_int;
                     _ = &index_1;
-                    if ((index_1 >= @as(c_int, 0)) and (index_1 < l.*.count)) {
+                    if ((index_1 >= 0) and (index_1 < l.*.count)) {
                         var node: [*c]Node = l.*.head;
                         _ = &node;
                         {
@@ -1045,7 +1045,7 @@ pub export fn nth_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     return Value{
                         .type = .VAL_NIL,
                         .as = .{
-                            .num_int = @as(c_int, 0),
+                            .num_int = 0,
                         },
                     };
                 }
@@ -1077,7 +1077,7 @@ pub export fn sort_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -1091,7 +1091,7 @@ pub export fn sort_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     return Value{
                         .type = .VAL_NIL,
                         .as = .{
-                            .num_int = @as(c_int, 0),
+                            .num_int = 0,
                         },
                     };
                 }
@@ -1104,7 +1104,7 @@ pub export fn sort_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     return Value{
                         .type = .VAL_NIL,
                         .as = .{
-                            .num_int = @as(c_int, 0),
+                            .num_int = 0,
                         },
                     };
                 }
@@ -1117,7 +1117,7 @@ pub export fn sort_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     return Value{
                         .type = .VAL_NIL,
                         .as = .{
-                            .num_int = @as(c_int, 0),
+                            .num_int = 0,
                         },
                     };
                 }
@@ -1127,7 +1127,7 @@ pub export fn sort_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                 return Value{
                     .type = .VAL_NIL,
                     .as = .{
-                        .num_int = @as(c_int, 0),
+                        .num_int = 0,
                     },
                 };
             },
@@ -1158,7 +1158,7 @@ pub export fn contains_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -1188,7 +1188,7 @@ pub export fn contains_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     return Value{
                         .type = .VAL_BOOL,
                         .as = .{
-                            .boolean = @as(c_int, 0) != 0,
+                            .boolean = 0 != 0,
                         },
                     };
                 }
@@ -1198,7 +1198,7 @@ pub export fn contains_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                 return Value{
                     .type = .VAL_BOOL,
                     .as = .{
-                        .boolean = @as(c_int, 0) != 0,
+                        .boolean = 0 != 0,
                     },
                 };
             },
@@ -1209,7 +1209,7 @@ pub export fn contains_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     if (!valuesEqual(obj_h.getHashTable(h, @as([*c]ObjString, @ptrCast(@alignCast(args[1].as.obj)))), Value{
                         .type = .VAL_NIL,
                         .as = .{
-                            .num_int = @as(c_int, 0),
+                            .num_int = 0,
                         },
                     })) {
                         return Value{
@@ -1222,7 +1222,7 @@ pub export fn contains_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                         return Value{
                             .type = .VAL_BOOL,
                             .as = .{
-                                .boolean = @as(c_int, 0) != 0,
+                                .boolean = 0 != 0,
                             },
                         };
                     }
@@ -1232,7 +1232,7 @@ pub export fn contains_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     _ = &l;
                     var current: [*c]Node = l.*.head;
                     _ = &current;
-                    while (current != @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
+                    while (current != @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
                         if (valuesEqual(current.*.data, args[1])) {
                             return Value{
                                 .type = .VAL_BOOL,
@@ -1246,7 +1246,7 @@ pub export fn contains_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     return Value{
                         .type = .VAL_BOOL,
                         .as = .{
-                            .boolean = @as(c_int, 0) != 0,
+                            .boolean = 0 != 0,
                         },
                     };
                 }
@@ -1257,7 +1257,7 @@ pub export fn contains_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     _ = &l;
                     var current: [*c]Node = l.*.head;
                     _ = &current;
-                    while (current != @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
+                    while (current != @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
                         if (valuesEqual(current.*.data, args[1])) {
                             return Value{
                                 .type = .VAL_BOOL,
@@ -1271,7 +1271,7 @@ pub export fn contains_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     return Value{
                         .type = .VAL_BOOL,
                         .as = .{
-                            .boolean = @as(c_int, 0) != 0,
+                            .boolean = 0 != 0,
                         },
                     };
                 }
@@ -1282,7 +1282,7 @@ pub export fn contains_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     return Value{
                         .type = .VAL_NIL,
                         .as = .{
-                            .num_int = @as(c_int, 0),
+                            .num_int = 0,
                         },
                     };
                 }
@@ -1302,7 +1302,7 @@ pub export fn insert_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -1319,7 +1319,7 @@ pub export fn insert_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -1328,7 +1328,7 @@ pub export fn insert_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -1345,7 +1345,7 @@ pub export fn insert_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                         return Value{
                             .type = .VAL_NIL,
                             .as = .{
-                                .num_int = @as(c_int, 0),
+                                .num_int = 0,
                             },
                         };
                     }
@@ -1353,7 +1353,7 @@ pub export fn insert_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     return Value{
                         .type = .VAL_NIL,
                         .as = .{
-                            .num_int = @as(c_int, 0),
+                            .num_int = 0,
                         },
                     };
                 }
@@ -1368,7 +1368,7 @@ pub export fn insert_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     return Value{
                         .type = .VAL_NIL,
                         .as = .{
-                            .num_int = @as(c_int, 0),
+                            .num_int = 0,
                         },
                     };
                 }
@@ -1378,7 +1378,7 @@ pub export fn insert_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                 return Value{
                     .type = .VAL_NIL,
                     .as = .{
-                        .num_int = @as(c_int, 0),
+                        .num_int = 0,
                     },
                 };
             },
@@ -1417,7 +1417,7 @@ pub export fn len_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -1511,7 +1511,7 @@ pub export fn search_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -1526,7 +1526,7 @@ pub export fn search_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     if (result == -1) return Value{
                         .type = .VAL_NIL,
                         .as = .{
-                            .num_int = @as(c_int, 0),
+                            .num_int = 0,
                         },
                     };
                     return Value{
@@ -1546,7 +1546,7 @@ pub export fn search_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     if (result == -1) return Value{
                         .type = .VAL_NIL,
                         .as = .{
-                            .num_int = @as(c_int, 0),
+                            .num_int = 0,
                         },
                     };
                     return Value{
@@ -1566,7 +1566,7 @@ pub export fn search_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     if (result == -1) return Value{
                         .type = .VAL_NIL,
                         .as = .{
-                            .num_int = @as(c_int, 0),
+                            .num_int = 0,
                         },
                     };
                     return Value{
@@ -1613,7 +1613,7 @@ pub export fn is_empty_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -1626,7 +1626,7 @@ pub export fn is_empty_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     return Value{
                         .type = .VAL_BOOL,
                         .as = .{
-                            .boolean = a.*.count == @as(c_int, 0),
+                            .boolean = a.*.count == 0,
                         },
                     };
                 }
@@ -1638,7 +1638,7 @@ pub export fn is_empty_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     return Value{
                         .type = .VAL_BOOL,
                         .as = .{
-                            .boolean = h.*.table.count == @as(c_int, 0),
+                            .boolean = h.*.table.count == 0,
                         },
                     };
                 }
@@ -1650,7 +1650,7 @@ pub export fn is_empty_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     return Value{
                         .type = .VAL_BOOL,
                         .as = .{
-                            .boolean = f.*.count == @as(c_int, 0),
+                            .boolean = f.*.count == 0,
                         },
                     };
                 }
@@ -1662,7 +1662,7 @@ pub export fn is_empty_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     return Value{
                         .type = .VAL_BOOL,
                         .as = .{
-                            .boolean = l.*.count == @as(c_int, 0),
+                            .boolean = l.*.count == 0,
                         },
                     };
                 }
@@ -1673,7 +1673,7 @@ pub export fn is_empty_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     return Value{
                         .type = .VAL_NIL,
                         .as = .{
-                            .num_int = @as(c_int, 0),
+                            .num_int = 0,
                         },
                     };
                 }
@@ -1693,7 +1693,7 @@ pub export fn equal_list_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -1706,7 +1706,7 @@ pub export fn equal_list_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                         return Value{
                             .type = .VAL_NIL,
                             .as = .{
-                                .num_int = @as(c_int, 0),
+                                .num_int = 0,
                             },
                         };
                     }
@@ -1729,7 +1729,7 @@ pub export fn equal_list_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                         return Value{
                             .type = .VAL_NIL,
                             .as = .{
-                                .num_int = @as(c_int, 0),
+                                .num_int = 0,
                             },
                         };
                     }
@@ -1752,7 +1752,7 @@ pub export fn equal_list_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                         return Value{
                             .type = .VAL_NIL,
                             .as = .{
-                                .num_int = @as(c_int, 0),
+                                .num_int = 0,
                             },
                         };
                     }
@@ -1774,7 +1774,7 @@ pub export fn equal_list_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     return Value{
                         .type = .VAL_NIL,
                         .as = .{
-                            .num_int = @as(c_int, 0),
+                            .num_int = 0,
                         },
                     };
                 }
@@ -1806,7 +1806,7 @@ pub export fn reverse_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -1820,7 +1820,7 @@ pub export fn reverse_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     return Value{
                         .type = .VAL_NIL,
                         .as = .{
-                            .num_int = @as(c_int, 0),
+                            .num_int = 0,
                         },
                     };
                 }
@@ -1833,7 +1833,7 @@ pub export fn reverse_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     return Value{
                         .type = .VAL_NIL,
                         .as = .{
-                            .num_int = @as(c_int, 0),
+                            .num_int = 0,
                         },
                     };
                 }
@@ -1846,7 +1846,7 @@ pub export fn reverse_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     return Value{
                         .type = .VAL_NIL,
                         .as = .{
-                            .num_int = @as(c_int, 0),
+                            .num_int = 0,
                         },
                     };
                 }
@@ -1867,7 +1867,7 @@ pub export fn merge_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -1888,7 +1888,7 @@ pub export fn merge_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -1945,7 +1945,7 @@ pub export fn merge_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
             else => return Value{
                 .type = .VAL_NIL,
                 .as = .{
-                    .num_int = @as(c_int, 0),
+                    .num_int = 0,
                 },
             },
         }
@@ -1983,7 +1983,7 @@ pub export fn clone_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -2050,7 +2050,7 @@ pub export fn clone_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                 return Value{
                     .type = .VAL_NIL,
                     .as = .{
-                        .num_int = @as(c_int, 0),
+                        .num_int = 0,
                     },
                 };
             },
@@ -2089,7 +2089,7 @@ pub export fn clear_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -2116,7 +2116,7 @@ pub export fn clear_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                 return Value{
                     .type = .VAL_NIL,
                     .as = .{
-                        .num_int = @as(c_int, 0),
+                        .num_int = 0,
                     },
                 };
             },
@@ -2126,7 +2126,7 @@ pub export fn clear_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     return Value{
         .type = .VAL_NIL,
         .as = .{
-            .num_int = @as(c_int, 0),
+            .num_int = 0,
         },
     };
 }
@@ -2148,7 +2148,7 @@ pub export fn sum_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -2178,7 +2178,7 @@ pub export fn sum_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                 return Value{
                     .type = .VAL_NIL,
                     .as = .{
-                        .num_int = @as(c_int, 0),
+                        .num_int = 0,
                     },
                 };
             },
@@ -2205,7 +2205,7 @@ pub export fn mean_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -2223,7 +2223,7 @@ pub export fn mean_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                 return Value{
                     .type = .VAL_NIL,
                     .as = .{
-                        .num_int = @as(c_int, 0),
+                        .num_int = 0,
                     },
                 };
             },
@@ -2250,7 +2250,7 @@ pub export fn std_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -2268,7 +2268,7 @@ pub export fn std_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                 return Value{
                     .type = .VAL_NIL,
                     .as = .{
-                        .num_int = @as(c_int, 0),
+                        .num_int = 0,
                     },
                 };
             },
@@ -2295,7 +2295,7 @@ pub export fn var_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -2325,7 +2325,7 @@ pub export fn var_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                 return Value{
                     .type = .VAL_NIL,
                     .as = .{
-                        .num_int = @as(c_int, 0),
+                        .num_int = 0,
                     },
                 };
             },
@@ -2352,7 +2352,7 @@ pub export fn maxl_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -2382,7 +2382,7 @@ pub export fn maxl_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                 return Value{
                     .type = .VAL_NIL,
                     .as = .{
-                        .num_int = @as(c_int, 0),
+                        .num_int = 0,
                     },
                 };
             },
@@ -2409,7 +2409,7 @@ pub export fn minl_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -2439,7 +2439,7 @@ pub export fn minl_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                 return Value{
                     .type = .VAL_NIL,
                     .as = .{
-                        .num_int = @as(c_int, 0),
+                        .num_int = 0,
                     },
                 };
             },
@@ -2458,7 +2458,7 @@ pub export fn dot_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -2485,7 +2485,7 @@ pub export fn cross_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -2512,7 +2512,7 @@ pub export fn norm_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -2537,7 +2537,7 @@ pub export fn proj_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -2564,7 +2564,7 @@ pub export fn reject_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -2591,7 +2591,7 @@ pub export fn reflect_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -2618,7 +2618,7 @@ pub export fn refract_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -2649,7 +2649,7 @@ pub export fn angle_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -2676,7 +2676,7 @@ pub export fn put_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -2685,7 +2685,7 @@ pub export fn put_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -2694,7 +2694,7 @@ pub export fn put_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -2719,7 +2719,7 @@ pub export fn get_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -2728,7 +2728,7 @@ pub export fn get_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -2737,7 +2737,7 @@ pub export fn get_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -2757,7 +2757,7 @@ pub export fn remove_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -2774,7 +2774,7 @@ pub export fn remove_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -2783,7 +2783,7 @@ pub export fn remove_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -2824,7 +2824,7 @@ pub export fn remove_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
                     return Value{
                         .type = .VAL_NIL,
                         .as = .{
-                            .num_int = @as(c_int, 0),
+                            .num_int = 0,
                         },
                     };
                 }
@@ -2844,7 +2844,7 @@ pub export fn push_front_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -2863,7 +2863,7 @@ pub export fn push_front_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     return Value{
         .type = .VAL_NIL,
         .as = .{
-            .num_int = @as(c_int, 0),
+            .num_int = 0,
         },
     };
 }
@@ -2877,7 +2877,7 @@ pub export fn pop_front_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -2895,7 +2895,7 @@ pub export fn set_row_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -2904,7 +2904,7 @@ pub export fn set_row_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -2913,7 +2913,7 @@ pub export fn set_row_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -2927,7 +2927,7 @@ pub export fn set_row_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     return Value{
         .type = .VAL_NIL,
         .as = .{
-            .num_int = @as(c_int, 0),
+            .num_int = 0,
         },
     };
 }
@@ -2941,7 +2941,7 @@ pub export fn set_col_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -2950,7 +2950,7 @@ pub export fn set_col_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -2959,7 +2959,7 @@ pub export fn set_col_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -2973,7 +2973,7 @@ pub export fn set_col_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     return Value{
         .type = .VAL_NIL,
         .as = .{
-            .num_int = @as(c_int, 0),
+            .num_int = 0,
         },
     };
 }
@@ -2988,7 +2988,7 @@ pub export fn set_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -2997,7 +2997,7 @@ pub export fn set_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -3006,7 +3006,7 @@ pub export fn set_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -3015,7 +3015,7 @@ pub export fn set_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -3029,7 +3029,7 @@ pub export fn set_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     return Value{
         .type = .VAL_NIL,
         .as = .{
-            .num_int = @as(c_int, 0),
+            .num_int = 0,
         },
     };
 }
@@ -3038,12 +3038,12 @@ pub export fn kolasa_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     _ = &argCount;
     var args = arg_args;
     _ = &args;
-    if (argCount != @as(c_int, 0)) {
+    if (argCount != 0) {
         runtimeError("kolasa() takes no arguments.", .{});
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -3081,7 +3081,7 @@ pub export fn rref_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -3091,7 +3091,7 @@ pub export fn rref_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     return Value{
         .type = .VAL_NIL,
         .as = .{
-            .num_int = @as(c_int, 0),
+            .num_int = 0,
         },
     };
 }
@@ -3105,7 +3105,7 @@ pub export fn rank_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -3128,7 +3128,7 @@ pub export fn transpose_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -3153,7 +3153,7 @@ pub export fn determinant_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -3176,7 +3176,7 @@ pub export fn lu_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -3196,12 +3196,12 @@ pub export fn workspace_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     _ = &argCount;
     var args = arg_args;
     _ = &args;
-    if (argCount != @as(c_int, 0)) {
+    if (argCount != 0) {
         runtimeError("workspace() takes no arguments.", .{});
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -3215,7 +3215,7 @@ pub export fn workspace_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
             if (((blk: {
                 const tmp = i;
                 if (tmp >= 0) break :blk e + @as(usize, @intCast(tmp)) else break :blk e - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-            }).*.key != @as([*c]ObjString, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) and !isObjType((blk: {
+            }).*.key != @as([*c]ObjString, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) and !isObjType((blk: {
                 const tmp = i;
                 if (tmp >= 0) break :blk e + @as(usize, @intCast(tmp)) else break :blk e - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
             }).*.value, .OBJ_NATIVE)) {
@@ -3240,7 +3240,7 @@ pub export fn workspace_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     return Value{
         .type = .VAL_NIL,
         .as = .{
-            .num_int = @as(c_int, 0),
+            .num_int = 0,
         },
     };
 }
@@ -3254,7 +3254,7 @@ pub export fn linspace_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -3263,7 +3263,7 @@ pub export fn linspace_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -3292,7 +3292,7 @@ pub export fn interp1_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -3301,7 +3301,7 @@ pub export fn interp1_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         return Value{
             .type = .VAL_NIL,
             .as = .{
-                .num_int = @as(c_int, 0),
+                .num_int = 0,
             },
         };
     }
@@ -3325,14 +3325,14 @@ pub export fn simd_stat_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     _ = &argCount;
     var args = arg_args;
     _ = &args;
-    if (argCount != @as(c_int, 0)) {
+    if (argCount != 0) {
         runtimeError("simd_stat() takes 0 arguments.", .{});
     }
     _ = printf("x86_64 SIMD AVX2 Enabled\n");
     return Value{
         .type = .VAL_NIL,
         .as = .{
-            .num_int = @as(c_int, 0),
+            .num_int = 0,
         },
     };
 }

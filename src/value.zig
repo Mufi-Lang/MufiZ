@@ -264,25 +264,25 @@ pub fn printValue(value: Value) void {
     }
 }
 
-pub fn valueToString(value: Value) [*c]u8 {
+pub fn valueToString(value: Value) []const u8 {
     switch (value.type) {
-        .VAL_BOOL => return if (AS_BOOL(value)) @ptrCast(@constCast("true")) else @ptrCast(@constCast("false")),
-        .VAL_NIL => return @ptrCast(@constCast("nil")),
+        .VAL_BOOL => return if (AS_BOOL(value)) "true" else "false",
+        .VAL_NIL => return "nil",
         .VAL_INT => {
-            const s = std.fmt.allocPrint(std.heap.c_allocator, "{d}", .{AS_INT(value)}) catch return null;
-            return @ptrCast(s);
+            const s = std.fmt.allocPrint(std.heap.c_allocator, "{d}", .{AS_INT(value)}) catch unreachable;
+            return s;
         },
         .VAL_DOUBLE => {
-            const s = std.fmt.allocPrint(std.heap.c_allocator, "{d}", .{AS_DOUBLE(value)}) catch return null;
-            return @ptrCast(s);
+            const s = std.fmt.allocPrint(std.heap.c_allocator, "{d}", .{AS_DOUBLE(value)}) catch unreachable;
+            return s;
         },
         .VAL_COMPLEX => {
             const c = AS_COMPLEX(value);
-            const s = std.fmt.allocPrint(std.heap.c_allocator, "{d} + {d}i", .{ c.r, c.i }) catch return null;
-            return @ptrCast(s);
+            const s = std.fmt.allocPrint(std.heap.c_allocator, "{d} + {d}i", .{ c.r, c.i }) catch unreachable;
+            return s;
         },
         .VAL_OBJ => {
-            return @ptrCast(@constCast("object"));
+            return "object";
         },
     }
     return null;
