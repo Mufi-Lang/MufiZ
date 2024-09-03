@@ -1,4 +1,5 @@
 const std = @import("std");
+pub const strlen = @cImport(@cInclude("string.h")).strlen;
 
 pub fn memcmp(s1: ?*const anyopaque, s2: ?*const anyopaque, n: usize) c_int {
     const str1: [*c]const u8 = @ptrCast(s1.?);
@@ -12,11 +13,6 @@ pub fn memcmp(s1: ?*const anyopaque, s2: ?*const anyopaque, n: usize) c_int {
     }
 
     return 0;
-}
-
-pub fn strlen(s: [*c]const u8) usize {
-    const str: *[]u8 = @constCast(@ptrCast(@alignCast(s)));
-    return str.*.len;
 }
 
 pub const TokenType = enum(c_int) {

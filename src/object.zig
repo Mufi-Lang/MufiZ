@@ -2707,65 +2707,30 @@ pub fn fromArray(arg_array: [*c]ObjArray) [*c]FloatVector {
     }
     return vector;
 }
-pub fn pushFloatVector(arg_vector: [*c]FloatVector, arg_value: f64) void {
-    var vector = arg_vector;
-    _ = &vector;
-    var value = arg_value;
-    _ = &value;
-    if ((vector.*.count + @as(c_int, 1)) > vector.*.size) {
-        _ = printf("Vector is full\n");
+pub fn pushFloatVector(vector: [*c]FloatVector, value: f64) void {
+    if (vector.*.count + 1 > vector.*.size) {
+        print("Vector is full\n", .{});
         return;
     }
-    (blk: {
-        const tmp = vector.*.count;
-        if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    }).* = value;
+    vector.*.data[@intCast(vector.*.count)] = value;
     vector.*.count += 1;
-    if ((vector.*.count > @as(c_int, 1)) and ((blk: {
-        const tmp = vector.*.count - @as(c_int, 2);
-        if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    }).* > value)) {
-        vector.*.sorted = 0 != 0;
-    }
+
+    if (vector.*.count > 1 and vector.*.data[@intCast(vector.*.count - 2)] > value) vector.*.sorted = false;
 }
-pub fn insertFloatVector(arg_vector: [*c]FloatVector, arg_index_1: c_int, arg_value: f64) void {
-    var vector = arg_vector;
-    _ = &vector;
-    var index_1 = arg_index_1;
-    _ = &index_1;
-    var value = arg_value;
-    _ = &value;
+pub fn insertFloatVector(vector: [*c]FloatVector, index_1: c_int, value: f64) void {
     if ((index_1 < 0) or (index_1 >= vector.*.size)) {
-        _ = printf("Index out of bounds\n");
+        print("Index out of bounds\n", .{});
         return;
     }
-    {
-        var i: c_int = vector.*.count;
-        _ = &i;
-        while (i > index_1) : (i -= 1) {
-            (blk: {
-                const tmp = i;
-                if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-            }).* = (blk: {
-                const tmp = i - @as(c_int, 1);
-                if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-            }).*;
-        }
+    var i: usize = @intCast(vector.*.count);
+    while (i > index_1) : (i -= 1) {
+        vector.*.data[i] = vector.*.data[i - 1];
     }
-    (blk: {
-        const tmp = index_1;
-        if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    }).* = value;
+
+    vector.*.data[@intCast(index_1)] = value;
     vector.*.count += 1;
-    if ((vector.*.count > @as(c_int, 1)) and ((blk: {
-        const tmp = index_1;
-        if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    }).* < (blk: {
-        const tmp = index_1 - @as(c_int, 1);
-        if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    }).*)) {
-        vector.*.sorted = 0 != 0;
-    }
+
+    if (vector.*.count > 1 and (vector.*.data[@intCast(index_1)] < vector.*.data[@intCast(index_1 - 1)])) vector.*.sorted = false;
 }
 pub fn getFloatVector(arg_vector: [*c]FloatVector, arg_index_1: c_int) f64 {
     var vector = arg_vector;
@@ -3224,30 +3189,13 @@ pub fn divFloatVector(arg_vector1: [*c]FloatVector, arg_vector2: [*c]FloatVector
     result.*.count = vector1.*.count;
     return result;
 }
-pub fn equalFloatVector(arg_a: [*c]FloatVector, arg_b: [*c]FloatVector) bool {
-    var a = arg_a;
-    _ = &a;
-    var b = arg_b;
-    _ = &b;
-    if (a.*.count != b.*.count) {
-        return 0 != 0;
+pub fn equalFloatVector(a: [*c]FloatVector, b: [*c]FloatVector) bool {
+    if (a.*.count != b.*.count) return false;
+
+    for (0..@intCast(a.*.count)) |i| {
+        if (a.*.data[i] != b.*.data[i]) return false;
     }
-    {
-        var i: c_int = 0;
-        _ = &i;
-        while (i < a.*.count) : (i += 1) {
-            if ((blk: {
-                const tmp = i;
-                if (tmp >= 0) break :blk a.*.data + @as(usize, @intCast(tmp)) else break :blk a.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-            }).* != (blk: {
-                const tmp = i;
-                if (tmp >= 0) break :blk b.*.data + @as(usize, @intCast(tmp)) else break :blk b.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-            }).*) {
-                return 0 != 0;
-            }
-        }
-    }
-    return false;
+    return true;
 }
 pub fn scaleFloatVector(arg_vector: [*c]FloatVector, arg_scalar: f64) [*c]FloatVector {
     var vector = arg_vector;
