@@ -731,24 +731,20 @@ pub export fn splice_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     return @import("std").mem.zeroes(Value);
 }
-pub export fn push_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
-    _ = &argCount;
-    var args = arg_args;
-    _ = &args;
-    if ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+pub export fn push_nf(argCount: c_int, args: [*c]Value) Value {
+    if (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_LINKED_LIST,
         .count = 1,
-    }))) != 0) and ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    }) and notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_ARRAY,
         .count = 1,
-    }))) != 0) and (@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    }) and notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_FVECTOR,
         .count = 1,
-    }))) != 0))) {
+    })) {
         runtimeError("First argument must be a list type.", .{});
         return Value{
             .type = .VAL_NIL,
@@ -757,99 +753,79 @@ pub export fn push_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
             },
         };
     }
-    while (true) {
-        switch (args[0].as.obj.*.type) {
-            .OBJ_ARRAY => {
-                {
-                    var a: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &a;
-                    {
-                        var i: c_int = 1;
-                        _ = &i;
-                        while (i < argCount) : (i += 1) {
-                            obj_h.pushArray(a, (blk: {
-                                const tmp = i;
-                                if (tmp >= 0) break :blk args + @as(usize, @intCast(tmp)) else break :blk args - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                            }).*);
-                        }
-                    }
-                    return Value{
-                        .type = .VAL_NIL,
-                        .as = .{
-                            .num_int = 0,
-                        },
-                    };
+    switch (args[0].as.obj.*.type) {
+        .OBJ_ARRAY => {
+            {
+                const a: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj)));
+                for (0..@intCast(argCount)) |i| {
+                    obj_h.pushArray(a, args[i]);
                 }
-            },
-            .OBJ_FVECTOR => {
-                {
-                    var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &f;
-                    {
-                        var i: c_int = 1;
-                        _ = &i;
-                        while (i < argCount) : (i += 1) {
-                            if (!(((blk: {
-                                const tmp = i;
-                                if (tmp >= 0) break :blk args + @as(usize, @intCast(tmp)) else break :blk args - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                            }).*.type == .VAL_INT) or ((blk: {
-                                const tmp = i;
-                                if (tmp >= 0) break :blk args + @as(usize, @intCast(tmp)) else break :blk args - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                            }).*.type == .VAL_DOUBLE))) {
-                                runtimeError("All elements of the vector must be numbers.", .{});
-                                return Value{
-                                    .type = .VAL_NIL,
-                                    .as = .{
-                                        .num_int = 0,
-                                    },
-                                };
-                            }
-                            obj_h.pushFloatVector(f, 0.0);
-                        }
-                    }
-                    return Value{
-                        .type = .VAL_NIL,
-                        .as = .{
-                            .num_int = 0,
-                        },
-                    };
-                }
-            },
-            .OBJ_LINKED_LIST => {
-                {
-                    var l: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &l;
-                    {
-                        var i: c_int = 1;
-                        _ = &i;
-                        while (i < argCount) : (i += 1) {
-                            obj_h.pushBack(l, (blk: {
-                                const tmp = i;
-                                if (tmp >= 0) break :blk args + @as(usize, @intCast(tmp)) else break :blk args - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                            }).*);
-                        }
-                    }
-                    return Value{
-                        .type = .VAL_NIL,
-                        .as = .{
-                            .num_int = 0,
-                        },
-                    };
-                }
-            },
-            else => {
-                runtimeError("Argument must be a linked list, array or float vector.", .{});
                 return Value{
                     .type = .VAL_NIL,
                     .as = .{
                         .num_int = 0,
                     },
                 };
-            },
-        }
-        break;
+            }
+        },
+        .OBJ_FVECTOR => {
+            {
+                const f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
+                for (0..@intCast(argCount)) |i| {
+                    if (args[i].type == .VAL_DOUBLE) {
+                        obj_h.pushFloatVector(f, args[i].as.num_double);
+                    } else if (args[i].type == .VAL_INT) {
+                        obj_h.pushFloatVector(f, @floatFromInt(args[i].as.num_int));
+                    } else {
+                        runtimeError("All elements of the vector must be numbers.", .{});
+                        return Value{
+                            .type = .VAL_NIL,
+                            .as = .{
+                                .num_int = 0,
+                            },
+                        };
+                    }
+                }
+            }
+            return Value{
+                .type = .VAL_NIL,
+                .as = .{
+                    .num_int = 0,
+                },
+            };
+        },
+        .OBJ_LINKED_LIST => {
+            {
+                var l: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
+                _ = &l;
+                {
+                    var i: c_int = 1;
+                    _ = &i;
+                    while (i < argCount) : (i += 1) {
+                        obj_h.pushBack(l, (blk: {
+                            const tmp = i;
+                            if (tmp >= 0) break :blk args + @as(usize, @intCast(tmp)) else break :blk args - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                        }).*);
+                    }
+                }
+                return Value{
+                    .type = .VAL_NIL,
+                    .as = .{
+                        .num_int = 0,
+                    },
+                };
+            }
+        },
+        else => {
+            runtimeError("Argument must be a linked list, array or float vector.", .{});
+            return Value{
+                .type = .VAL_NIL,
+                .as = .{
+                    .num_int = 0,
+                },
+            };
+        },
     }
-    return @import("std").mem.zeroes(Value);
 }
 pub export fn pop_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     var argCount = arg_argCount;
