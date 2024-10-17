@@ -87,11 +87,7 @@ pub fn writeChunk(chunk: [*c]Chunk, byte: u8, line: c_int) void {
     chunk.*.count += 1;
 }
 
-pub fn addConstant(arg_chunk: [*c]Chunk, arg_value: value_h.Value) c_int {
-    var chunk = arg_chunk;
-    _ = &chunk;
-    var value = arg_value;
-    _ = &value;
+pub fn addConstant(chunk: [*c]Chunk, value: value_h.Value) c_int {
     vm_h.push(value);
     value_h.writeValueArray(&chunk.*.constants, value);
     _ = vm_h.pop();
