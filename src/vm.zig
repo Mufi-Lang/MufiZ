@@ -664,7 +664,7 @@ pub fn run() callconv(.C) InterpretResult {
                 instruction = tmp;
                 break :blk tmp;
             })))) {
-                @as(c_int, 0) => {
+                0 => {
                     {
                         var constant: Value = frame.*.closure.*.function.*.chunk.constants.values[
                             (blk: {
@@ -683,7 +683,7 @@ pub fn run() callconv(.C) InterpretResult {
                     push(Value{
                         .type = .VAL_NIL,
                         .as = .{
-                            .num_int = @as(c_int, 0),
+                            .num_int = 0,
                         },
                     });
                     break;
@@ -701,7 +701,7 @@ pub fn run() callconv(.C) InterpretResult {
                     push(Value{
                         .type = .VAL_BOOL,
                         .as = .{
-                            .boolean = @as(c_int, 0) != 0,
+                            .boolean = 0 != 0,
                         },
                     });
                     break;
@@ -732,7 +732,7 @@ pub fn run() callconv(.C) InterpretResult {
                             break :blk tmp;
                         }).*;
                         _ = &slot;
-                        frame.*.slots[slot] = peek(@as(c_int, 0));
+                        frame.*.slots[slot] = peek(0);
                         break;
                     }
                 },
@@ -768,7 +768,7 @@ pub fn run() callconv(.C) InterpretResult {
                             }).*
                         ].as.obj)));
                         _ = &name;
-                        _ = tableSet(&vm.globals, name, peek(@as(c_int, 0)));
+                        _ = tableSet(&vm.globals, name, peek(0));
                         _ = pop();
                         break;
                     }
@@ -784,7 +784,7 @@ pub fn run() callconv(.C) InterpretResult {
                             }).*
                         ].as.obj)));
                         _ = &name;
-                        if (tableSet(&vm.globals, name, peek(@as(c_int, 0)))) {
+                        if (tableSet(&vm.globals, name, peek(0))) {
                             _ = tableDelete(&vm.globals, name);
                             runtimeError("Undefined variable '{s}'.", .{zstr(name)});
                             return .INTERPRET_RUNTIME_ERROR;
@@ -814,17 +814,17 @@ pub fn run() callconv(.C) InterpretResult {
                             break :blk tmp;
                         }).*;
                         _ = &slot;
-                        frame.*.closure.*.upvalues[slot].*.location.* = peek(@as(c_int, 0));
+                        frame.*.closure.*.upvalues[slot].*.location.* = peek(0);
                         break;
                     }
                 },
                 @as(c_int, 12) => {
                     {
-                        if (!isObjType(peek(@as(c_int, 0)), .OBJ_INSTANCE)) {
+                        if (!isObjType(peek(0), .OBJ_INSTANCE)) {
                             runtimeError("Only instances have properties.", .{});
                             return .INTERPRET_RUNTIME_ERROR;
                         }
-                        var instance: [*c]ObjInstance = @as([*c]ObjInstance, @ptrCast(@alignCast(peek(@as(c_int, 0)).as.obj)));
+                        var instance: [*c]ObjInstance = @as([*c]ObjInstance, @ptrCast(@alignCast(peek(0).as.obj)));
                         _ = &instance;
                         var name: [*c]ObjString = @as([*c]ObjString, @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
                             (blk: {
@@ -863,7 +863,7 @@ pub fn run() callconv(.C) InterpretResult {
                                 ref.* += 1;
                                 break :blk tmp;
                             }).*
-                        ].as.obj))), peek(@as(c_int, 0)));
+                        ].as.obj))), peek(0));
                         var value: Value = pop();
                         _ = &value;
                         _ = pop();
@@ -915,9 +915,9 @@ pub fn run() callconv(.C) InterpretResult {
                             runtimeError("Only arrays support indexing.", .{});
                             return .INTERPRET_RUNTIME_ERROR;
                         }
-                        var arrObj: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(array.as.obj)));
+                        var arrObj = @as([*c]ObjArray, @ptrCast(@alignCast(array.as.obj)));
                         _ = &arrObj;
-                        if ((idx < @as(c_int, 0)) or (idx >= arrObj.*.count)) {
+                        if ((idx < 0) or (idx >= arrObj.*.count)) {
                             runtimeError("Index out of bounds.", .{});
                             return .INTERPRET_RUNTIME_ERROR;
                         }
@@ -952,9 +952,9 @@ pub fn run() callconv(.C) InterpretResult {
                             runtimeError("Only arrays support indexing.", .{});
                             return .INTERPRET_RUNTIME_ERROR;
                         }
-                        var arrObj: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(array.as.obj)));
+                        var arrObj = @as([*c]ObjArray, @ptrCast(@alignCast(array.as.obj)));
                         _ = &arrObj;
-                        if ((idx < @as(c_int, 0)) or (idx >= arrObj.*.count)) {
+                        if ((idx < 0) or (idx >= arrObj.*.count)) {
                             runtimeError("Index out of bounds.", .{});
                             return .INTERPRET_RUNTIME_ERROR;
                         }
@@ -983,9 +983,9 @@ pub fn run() callconv(.C) InterpretResult {
                         }
                         var idx: c_int = index_1.as.num_int;
                         _ = &idx;
-                        var arrObj: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(array.as.obj)));
+                        var arrObj = @as([*c]ObjArray, @ptrCast(@alignCast(array.as.obj)));
                         _ = &arrObj;
-                        if ((idx < @as(c_int, 0)) or (idx >= arrObj.*.count)) {
+                        if ((idx < 0) or (idx >= arrObj.*.count)) {
                             runtimeError("Index out of bounds.", .{});
                             return .INTERPRET_RUNTIME_ERROR;
                         }
@@ -1005,7 +1005,7 @@ pub fn run() callconv(.C) InterpretResult {
                             break :blk tmp;
                         }).*)));
                         _ = &count;
-                        var array: [*c]ObjArray = object_h.newArrayWithCap(count, 1 != 0);
+                        var array = object_h.newArrayWithCap(count, 1 != 0);
                         _ = &array;
                         {
                             var i: c_int = 0;
@@ -1039,7 +1039,7 @@ pub fn run() callconv(.C) InterpretResult {
                             break :blk tmp;
                         }).*)));
                         _ = &count;
-                        var fvec: [*c]FloatVector = object_h.newFloatVector(count);
+                        var fvec = object_h.newFloatVector(count);
                         _ = &fvec;
                         {
                             var i: c_int = 0;
@@ -1066,10 +1066,10 @@ pub fn run() callconv(.C) InterpretResult {
                 },
                 @as(c_int, 17) => {
                     {
-                        if ((@as(c_int, @intFromBool(isObjType(peek(@as(c_int, 0)), .OBJ_ARRAY))) != 0) and (@as(c_int, @intFromBool(isObjType(peek(1), .OBJ_ARRAY))) != 0)) {
-                            var b: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(pop().as.obj)));
+                        if ((isObjType(peek(0), .OBJ_ARRAY)) and (isObjType(peek(1), .OBJ_ARRAY))) {
+                            var b = @as([*c]ObjArray, @ptrCast(@alignCast(pop().as.obj)));
                             _ = &b;
-                            var a: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(pop().as.obj)));
+                            var a = @as([*c]ObjArray, @ptrCast(@alignCast(pop().as.obj)));
                             _ = &a;
                             push(Value{
                                 .type = .VAL_BOOL,
@@ -1077,7 +1077,7 @@ pub fn run() callconv(.C) InterpretResult {
                                     .boolean = equalArray(a, b),
                                 },
                             });
-                        } else if ((@as(c_int, @intFromBool(isObjType(peek(@as(c_int, 0)), .OBJ_LINKED_LIST))) != 0) and (@as(c_int, @intFromBool(isObjType(peek(1), .OBJ_LINKED_LIST))) != 0)) {
+                        } else if ((isObjType(peek(0), .OBJ_LINKED_LIST)) and (isObjType(peek(1), .OBJ_LINKED_LIST))) {
                             var b: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(pop().as.obj)));
                             _ = &b;
                             var a: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(pop().as.obj)));
@@ -1105,7 +1105,7 @@ pub fn run() callconv(.C) InterpretResult {
                 },
                 @as(c_int, 18) => {
                     while (true) {
-                        if ((peek(@as(c_int, 0)).type == .VAL_INT) and (peek(1).type == .VAL_INT)) {
+                        if ((peek(0).type == .VAL_INT) and (peek(1).type == .VAL_INT)) {
                             var b: c_int = pop().as.num_int;
                             _ = &b;
                             var a: c_int = pop().as.num_int;
@@ -1116,7 +1116,7 @@ pub fn run() callconv(.C) InterpretResult {
                                     .boolean = a > b,
                                 },
                             });
-                        } else if ((peek(@as(c_int, 0)).type == .VAL_DOUBLE) and (peek(1).type == .VAL_DOUBLE)) {
+                        } else if ((peek(0).type == .VAL_DOUBLE) and (peek(1).type == .VAL_DOUBLE)) {
                             var b: f64 = pop().as.num_double;
                             _ = &b;
                             var a: f64 = pop().as.num_double;
@@ -1137,7 +1137,7 @@ pub fn run() callconv(.C) InterpretResult {
                 },
                 @as(c_int, 19) => {
                     while (true) {
-                        if ((peek(@as(c_int, 0)).type == .VAL_INT) and (peek(1).type == .VAL_INT)) {
+                        if ((peek(0).type == .VAL_INT) and (peek(1).type == .VAL_INT)) {
                             var b: c_int = pop().as.num_int;
                             _ = &b;
                             var a: c_int = pop().as.num_int;
@@ -1148,7 +1148,7 @@ pub fn run() callconv(.C) InterpretResult {
                                     .boolean = a < b,
                                 },
                             });
-                        } else if ((peek(@as(c_int, 0)).type == .VAL_DOUBLE) and (peek(1).type == .VAL_DOUBLE)) {
+                        } else if ((peek(0).type == .VAL_DOUBLE) and (peek(1).type == .VAL_DOUBLE)) {
                             var b: f64 = pop().as.num_double;
                             _ = &b;
                             var a: f64 = pop().as.num_double;
@@ -1169,415 +1169,184 @@ pub fn run() callconv(.C) InterpretResult {
                 },
                 @as(c_int, 20) => {
                     {
-                        if ((@as(c_int, @intFromBool(isObjType(peek(@as(c_int, 0)), .OBJ_STRING))) != 0) and (@as(c_int, @intFromBool(isObjType(peek(1), .OBJ_STRING))) != 0)) {
+                        if (isObjType(peek(0), .OBJ_STRING) and (isObjType(peek(1), .OBJ_STRING))) {
                             concatenate();
-                        } else if ((peek(@as(c_int, 0)).type == .VAL_COMPLEX) and (peek(1).type == .VAL_COMPLEX)) {
-                            complex_add();
-                        } else if ((@as(c_int, @intFromBool(isObjType(peek(@as(c_int, 0)), .OBJ_ARRAY))) != 0) and (@as(c_int, @intFromBool(isObjType(peek(1), .OBJ_ARRAY))) != 0)) {
-                            var b: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(pop().as.obj)));
-                            _ = &b;
-                            var a: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(pop().as.obj)));
-                            _ = &a;
-                            var result: [*c]ObjArray = addArray(a, b);
-                            _ = &result;
-                            push(Value{
-                                .type = .VAL_OBJ,
-                                .as = .{
-                                    .obj = @as([*c]Obj, @ptrCast(@alignCast(result))),
-                                },
-                            });
-                        } else if ((@as(c_int, @intFromBool(isObjType(peek(@as(c_int, 0)), .OBJ_FVECTOR))) != 0) and (@as(c_int, @intFromBool(isObjType(peek(1), .OBJ_FVECTOR))) != 0)) {
-                            var b: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
-                            _ = &b;
-                            var a: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
-                            _ = &a;
-                            var result: [*c]FloatVector = addFloatVector(a, b);
-                            _ = &result;
-                            push(Value{
-                                .type = .VAL_OBJ,
-                                .as = .{
-                                    .obj = @as([*c]Obj, @ptrCast(@alignCast(result))),
-                                },
-                            });
-                        } else if ((@as(c_int, @intFromBool(isObjType(peek(1), .OBJ_FVECTOR))) != 0) and (peek(@as(c_int, 0)).type == .VAL_DOUBLE)) {
-                            var b: f64 = pop().as.num_double;
-                            _ = &b;
-                            var a: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
-                            _ = &a;
-                            var result: [*c]FloatVector = singleAddFloatVector(a, b);
-                            _ = &result;
-                            push(Value{
-                                .type = .VAL_OBJ,
-                                .as = .{
-                                    .obj = @as([*c]Obj, @ptrCast(@alignCast(result))),
-                                },
-                            });
-                        } else if ((peek(1).type == .VAL_DOUBLE) and (@as(c_int, @intFromBool(isObjType(peek(@as(c_int, 0)), .OBJ_FVECTOR))) != 0)) {
-                            var b: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
-                            _ = &b;
-                            var a: f64 = pop().as.num_double;
-                            _ = &a;
-                            var result: [*c]FloatVector = singleAddFloatVector(b, a);
-                            _ = &result;
-                            push(Value{
-                                .type = .VAL_OBJ,
-                                .as = .{
-                                    .obj = @as([*c]Obj, @ptrCast(@alignCast(result))),
-                                },
-                            });
-                        } else if ((@as(c_int, @intFromBool(isObjType(peek(@as(c_int, 0)), .OBJ_MATRIX))) != 0) and (@as(c_int, @intFromBool(isObjType(peek(1), .OBJ_MATRIX))) != 0)) {
-                            var b: [*c]ObjMatrix = @as([*c]ObjMatrix, @ptrCast(@alignCast(pop().as.obj)));
-                            _ = &b;
-                            var a: [*c]ObjMatrix = @as([*c]ObjMatrix, @ptrCast(@alignCast(pop().as.obj)));
-                            _ = &a;
-                            var result: [*c]ObjMatrix = addMatrix(a, b);
-                            _ = &result;
-                            push(Value{
-                                .type = .VAL_OBJ,
-                                .as = .{
-                                    .obj = @as([*c]Obj, @ptrCast(@alignCast(result))),
-                                },
-                            });
+                        } else if ((isObjType(peek(0), .OBJ_ARRAY)) and (isObjType(peek(1), .OBJ_ARRAY))) {
+                            const b = @as([*c]ObjArray, @ptrCast(@alignCast(pop().as.obj)));
+                            const a = @as([*c]ObjArray, @ptrCast(@alignCast(pop().as.obj)));
+                            const result = addArray(a, b);
+                            push(Value.init_obj(@ptrCast(result)));
+                        } else if ((isObjType(peek(0), .OBJ_FVECTOR)) and (isObjType(peek(1), .OBJ_FVECTOR))) {
+                            const b = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
+                            const a = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
+                            const result = addFloatVector(a, b);
+                            push(Value.init_obj(@ptrCast(result)));
                         } else {
-                            while (true) {
-                                if ((peek(@as(c_int, 0)).type == .VAL_INT) and (peek(1).type == .VAL_INT)) {
-                                    var b: c_int = pop().as.num_int;
-                                    _ = &b;
-                                    var a: c_int = pop().as.num_int;
-                                    _ = &a;
-                                    push(Value{
-                                        .type = .VAL_INT,
-                                        .as = .{
-                                            .num_int = a + b,
-                                        },
-                                    });
-                                } else if ((peek(@as(c_int, 0)).type == .VAL_DOUBLE) and (peek(1).type == .VAL_DOUBLE)) {
-                                    var b: f64 = pop().as.num_double;
-                                    _ = &b;
-                                    var a: f64 = pop().as.num_double;
-                                    _ = &a;
-                                    push(Value{
-                                        .type = .VAL_DOUBLE,
-                                        .as = .{
-                                            .num_double = a + b,
-                                        },
-                                    });
-                                } else {
-                                    runtimeError("Invalid Binary Operation.", .{});
-                                    return .INTERPRET_RUNTIME_ERROR;
-                                }
-                                if (!false) break;
+                            const b = pop();
+                            const a = pop();
+                            if (a.type == .VAL_NIL) {
+                                runtimeError("Invalid Binary Operation.", .{});
+                                return .INTERPRET_RUNTIME_ERROR;
                             }
+                            push(a.add(b));
                         }
                     }
                     break;
                 },
                 @as(c_int, 21) => {
-                    if ((peek(@as(c_int, 0)).type == .VAL_COMPLEX) and (peek(1).type == .VAL_COMPLEX)) {
-                        complex_sub();
-                    } else if ((@as(c_int, @intFromBool(isObjType(peek(@as(c_int, 0)), .OBJ_MATRIX))) != 0) and (@as(c_int, @intFromBool(isObjType(peek(1), .OBJ_MATRIX))) != 0)) {
-                        var b: [*c]ObjMatrix = @as([*c]ObjMatrix, @ptrCast(@alignCast(pop().as.obj)));
-                        _ = &b;
-                        var a: [*c]ObjMatrix = @as([*c]ObjMatrix, @ptrCast(@alignCast(pop().as.obj)));
-                        _ = &a;
-                        var merged: [*c]ObjMatrix = subMatrix(a, b);
-                        _ = &merged;
-                        push(Value{
-                            .type = .VAL_OBJ,
-                            .as = .{
-                                .obj = @as([*c]Obj, @ptrCast(@alignCast(merged))),
-                            },
-                        });
-                    } else if ((@as(c_int, @intFromBool(isObjType(peek(@as(c_int, 0)), .OBJ_ARRAY))) != 0) and (@as(c_int, @intFromBool(isObjType(peek(1), .OBJ_ARRAY))) != 0)) {
-                        var b: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(pop().as.obj)));
-                        _ = &b;
-                        var a: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(pop().as.obj)));
-                        _ = &a;
-                        var result: [*c]ObjArray = subArray(a, b);
-                        _ = &result;
-                        push(Value{
-                            .type = .VAL_OBJ,
-                            .as = .{
-                                .obj = @as([*c]Obj, @ptrCast(@alignCast(result))),
-                            },
-                        });
-                    } else if ((@as(c_int, @intFromBool(isObjType(peek(@as(c_int, 0)), .OBJ_FVECTOR))) != 0) and (@as(c_int, @intFromBool(isObjType(peek(1), .OBJ_FVECTOR))) != 0)) {
-                        var b: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
-                        _ = &b;
-                        var a: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
-                        _ = &a;
-                        var result: [*c]FloatVector = subFloatVector(a, b);
-                        _ = &result;
-                        push(Value{
-                            .type = .VAL_OBJ,
-                            .as = .{
-                                .obj = @as([*c]Obj, @ptrCast(@alignCast(result))),
-                            },
-                        });
-                    } else if ((@as(c_int, @intFromBool(isObjType(peek(1), .OBJ_FVECTOR))) != 0) and (peek(@as(c_int, 0)).type == .VAL_DOUBLE)) {
-                        var b: f64 = pop().as.num_double;
-                        _ = &b;
-                        var a: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
-                        _ = &a;
-                        var result: [*c]FloatVector = singleSubFloatVector(a, b);
-                        _ = &result;
-                        push(Value{
-                            .type = .VAL_OBJ,
-                            .as = .{
-                                .obj = @as([*c]Obj, @ptrCast(@alignCast(result))),
-                            },
-                        });
-                    } else if ((peek(1).type == .VAL_DOUBLE) and (@as(c_int, @intFromBool(isObjType(peek(@as(c_int, 0)), .OBJ_FVECTOR))) != 0)) {
-                        var b: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
-                        _ = &b;
-                        var a: f64 = pop().as.num_double;
-                        _ = &a;
-                        var result: [*c]FloatVector = singleSubFloatVector(b, a);
-                        _ = &result;
-                        push(Value{
-                            .type = .VAL_OBJ,
-                            .as = .{
-                                .obj = @as([*c]Obj, @ptrCast(@alignCast(result))),
-                            },
-                        });
-                    } else {
-                        while (true) {
-                            if ((peek(@as(c_int, 0)).type == .VAL_INT) and (peek(1).type == .VAL_INT)) {
-                                var b: c_int = pop().as.num_int;
-                                _ = &b;
-                                var a: c_int = pop().as.num_int;
-                                _ = &a;
-                                push(Value{
-                                    .type = .VAL_INT,
-                                    .as = .{
-                                        .num_int = a - b,
-                                    },
-                                });
-                            } else if ((peek(@as(c_int, 0)).type == .VAL_DOUBLE) and (peek(1).type == .VAL_DOUBLE)) {
-                                var b: f64 = pop().as.num_double;
-                                _ = &b;
-                                var a: f64 = pop().as.num_double;
-                                _ = &a;
-                                push(Value{
-                                    .type = .VAL_DOUBLE,
-                                    .as = .{
-                                        .num_double = a - b,
-                                    },
-                                });
-                            } else {
-                                runtimeError("Invalid Binary Operation.", .{});
-                                return .INTERPRET_RUNTIME_ERROR;
-                            }
-                            if (!false) break;
-                        }
+                    if ((isObjType(peek(0), .OBJ_MATRIX)) and (isObjType(peek(1), .OBJ_MATRIX))) {
+                        const b = @as([*c]ObjMatrix, @ptrCast(@alignCast(pop().as.obj)));
+                        const a = @as([*c]ObjMatrix, @ptrCast(@alignCast(pop().as.obj)));
+                        const result = subMatrix(a, b);
+                        push(Value.init_obj(@ptrCast(result)));
+                    } else if ((isObjType(peek(0), .OBJ_ARRAY)) and (isObjType(peek(1), .OBJ_ARRAY))) {
+                        const b = @as([*c]ObjArray, @ptrCast(@alignCast(pop().as.obj)));
+                        const a = @as([*c]ObjArray, @ptrCast(@alignCast(pop().as.obj)));
+                        const result = subArray(a, b);
+                        push(Value.init_obj(@ptrCast(result)));
+                    } else if ((isObjType(peek(0), .OBJ_FVECTOR)) and (isObjType(peek(1), .OBJ_FVECTOR))) {
+                        const b = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
+                        const a = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
+                        const result = subFloatVector(a, b);
+                        push(Value.init_obj(@ptrCast(result)));
                     }
-                    break;
+                    // else if ((isObjType(peek(1), .OBJ_FVECTOR)) and (peek(0).type == .VAL_DOUBLE)) {
+                    //     var b: f64 = pop().as.num_double;
+                    //     _ = &b;
+                    //     var a = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
+                    //     _ = &a;
+                    //     var result = singleSubFloatVector(a, b);
+                    //     _ = &result;
+                    //     push(Value{
+                    //         .type = .VAL_OBJ,
+                    //         .as = .{
+                    //             .obj = @as([*c]Obj, @ptrCast(@alignCast(result))),
+                    //         },
+                    //     });
+                    // }
+                    // else if ((peek(1).type == .VAL_DOUBLE) and (isObjType(peek(0), .OBJ_FVECTOR))) {
+                    //     var b = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
+                    //     _ = &b;
+                    //     var a: f64 = pop().as.num_double;
+                    //     _ = &a;
+                    //     var result = singleSubFloatVector(b, a);
+                    //     _ = &result;
+                    //     push(Value{
+                    //         .type = .VAL_OBJ,
+                    //         .as = .{
+                    //             .obj = @as([*c]Obj, @ptrCast(@alignCast(result))),
+                    //         },
+                    //     });
+                    // }
+                    else {
+                        const b = pop();
+                        const a = pop();
+                        push(a.sub(b));
+                    }
                 },
                 @as(c_int, 22) => {
-                    if ((peek(@as(c_int, 0)).type == .VAL_COMPLEX) and (peek(1).type == .VAL_COMPLEX)) {
-                        complex_mul();
-                    } else if ((@as(c_int, @intFromBool(isObjType(peek(@as(c_int, 0)), .OBJ_MATRIX))) != 0) and (@as(c_int, @intFromBool(isObjType(peek(1), .OBJ_MATRIX))) != 0)) {
-                        var b: [*c]ObjMatrix = @as([*c]ObjMatrix, @ptrCast(@alignCast(pop().as.obj)));
-                        _ = &b;
-                        var a: [*c]ObjMatrix = @as([*c]ObjMatrix, @ptrCast(@alignCast(pop().as.obj)));
-                        _ = &a;
-                        var merged: [*c]ObjMatrix = mulMatrix(a, b);
-                        _ = &merged;
-                        push(Value{
-                            .type = .VAL_OBJ,
-                            .as = .{
-                                .obj = @as([*c]Obj, @ptrCast(@alignCast(merged))),
-                            },
-                        });
-                    } else if ((@as(c_int, @intFromBool(isObjType(peek(@as(c_int, 0)), .OBJ_ARRAY))) != 0) and (@as(c_int, @intFromBool(isObjType(peek(1), .OBJ_ARRAY))) != 0)) {
-                        var b: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(pop().as.obj)));
-                        _ = &b;
-                        var a: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(pop().as.obj)));
-                        _ = &a;
-                        var result: [*c]ObjArray = mulArray(a, b);
-                        _ = &result;
-                        push(Value{
-                            .type = .VAL_OBJ,
-                            .as = .{
-                                .obj = @as([*c]Obj, @ptrCast(@alignCast(result))),
-                            },
-                        });
-                    } else if ((@as(c_int, @intFromBool(isObjType(peek(@as(c_int, 0)), .OBJ_FVECTOR))) != 0) and (@as(c_int, @intFromBool(isObjType(peek(1), .OBJ_FVECTOR))) != 0)) {
-                        var b: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
-                        _ = &b;
-                        var a: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
-                        _ = &a;
-                        var result: [*c]FloatVector = mulFloatVector(a, b);
-                        _ = &result;
-                        push(Value{
-                            .type = .VAL_OBJ,
-                            .as = .{
-                                .obj = @as([*c]Obj, @ptrCast(@alignCast(result))),
-                            },
-                        });
-                    } else if ((@as(c_int, @intFromBool(isObjType(peek(1), .OBJ_FVECTOR))) != 0) and (peek(@as(c_int, 0)).type == .VAL_DOUBLE)) {
-                        var b: f64 = pop().as.num_double;
-                        _ = &b;
-                        var a: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
-                        _ = &a;
-                        var result: [*c]FloatVector = scaleFloatVector(a, b);
-                        _ = &result;
-                        push(Value{
-                            .type = .VAL_OBJ,
-                            .as = .{
-                                .obj = @as([*c]Obj, @ptrCast(@alignCast(result))),
-                            },
-                        });
-                    } else if ((peek(1).type == .VAL_DOUBLE) and (@as(c_int, @intFromBool(isObjType(peek(@as(c_int, 0)), .OBJ_FVECTOR))) != 0)) {
-                        var b: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
-                        _ = &b;
-                        var a: f64 = pop().as.num_double;
-                        _ = &a;
-                        var result: [*c]FloatVector = scaleFloatVector(b, a);
-                        _ = &result;
-                        push(Value{
-                            .type = .VAL_OBJ,
-                            .as = .{
-                                .obj = @as([*c]Obj, @ptrCast(@alignCast(result))),
-                            },
-                        });
-                    } else {
-                        while (true) {
-                            if ((peek(@as(c_int, 0)).type == .VAL_INT) and (peek(1).type == .VAL_INT)) {
-                                var b: c_int = pop().as.num_int;
-                                _ = &b;
-                                var a: c_int = pop().as.num_int;
-                                _ = &a;
-                                push(Value{
-                                    .type = .VAL_INT,
-                                    .as = .{
-                                        .num_int = a * b,
-                                    },
-                                });
-                            } else if ((peek(@as(c_int, 0)).type == .VAL_DOUBLE) and (peek(1).type == .VAL_DOUBLE)) {
-                                var b: f64 = pop().as.num_double;
-                                _ = &b;
-                                var a: f64 = pop().as.num_double;
-                                _ = &a;
-                                push(Value{
-                                    .type = .VAL_DOUBLE,
-                                    .as = .{
-                                        .num_double = a * b,
-                                    },
-                                });
-                            } else {
-                                runtimeError("Invalid Binary Operation.", .{});
-                                return .INTERPRET_RUNTIME_ERROR;
-                            }
-                            if (!false) break;
-                        }
+                    if ((isObjType(peek(0), .OBJ_MATRIX)) and (isObjType(peek(1), .OBJ_MATRIX))) {
+                        const b = @as([*c]ObjMatrix, @ptrCast(@alignCast(pop().as.obj)));
+                        const a = @as([*c]ObjMatrix, @ptrCast(@alignCast(pop().as.obj)));
+                        const result = mulMatrix(a, b);
+                        push(Value.init_obj(@ptrCast(result)));
+                    } else if ((isObjType(peek(0), .OBJ_ARRAY)) and (isObjType(peek(1), .OBJ_ARRAY))) {
+                        const b = @as([*c]ObjArray, @ptrCast(@alignCast(pop().as.obj)));
+                        const a = @as([*c]ObjArray, @ptrCast(@alignCast(pop().as.obj)));
+                        const result = mulArray(a, b);
+                        push(Value.init_obj(@ptrCast(result)));
+                    } else if ((isObjType(peek(0), .OBJ_FVECTOR)) and (isObjType(peek(1), .OBJ_FVECTOR))) {
+                        const b = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
+                        const a = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
+                        const result = mulFloatVector(a, b);
+                        push(Value.init_obj(@ptrCast(result)));
                     }
-                    break;
+                    // else if ((isObjType(peek(1), .OBJ_FVECTOR)) and (peek(0).type == .VAL_DOUBLE)) {
+                    //     var b: f64 = pop().as.num_double;
+                    //     _ = &b;
+                    //     var a = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
+                    //     _ = &a;
+                    //     var result = scaleFloatVector(a, b);
+                    //     _ = &result;
+                    //     push(Value{
+                    //         .type = .VAL_OBJ,
+                    //         .as = .{
+                    //             .obj = @as([*c]Obj, @ptrCast(@alignCast(result))),
+                    //         },
+                    //     });
+                    // } else if ((peek(1).type == .VAL_DOUBLE) and (isObjType(peek(0), .OBJ_FVECTOR))) {
+                    //     var b = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
+                    //     _ = &b;
+                    //     var a: f64 = pop().as.num_double;
+                    //     _ = &a;
+                    //     var result = scaleFloatVector(b, a);
+                    //     _ = &result;
+                    //     push(Value{
+                    //         .type = .VAL_OBJ,
+                    //         .as = .{
+                    //             .obj = @as([*c]Obj, @ptrCast(@alignCast(result))),
+                    //         },
+                    //     });
+                    // }
+                    else {
+                        const b = pop();
+                        const a = pop();
+                        push(a.mul(b));
+                    }
                 },
                 @as(c_int, 23) => {
-                    if ((peek(@as(c_int, 0)).type == .VAL_COMPLEX) and (peek(1).type == .VAL_COMPLEX)) {
-                        complex_div();
-                    } else if ((@as(c_int, @intFromBool(isObjType(peek(@as(c_int, 0)), .OBJ_MATRIX))) != 0) and (@as(c_int, @intFromBool(isObjType(peek(1), .OBJ_MATRIX))) != 0)) {
-                        var b: [*c]ObjMatrix = @as([*c]ObjMatrix, @ptrCast(@alignCast(pop().as.obj)));
-                        _ = &b;
-                        var a: [*c]ObjMatrix = @as([*c]ObjMatrix, @ptrCast(@alignCast(pop().as.obj)));
-                        _ = &a;
-                        var merged: [*c]ObjMatrix = divMatrix(a, b);
-                        _ = &merged;
-                        push(Value{
-                            .type = .VAL_OBJ,
-                            .as = .{
-                                .obj = @as([*c]Obj, @ptrCast(@alignCast(merged))),
-                            },
-                        });
-                    } else if ((@as(c_int, @intFromBool(isObjType(peek(@as(c_int, 0)), .OBJ_FVECTOR))) != 0) and (@as(c_int, @intFromBool(isObjType(peek(1), .OBJ_FVECTOR))) != 0)) {
-                        var b: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
-                        _ = &b;
-                        var a: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
-                        _ = &a;
-                        var result: [*c]FloatVector = divFloatVector(a, b);
-                        _ = &result;
-                        push(Value{
-                            .type = .VAL_OBJ,
-                            .as = .{
-                                .obj = @as([*c]Obj, @ptrCast(@alignCast(result))),
-                            },
-                        });
-                    } else if ((@as(c_int, @intFromBool(isObjType(peek(@as(c_int, 0)), .OBJ_ARRAY))) != 0) and (@as(c_int, @intFromBool(isObjType(peek(1), .OBJ_ARRAY))) != 0)) {
-                        var b: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(pop().as.obj)));
-                        _ = &b;
-                        var a: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(pop().as.obj)));
-                        _ = &a;
-                        var result: [*c]ObjArray = divArray(a, b);
-                        _ = &result;
-                        push(Value{
-                            .type = .VAL_OBJ,
-                            .as = .{
-                                .obj = @as([*c]Obj, @ptrCast(@alignCast(result))),
-                            },
-                        });
-                    } else if ((@as(c_int, @intFromBool(isObjType(peek(1), .OBJ_FVECTOR))) != 0) and (peek(@as(c_int, 0)).type == .VAL_DOUBLE)) {
-                        var b: f64 = pop().as.num_double;
-                        _ = &b;
-                        var a: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
-                        _ = &a;
-                        var result: [*c]FloatVector = singleDivFloatVector(a, b);
-                        _ = &result;
-                        push(Value{
-                            .type = .VAL_OBJ,
-                            .as = .{
-                                .obj = @as([*c]Obj, @ptrCast(@alignCast(result))),
-                            },
-                        });
-                    } else if ((peek(1).type == .VAL_DOUBLE) and (@as(c_int, @intFromBool(isObjType(peek(@as(c_int, 0)), .OBJ_FVECTOR))) != 0)) {
-                        var b: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
-                        _ = &b;
-                        var a: f64 = pop().as.num_double;
-                        _ = &a;
-                        var result: [*c]FloatVector = singleDivFloatVector(b, a);
-                        _ = &result;
-                        push(Value{
-                            .type = .VAL_OBJ,
-                            .as = .{
-                                .obj = @as([*c]Obj, @ptrCast(@alignCast(result))),
-                            },
-                        });
-                    } else {
-                        while (true) {
-                            if ((peek(@as(c_int, 0)).type == .VAL_INT) and (peek(1).type == .VAL_INT)) {
-                                var b: c_int = pop().as.num_int;
-                                _ = &b;
-                                var a: c_int = pop().as.num_int;
-                                _ = &a;
-                                push(Value{
-                                    .type = .VAL_INT,
-                                    .as = .{
-                                        .num_int = @divTrunc(a, b),
-                                    },
-                                });
-                            } else if ((peek(@as(c_int, 0)).type == .VAL_DOUBLE) and (peek(1).type == .VAL_DOUBLE)) {
-                                var b: f64 = pop().as.num_double;
-                                _ = &b;
-                                var a: f64 = pop().as.num_double;
-                                _ = &a;
-                                push(Value{
-                                    .type = .VAL_DOUBLE,
-                                    .as = .{
-                                        .num_double = a / b,
-                                    },
-                                });
-                            } else {
-                                runtimeError("Invalid Binary Operation.", .{});
-                                return .INTERPRET_RUNTIME_ERROR;
-                            }
-                            if (!false) break;
-                        }
+                    if ((isObjType(peek(0), .OBJ_MATRIX)) and (isObjType(peek(1), .OBJ_MATRIX))) {
+                        const b = @as([*c]ObjMatrix, @ptrCast(@alignCast(pop().as.obj)));
+                        const a = @as([*c]ObjMatrix, @ptrCast(@alignCast(pop().as.obj)));
+                        const result = divMatrix(a, b);
+                        push(Value.init_obj(@ptrCast(result)));
+                    } else if ((isObjType(peek(0), .OBJ_ARRAY)) and (isObjType(peek(1), .OBJ_ARRAY))) {
+                        const b = @as([*c]ObjArray, @ptrCast(@alignCast(pop().as.obj)));
+                        const a = @as([*c]ObjArray, @ptrCast(@alignCast(pop().as.obj)));
+                        const result = divArray(a, b);
+                        push(Value.init_obj(@ptrCast(result)));
+                    } else if ((isObjType(peek(0), .OBJ_FVECTOR)) and (isObjType(peek(1), .OBJ_FVECTOR))) {
+                        const b = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
+                        const a = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
+                        const result = divFloatVector(a, b);
+                        push(Value.init_obj(@ptrCast(result)));
                     }
-                    break;
+                    //  else if ((isObjType(peek(1), .OBJ_FVECTOR)) and (peek(0).type == .VAL_DOUBLE)) {
+                    //     var b: f64 = pop().as.num_double;
+                    //     _ = &b;
+                    //     var a = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
+                    //     _ = &a;
+                    //     var result = singleDivFloatVector(a, b);
+                    //     _ = &result;
+                    //     push(Value{
+                    //         .type = .VAL_OBJ,
+                    //         .as = .{
+                    //             .obj = @as([*c]Obj, @ptrCast(@alignCast(result))),
+                    //         },
+                    //     });
+                    // } else if ((peek(1).type == .VAL_DOUBLE) and (isObjType(peek(0), .OBJ_FVECTOR))) {
+                    //     var b = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
+                    //     _ = &b;
+                    //     var a: f64 = pop().as.num_double;
+                    //     _ = &a;
+                    //     var result = singleDivFloatVector(b, a);
+                    //     _ = &result;
+                    //     push(Value{
+                    //         .type = .VAL_OBJ,
+                    //         .as = .{
+                    //             .obj = @as([*c]Obj, @ptrCast(@alignCast(result))),
+                    //         },
+                    //     });
+                    // }
+                    else {
+                        const b = pop();
+                        const a = pop();
+                        push(a.div(b));
+                    }
                 },
                 @as(c_int, 24) => {
                     {
-                        if ((peek(@as(c_int, 0)).type == .VAL_INT) and (peek(1).type == .VAL_INT)) {
+                        if ((peek(0).type == .VAL_INT) and (peek(1).type == .VAL_INT)) {
                             var b: c_int = pop().as.num_int;
                             _ = &b;
                             var a: c_int = pop().as.num_int;
@@ -1597,7 +1366,7 @@ pub fn run() callconv(.C) InterpretResult {
                 },
                 @as(c_int, 25) => {
                     {
-                        if ((peek(@as(c_int, 0)).type == .VAL_INT) and (peek(1).type == .VAL_INT)) {
+                        if ((peek(0).type == .VAL_INT) and (peek(1).type == .VAL_INT)) {
                             var b: c_int = pop().as.num_int;
                             _ = &b;
                             var a: c_int = pop().as.num_int;
@@ -1608,7 +1377,7 @@ pub fn run() callconv(.C) InterpretResult {
                                     .num_int = @as(c_int, @intFromFloat(pow(@as(f64, @floatFromInt(a)), @as(f64, @floatFromInt(b))))),
                                 },
                             });
-                        } else if ((peek(@as(c_int, 0)).type == .VAL_DOUBLE) and (peek(1).type == .VAL_DOUBLE)) {
+                        } else if ((peek(0).type == .VAL_DOUBLE) and (peek(1).type == .VAL_DOUBLE)) {
                             var b: f64 = pop().as.num_double;
                             _ = &b;
                             var a: f64 = pop().as.num_double;
@@ -1619,7 +1388,7 @@ pub fn run() callconv(.C) InterpretResult {
                                     .num_double = pow(a, b),
                                 },
                             });
-                        } else if ((peek(@as(c_int, 0)).type == .VAL_COMPLEX) and (peek(1).type == .VAL_DOUBLE)) {
+                        } else if ((peek(0).type == .VAL_COMPLEX) and (peek(1).type == .VAL_DOUBLE)) {
                             var b: f64 = pop().as.num_double;
                             _ = &b;
                             var a: Complex = pop().as.complex;
@@ -1655,18 +1424,18 @@ pub fn run() callconv(.C) InterpretResult {
                     break;
                 },
                 @as(c_int, 27) => {
-                    if ((!(peek(@as(c_int, 0)).type == .VAL_INT) and !(peek(@as(c_int, 0)).type == .VAL_DOUBLE)) and !(peek(@as(c_int, 0)).type == .VAL_COMPLEX)) {
+                    if ((!(peek(0).type == .VAL_INT) and !(peek(0).type == .VAL_DOUBLE)) and !(peek(0).type == .VAL_COMPLEX)) {
                         runtimeError("Operand must be a number (int/double).", .{});
                         return .INTERPRET_RUNTIME_ERROR;
                     }
-                    if (peek(@as(c_int, 0)).type == .VAL_INT) {
+                    if (peek(0).type == .VAL_INT) {
                         push(Value{
                             .type = .VAL_INT,
                             .as = .{
                                 .num_int = -pop().as.num_int,
                             },
                         });
-                    } else if (peek(@as(c_int, 0)).type == .VAL_COMPLEX) {
+                    } else if (peek(0).type == .VAL_COMPLEX) {
                         var c: Complex = pop().as.complex;
                         _ = &c;
                         c.r *= @as(f64, @floatFromInt(-1));
@@ -1724,7 +1493,7 @@ pub fn run() callconv(.C) InterpretResult {
                             }).*)))))));
                         };
                         _ = &offset;
-                        if (isFalsey(peek(@as(c_int, 0)))) {
+                        if (isFalsey(peek(0))) {
                             frame.*.ip += @as(usize, @bitCast(@as(isize, @intCast(@as(c_int, @bitCast(@as(c_uint, offset)))))));
                         }
                         break;
@@ -1743,14 +1512,14 @@ pub fn run() callconv(.C) InterpretResult {
                             }).*)))))));
                         };
                         _ = &offset;
-                        var val: Value = peek(@as(c_int, 0));
+                        var val: Value = peek(0);
                         _ = &val;
                         if (!isObjType(val, .OBJ_ARRAY) and !isObjType(val, .OBJ_FVECTOR)) {
                             runtimeError("Operand must be an array or a vector.", .{});
                             return .INTERPRET_RUNTIME_ERROR;
                         }
                         if (isObjType(val, .OBJ_ARRAY)) {
-                            var array: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(val.as.obj)));
+                            var array = @as([*c]ObjArray, @ptrCast(@alignCast(val.as.obj)));
                             _ = &array;
                             if (!object_h.hasNextObjectArray(array)) {
                                 frame.*.ip += @as(usize, @bitCast(@as(isize, @intCast(@as(c_int, @bitCast(@as(c_uint, offset)))))));
@@ -1758,7 +1527,7 @@ pub fn run() callconv(.C) InterpretResult {
                                 push(object_h.nextObjectArray(array));
                             }
                         } else {
-                            var fvector: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(val.as.obj)));
+                            var fvector = @as([*c]FloatVector, @ptrCast(@alignCast(val.as.obj)));
                             _ = &fvector;
                             if (!object_h.hasNextFloatVector(fvector)) {
                                 frame.*.ip += @as(usize, @bitCast(@as(isize, @intCast(@as(c_int, @bitCast(@as(c_uint, offset)))))));
@@ -1944,7 +1713,7 @@ pub fn run() callconv(.C) InterpretResult {
                         _ = &result;
                         closeUpvalues(frame.*.slots);
                         vm.frameCount -= 1;
-                        if (vm.frameCount == @as(c_int, 0)) {
+                        if (vm.frameCount == 0) {
                             _ = pop();
                             return .INTERPRET_OK;
                         }
@@ -1980,7 +1749,7 @@ pub fn run() callconv(.C) InterpretResult {
                             runtimeError("Superclass must be a class.", .{});
                             return .INTERPRET_RUNTIME_ERROR;
                         }
-                        var subclass: [*c]ObjClass = @as([*c]ObjClass, @ptrCast(@alignCast(peek(@as(c_int, 0)).as.obj)));
+                        var subclass: [*c]ObjClass = @as([*c]ObjClass, @ptrCast(@alignCast(peek(0).as.obj)));
                         _ = &subclass;
                         table_h.tableAddAll(&@as([*c]ObjClass, @ptrCast(@alignCast(superclass.as.obj))).*.methods, &subclass.*.methods);
                         _ = pop();

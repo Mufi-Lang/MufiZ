@@ -154,14 +154,14 @@ pub fn emitReturn() callconv(.C) void {
 }
 pub fn makeConstant(value: Value) callconv(.C) u8 {
     const constant: c_int = chunk_h.addConstant(currentChunk(), value);
-    if (constant > @as(c_int, 255)) {
+    if (constant > 255) {
         @"error"("Too many constants in one chunk.");
         return 0;
     }
     return @intCast(constant);
 }
 pub fn emitConstant(value: Value) callconv(.C) void {
-    emitBytes(@intCast(@intFromEnum(OpCode.OP_CONSTANT)), makeConstant(value));
+    emitBytes(@intFromEnum(OpCode.OP_CONSTANT), makeConstant(value));
 }
 
 pub fn patchJump(offset: c_int) callconv(.C) void {
@@ -284,21 +284,22 @@ pub fn parsePrecedence(precedence: Precedence) callconv(.C) void {
     advance();
     const prefixRule: ParseFn = getRule(parser.previous.type).*.prefix;
 
-    if (prefixRule == @as(ParseFn, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
+    if (prefixRule == null) {
         @"error"("Expect expression.");
         return;
     }
-    const canAssign: bool = precedence <= @as(c_uint, @bitCast(PREC_ASSIGNMENT));
+    const canAssign: bool = precedence <= PREC_ASSIGNMENT;
     prefixRule.?(canAssign);
     while (precedence <= getRule(parser.current.type).*.precedence) {
         advance();
         const infixRule: ParseFn = getRule(parser.previous.type).*.infix;
         infixRule.?(canAssign);
     }
-    if ((@as(c_int, @intFromBool(canAssign)) != 0) and (@as(c_int, @intFromBool(match(.TOKEN_EQUAL))) != 0)) {
+    if (canAssign and match(.TOKEN_EQUAL)) {
         @"error"("Invalid assignment target.");
     }
 }
+
 pub fn identifierConstant(name: [*c]Token) callconv(.C) u8 {
     return makeConstant(Value{
         .type = .VAL_OBJ,
@@ -337,7 +338,7 @@ pub fn addUpvalue(compiler: [*c]Compiler, index_1: u8, isLocal: bool) callconv(.
         }
     }
 
-    if (upvalueCount == (@as(c_int, 255) + 1)) {
+    if (upvalueCount == (255 + 1)) {
         @"error"("Too many closures variables in function.");
         return 0;
     }
@@ -364,7 +365,7 @@ pub fn resolveUpvalue(compiler: [*c]Compiler, name: [*c]Token) callconv(.C) c_in
     return -1;
 }
 pub fn addLocal(name: Token) callconv(.C) void {
-    if (current.*.localCount == (@as(c_int, 255) + 1)) {
+    if (current.*.localCount == (255 + 1)) {
         @"error"("Too many local variables in function.");
         return;
     }
@@ -422,7 +423,7 @@ pub fn argumentList() callconv(.C) u8 {
     if (!check(.TOKEN_RIGHT_PAREN)) {
         while (true) {
             expression();
-            if (@as(c_int, @bitCast(@as(c_uint, argCount))) == @as(c_int, 255)) {
+            if (@as(c_int, @bitCast(@as(c_uint, argCount))) == 255) {
                 @"error"("Can't have more than 255 arguments.");
             }
             argCount +%= 1;
@@ -437,7 +438,7 @@ pub fn and_(canAssign: bool) callconv(.C) void {
     var endJump: c_int = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
     _ = &endJump;
     emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
-    parsePrecedence(@as(c_uint, @bitCast(PREC_AND)));
+    parsePrecedence(PREC_AND);
     patchJump(endJump);
 }
 pub fn binary(canAssign: bool) callconv(.C) void {
@@ -578,7 +579,7 @@ pub fn or_(canAssign: bool) callconv(.C) void {
     _ = &endJump;
     patchJump(elseJump);
     emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
-    parsePrecedence(@as(c_uint, @bitCast(PREC_OR)));
+    parsePrecedence(PREC_OR);
     patchJump(endJump);
 }
 pub fn string(canAssign: bool) callconv(.C) void {
@@ -598,7 +599,7 @@ pub fn array(canAssign: bool) callconv(.C) void {
         while (true) {
             expression();
             argCount +%= 1;
-            if (@as(c_int, @bitCast(@as(c_uint, argCount))) > @as(c_int, 255)) {
+            if (@as(c_int, @bitCast(@as(c_uint, argCount))) > 255) {
                 @"error"("Can't have more than 255 elements in an array.");
             }
             if (!match(.TOKEN_COMMA)) break;
@@ -615,7 +616,7 @@ pub fn fvector(canAssign: bool) callconv(.C) void {
         while (true) {
             expression();
             argCount +%= 1;
-            if (@as(c_int, @bitCast(@as(c_uint, argCount))) > @as(c_int, 255)) {
+            if (@as(c_int, @bitCast(@as(c_uint, argCount))) > 255) {
                 @"error"("Can't have more than 255 elements in a vector.");
             }
             if (!match(.TOKEN_COMMA)) break;
@@ -786,272 +787,196 @@ pub export var rules: [54]ParseRule = .{
     .{
         .prefix = &grouping,
         .infix = &call,
-        .precedence = @as(c_uint, @bitCast(PREC_CALL)),
+        .precedence = PREC_CALL,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
         .prefix = &fvector,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
         .infix = &dot,
-        .precedence = @as(c_uint, @bitCast(PREC_CALL)),
+        .precedence = PREC_CALL,
     },
     .{
         .prefix = &unary,
         .infix = &binary,
-        .precedence = @as(c_uint, @bitCast(PREC_TERM)),
+        .precedence = PREC_TERM,
     },
     .{
-        .prefix = null,
         .infix = &binary,
-        .precedence = @as(c_uint, @bitCast(PREC_TERM)),
+        .precedence = PREC_TERM,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
         .infix = &binary,
-        .precedence = @as(c_uint, @bitCast(PREC_FACTOR)),
+        .precedence = PREC_FACTOR,
     },
     .{
-        .prefix = null,
         .infix = &binary,
-        .precedence = @as(c_uint, @bitCast(PREC_FACTOR)),
+        .precedence = PREC_FACTOR,
     },
     .{
-        .prefix = null,
         .infix = &binary,
-        .precedence = @as(c_uint, @bitCast(PREC_FACTOR)),
+        .precedence = PREC_FACTOR,
     },
     .{
         .prefix = &unary,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
         .infix = &binary,
-        .precedence = @as(c_uint, @bitCast(PREC_EQUALITY)),
+        .precedence = PREC_EQUALITY,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
         .infix = &binary,
-        .precedence = @as(c_uint, @bitCast(PREC_EQUALITY)),
+        .precedence = PREC_EQUALITY,
     },
     .{
-        .prefix = null,
         .infix = &binary,
-        .precedence = @as(c_uint, @bitCast(PREC_COMPARISON)),
+        .precedence = PREC_COMPARISON,
     },
     .{
-        .prefix = null,
         .infix = &binary,
-        .precedence = @as(c_uint, @bitCast(PREC_COMPARISON)),
+        .precedence = PREC_COMPARISON,
     },
     .{
-        .prefix = null,
         .infix = &binary,
-        .precedence = @as(c_uint, @bitCast(PREC_COMPARISON)),
+        .precedence = PREC_COMPARISON,
     },
     .{
-        .prefix = null,
         .infix = &binary,
-        .precedence = @as(c_uint, @bitCast(PREC_COMPARISON)),
+        .precedence = PREC_COMPARISON,
     },
     .{
         .prefix = &variable,
         .infix = &index_,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
         .prefix = &string,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
         .prefix = &number,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
         .prefix = &number,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
         .infix = &and_,
-        .precedence = @as(c_uint, @bitCast(PREC_AND)),
+        .precedence = PREC_AND,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
         .prefix = &literal,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
         .prefix = &literal,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
         .infix = &or_,
-        .precedence = @as(c_uint, @bitCast(PREC_OR)),
+        .precedence = PREC_OR,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
         .prefix = &self_,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
         .prefix = &super_,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
         .prefix = &literal,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
         .prefix = &item_,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
         .infix = &binary,
-        .precedence = @as(c_uint, @bitCast(PREC_FACTOR)),
+        .precedence = PREC_FACTOR,
     },
     .{
         .prefix = &array,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_INDEX)),
+        .precedence = PREC_INDEX,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
 };
 pub fn block() callconv(.C) void {
@@ -1069,7 +994,7 @@ pub fn function(type_: FunctionType) callconv(.C) void {
     if (!check(.TOKEN_RIGHT_PAREN)) {
         while (true) {
             current.*.function.*.arity += 1;
-            if (current.*.function.*.arity > @as(c_int, 255)) {
+            if (current.*.function.*.arity > 255) {
                 errorAtCurrent("Can't have more than 255 parameters.");
             }
             var constant: u8 = parseVariable("Expect parameter name.");

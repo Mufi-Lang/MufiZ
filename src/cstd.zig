@@ -22,11 +22,7 @@ const Node = obj_h.Node;
 const ObjTypeCheckParams = obj_h.ObjTypeCheckParams;
 const printf = @cImport(@cInclude("stdio.h")).printf;
 
-pub export fn assert_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
-    _ = &argCount;
-    var args = arg_args;
-    _ = &args;
+pub export fn assert_nf(argCount: c_int, args: [*c]Value) Value {
     if (argCount != @as(c_int, 2)) {
         runtimeError("assert() takes 1 argument.", .{});
         return Value{
@@ -55,8 +51,8 @@ pub export fn assert_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     return @import("std").mem.zeroes(Value);
 }
 pub fn iter_nf(argCount: c_int, args: [*c]Value) Value {
-    _ = &argCount;
-    _ = &args;
+    _ = argCount;
+    _ = args;
     return Value{
         .type = .VAL_NIL,
         .as = .{
@@ -64,11 +60,7 @@ pub fn iter_nf(argCount: c_int, args: [*c]Value) Value {
         },
     };
 }
-pub export fn next_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
-    _ = &argCount;
-    var args = arg_args;
-    _ = &args;
+pub export fn next_nf(argCount: c_int, args: [*c]Value) Value {
     if (argCount != 1) {
         runtimeError("next() takes 1 argument.", .{});
         return Value{
@@ -106,11 +98,7 @@ pub export fn next_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     return next;
 }
-pub export fn hasNext_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
-    _ = &argCount;
-    var args = arg_args;
-    _ = &args;
+pub export fn hasNext_nf(argCount: c_int, args: [*c]Value) Value {
     if (argCount != 1) {
         runtimeError("has_next() takes 1 argument.", .{});
         return Value{
@@ -143,11 +131,7 @@ pub export fn hasNext_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         },
     };
 }
-pub export fn peek_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
-    _ = &argCount;
-    var args = arg_args;
-    _ = &args;
+pub export fn peek_nf(argCount: c_int, args: [*c]Value) Value {
     if (argCount != @as(c_int, 2)) {
         runtimeError("peek() takes 2 argument.", .{});
         return Value{
@@ -196,11 +180,7 @@ pub export fn peek_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     return peek;
 }
-pub export fn reset_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
-    _ = &argCount;
-    var args = arg_args;
-    _ = &args;
+pub export fn reset_nf(argCount: c_int, args: [*c]Value) Value {
     if (argCount != 1) {
         runtimeError("reset() takes 1 argument.", .{});
         return Value{
@@ -231,11 +211,7 @@ pub export fn reset_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         },
     };
 }
-pub export fn skip_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
-    _ = &argCount;
-    var args = arg_args;
-    _ = &args;
+pub export fn skip_nf(argCount: c_int, args: [*c]Value) Value {
     if (argCount != @as(c_int, 2)) {
         runtimeError("skip() takes 2 arguments.", .{});
         return Value{
@@ -277,11 +253,7 @@ pub export fn skip_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         },
     };
 }
-pub export fn array_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
-    _ = &argCount;
-    var args = arg_args;
-    _ = &args;
+pub export fn array_nf(argCount: c_int, args: [*c]Value) Value {
     if (argCount == 0) {
         var a: [*c]ObjArray = obj_h.newArray();
         _ = &a;
@@ -355,10 +327,7 @@ pub export fn array_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     return @import("std").mem.zeroes(Value);
 }
-pub export fn linkedlist_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
-    _ = &argCount;
-    var args = arg_args;
+pub export fn linkedlist_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &args;
     if (argCount != 0) {
         runtimeError("linked_list() takes no arguments.", .{});
@@ -378,10 +347,7 @@ pub export fn linkedlist_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         },
     };
 }
-pub export fn hashtable_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
-    _ = &argCount;
-    var args = arg_args;
+pub export fn hashtable_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &args;
     if (argCount != 0) {
         runtimeError("hash_table() takes no arguments.", .{});
@@ -401,11 +367,8 @@ pub export fn hashtable_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         },
     };
 }
-pub export fn matrix_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn matrix_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
-    _ = &args;
     if (!((args[0].type == .VAL_INT) or (args[0].type == .VAL_DOUBLE)) or !((args[1].type == .VAL_INT) or (args[1].type == .VAL_DOUBLE))) {
         runtimeError("Both arguments must be numbers.", .{});
         return Value{
@@ -428,11 +391,7 @@ pub export fn matrix_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         },
     };
 }
-pub export fn fvector_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
-    _ = &argCount;
-    var args = arg_args;
-    _ = &args;
+pub export fn fvector_nf(argCount: c_int, args: [*c]Value) Value {
     if (argCount != 1) {
         runtimeError("fvec() takes 1 argument.", .{});
         return Value{
@@ -498,11 +457,8 @@ pub export fn fvector_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     return @import("std").mem.zeroes(Value);
 }
-pub export fn range_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn range_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
-    _ = &args;
     if (!((args[0].type == .VAL_INT) or (args[0].type == .VAL_DOUBLE)) and !((args[1].type == .VAL_INT) or (args[1].type == .VAL_DOUBLE))) {
         runtimeError("Both arguments must be numbers.", .{});
         return Value{
@@ -537,11 +493,8 @@ pub export fn range_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         },
     };
 }
-pub export fn slice_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn slice_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
-    _ = &args;
     if ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_LINKED_LIST,
@@ -634,11 +587,8 @@ pub export fn slice_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     return @import("std").mem.zeroes(Value);
 }
-pub export fn splice_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn splice_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
-    _ = &args;
     if ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_LINKED_LIST,
@@ -827,11 +777,7 @@ pub export fn push_nf(argCount: c_int, args: [*c]Value) Value {
         },
     }
 }
-pub export fn pop_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
-    _ = &argCount;
-    var args = arg_args;
-    _ = &args;
+pub export fn pop_nf(argCount: c_int, args: [*c]Value) Value {
     if (argCount != 1) {
         runtimeError("pop() takes 1 argument.", .{});
         return Value{
@@ -904,11 +850,7 @@ pub export fn pop_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     return @import("std").mem.zeroes(Value);
 }
-pub export fn nth_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
-    _ = &argCount;
-    var args = arg_args;
-    _ = &args;
+pub export fn nth_nf(argCount: c_int, args: [*c]Value) Value {
     if ((((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_HASH_TABLE,
@@ -1031,11 +973,8 @@ pub export fn nth_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     return @import("std").mem.zeroes(Value);
 }
-pub export fn sort_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn sort_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
-    _ = &args;
     if ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_LINKED_LIST,
@@ -1112,11 +1051,8 @@ pub export fn sort_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     return @import("std").mem.zeroes(Value);
 }
-pub export fn contains_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn contains_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
-    _ = &args;
     if (((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_LINKED_LIST,
@@ -1268,11 +1204,7 @@ pub export fn contains_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     return @import("std").mem.zeroes(Value);
 }
-pub export fn insert_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
-    _ = &argCount;
-    var args = arg_args;
-    _ = &args;
+pub export fn insert_nf(argCount: c_int, args: [*c]Value) Value {
     if (argCount != @as(c_int, 3)) {
         runtimeError("insert() takes 3 arguments.", .{});
         return Value{
@@ -1363,11 +1295,8 @@ pub export fn insert_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     return @import("std").mem.zeroes(Value);
 }
-pub export fn len_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn len_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
-    _ = &args;
     if (((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_HASH_TABLE,
@@ -1465,11 +1394,8 @@ pub export fn len_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     return @import("std").mem.zeroes(Value);
 }
-pub export fn search_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn search_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
-    _ = &args;
     if ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_LINKED_LIST,
@@ -1559,11 +1485,8 @@ pub export fn search_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     return @import("std").mem.zeroes(Value);
 }
-pub export fn is_empty_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn is_empty_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
-    _ = &args;
     if (((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_HASH_TABLE,
@@ -1659,11 +1582,8 @@ pub export fn is_empty_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     return @import("std").mem.zeroes(Value);
 }
-pub export fn equal_list_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn equal_list_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
-    _ = &args;
     if (!isObjType(args[0], .OBJ_ARRAY) and !isObjType(args[0], .OBJ_LINKED_LIST)) {
         runtimeError("First argument must be an array, linked list or vector.", .{});
         return Value{
@@ -1760,11 +1680,8 @@ pub export fn equal_list_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     return @import("std").mem.zeroes(Value);
 }
-pub export fn reverse_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn reverse_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
-    _ = &args;
     if ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_LINKED_LIST,
@@ -1833,11 +1750,7 @@ pub export fn reverse_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     return @import("std").mem.zeroes(Value);
 }
-pub export fn merge_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
-    _ = &argCount;
-    var args = arg_args;
-    _ = &args;
+pub export fn merge_nf(argCount: c_int, args: [*c]Value) Value {
     if (argCount != @as(c_int, 2)) {
         runtimeError("merge() takes 2 arguments.", .{});
         return Value{
@@ -1929,11 +1842,8 @@ pub export fn merge_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     return @import("std").mem.zeroes(Value);
 }
-pub export fn clone_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
-    _ = &argCount;
-    var args = arg_args;
-    _ = &args;
+pub export fn clone_nf(argCount: c_int, args: [*c]Value) Value {
+    _ = argCount;
     if (((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_HASH_TABLE,
@@ -2035,11 +1945,8 @@ pub export fn clone_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     return @import("std").mem.zeroes(Value);
 }
-pub export fn clear_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
-    _ = &argCount;
-    var args = arg_args;
-    _ = &args;
+pub export fn clear_nf(argCount: c_int, args: [*c]Value) Value {
+    _ = argCount;
     if (((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_HASH_TABLE,
@@ -2106,11 +2013,8 @@ pub export fn clear_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         },
     };
 }
-pub export fn sum_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
-    _ = &argCount;
-    var args = arg_args;
-    _ = &args;
+pub export fn sum_nf(argCount: c_int, args: [*c]Value) Value {
+    _ = argCount;
     if ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_ARRAY,
@@ -2163,11 +2067,8 @@ pub export fn sum_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     return @import("std").mem.zeroes(Value);
 }
-pub export fn mean_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
-    _ = &argCount;
-    var args = arg_args;
-    _ = &args;
+pub export fn mean_nf(argCount: c_int, args: [*c]Value) Value {
+    _ = argCount;
     if ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_ARRAY,
@@ -2208,11 +2109,8 @@ pub export fn mean_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     return @import("std").mem.zeroes(Value);
 }
-pub export fn std_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
-    _ = &argCount;
-    var args = arg_args;
-    _ = &args;
+pub export fn std_nf(argCount: c_int, args: [*c]Value) Value {
+    _ = argCount;
     if ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_ARRAY,
@@ -2253,11 +2151,8 @@ pub export fn std_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     return @import("std").mem.zeroes(Value);
 }
-pub export fn var_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
-    _ = &argCount;
-    var args = arg_args;
-    _ = &args;
+pub export fn var_nf(argCount: c_int, args: [*c]Value) Value {
+    _ = argCount;
     if ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_ARRAY,
@@ -2310,11 +2205,8 @@ pub export fn var_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     return @import("std").mem.zeroes(Value);
 }
-pub export fn maxl_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
-    _ = &argCount;
-    var args = arg_args;
-    _ = &args;
+pub export fn maxl_nf(argCount: c_int, args: [*c]Value) Value {
+    _ = argCount;
     if ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_ARRAY,
@@ -2367,10 +2259,9 @@ pub export fn maxl_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     return @import("std").mem.zeroes(Value);
 }
-pub export fn minl_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn minl_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
     if ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
         .values = args,
@@ -2424,10 +2315,9 @@ pub export fn minl_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     return @import("std").mem.zeroes(Value);
 }
-pub export fn dot_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn dot_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
     if (!isObjType(args[0], .OBJ_FVECTOR) and !isObjType(args[1], .OBJ_FVECTOR)) {
         runtimeError("Both arguments must be vectors.", .{});
@@ -2451,10 +2341,9 @@ pub export fn dot_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         },
     };
 }
-pub export fn cross_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn cross_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
     if (!isObjType(args[0], .OBJ_FVECTOR) and !isObjType(args[1], .OBJ_FVECTOR)) {
         runtimeError("Both arguments must be vectors.", .{});
@@ -2478,10 +2367,9 @@ pub export fn cross_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         },
     };
 }
-pub export fn norm_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn norm_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
     if (!isObjType(args[0], .OBJ_FVECTOR)) {
         runtimeError("First argument must be a vector.", .{});
@@ -2503,10 +2391,9 @@ pub export fn norm_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         },
     };
 }
-pub export fn proj_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn proj_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
     if (!isObjType(args[0], .OBJ_FVECTOR) and !isObjType(args[1], .OBJ_FVECTOR)) {
         runtimeError("Both arguments must be vectors.", .{});
@@ -2530,10 +2417,9 @@ pub export fn proj_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         },
     };
 }
-pub export fn reject_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn reject_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
     if (!isObjType(args[0], .OBJ_FVECTOR) and !isObjType(args[1], .OBJ_FVECTOR)) {
         runtimeError("Both arguments must be vectors.", .{});
@@ -2557,10 +2443,9 @@ pub export fn reject_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         },
     };
 }
-pub export fn reflect_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn reflect_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
     if (!isObjType(args[0], .OBJ_FVECTOR) and !isObjType(args[1], .OBJ_FVECTOR)) {
         runtimeError("Both arguments must be vectors.", .{});
@@ -2584,10 +2469,9 @@ pub export fn reflect_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         },
     };
 }
-pub export fn refract_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn refract_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
     if (((!isObjType(args[0], .OBJ_FVECTOR) and !isObjType(args[1], .OBJ_FVECTOR)) and !((args[2].type == .VAL_INT) or (args[2].type == .VAL_DOUBLE))) and !((args[@as(c_uint, @intCast(@as(c_int, 3)))].type == .VAL_INT) or (args[@as(c_uint, @intCast(@as(c_int, 3)))].type == .VAL_DOUBLE))) {
         runtimeError("First and second arguments must be vectors and the third and fourth arguments must be numbers.", .{});
@@ -2615,10 +2499,9 @@ pub export fn refract_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         },
     };
 }
-pub export fn angle_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn angle_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
     if (!isObjType(args[0], .OBJ_FVECTOR) or !isObjType(args[1], .OBJ_FVECTOR)) {
         runtimeError("Both arguments must be vectors.", .{});
@@ -2642,10 +2525,9 @@ pub export fn angle_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         },
     };
 }
-pub export fn put_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn put_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
     if (argCount != @as(c_int, 3)) {
         runtimeError("put() takes 3 arguments.", .{});
@@ -2685,10 +2567,9 @@ pub export fn put_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         },
     };
 }
-pub export fn get_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn get_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
     if (argCount != @as(c_int, 2)) {
         runtimeError("get() takes 2 arguments.", .{});
@@ -2723,10 +2604,9 @@ pub export fn get_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     _ = &key;
     return obj_h.getHashTable(h, key);
 }
-pub export fn remove_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn remove_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
     if (argCount != @as(c_int, 2)) {
         runtimeError("remove() takes 2 arguments.", .{});
@@ -2810,10 +2690,9 @@ pub export fn remove_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     return @import("std").mem.zeroes(Value);
 }
-pub export fn push_front_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn push_front_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
     if (!isObjType(args[0], .OBJ_LINKED_LIST)) {
         runtimeError("First argument must be a linked list.", .{});
@@ -2843,10 +2722,9 @@ pub export fn push_front_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         },
     };
 }
-pub export fn pop_front_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn pop_front_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
     if (!isObjType(args[0], .OBJ_LINKED_LIST)) {
         runtimeError("First argument must be a linked list.", .{});
@@ -2861,10 +2739,9 @@ pub export fn pop_front_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     _ = &l;
     return obj_h.popFront(l);
 }
-pub export fn set_row_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn set_row_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
     if (!isObjType(args[0], .OBJ_MATRIX)) {
         runtimeError("First argument must be a matrix.", .{});
@@ -2907,10 +2784,9 @@ pub export fn set_row_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         },
     };
 }
-pub export fn set_col_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn set_col_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
     if (!isObjType(args[0], .OBJ_MATRIX)) {
         runtimeError("First argument must be a matrix.", .{});
@@ -2954,10 +2830,9 @@ pub export fn set_col_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     };
 }
 
-pub export fn set_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn set_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
     if (argCount != @as(c_int, 4)) {
         runtimeError("set() takes 4 arguments.", .{});
@@ -3009,10 +2884,9 @@ pub export fn set_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         },
     };
 }
-pub export fn kolasa_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn kolasa_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
     if (argCount != 0) {
         runtimeError("kolasa() takes no arguments.", .{});
@@ -3047,10 +2921,9 @@ pub export fn kolasa_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         },
     };
 }
-pub export fn rref_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn rref_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
     if (!isObjType(args[0], .OBJ_MATRIX)) {
         runtimeError("First argument must be a matrix.", .{});
@@ -3071,10 +2944,9 @@ pub export fn rref_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         },
     };
 }
-pub export fn rank_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn rank_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
     if (!isObjType(args[0], .OBJ_MATRIX)) {
         runtimeError("First argument must be a matrix.", .{});
@@ -3094,10 +2966,9 @@ pub export fn rank_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         },
     };
 }
-pub export fn transpose_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn transpose_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
     if (!isObjType(args[0], .OBJ_MATRIX)) {
         runtimeError("First argument must be a matrix.", .{});
@@ -3119,10 +2990,9 @@ pub export fn transpose_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         },
     };
 }
-pub export fn determinant_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn determinant_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
     if (!isObjType(args[0], .OBJ_MATRIX)) {
         runtimeError("First argument must be a matrix.", .{});
@@ -3142,10 +3012,9 @@ pub export fn determinant_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         },
     };
 }
-pub export fn lu_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn lu_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
     if (!isObjType(args[0], .OBJ_MATRIX)) {
         runtimeError("First argument must be a matrix.", .{});
@@ -3167,10 +3036,9 @@ pub export fn lu_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         },
     };
 }
-pub export fn workspace_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn workspace_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
     if (argCount != 0) {
         runtimeError("workspace() takes no arguments.", .{});
@@ -3220,10 +3088,9 @@ pub export fn workspace_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         },
     };
 }
-pub export fn linspace_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn linspace_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
     if (argCount != @as(c_int, 3)) {
         runtimeError("linspace() takes 3 arguments.", .{});
@@ -3258,10 +3125,9 @@ pub export fn linspace_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         },
     };
 }
-pub export fn interp1_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn interp1_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
     if (argCount != @as(c_int, 3)) {
         runtimeError("interp1() takes 3 arguments.", .{});
@@ -3296,10 +3162,9 @@ pub export fn interp1_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         },
     };
 }
-pub export fn simd_stat_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn simd_stat_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
     if (argCount != 0) {
         runtimeError("simd_stat() takes 0 arguments.", .{});

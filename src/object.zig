@@ -74,8 +74,8 @@ pub inline fn _mm256_set_pd(a: f64, b: f64, c: f64, d: f64) __m256d {
 
 pub const Obj = extern struct {
     type: ObjType,
-    isMarked: bool,
-    next: [*c]Obj,
+    isMarked: bool = false,
+    next: [*c]Obj = null,
 };
 
 pub const ObjString = extern struct {
@@ -118,6 +118,47 @@ pub const ObjHashTable = extern struct {
     obj: Obj,
     table: Table,
 };
+
+pub fn TArray(comptime T: type) type {
+    return extern struct {
+        values: [*c]T = null,
+        count: c_int = 0,
+        capacity: c_int = 0,
+        obj: Obj = Obj,
+        pos: c_int = 0,
+        _static: bool = false,
+
+        const Self = [*c]@This();
+
+        pub fn init(capacity: c_int, static_: bool, obj_type: ObjType) Self {
+            const self: Self = @ptrCast(@alignCast(allocateObject(@sizeOf(Self), obj_type)));
+            self.*.values = @alignCast(@ptrCast(reallocate(null, 0, @intCast(capacity *% @sizeOf(T)))));
+            self.*.capacity = capacity;
+            self.*.count = 0;
+            self.*.pos = 0;
+            self.*._static = static_;
+            return self;
+        }
+
+        pub fn deinit(self: Self) void {
+            _ = reallocate(@ptrCast(self.*.values), @intCast(@sizeOf(Value) *% self.*.capacity), 0);
+            _ = reallocate(@ptrCast(self), @sizeOf(Self), 0);
+        }
+
+        pub fn push(self: Self, val: Value) void {
+            if ((self.*.capacity < self.*.count + 1) and !self.*._static) {
+                const oldCap = self.*.capacity;
+                self.*.capacity = if (oldCap < 8) 8 else oldCap * 2;
+                self.*.values = @ptrCast(@alignCast(reallocate(@ptrCast(self.*.values), @intCast(@sizeOf(Value) *% oldCap), @intCast(@sizeOf(Value) *% self.*.capacity))));
+            } else if ((self.*.capacity < self.*.count + 1) and self.*._static) {
+                print("Array is full\n", .{});
+                return;
+            }
+            self.*.values[@intCast(self.*.count)] = val;
+            self.*.count += 1;
+        }
+    };
+}
 
 pub const ObjArray = extern struct {
     obj: Obj,
@@ -188,15 +229,10 @@ pub const ObjBoundMethod = extern struct {
     method: [*c]ObjClosure,
 };
 
-pub fn allocateObject(arg_size: usize, arg_type: ObjType) callconv(.C) [*c]Obj {
-    var size = arg_size;
-    _ = &size;
-    var @"type" = arg_type;
-    _ = &@"type";
-    var object: [*c]Obj = @as([*c]Obj, @ptrCast(@alignCast(reallocate(null, 0, size))));
-    _ = &object;
-    object.*.type = @"type";
-    object.*.isMarked = 0 != 0;
+pub fn allocateObject(size: usize, type_: ObjType) callconv(.C) [*c]Obj {
+    const object: [*c]Obj = @ptrCast(@alignCast(reallocate(null, 0, size)));
+    object.*.type = type_;
+    object.*.isMarked = false;
     object.*.next = vm_h.vm.objects;
     vm_h.vm.objects = object;
     if (debug_opts.log_gc) _ = printf("%p allocate %zu for %d\n", @as([*c]ObjArray, @ptrCast(@alignCast(object))), size);
@@ -204,51 +240,9 @@ pub fn allocateObject(arg_size: usize, arg_type: ObjType) callconv(.C) [*c]Obj {
 }
 
 pub fn add_val(a: Value, b: Value) callconv(.C) Value {
-    switch (a.type) {
-        .VAL_INT => {
-            if (b.type == .VAL_INT) {
-                return Value{
-                    .type = .VAL_INT,
-                    .as = .{
-                        .num_int = a.as.num_int + b.as.num_int,
-                    },
-                };
-            } else if (b.type == .VAL_DOUBLE) {
-                return Value{
-                    .type = .VAL_DOUBLE,
-                    .as = .{
-                        .num_double = @as(f64, @floatFromInt(a.as.num_int)) + b.as.num_double,
-                    },
-                };
-            }
-        },
-        .VAL_DOUBLE => {
-            if (b.type == .VAL_INT) {
-                return Value{
-                    .type = .VAL_DOUBLE,
-                    .as = .{
-                        .num_double = a.as.num_double + @as(f64, @floatFromInt(b.as.num_int)),
-                    },
-                };
-            } else if (b.type == .VAL_DOUBLE) {
-                return Value{
-                    .type = .VAL_DOUBLE,
-                    .as = .{
-                        .num_double = a.as.num_double + b.as.num_double,
-                    },
-                };
-            }
-        },
-        else => {},
-    }
-
-    return Value{
-        .type = .VAL_NIL,
-        .as = .{
-            .num_int = 0,
-        },
-    };
+    return a.add(b);
 }
+
 pub fn sub_val(a: Value, b: Value) callconv(.C) Value {
     switch (a.type) {
         .VAL_INT => {
@@ -735,11 +729,7 @@ pub fn clearArray(arg_arr: [*c]ObjArray) void {
     _ = &arr;
     arr.*.count = 0;
 }
-pub fn pushArray(arg_array: [*c]ObjArray, arg_val: Value) void {
-    var array = arg_array;
-    _ = &array;
-    var val = arg_val;
-    _ = &val;
+pub fn pushArray(array: [*c]ObjArray, val: Value) void {
     if ((array.*.capacity < (array.*.count + @as(c_int, 1))) and !array.*._static) {
         var oldCapacity: c_int = array.*.capacity;
         _ = &oldCapacity;
@@ -968,11 +958,9 @@ pub fn equalArray(arg_a: [*c]ObjArray, arg_b: [*c]ObjArray) bool {
     }
     return false;
 }
-pub fn freeObjectArray(arg_array: [*c]ObjArray) void {
-    var array = arg_array;
-    _ = &array;
-    _ = reallocate(@as(?*anyopaque, @ptrCast(array.*.values)), @intCast(@sizeOf(Value) *% array.*.capacity), 0);
-    _ = reallocate(@as(?*anyopaque, @ptrCast(array)), @sizeOf(ObjArray), 0);
+pub fn freeObjectArray(array: [*c]ObjArray) void {
+    _ = reallocate(@ptrCast(array.*.values), @intCast(@sizeOf(Value) * array.*.capacity), 0);
+    _ = reallocate(@ptrCast(array), @intCast(@sizeOf(ObjArray)), 0);
 }
 pub fn sliceArray(arg_array: [*c]ObjArray, arg_start: c_int, arg_end: c_int) [*c]ObjArray {
     var array = arg_array;
@@ -1548,19 +1536,15 @@ pub fn printFunction(arg_function: [*c]ObjFunction) callconv(.C) void {
     _ = printf("<fn %s>", function.*.name.*.chars);
 }
 pub fn newArray() [*c]ObjArray {
-    return newArrayWithCap(0, 0 != 0);
+    return newArrayWithCap(0, false);
 }
-pub fn newArrayWithCap(arg_capacity: c_int, arg__static: bool) [*c]ObjArray {
-    var capacity = arg_capacity;
-    _ = &capacity;
-    var _static = arg__static;
-    _ = &_static;
+pub fn newArrayWithCap(capacity: c_int, static: bool) [*c]ObjArray {
     var array: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjArray), .OBJ_ARRAY))));
     _ = &array;
     array.*.capacity = capacity;
     array.*.count = 0;
     array.*.values = @as([*c]Value, @ptrCast(@alignCast(reallocate(null, 0, @intCast(@sizeOf(Value) *% capacity)))));
-    array.*._static = _static;
+    array.*._static = static;
     return array;
 }
 pub fn nextObjectArray(arg_array: [*c]ObjArray) Value {
@@ -3597,7 +3581,8 @@ inline fn zstr(s: [*c]ObjString) []u8 {
 const print = std.debug.print;
 
 pub fn printObject(value: Value) void {
-    switch (value.as.obj.*.type) {
+    const obj: [*c]Obj = @ptrCast(@alignCast(value.as.obj));
+    switch (obj.*.type) {
         .OBJ_BOUND_METHOD => {
             printFunction(@as([*c]ObjBoundMethod, @ptrCast(@alignCast(value.as.obj))).*.method.*.function);
         },
