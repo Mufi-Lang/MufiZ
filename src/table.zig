@@ -160,7 +160,7 @@ pub export fn tableRemoveWhite(table: *Table) callconv(.C) void {
 }
 
 inline fn markValue(value: Value) void {
-    if (value_h.IS_OBJ(value)) markObject(@ptrCast(@alignCast(value_h.AS_OBJ(value))));
+    if (value.is_obj()) markObject(@ptrCast(@alignCast(value.as_obj())));
 }
 
 pub export fn markTable(table: *Table) void {

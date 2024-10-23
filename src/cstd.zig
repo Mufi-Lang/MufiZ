@@ -2,7 +2,6 @@ const value_h = @import("value.zig");
 const obj_h = @import("object.zig");
 const table_h = @import("table.zig");
 const conv = @import("conv.zig");
-const nil = Value.init_nil;
 const Entry = table_h.Entry;
 const entries_ = table_h.entries_;
 const Value = value_h.Value;
@@ -39,12 +38,7 @@ pub export fn assert_nf(argCount: c_int, args: [*c]Value) Value {
 pub fn iter_nf(argCount: c_int, args: [*c]Value) Value {
     _ = argCount;
     _ = args;
-    return Value{
-        .type = .VAL_NIL,
-        .as = .{
-            .num_int = 0,
-        },
-    };
+    return Value.init_nil();
 }
 pub export fn next_nf(argCount: c_int, args: [*c]Value) Value {
     if (argCount != 1) {
@@ -55,12 +49,7 @@ pub export fn next_nf(argCount: c_int, args: [*c]Value) Value {
         runtimeError("Argument must be an iterable.", .{});
         return Value.init_nil();
     }
-    var next: Value = Value{
-        .type = .VAL_NIL,
-        .as = .{
-            .num_int = 0,
-        },
-    };
+    var next: Value = Value.init_nil();
     _ = &next;
     if (isObjType(args[0], .OBJ_ARRAY)) {
         next = obj_h.nextObjectArray(@as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj))));
@@ -112,12 +101,7 @@ pub export fn peek_nf(argCount: c_int, args: [*c]Value) Value {
     }
     var pos: c_int = if (args[1].type == .VAL_DOUBLE) @intFromFloat(args[1].as.num_double) else args[1].as.num_int;
     _ = &pos;
-    var peek: Value = Value{
-        .type = .VAL_NIL,
-        .as = .{
-            .num_int = 0,
-        },
-    };
+    var peek: Value = Value.init_nil();
     _ = &peek;
     if (isObjType(args[0], .OBJ_ARRAY)) {
         peek = obj_h.peekObjectArray(@as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj))), pos);
@@ -145,12 +129,7 @@ pub export fn reset_nf(argCount: c_int, args: [*c]Value) Value {
     } else if (isObjType(args[0], .OBJ_FVECTOR)) {
         obj_h.resetFloatVector(@as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj))));
     }
-    return Value{
-        .type = .VAL_NIL,
-        .as = .{
-            .num_int = 0,
-        },
-    };
+    return Value.init_nil();
 }
 pub export fn skip_nf(argCount: c_int, args: [*c]Value) Value {
     if (argCount != @as(c_int, 2)) {
@@ -172,12 +151,7 @@ pub export fn skip_nf(argCount: c_int, args: [*c]Value) Value {
     } else if (isObjType(args[0], .OBJ_FVECTOR)) {
         obj_h.skipFloatVector(@as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj))), skip);
     }
-    return Value{
-        .type = .VAL_NIL,
-        .as = .{
-            .num_int = 0,
-        },
-    };
+    return Value.init_nil();
 }
 pub export fn array_nf(argCount: c_int, args: [*c]Value) Value {
     if (argCount == 0) {
@@ -325,7 +299,7 @@ pub export fn fvector_nf(argCount: c_int, args: [*c]Value) Value {
                     runtimeError("All elements of the vector must be numbers.", .{});
                     return Value.init_nil();
                 }
-                obj_h.pushFloatVector(f, value_h.AS_NUM_DOUBLE(a.*.values[i]));
+                obj_h.pushFloatVector(f, a.*.values[i].as_num_double());
             }
         }
         return Value{
@@ -1655,7 +1629,7 @@ pub export fn clear_nf(argCount: c_int, args: [*c]Value) Value {
         .count = 1,
     }))))) {
         runtimeError("First argument must be an array, linked list, hash table or vector.", .{});
-        return nil();
+        return Value.init_nil();
     }
 
     switch (args[0].as.obj.*.type) {
@@ -1676,7 +1650,7 @@ pub export fn clear_nf(argCount: c_int, args: [*c]Value) Value {
         },
     }
 
-    return nil();
+    return Value.init_nil();
 }
 pub export fn sum_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
@@ -1692,7 +1666,7 @@ pub export fn sum_nf(argCount: c_int, args: [*c]Value) Value {
         .count = 1,
     }))) {
         runtimeError("First argument must be an array or vector.", .{});
-        return nil();
+        return Value.init_nil();
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
@@ -1738,7 +1712,7 @@ pub export fn mean_nf(argCount: c_int, args: [*c]Value) Value {
         .count = 1,
     }))) {
         runtimeError("First argument must be an array or vector.", .{});
-        return nil();
+        return Value.init_nil();
     }
 
     switch (args[0].as.obj.*.type) {
@@ -1746,11 +1720,11 @@ pub export fn mean_nf(argCount: c_int, args: [*c]Value) Value {
         .OBJ_FVECTOR => return Value.init_double(obj_h.meanFloatVector(@ptrCast(@alignCast(args[0].as.obj)))),
         else => {
             runtimeError("Unsupported type for mean().", .{});
-            return nil();
+            return Value.init_nil();
         },
     }
 
-    return nil();
+    return Value.init_nil();
 }
 pub export fn std_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
@@ -2229,12 +2203,7 @@ pub export fn push_front_nf(argCount: c_int, args: [*c]Value) Value {
             }).*);
         }
     }
-    return Value{
-        .type = .VAL_NIL,
-        .as = .{
-            .num_int = 0,
-        },
-    };
+    return Value.init_nil();
 }
 pub export fn pop_front_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
@@ -2271,12 +2240,7 @@ pub export fn set_row_nf(argCount: c_int, args: [*c]Value) Value {
     var array: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(args[2].as.obj)));
     _ = &array;
     obj_h.setRow(matrix, row, array);
-    return Value{
-        .type = .VAL_NIL,
-        .as = .{
-            .num_int = 0,
-        },
-    };
+    return Value.init_nil();
 }
 pub export fn set_col_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
@@ -2301,12 +2265,7 @@ pub export fn set_col_nf(argCount: c_int, args: [*c]Value) Value {
     var array: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(args[2].as.obj)));
     _ = &array;
     obj_h.setCol(matrix, col, array);
-    return Value{
-        .type = .VAL_NIL,
-        .as = .{
-            .num_int = 0,
-        },
-    };
+    return Value.init_nil();
 }
 
 pub export fn set_nf(argCount: c_int, args: [*c]Value) Value {
@@ -2336,12 +2295,7 @@ pub export fn set_nf(argCount: c_int, args: [*c]Value) Value {
     var col: c_int = if (args[2].type == .VAL_DOUBLE) @intFromFloat(args[2].as.num_double) else args[2].as.num_int;
     _ = &col;
     obj_h.setMatrix(matrix, row, col, args[@as(c_uint, @intCast(@as(c_int, 3)))]);
-    return Value{
-        .type = .VAL_NIL,
-        .as = .{
-            .num_int = 0,
-        },
-    };
+    return Value.init_nil();
 }
 pub export fn kolasa_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
@@ -2386,12 +2340,7 @@ pub export fn rref_nf(argCount: c_int, args: [*c]Value) Value {
     var m: [*c]ObjMatrix = @as([*c]ObjMatrix, @ptrCast(@alignCast(args[0].as.obj)));
     _ = &m;
     obj_h.rref(m);
-    return Value{
-        .type = .VAL_NIL,
-        .as = .{
-            .num_int = 0,
-        },
-    };
+    return Value.init_nil();
 }
 pub export fn rank_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
@@ -2505,12 +2454,7 @@ pub export fn workspace_nf(argCount: c_int, args: [*c]Value) Value {
             }
         }
     }
-    return Value{
-        .type = .VAL_NIL,
-        .as = .{
-            .num_int = 0,
-        },
-    };
+    return Value.init_nil();
 }
 pub export fn linspace_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
@@ -2574,10 +2518,5 @@ pub export fn simd_stat_nf(argCount: c_int, args: [*c]Value) Value {
         runtimeError("simd_stat() takes 0 arguments.", .{});
     }
     _ = printf("x86_64 SIMD AVX2 Enabled\n");
-    return Value{
-        .type = .VAL_NIL,
-        .as = .{
-            .num_int = 0,
-        },
-    };
+    return Value.init_nil();
 }

@@ -283,77 +283,10 @@ pub const ValueArray = extern struct {
     values: [*c]Value,
 };
 
-pub inline fn IS_BOOL(value: anytype) bool {
-    return value.type == .VAL_BOOL;
-}
-pub inline fn IS_NIL(value: anytype) bool {
-    return value.type == .VAL_NIL;
-}
-pub inline fn IS_INT(value: anytype) bool {
-    return value.type == .VAL_INT;
-}
-pub inline fn IS_DOUBLE(value: anytype) bool {
-    return value.type == .VAL_DOUBLE;
-}
-pub inline fn IS_OBJ(value: anytype) bool {
-    return value.type == .VAL_OBJ;
-}
-pub inline fn IS_COMPLEX(value: anytype) bool {
-    return value.type == .VAL_COMPLEX;
-}
-pub inline fn IS_PRIM_NUM(value: anytype) bool {
-    return IS_INT(value) or IS_DOUBLE(value);
-}
-pub inline fn AS_OBJ(value: anytype) @TypeOf(value.as.obj) {
-    return value.as.obj;
-}
-pub inline fn AS_BOOL(value: anytype) @TypeOf(value.as.boolean) {
-    return value.as.boolean;
-}
-pub inline fn AS_INT(value: anytype) @TypeOf(value.as.num_int) {
-    return value.as.num_int;
-}
-pub inline fn AS_DOUBLE(value: anytype) @TypeOf(value.as.num_double) {
-    return value.as.num_double;
-}
-pub inline fn AS_COMPLEX(value: anytype) @TypeOf(value.as.complex) {
-    return value.as.complex;
-}
-pub inline fn AS_NUM_DOUBLE(value: anytype) @TypeOf(if (IS_INT(value)) @import("std").zig.c_translation.cast(f64, AS_INT(value)) else AS_DOUBLE(value)) {
-    return if (IS_INT(value)) @import("std").zig.c_translation.cast(f64, AS_INT(value)) else AS_DOUBLE(value);
-}
-pub inline fn AS_NUM_INT(value: anytype) @TypeOf(if (IS_DOUBLE(value)) @import("std").zig.c_translation.cast(c_int, AS_DOUBLE(value)) else AS_INT(value)) {
-    return if (IS_DOUBLE(value)) @import("std").zig.c_translation.cast(c_int, AS_DOUBLE(value)) else AS_INT(value);
-}
-
-pub inline fn BOOL_VAL(value: bool) Value {
-    return .{ .VAL_BOOL, .{ .boolean = value } };
-}
-
-pub inline fn NIL_VAL() Value {
-    return .{ .VAL_NIL, .{ .num_int = 0 } };
-}
-
-pub inline fn INT_VAL(value: c_int) Value {
-    return .{ .VAL_INT, .{ .num_int = value } };
-}
-
-pub inline fn DOUBLE_VAL(value: f64) Value {
-    return .{ .VAL_DOUBLE, .{ .num_double = value } };
-}
-
-pub inline fn OBJ_VAL(value: [*c]Obj) Value {
-    return .{ .type = .VAL_OBJ, .as = .{ .obj = value } };
-}
-
-pub inline fn COMPLEX_VAL(value: Complex) Value {
-    return .{ .VAL_COMPLEX, .{ .complex = value } };
-}
-
 pub fn valuesEqual(a: Value, b: Value) bool {
     if (a.type != b.type) return false;
     switch (a.type) {
-        .VAL_BOOL => return AS_BOOL(a) == AS_BOOL(b),
+        .VAL_BOOL => return a.as_bool() == b.as_bool(),
         .VAL_NIL => return true,
         .VAL_INT => return a.as.num_int == b.as.num_int,
         .VAL_DOUBLE => return a.as.num_double == b.as.num_double,
@@ -427,7 +360,7 @@ pub fn valueCompare(a: Value, b: Value) c_int {
     if (a.type != b.type) return -1;
 
     switch (a.type) {
-        .VAL_BOOL => return @intCast(@intFromBool(AS_BOOL(a)) - @intFromBool(AS_BOOL(b))),
+        .VAL_BOOL => return @intCast(@intFromBool(a.as_bool()) - @intFromBool(b.as_bool())),
         .VAL_NIL => return 0,
         .VAL_INT => {
             const a1: c_int = a.as.num_int;
@@ -472,7 +405,7 @@ pub fn freeValueArray(array: [*c]ValueArray) void {
 pub fn printValue(value: Value) void {
     switch (value.type) {
         .VAL_BOOL => {
-            print("{s}", .{if (AS_BOOL(value)) "true" else "false"});
+            print("{s}", .{if (value.as_bool()) "true" else "false"});
         },
         .VAL_NIL => {
             print("nil", .{});
@@ -500,18 +433,18 @@ pub fn printValue(value: Value) void {
 
 pub fn valueToString(value: Value) []const u8 {
     switch (value.type) {
-        .VAL_BOOL => return if (AS_BOOL(value)) "true" else "false",
+        .VAL_BOOL => return if (value.as_bool()) "true" else "false",
         .VAL_NIL => return "nil",
         .VAL_INT => {
-            const s = std.fmt.allocPrint(std.heap.c_allocator, "{d}", .{AS_INT(value)}) catch unreachable;
+            const s = std.fmt.allocPrint(std.heap.c_allocator, "{d}", .{value.as_int()}) catch unreachable;
             return s;
         },
         .VAL_DOUBLE => {
-            const s = std.fmt.allocPrint(std.heap.c_allocator, "{d}", .{AS_DOUBLE(value)}) catch unreachable;
+            const s = std.fmt.allocPrint(std.heap.c_allocator, "{d}", .{value.as_double()}) catch unreachable;
             return s;
         },
         .VAL_COMPLEX => {
-            const c = AS_COMPLEX(value);
+            const c = value.as_complex();
             const s = std.fmt.allocPrint(std.heap.c_allocator, "{d} + {d}i", .{ c.r, c.i }) catch unreachable;
             return s;
         },

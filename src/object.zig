@@ -282,12 +282,7 @@ pub fn sub_val(a: Value, b: Value) callconv(.C) Value {
         else => {},
     }
 
-    return Value{
-        .type = .VAL_NIL,
-        .as = .{
-            .num_int = 0,
-        },
-    };
+    return Value.init_nil();
 }
 pub fn mul_val(a: Value, b: Value) callconv(.C) Value {
     switch (a.type) {
@@ -328,12 +323,7 @@ pub fn mul_val(a: Value, b: Value) callconv(.C) Value {
         else => {},
     }
 
-    return Value{
-        .type = .VAL_NIL,
-        .as = .{
-            .num_int = 0,
-        },
-    };
+    return Value.init_nil();
 }
 pub fn div_val(a: Value, b: Value) callconv(.C) Value {
     switch (a.type) {
@@ -374,12 +364,7 @@ pub fn div_val(a: Value, b: Value) callconv(.C) Value {
         else => {},
     }
 
-    return Value{
-        .type = .VAL_NIL,
-        .as = .{
-            .num_int = 0,
-        },
-    };
+    return Value.init_nil();
 }
 
 pub inline fn OBJ_TYPE(value: anytype) @TypeOf(AS_OBJ(value).*.type) {
@@ -594,12 +579,7 @@ pub fn allocateString(arg_params: AllocStringParams) [*c]ObjString {
             .obj = @as([*c]Obj, @ptrCast(@alignCast(string))),
         },
     });
-    _ = table_h.tableSet(&vm_h.vm.strings, string, Value{
-        .type = .VAL_NIL,
-        .as = .{
-            .num_int = 0,
-        },
-    });
+    _ = table_h.tableSet(&vm_h.vm.strings, string, Value.init_nil());
     _ = pop();
     return string;
 }
@@ -666,12 +646,7 @@ pub fn newUpvalue(arg_slot: [*c]Value) [*c]ObjUpvalue {
     var upvalue: [*c]ObjUpvalue = @as([*c]ObjUpvalue, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjUpvalue), .OBJ_UPVALUE))));
     _ = &upvalue;
     upvalue.*.location = slot;
-    upvalue.*.closed = Value{
-        .type = .VAL_NIL,
-        .as = .{
-            .num_int = 0,
-        },
-    };
+    upvalue.*.closed = Value.init_nil();
     upvalue.*.next = null;
     return upvalue;
 }
@@ -1254,12 +1229,7 @@ pub fn varianceArray(arg_array: [*c]ObjArray) Value {
         .as = .{
             .num_double = @as(f64, @floatFromInt(array.*.count - @as(c_int, 1))),
         },
-    }) else Value{
-        .type = .VAL_NIL,
-        .as = .{
-            .num_int = 0,
-        },
-    };
+    }) else Value.init_nil();
     _ = &variance;
     return variance;
 }
@@ -2023,12 +1993,7 @@ pub fn getMatrix(arg_matrix: [*c]ObjMatrix, arg_row: c_int, arg_col: c_int) Valu
             if (tmp >= 0) break :blk matrix.*.data.*.values + @as(usize, @intCast(tmp)) else break :blk matrix.*.data.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
         }).*;
     }
-    return Value{
-        .type = .VAL_NIL,
-        .as = .{
-            .num_int = 0,
-        },
-    };
+    return Value.init_nil();
 }
 pub fn addMatrix(arg_a: [*c]ObjMatrix, arg_b: [*c]ObjMatrix) [*c]ObjMatrix {
     var a = arg_a;
