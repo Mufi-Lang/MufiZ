@@ -87,10 +87,6 @@ pub fn build(b: *std.Build) !void {
 
     const exe_test = b.addTest(.{ .root_source_file = b.path("lib/main.zig"), .target = target, .optimize = optimize });
     exe_test.linkLibC();
-    //  exe_test.addCSourceFiles(.{ .root = b.path("core"), .files = c_files, .flags = c_flags });
-    // exe_test.linkLibrary(lib_scanner);
-    // exe_test.linkLibrary(lib_table);
-    //   exe_test.addIncludePath(b.path("include"));
     const run_exe_test = b.addRunArtifact(exe_test);
 
     const test_step = b.step("test", "Run Test Suite");

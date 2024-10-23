@@ -18,6 +18,12 @@ const memcpy = @cImport(@cInclude("string.h")).memcpy;
 const valuesEqual = value_h.valuesEqual;
 const qsort = @cImport(@cInclude("stdlib.h")).qsort;
 
+// Objects
+const __obj = @import("objects/obj.zig");
+pub const Obj = __obj.Obj;
+pub const ObjType = __obj.ObjType;
+pub const ObjArray = @import("objects/array.zig").ObjArray;
+
 pub const __m256 = @Vector(8, f32);
 pub const __m256d = @Vector(4, f64);
 pub const __m256_u = @Vector(8, f32);
@@ -72,33 +78,11 @@ pub inline fn _mm256_set_pd(a: f64, b: f64, c: f64, d: f64) __m256d {
     return .{ d, c, b, a };
 }
 
-pub const Obj = extern struct {
-    type: ObjType,
-    isMarked: bool = false,
-    next: [*c]Obj = null,
-};
-
 pub const ObjString = extern struct {
     obj: Obj,
     length: c_int,
     chars: [*c]u8,
     hash: u64,
-};
-
-pub const ObjType = enum(c_int) {
-    OBJ_CLOSURE = 0,
-    OBJ_FUNCTION = 1,
-    OBJ_INSTANCE = 2,
-    OBJ_NATIVE = 3,
-    OBJ_STRING = 4,
-    OBJ_UPVALUE = 5,
-    OBJ_BOUND_METHOD = 6,
-    OBJ_CLASS = 7,
-    OBJ_ARRAY = 8,
-    OBJ_LINKED_LIST = 9,
-    OBJ_HASH_TABLE = 10,
-    OBJ_MATRIX = 11,
-    OBJ_FVECTOR = 12,
 };
 
 pub const Node = extern struct {
@@ -159,15 +143,6 @@ pub fn TArray(comptime T: type) type {
         }
     };
 }
-
-pub const ObjArray = extern struct {
-    obj: Obj,
-    capacity: c_int,
-    count: c_int,
-    pos: c_int,
-    _static: bool,
-    values: [*c]Value,
-};
 
 pub const ObjMatrix = extern struct {
     obj: Obj,
@@ -656,7 +631,7 @@ pub fn mergeArrays(arg_a: [*c]ObjArray, arg_b: [*c]ObjArray) [*c]ObjArray {
     _ = &a;
     var b = arg_b;
     _ = &b;
-    var result: [*c]ObjArray = newArrayWithCap(a.*.count + b.*.count, 0 != 0);
+    var result: [*c]ObjArray = newArrayWithCap(a.*.count + b.*.count, false);
     _ = &result;
     {
         var i: c_int = 0;
@@ -899,7 +874,7 @@ pub fn equalArray(arg_a: [*c]ObjArray, arg_b: [*c]ObjArray) bool {
     var b = arg_b;
     _ = &b;
     if (a.*.count != b.*.count) {
-        return 0 != 0;
+        return false;
     }
     {
         var i: c_int = 0;
@@ -912,7 +887,7 @@ pub fn equalArray(arg_a: [*c]ObjArray, arg_b: [*c]ObjArray) bool {
                 const tmp = i;
                 if (tmp >= 0) break :blk b.*.values + @as(usize, @intCast(tmp)) else break :blk b.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
             }).*)) {
-                return 0 != 0;
+                return false;
             }
         }
     }
@@ -954,7 +929,7 @@ pub fn spliceArray(arg_array: [*c]ObjArray, arg_start: c_int, arg_end: c_int) [*
         _ = printf("Index out of bounds");
         return null;
     }
-    var spliced: [*c]ObjArray = newArrayWithCap(end - start, 0 != 0);
+    var spliced: [*c]ObjArray = newArrayWithCap(end - start, false);
     _ = &spliced;
     {
         var i: c_int = 0;
@@ -1473,15 +1448,18 @@ pub fn printFunction(arg_function: [*c]ObjFunction) callconv(.C) void {
 pub fn newArray() [*c]ObjArray {
     return newArrayWithCap(0, false);
 }
+
 pub fn newArrayWithCap(capacity: c_int, static: bool) [*c]ObjArray {
-    var array: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjArray), .OBJ_ARRAY))));
-    _ = &array;
-    array.*.capacity = capacity;
-    array.*.count = 0;
-    array.*.values = @as([*c]Value, @ptrCast(@alignCast(reallocate(null, 0, @intCast(@sizeOf(Value) *% capacity)))));
-    array.*._static = static;
-    return array;
+    // var array: [*c]ObjArray = @ptrCast(@alignCast(allocateObject(@sizeOf(ObjArray), .OBJ_ARRAY)));
+    // _ = &array;
+    // array.*.capacity = capacity;
+    // array.*.count = 0;
+    // array.*.values = @as([*c]Value, @ptrCast(@alignCast(reallocate(null, 0, @intCast(@sizeOf(Value) *% capacity)))));
+    // array.*._static = static;
+    // return array;
+    return ObjArray.init(capacity, static);
 }
+
 pub fn nextObjectArray(arg_array: [*c]ObjArray) Value {
     var array = arg_array;
     _ = &array;
@@ -1650,7 +1628,7 @@ pub fn equalLinkedList(arg_a: [*c]ObjLinkedList, arg_b: [*c]ObjLinkedList) bool 
     var b = arg_b;
     _ = &b;
     if (a.*.count != b.*.count) {
-        return 0 != 0;
+        return false;
     }
     var currentA: [*c]Node = a.*.head;
     _ = &currentA;
@@ -1658,7 +1636,7 @@ pub fn equalLinkedList(arg_a: [*c]ObjLinkedList, arg_b: [*c]ObjLinkedList) bool 
     _ = &currentB;
     while (currentA != null) {
         if (!valuesEqual(currentA.*.data, currentB.*.data)) {
-            return 0 != 0;
+            return false;
         }
         currentA = currentA.*.next;
         currentB = currentB.*.next;
@@ -2691,7 +2669,7 @@ pub fn removeFloatVector(arg_vector: [*c]FloatVector, arg_index_1: c_int) f64 {
         const tmp = index_1 - @as(c_int, 1);
         if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
     }).*)) {
-        vector.*.sorted = 0 != 0;
+        vector.*.sorted = false;
     }
     return removedValue;
 }
@@ -3629,7 +3607,7 @@ pub fn notObjTypes(arg_params: ObjTypeCheckParams) callconv(.C) bool {
                 const tmp = i;
                 if (tmp >= 0) break :blk params.values + @as(usize, @intCast(tmp)) else break :blk params.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
             }).*, params.objType)) {
-                return 0 != 0;
+                return false;
             }
         }
     }
