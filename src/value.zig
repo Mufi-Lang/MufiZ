@@ -50,6 +50,13 @@ pub const Value = extern struct {
         return Value{ .type = .VAL_OBJ, .as = .{ .obj = obj } };
     }
 
+    pub fn init_string(s: []u8) Self {
+        const chars: [*c]const u8 = @ptrCast(@alignCast(s.ptr));
+        const length: c_int = @intCast(s.len);
+        const obj_str = obj_h.copyString(chars, length);
+        return Value.init_obj(@ptrCast(obj_str));
+    }
+
     pub fn init_complex(c: Complex) Self {
         return Value{ .type = .VAL_COMPLEX, .as = .{ .complex = c } };
     }
@@ -173,6 +180,100 @@ pub const Value = extern struct {
             else => {},
         }
         return Value.init_nil();
+    }
+
+    pub fn is_bool(self: Self) bool {
+        return self.type == .VAL_BOOL;
+    }
+
+    pub fn is_nil(self: Self) bool {
+        return self.type == .VAL_NIL;
+    }
+
+    pub fn is_int(self: Self) bool {
+        return self.type == .VAL_INT;
+    }
+
+    pub fn is_double(self: Self) bool {
+        return self.type == .VAL_DOUBLE;
+    }
+
+    pub fn is_obj(self: Self) bool {
+        return self.type == .VAL_OBJ;
+    }
+
+    pub fn is_complex(self: Self) bool {
+        return self.type == .VAL_COMPLEX;
+    }
+
+    pub fn is_prim_num(self: Self) bool {
+        return self.is_int() or self.is_double();
+    }
+
+    pub fn is_obj_type(self: Self, ty: obj_h.ObjType) bool {
+        return self.is_obj() and self.as.obj.*.type == ty;
+    }
+
+    pub fn is_string(self: Self) bool {
+        return self.is_obj_type(.OBJ_STRING);
+    }
+
+    pub fn is_class(self: Self) bool {
+        return self.is_obj_type(.OBJ_CLASS);
+    }
+
+    pub fn is_instance(self: Self) bool {
+        return self.is_obj_type(.OBJ_INSTANCE);
+    }
+
+    pub fn as_obj(self: Self) [*c]Obj {
+        return self.as.obj;
+    }
+
+    pub fn as_bool(self: Self) bool {
+        return self.as.boolean;
+    }
+
+    pub fn as_int(self: Self) i32 {
+        return self.as.num_int;
+    }
+
+    pub fn as_double(self: Self) f64 {
+        return self.as.num_double;
+    }
+
+    pub fn as_complex(self: Self) Complex {
+        return self.as.complex;
+    }
+
+    pub fn as_num_double(self: Self) f64 {
+        return switch (self.type) {
+            .VAL_INT => @as(f64, @floatFromInt(self.as.num_int)),
+            .VAL_DOUBLE => self.as.num_double,
+            else => @panic("Cannot convert non-numeric value to double"),
+        };
+    }
+
+    pub fn as_num_int(self: Self) i32 {
+        return switch (self.type) {
+            .VAL_INT => self.as.num_int,
+            .VAL_DOUBLE => @as(i32, @intFromFloat(self.as.num_double)),
+            else => @panic("Cannot convert non-numeric value to int"),
+        };
+    }
+
+    pub fn as_string(self: Self) [*c]ObjString {
+        return @ptrCast(@alignCast(self.as.obj));
+    }
+
+    pub fn as_class(self: Self) [*c]obj_h.ObjClass {
+        return @ptrCast(@alignCast(self.as.obj));
+    }
+
+    pub fn as_zstring(self: Self) []const u8 {
+        const objstr = self.as_string();
+        const len: usize = @intCast(objstr.*.length);
+        return @ptrCast(@alignCast(objstr.*.chars[0..len]));
     }
 };
 

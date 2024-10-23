@@ -12,20 +12,20 @@ pub fn int(argc: c_int, args: [*c]Value) callconv(.C) Value {
 
     switch (args[0].type) {
         .VAL_DOUBLE => {
-            const d = @ceil(conv.as_double(args[0]));
+            const d = @ceil(args[0].as_double());
             const i: i32 = @intFromFloat(d);
-            return conv.int_val(i);
+            return Value.init_int(i);
         },
         .VAL_OBJ => {
-            if (conv.is_obj_type(args[0], .OBJ_STRING)) {
-                const s = conv.as_zstring(args[0]);
+            if (Value.is_obj_type(args[0], .OBJ_STRING)) {
+                const s = args[0].as_zstring();
                 const i = std.fmt.parseInt(i32, s, 10) catch 0;
-                return conv.int_val(i);
+                return Value.init_int(i);
             } else {
-                return conv.nil_val();
+                return Value.init_nil();
             }
         },
-        else => return conv.nil_val(),
+        else => return Value.init_nil(),
     }
 }
 
@@ -35,20 +35,20 @@ pub fn double(argc: c_int, args: [*c]Value) callconv(.C) Value {
 
     switch (args[0].type) {
         .VAL_INT => {
-            const i = conv.as_int(args[0]);
+            const i = args[0].as_int();
             const d: f64 = @floatFromInt(i);
-            return conv.double_val(d);
+            return Value.init_double(d);
         },
         .VAL_OBJ => {
-            if (conv.is_obj_type(args[0], .OBJ_STRING)) {
-                const s = conv.as_zstring(args[0]);
+            if (Value.is_obj_type(args[0], .OBJ_STRING)) {
+                const s = args[0].as_zstring();
                 const d = std.fmt.parseFloat(f64, s) catch 0.0;
-                return conv.double_val(d);
+                return Value.init_double(d);
             } else {
-                return conv.nil_val();
+                return Value.init_nil();
             }
         },
-        else => return conv.nil_val(),
+        else => return Value.init_nil(),
     }
 }
 
@@ -59,20 +59,20 @@ pub fn str(argc: c_int, args: [*c]Value) callconv(.C) Value {
     var s: []u8 = undefined;
     switch (value.type) {
         .VAL_INT => {
-            const i = conv.as_int(value);
-            s = std.fmt.allocPrint(GlobalAlloc, "{d}", .{i}) catch return conv.nil_val();
+            const i = value.as_int();
+            s = std.fmt.allocPrint(GlobalAlloc, "{d}", .{i}) catch return Value.init_nil();
         },
         .VAL_DOUBLE => {
-            const d = conv.as_double(value);
-            s = std.fmt.allocPrint(GlobalAlloc, "{}", .{d}) catch return conv.nil_val();
+            const d = value.as_double();
+            s = std.fmt.allocPrint(GlobalAlloc, "{}", .{d}) catch return Value.init_nil();
         },
         .VAL_COMPLEX => {
-            const c = conv.as_complex(value);
-            s = std.fmt.allocPrint(GlobalAlloc, "{}+{}i", .{ c.r, c.i }) catch return conv.nil_val();
+            const c = value.as_complex();
+            s = std.fmt.allocPrint(GlobalAlloc, "{}+{}i", .{ c.r, c.i }) catch return Value.init_nil();
         },
-        else => return conv.nil_val(),
+        else => return Value.init_nil(),
     }
-    const val = conv.string_val(s);
+    const val = Value.init_string(s);
     GlobalAlloc.free(s);
     return val;
 }

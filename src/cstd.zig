@@ -2,7 +2,7 @@ const value_h = @import("value.zig");
 const obj_h = @import("object.zig");
 const table_h = @import("table.zig");
 const conv = @import("conv.zig");
-const nil = conv.nil_val;
+const nil = Value.init_nil;
 const Entry = table_h.Entry;
 const entries_ = table_h.entries_;
 const Value = value_h.Value;
@@ -49,7 +49,7 @@ pub export fn assert_nf(argCount: c_int, args: [*c]Value) Value {
             },
         };
     }
-    return @import("std").mem.zeroes(Value);
+    return Value.init_nil();
 }
 pub fn iter_nf(argCount: c_int, args: [*c]Value) Value {
     _ = argCount;
@@ -326,7 +326,7 @@ pub export fn array_nf(argCount: c_int, args: [*c]Value) Value {
             },
         };
     }
-    return @import("std").mem.zeroes(Value);
+    return Value.init_nil();
 }
 pub export fn linkedlist_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &args;
@@ -456,7 +456,7 @@ pub export fn fvector_nf(argCount: c_int, args: [*c]Value) Value {
             },
         };
     }
-    return @import("std").mem.zeroes(Value);
+    return Value.init_nil();
 }
 pub export fn range_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
@@ -588,7 +588,7 @@ pub export fn slice_nf(argCount: c_int, args: [*c]Value) Value {
         }
         break;
     }
-    return @import("std").mem.zeroes(Value);
+    return Value.init_nil();
 }
 pub export fn splice_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
@@ -684,7 +684,7 @@ pub export fn splice_nf(argCount: c_int, args: [*c]Value) Value {
         }
         break;
     }
-    return @import("std").mem.zeroes(Value);
+    return Value.init_nil();
 }
 pub export fn push_nf(argCount: c_int, args: [*c]Value) Value {
     if (notObjTypes(ObjTypeCheckParams{
@@ -853,7 +853,7 @@ pub export fn pop_nf(argCount: c_int, args: [*c]Value) Value {
         }
         break;
     }
-    return @import("std").mem.zeroes(Value);
+    return Value.init_nil();
 }
 pub export fn nth_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
@@ -978,7 +978,7 @@ pub export fn nth_nf(argCount: c_int, args: [*c]Value) Value {
         }
         break;
     }
-    return @import("std").mem.zeroes(Value);
+    return Value.init_nil();
 }
 pub export fn sort_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
@@ -1058,7 +1058,7 @@ pub export fn sort_nf(argCount: c_int, args: [*c]Value) Value {
         }
         break;
     }
-    return @import("std").mem.zeroes(Value);
+    return Value.init_nil();
 }
 pub export fn contains_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
@@ -1213,7 +1213,7 @@ pub export fn contains_nf(argCount: c_int, args: [*c]Value) Value {
         }
         break;
     }
-    return @import("std").mem.zeroes(Value);
+    return Value.init_nil();
 }
 pub export fn insert_nf(argCount: c_int, args: [*c]Value) Value {
     if (argCount != @as(c_int, 3)) {
@@ -1304,7 +1304,7 @@ pub export fn insert_nf(argCount: c_int, args: [*c]Value) Value {
         }
         break;
     }
-    return @import("std").mem.zeroes(Value);
+    return Value.init_nil();
 }
 pub export fn len_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
@@ -1405,7 +1405,7 @@ pub export fn len_nf(argCount: c_int, args: [*c]Value) Value {
         }
         break;
     }
-    return @import("std").mem.zeroes(Value);
+    return Value.init_nil();
 }
 pub export fn search_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
@@ -1498,7 +1498,7 @@ pub export fn search_nf(argCount: c_int, args: [*c]Value) Value {
         }
         break;
     }
-    return @import("std").mem.zeroes(Value);
+    return Value.init_nil();
 }
 pub export fn is_empty_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
@@ -1597,7 +1597,7 @@ pub export fn is_empty_nf(argCount: c_int, args: [*c]Value) Value {
         }
         break;
     }
-    return @import("std").mem.zeroes(Value);
+    return Value.init_nil();
 }
 pub export fn equal_list_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
@@ -1695,7 +1695,7 @@ pub export fn equal_list_nf(argCount: c_int, args: [*c]Value) Value {
         }
         break;
     }
-    return @import("std").mem.zeroes(Value);
+    return Value.init_nil();
 }
 pub export fn reverse_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
@@ -1767,7 +1767,7 @@ pub export fn reverse_nf(argCount: c_int, args: [*c]Value) Value {
         }
         break;
     }
-    return @import("std").mem.zeroes(Value);
+    return Value.init_nil();
 }
 pub export fn merge_nf(argCount: c_int, args: [*c]Value) Value {
     if (argCount != @as(c_int, 2)) {
@@ -1859,7 +1859,7 @@ pub export fn merge_nf(argCount: c_int, args: [*c]Value) Value {
         }
         break;
     }
-    return @import("std").mem.zeroes(Value);
+    return Value.init_nil();
 }
 pub export fn clone_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
@@ -1964,7 +1964,7 @@ pub export fn clone_nf(argCount: c_int, args: [*c]Value) Value {
         }
         break;
     }
-    return @import("std").mem.zeroes(Value);
+    return Value.init_nil();
 }
 pub export fn clear_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
@@ -2064,7 +2064,7 @@ pub export fn sum_nf(argCount: c_int, args: [*c]Value) Value {
         }
         break;
     }
-    return @import("std").mem.zeroes(Value);
+    return Value.init_nil();
 }
 pub export fn mean_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
@@ -2085,7 +2085,7 @@ pub export fn mean_nf(argCount: c_int, args: [*c]Value) Value {
 
     switch (args[0].as.obj.*.type) {
         .OBJ_ARRAY => return obj_h.meanArray(@as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj)))),
-        .OBJ_FVECTOR => return conv.double_val(obj_h.meanFloatVector(@ptrCast(@alignCast(args[0].as.obj)))),
+        .OBJ_FVECTOR => return Value.init_double(obj_h.meanFloatVector(@ptrCast(@alignCast(args[0].as.obj)))),
         else => {
             runtimeError("Unsupported type for mean().", .{});
             return nil();
@@ -2136,7 +2136,7 @@ pub export fn std_nf(argCount: c_int, args: [*c]Value) Value {
         }
         break;
     }
-    return @import("std").mem.zeroes(Value);
+    return Value.init_nil();
 }
 pub export fn var_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
@@ -2192,7 +2192,7 @@ pub export fn var_nf(argCount: c_int, args: [*c]Value) Value {
         }
         break;
     }
-    return @import("std").mem.zeroes(Value);
+    return Value.init_nil();
 }
 pub export fn maxl_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
@@ -2248,7 +2248,7 @@ pub export fn maxl_nf(argCount: c_int, args: [*c]Value) Value {
         }
         break;
     }
-    return @import("std").mem.zeroes(Value);
+    return Value.init_nil();
 }
 pub export fn minl_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
@@ -2304,7 +2304,7 @@ pub export fn minl_nf(argCount: c_int, args: [*c]Value) Value {
         }
         break;
     }
-    return @import("std").mem.zeroes(Value);
+    return Value.init_nil();
 }
 pub export fn dot_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
@@ -2679,7 +2679,7 @@ pub export fn remove_nf(argCount: c_int, args: [*c]Value) Value {
         }
         break;
     }
-    return @import("std").mem.zeroes(Value);
+    return Value.init_nil();
 }
 pub export fn push_front_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
