@@ -23,10 +23,157 @@ pub const Value = extern struct {
     as: extern union {
         boolean: bool,
         num_double: f64,
-        num_int: c_int,
+        num_int: i32,
         obj: [*c]Obj,
         complex: Complex,
     },
+
+    const Self = @This();
+
+    pub fn init_int(i: i32) Self {
+        return Value{ .type = .VAL_INT, .as = .{ .num_int = i } };
+    }
+
+    pub fn init_double(d: f64) Self {
+        return Value{ .type = .VAL_DOUBLE, .as = .{ .num_double = d } };
+    }
+
+    pub fn init_bool(b: bool) Self {
+        return Value{ .type = .VAL_BOOL, .as = .{ .boolean = b } };
+    }
+
+    pub fn init_nil() Self {
+        return Value.init_int(0);
+    }
+
+    pub fn init_obj(obj: [*c]Obj) Self {
+        return Value{ .type = .VAL_OBJ, .as = .{ .obj = obj } };
+    }
+
+    pub fn init_complex(c: Complex) Self {
+        return Value{ .type = .VAL_COMPLEX, .as = .{ .complex = c } };
+    }
+
+    pub fn negate(self: Self) Self {
+        switch (self.type) {
+            .VAL_INT => return Value.init_int(-self.as.num_int),
+            .VAL_DOUBLE => return Value.init_double(-self.as.num_double),
+            .VAL_COMPLEX => return Value.init_complex(.{ .r = -self.as.complex.r, .i = -self.as.complex.i }),
+            else => @panic("Cannot negate non-numeric value"),
+        }
+    }
+
+    pub fn add(self: Self, other: Value) Value {
+        switch (self.type) {
+            .VAL_INT => {
+                switch (other.type) {
+                    .VAL_INT => return Value.init_int(self.as.num_int + other.as.num_int),
+                    .VAL_DOUBLE => return Value.init_int(self.as.num_int + @as(i32, @intFromFloat(other.as.num_double))),
+                    .VAL_COMPLEX => return Value.init_complex(.{ .r = @as(f64, @floatFromInt(self.as.num_int)) + other.as.complex.r, .i = other.as.complex.i }),
+                    else => @panic("Cannot add non-numeric value"),
+                }
+            },
+            .VAL_DOUBLE => {
+                switch (other.type) {
+                    .VAL_INT => return Value.init_double(self.as.num_double + @as(f64, @floatFromInt(other.as.num_int))),
+                    .VAL_DOUBLE => return Value.init_double(self.as.num_double + other.as.num_double),
+                    .VAL_COMPLEX => return Value.init_complex(.{ .r = self.as.num_double + other.as.complex.r, .i = other.as.complex.i }),
+                    else => {},
+                }
+            },
+            .VAL_COMPLEX => {
+                switch (other.type) {
+                    .VAL_INT => return Value.init_complex(.{ .r = self.as.complex.r + @as(f64, @floatFromInt(other.as.num_int)), .i = self.as.complex.i }),
+                    .VAL_DOUBLE => return Value.init_complex(.{ .r = self.as.complex.r + other.as.num_double, .i = self.as.complex.i }),
+                    .VAL_COMPLEX => return Value.init_complex(.{ .r = self.as.complex.r + other.as.complex.r, .i = self.as.complex.i + other.as.complex.i }),
+                    else => {},
+                }
+            },
+            else => {},
+        }
+        return Value.init_nil();
+    }
+
+    pub fn sub(self: Self, other: Value) Value {
+        return self.add(other.negate());
+    }
+
+    pub fn mul(self: Self, other: Value) Value {
+        switch (self.type) {
+            .VAL_INT => {
+                switch (other.type) {
+                    .VAL_INT => return Value.init_int(self.as.num_int * other.as.num_int),
+                    .VAL_DOUBLE => return Value.init_double(@as(f64, @floatFromInt(self.as.num_int)) * other.as.num_double),
+                    .VAL_COMPLEX => return Value.init_complex(.{ .r = @as(f64, @floatFromInt(self.as.num_int)) * other.as.complex.r, .i = @as(f64, @floatFromInt(self.as.num_int)) * other.as.complex.i }),
+                    else => {},
+                }
+            },
+            .VAL_DOUBLE => {
+                switch (other.type) {
+                    .VAL_INT => return Value.init_double(self.as.num_double * @as(f64, @floatFromInt(other.as.num_int))),
+                    .VAL_DOUBLE => return Value.init_double(self.as.num_double * other.as.num_double),
+                    .VAL_COMPLEX => return Value.init_complex(.{ .r = self.as.num_double * other.as.complex.r, .i = self.as.num_double * other.as.complex.i }),
+                    else => {},
+                }
+            },
+            .VAL_COMPLEX => {
+                switch (other.type) {
+                    .VAL_INT => return Value.init_complex(.{ .r = self.as.complex.r * @as(f64, @floatFromInt(other.as.num_int)), .i = self.as.complex.i * @as(f64, @floatFromInt(other.as.num_int)) }),
+                    .VAL_DOUBLE => return Value.init_complex(.{ .r = self.as.complex.r * other.as.num_double, .i = self.as.complex.i * other.as.num_double }),
+                    .VAL_COMPLEX => return Value.init_complex(.{ .r = self.as.complex.r * other.as.complex.r - self.as.complex.i * other.as.complex.i, .i = self.as.complex.r * other.as.complex.i + self.as.complex.i * other.as.complex.r }),
+                    else => {},
+                }
+            },
+            else => {},
+        }
+        return Value.init_nil();
+    }
+
+    pub fn div(self: Self, other: Value) Value {
+        switch (self.type) {
+            .VAL_INT => {
+                switch (other.type) {
+                    .VAL_INT => return Value.init_double(@as(f64, @floatFromInt(self.as.num_int)) / @as(f64, @floatFromInt(other.as.num_int))),
+                    .VAL_DOUBLE => return Value.init_double(@as(f64, @floatFromInt(self.as.num_int)) / other.as.num_double),
+                    .VAL_COMPLEX => {
+                        const denominator = other.as.complex.r * other.as.complex.r + other.as.complex.i * other.as.complex.i;
+                        return Value.init_complex(.{ .r = @as(f64, @floatFromInt(self.as.num_int)) * other.as.complex.r / denominator, .i = -@as(f64, @floatFromInt(self.as.num_int)) * other.as.complex.i / denominator });
+                    },
+                    else => {},
+                }
+            },
+            .VAL_DOUBLE => {
+                switch (other.type) {
+                    .VAL_INT => return Value.init_double(self.as.num_double / @as(f64, @floatFromInt(other.as.num_int))),
+                    .VAL_DOUBLE => return Value.init_double(self.as.num_double / other.as.num_double),
+                    .VAL_COMPLEX => {
+                        const denominator = other.as.complex.r * other.as.complex.r + other.as.complex.i * other.as.complex.i;
+                        return Value.init_complex(.{ .r = self.as.num_double * other.as.complex.r / denominator, .i = -self.as.num_double * other.as.complex.i / denominator });
+                    },
+                    else => {},
+                }
+            },
+            .VAL_COMPLEX => {
+                switch (other.type) {
+                    .VAL_INT => {
+                        const denominator = @as(f64, @floatFromInt(other.as.num_int)) * @as(f64, @floatFromInt(other.as.num_int));
+                        return Value.init_complex(.{ .r = self.as.complex.r * @as(f64, @floatFromInt(other.as.num_int)) / denominator, .i = self.as.complex.i * @as(f64, @floatFromInt(other.as.num_int)) / denominator });
+                    },
+                    .VAL_DOUBLE => {
+                        const denominator = other.as.num_double * other.as.num_double;
+                        return Value.init_complex(.{ .r = self.as.complex.r * other.as.num_double / denominator, .i = self.as.complex.i * other.as.num_double / denominator });
+                    },
+                    .VAL_COMPLEX => {
+                        const denominator = other.as.complex.r * other.as.complex.r + other.as.complex.i * other.as.complex.i;
+                        return Value.init_complex(.{ .r = (self.as.complex.r * other.as.complex.r + self.as.complex.i * other.as.complex.i) / denominator, .i = (self.as.complex.i * other.as.complex.r - self.as.complex.r * other.as.complex.i) / denominator });
+                    },
+                    else => {},
+                }
+            },
+            else => {},
+        }
+        return Value.init_nil();
+    }
 };
 
 pub const ValueArray = extern struct {
@@ -35,60 +182,46 @@ pub const ValueArray = extern struct {
     values: [*c]Value,
 };
 
-pub inline fn IS_BOOL(value: anytype) @TypeOf(value.type == .VAL_BOOL) {
-    _ = &value;
+pub inline fn IS_BOOL(value: anytype) bool {
     return value.type == .VAL_BOOL;
 }
-pub inline fn IS_NIL(value: anytype) @TypeOf(value.type == .VAL_NIL) {
-    _ = &value;
+pub inline fn IS_NIL(value: anytype) bool {
     return value.type == .VAL_NIL;
 }
-pub inline fn IS_INT(value: anytype) @TypeOf(value.type == .VAL_INT) {
-    _ = &value;
+pub inline fn IS_INT(value: anytype) bool {
     return value.type == .VAL_INT;
 }
-pub inline fn IS_DOUBLE(value: anytype) @TypeOf(value.type == .VAL_DOUBLE) {
-    _ = &value;
+pub inline fn IS_DOUBLE(value: anytype) bool {
     return value.type == .VAL_DOUBLE;
 }
-pub inline fn IS_OBJ(value: anytype) @TypeOf(value.type == .VAL_OBJ) {
-    _ = &value;
+pub inline fn IS_OBJ(value: anytype) bool {
     return value.type == .VAL_OBJ;
 }
-pub inline fn IS_COMPLEX(value: anytype) @TypeOf(value.type == .VAL_COMPLEX) {
-    _ = &value;
+pub inline fn IS_COMPLEX(value: anytype) bool {
     return value.type == .VAL_COMPLEX;
 }
-pub inline fn IS_PRIM_NUM(value: anytype) @TypeOf((IS_INT(value) != 0) or (IS_DOUBLE(value) != 0)) {
-    _ = &value;
-    return (IS_INT(value) != 0) or (IS_DOUBLE(value) != 0);
+pub inline fn IS_PRIM_NUM(value: anytype) bool {
+    return IS_INT(value) or IS_DOUBLE(value);
 }
 pub inline fn AS_OBJ(value: anytype) @TypeOf(value.as.obj) {
-    _ = &value;
     return value.as.obj;
 }
 pub inline fn AS_BOOL(value: anytype) @TypeOf(value.as.boolean) {
-    _ = &value;
     return value.as.boolean;
 }
 pub inline fn AS_INT(value: anytype) @TypeOf(value.as.num_int) {
-    _ = &value;
     return value.as.num_int;
 }
 pub inline fn AS_DOUBLE(value: anytype) @TypeOf(value.as.num_double) {
-    _ = &value;
     return value.as.num_double;
 }
 pub inline fn AS_COMPLEX(value: anytype) @TypeOf(value.as.complex) {
-    _ = &value;
     return value.as.complex;
 }
 pub inline fn AS_NUM_DOUBLE(value: anytype) @TypeOf(if (IS_INT(value)) @import("std").zig.c_translation.cast(f64, AS_INT(value)) else AS_DOUBLE(value)) {
-    _ = &value;
     return if (IS_INT(value)) @import("std").zig.c_translation.cast(f64, AS_INT(value)) else AS_DOUBLE(value);
 }
 pub inline fn AS_NUM_INT(value: anytype) @TypeOf(if (IS_DOUBLE(value)) @import("std").zig.c_translation.cast(c_int, AS_DOUBLE(value)) else AS_INT(value)) {
-    _ = &value;
     return if (IS_DOUBLE(value)) @import("std").zig.c_translation.cast(c_int, AS_DOUBLE(value)) else AS_INT(value);
 }
 

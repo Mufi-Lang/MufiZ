@@ -1,4 +1,5 @@
 const scanner_h = @import("scanner.zig");
+const debug_opts = @import("debug");
 const object_h = @import("object.zig");
 const chunk_h = @import("chunk.zig");
 const value_h = @import("value.zig");
@@ -13,6 +14,7 @@ const stdlib_h = @cImport(@cInclude("stdlib.h"));
 const atoi = stdlib_h.atoi;
 const strtod = stdlib_h.strtod;
 const OpCode = chunk_h.OpCode;
+const debug_h = @import("debug.zig");
 
 pub const Parser = extern struct { current: Token, previous: Token, hadError: bool, panicMode: bool };
 
@@ -32,55 +34,52 @@ pub const Precedence = c_uint;
 
 pub const ParseFn = ?*const fn (bool) callconv(.C) void;
 pub const ParseRule = extern struct {
-    prefix: ParseFn = @import("std").mem.zeroes(ParseFn),
-    infix: ParseFn = @import("std").mem.zeroes(ParseFn),
-    precedence: Precedence = @import("std").mem.zeroes(Precedence),
+    prefix: ParseFn = null,
+    infix: ParseFn = null,
+    precedence: Precedence,
 };
 pub const Local = extern struct {
-    name: Token = @import("std").mem.zeroes(.TOKEN),
-    depth: c_int = @import("std").mem.zeroes(c_int),
-    isCaptured: bool = @import("std").mem.zeroes(bool),
+    name: Token,
+    depth: c_int,
+    isCaptured: bool,
 };
 pub const Upvalue = extern struct {
-    index: u8 = @import("std").mem.zeroes(u8),
-    isLocal: bool = @import("std").mem.zeroes(bool),
+    index: u8,
+    isLocal: bool,
 };
 
-pub const TYPE_FUNCTION: c_int = 0;
-pub const TYPE_METHOD: c_int = 1;
-pub const TYPE_INITIALIZER: c_int = 2;
-pub const TYPE_SCRIPT: c_int = 3;
-pub const FunctionType = c_uint;
+pub const FunctionType = enum(c_int) {
+    TYPE_FUNCTION = 0,
+    TYPE_METHOD = 1,
+    TYPE_INITIALIZER = 2,
+    TYPE_SCRIPT = 3,
+};
 
 pub const ClassCompiler = extern struct {
-    enclosing: [*c]ClassCompiler = @import("std").mem.zeroes([*c]ClassCompiler),
-    hasSuperClass: bool = @import("std").mem.zeroes(bool),
+    enclosing: [*c]ClassCompiler,
+    hasSuperClass: bool,
 };
 
 pub const Compiler = extern struct {
-    enclosing: [*c]Compiler = @import("std").mem.zeroes([*c]Compiler),
-    function: [*c]ObjFunction = @import("std").mem.zeroes([*c]ObjFunction),
-    type: FunctionType = @import("std").mem.zeroes(FunctionType),
-    locals: [256]Local = @import("std").mem.zeroes([256]Local),
-    localCount: c_int = @import("std").mem.zeroes(c_int),
-    upvalues: [256]Upvalue = @import("std").mem.zeroes([256]Upvalue),
-    scopeDepth: c_int = @import("std").mem.zeroes(c_int),
+    enclosing: [*c]Compiler,
+    function: [*c]ObjFunction,
+    type_: FunctionType,
+    locals: [256]Local,
+    localCount: c_int,
+    upvalues: [256]Upvalue,
+    scopeDepth: c_int,
 };
 
-pub export var parser: Parser = @import("std").mem.zeroes(Parser);
+pub export var parser: Parser = undefined;
 pub export var current: [*c]Compiler = null;
 pub export var currentClass: [*c]ClassCompiler = null;
 
 pub fn currentChunk() callconv(.C) [*c]Chunk {
     return &current.*.function.*.chunk;
 }
-pub fn errorAt(arg_token: [*c]Token, arg_message: [*c]const u8) callconv(.C) void {
-    var token = arg_token;
-    _ = &token;
-    var message = arg_message;
-    _ = &message;
+pub fn errorAt(token: [*c]Token, message: [*c]const u8) callconv(.C) void {
     if (parser.panicMode) return;
-    parser.panicMode = @as(c_int, 1) != 0;
+    parser.panicMode = true;
     print("[line {d}] Error", .{token.*.line});
     if (token.*.type == .TOKEN_EOF) {
         print(" at end", .{});
@@ -88,17 +87,13 @@ pub fn errorAt(arg_token: [*c]Token, arg_message: [*c]const u8) callconv(.C) voi
         print(" at '{s}'", .{token.*.start[0..@intCast(token.*.length)]});
     }
     print(": {s}\n", .{message});
-    parser.hadError = @as(c_int, 1) != 0;
+    parser.hadError = true;
 }
 
-pub fn @"error"(arg_message: [*c]const u8) callconv(.C) void {
-    var message = arg_message;
-    _ = &message;
+pub fn @"error"(message: [*c]const u8) callconv(.C) void {
     errorAt(&parser.previous, message);
 }
-pub fn errorAtCurrent(arg_message: [*c]const u8) callconv(.C) void {
-    var message = arg_message;
-    _ = &message;
+pub fn errorAtCurrent(message: [*c]const u8) callconv(.C) void {
     errorAt(&parser.current, message);
 }
 
@@ -110,131 +105,90 @@ pub fn advance() callconv(.C) void {
         errorAtCurrent(parser.current.start);
     }
 }
-pub fn consume(arg_type: TokenType, arg_message: [*c]const u8) callconv(.C) void {
-    var @"type" = arg_type;
-    _ = &@"type";
-    var message = arg_message;
-    _ = &message;
-    if (parser.current.type == @"type") {
+pub fn consume(type_: TokenType, message: [*c]const u8) callconv(.C) void {
+    if (parser.current.type == type_) {
         advance();
         return;
     }
     errorAtCurrent(message);
 }
-pub fn check(arg_type: TokenType) callconv(.C) bool {
-    var @"type" = arg_type;
-    _ = &@"type";
-    return parser.current.type == @"type";
+pub fn check(type_: TokenType) callconv(.C) bool {
+    return parser.current.type == type_;
 }
-pub fn match(arg_type: TokenType) callconv(.C) bool {
-    var @"type" = arg_type;
-    _ = &@"type";
-    if (!check(@"type")) return @as(c_int, 0) != 0;
+pub fn match(type_: TokenType) callconv(.C) bool {
+    if (!check(type_)) return false;
     advance();
-    return @as(c_int, 1) != 0;
+    return true;
 }
-pub fn emitByte(arg_byte: u8) callconv(.C) void {
-    var byte = arg_byte;
-    _ = &byte;
+pub fn emitByte(byte: u8) callconv(.C) void {
     chunk_h.writeChunk(currentChunk(), byte, parser.previous.line);
 }
-pub fn emitBytes(arg_byte1: u8, arg_byte2: u8) callconv(.C) void {
-    var byte1 = arg_byte1;
-    _ = &byte1;
-    var byte2 = arg_byte2;
-    _ = &byte2;
+pub fn emitBytes(byte1: u8, byte2: u8) callconv(.C) void {
     emitByte(byte1);
     emitByte(byte2);
 }
-pub fn emitLoop(arg_loopStart: c_int) callconv(.C) void {
-    var loopStart = arg_loopStart;
-    _ = &loopStart;
-    emitByte(@intCast(@intFromEnum(OpCode.OP_LOOP)));
-    var offset: c_int = (currentChunk().*.count - loopStart) + @as(c_int, 2);
-    _ = &offset;
-    if (offset > @as(c_int, 65535)) {
+pub fn emitLoop(loopStart: c_int) callconv(.C) void {
+    emitByte(@intFromEnum(OpCode.OP_LOOP));
+    const offset: c_int = (currentChunk().*.count - loopStart) + 2;
+
+    if (offset > 65535) {
         @"error"("Loop body too large.");
     }
-    emitByte(@as(u8, @bitCast(@as(i8, @truncate((offset >> @intCast(8)) & @as(c_int, 255))))));
-    emitByte(@as(u8, @bitCast(@as(i8, @truncate(offset & @as(c_int, 255))))));
+    emitByte(@intCast((offset >> 8) & 255));
+    emitByte(@intCast(offset & 255));
 }
 
-pub fn emitJump(arg_instruction: u8) callconv(.C) c_int {
-    var instruction = arg_instruction;
-    _ = &instruction;
+pub fn emitJump(instruction: u8) callconv(.C) c_int {
     emitByte(instruction);
-    emitByte(@as(u8, @bitCast(@as(i8, @truncate(@as(c_int, 255))))));
-    emitByte(@as(u8, @bitCast(@as(i8, @truncate(@as(c_int, 255))))));
-    return currentChunk().*.count - @as(c_int, 2);
+    emitByte(255);
+    emitByte(255);
+    return currentChunk().*.count - 2;
 }
 pub fn emitReturn() callconv(.C) void {
-    if (current.*.type == @as(c_uint, @bitCast(TYPE_INITIALIZER))) {
+    if (current.*.type_ == .TYPE_INITIALIZER) {
         emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), 0);
     } else {
         emitByte(@intCast(@intFromEnum(OpCode.OP_NIL)));
     }
     emitByte(@intCast(@intFromEnum(OpCode.OP_RETURN)));
 }
-pub fn makeConstant(arg_value: Value) callconv(.C) u8 {
-    var value = arg_value;
-    _ = &value;
-    var constant: c_int = chunk_h.addConstant(currentChunk(), value);
-    _ = &constant;
-    if (constant > @as(c_int, 255)) {
+pub fn makeConstant(value: Value) callconv(.C) u8 {
+    const constant: c_int = chunk_h.addConstant(currentChunk(), value);
+    if (constant > 255) {
         @"error"("Too many constants in one chunk.");
         return 0;
     }
-    return @as(u8, @bitCast(@as(i8, @truncate(constant))));
+    return @intCast(constant);
 }
-pub fn emitConstant(arg_value: Value) callconv(.C) void {
-    var value = arg_value;
-    _ = &value;
-    emitBytes(@intCast(@intFromEnum(OpCode.OP_CONSTANT)), makeConstant(value));
+pub fn emitConstant(value: Value) callconv(.C) void {
+    emitBytes(@intFromEnum(OpCode.OP_CONSTANT), makeConstant(value));
 }
-pub fn patchJump(arg_offset: c_int) callconv(.C) void {
-    var offset = arg_offset;
-    _ = &offset;
-    var jump: c_int = (currentChunk().*.count - offset) - @as(c_int, 2);
-    _ = &jump;
-    if (jump > @as(c_int, 65535)) {
+
+pub fn patchJump(offset: c_int) callconv(.C) void {
+    const jump: c_int = (currentChunk().*.count - offset) - 2;
+    if (jump > 65535) {
         @"error"("Too much code to jump over.");
     }
-    (blk: {
-        const tmp = offset;
-        if (tmp >= 0) break :blk currentChunk().*.code + @as(usize, @intCast(tmp)) else break :blk currentChunk().*.code - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    }).* = @as(u8, @bitCast(@as(i8, @truncate((jump >> @intCast(8)) & @as(c_int, 255)))));
-    (blk: {
-        const tmp = offset + @as(c_int, 1);
-        if (tmp >= 0) break :blk currentChunk().*.code + @as(usize, @intCast(tmp)) else break :blk currentChunk().*.code - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    }).* = @as(u8, @bitCast(@as(i8, @truncate(jump & @as(c_int, 255)))));
+
+    currentChunk().*.code[@intCast(offset)] = @intCast((jump >> 8) & 255);
+    currentChunk().*.code[@intCast(offset + 1)] = @intCast(jump & 255);
 }
-pub fn initCompiler(arg_compiler: [*c]Compiler, arg_type: FunctionType) callconv(.C) void {
-    var compiler = arg_compiler;
-    _ = &compiler;
-    var @"type" = arg_type;
-    _ = &@"type";
+pub fn initCompiler(compiler: [*c]Compiler, type_: FunctionType) callconv(.C) void {
     compiler.*.enclosing = current;
     compiler.*.function = null;
-    compiler.*.type = @"type";
+    compiler.*.type_ = type_;
     compiler.*.localCount = 0;
     compiler.*.scopeDepth = 0;
     compiler.*.function = object_h.newFunction();
     current = compiler;
-    if (@"type" != @as(c_uint, @bitCast(TYPE_SCRIPT))) {
+    if (type_ != .TYPE_SCRIPT) {
         current.*.function.*.name = object_h.copyString(parser.previous.start, parser.previous.length);
     }
-    var local: [*c]Local = &current.*.locals[
-        @as(c_uint, @intCast(blk: {
-            const ref = &current.*.localCount;
-            const tmp = ref.*;
-            ref.* += 1;
-            break :blk tmp;
-        }))
-    ];
-    _ = &local;
+    current.*.localCount += 1;
+    const local: [*c]Local = &current.*.locals[@intCast(current.*.localCount)];
     local.*.depth = 0;
-    local.*.isCaptured = @as(c_int, 0) != 0;
-    if (@"type" != @as(c_uint, @bitCast(TYPE_FUNCTION))) {
+    local.*.isCaptured = false;
+    if (type_ != .TYPE_FUNCTION) {
         local.*.name.start = @ptrCast(@constCast("self"));
         local.*.name.length = 4;
     } else {
@@ -244,8 +198,15 @@ pub fn initCompiler(arg_compiler: [*c]Compiler, arg_type: FunctionType) callconv
 }
 pub fn endCompiler() callconv(.C) [*c]ObjFunction {
     emitReturn();
-    var function_1: [*c]ObjFunction = current.*.function;
-    _ = &function_1;
+    const function_1: [*c]ObjFunction = current.*.function;
+
+    if (debug_opts.print_code) {
+        if (!parser.hadError) {
+            const name: [*c]u8 = if (function_1.*.name != null) function_1.*.name.*.chars else @ptrCast(@constCast("<script>"));
+            debug_h.disassembleChunk(currentChunk(), name);
+        }
+    }
+
     current = current.*.enclosing;
     return function_1;
 }
@@ -254,37 +215,51 @@ pub fn beginScope() callconv(.C) void {
 }
 pub fn endScope() callconv(.C) void {
     current.*.scopeDepth -= 1;
-    while ((current.*.localCount > @as(c_int, 0)) and (current.*.locals[@as(c_uint, @intCast(current.*.localCount - @as(c_int, 1)))].depth > current.*.scopeDepth)) {
-        if (current.*.locals[@as(c_uint, @intCast(current.*.localCount - @as(c_int, 1)))].isCaptured) {
-            emitByte(@intCast(@intFromEnum(OpCode.OP_CLOSE_UPVALUE)));
+    while ((current.*.localCount > 0) and (current.*.locals[@intCast(current.*.localCount - 1)].depth > current.*.scopeDepth)) {
+        if (current.*.locals[@as(c_uint, @intCast(current.*.localCount - 1))].isCaptured) {
+            emitByte(@intFromEnum(OpCode.OP_CLOSE_UPVALUE));
         } else {
-            emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+            emitByte(@intFromEnum(OpCode.OP_POP));
         }
         current.*.localCount -= 1;
     }
 }
 pub fn expression() callconv(.C) void {
-    parsePrecedence(@as(c_uint, @bitCast(PREC_ASSIGNMENT)));
+    parsePrecedence(PREC_ASSIGNMENT);
 }
 pub fn statement() callconv(.C) void {
-    if (match(.TOKEN_PRINT)) {
-        printStatement();
-    } else if (match(.TOKEN_FOR)) {
-        forStatement();
-    } else if (match(.TOKEN_EACH)) {
-        eachStatement();
-    } else if (match(.TOKEN_IF)) {
-        ifStatement();
-    } else if (match(.TOKEN_RETURN)) {
-        returnStatement();
-    } else if (match(.TOKEN_WHILE)) {
-        whileStatement();
-    } else if (match(.TOKEN_LEFT_BRACE)) {
-        beginScope();
-        block();
-        endScope();
-    } else {
-        expressionStatement();
+    switch (parser.current.type) {
+        .TOKEN_PRINT => {
+            advance();
+            printStatement();
+        },
+        .TOKEN_FOR => {
+            advance();
+            forStatement();
+        },
+        .TOKEN_EACH => {
+            advance();
+            eachStatement();
+        },
+        .TOKEN_IF => {
+            advance();
+            ifStatement();
+        },
+        .TOKEN_RETURN => {
+            advance();
+            returnStatement();
+        },
+        .TOKEN_WHILE => {
+            advance();
+            whileStatement();
+        },
+        .TOKEN_LEFT_BRACE => {
+            advance();
+            beginScope();
+            block();
+            endScope();
+        },
+        else => expressionStatement(),
     }
 }
 pub fn declaration() callconv(.C) void {
@@ -301,36 +276,31 @@ pub fn declaration() callconv(.C) void {
         synchronize();
     }
 }
-pub fn getRule(arg_type: TokenType) callconv(.C) [*c]ParseRule {
-    const index: usize = @intCast(@intFromEnum(arg_type));
+pub fn getRule(type_: TokenType) callconv(.C) [*c]ParseRule {
+    const index: usize = @intCast(@intFromEnum(type_));
     return &rules[index];
 }
-pub fn parsePrecedence(arg_precedence: Precedence) callconv(.C) void {
-    var precedence = arg_precedence;
-    _ = &precedence;
+pub fn parsePrecedence(precedence: Precedence) callconv(.C) void {
     advance();
-    var prefixRule: ParseFn = getRule(parser.previous.type).*.prefix;
-    _ = &prefixRule;
-    if (prefixRule == @as(ParseFn, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
+    const prefixRule: ParseFn = getRule(parser.previous.type).*.prefix;
+
+    if (prefixRule == null) {
         @"error"("Expect expression.");
         return;
     }
-    var canAssign: bool = precedence <= @as(c_uint, @bitCast(PREC_ASSIGNMENT));
-    _ = &canAssign;
+    const canAssign: bool = precedence <= PREC_ASSIGNMENT;
     prefixRule.?(canAssign);
     while (precedence <= getRule(parser.current.type).*.precedence) {
         advance();
-        var infixRule: ParseFn = getRule(parser.previous.type).*.infix;
-        _ = &infixRule;
+        const infixRule: ParseFn = getRule(parser.previous.type).*.infix;
         infixRule.?(canAssign);
     }
-    if ((@as(c_int, @intFromBool(canAssign)) != 0) and (@as(c_int, @intFromBool(match(.TOKEN_EQUAL))) != 0)) {
+    if (canAssign and match(.TOKEN_EQUAL)) {
         @"error"("Invalid assignment target.");
     }
 }
-pub fn identifierConstant(arg_name: [*c]Token) callconv(.C) u8 {
-    var name = arg_name;
-    _ = &name;
+
+pub fn identifierConstant(name: [*c]Token) callconv(.C) u8 {
     return makeConstant(Value{
         .type = .VAL_OBJ,
         .as = .{
@@ -338,62 +308,42 @@ pub fn identifierConstant(arg_name: [*c]Token) callconv(.C) u8 {
         },
     });
 }
-pub fn identifiersEqual(arg_a: [*c]Token, arg_b: [*c]Token) callconv(.C) bool {
-    var a = arg_a;
-    _ = &a;
-    var b = arg_b;
-    _ = &b;
-    if (a.*.length != b.*.length) return @as(c_int, 0) != 0;
-    return scanner_h.memcmp(@as(?*const anyopaque, @ptrCast(a.*.start)), @as(?*const anyopaque, @ptrCast(b.*.start)), @as(c_ulong, @bitCast(@as(c_long, a.*.length)))) == @as(c_int, 0);
+pub fn identifiersEqual(a: [*c]Token, b: [*c]Token) callconv(.C) bool {
+    if (a.*.length != b.*.length) return false;
+    return scanner_h.memcmp(@as(?*const anyopaque, @ptrCast(a.*.start)), @as(?*const anyopaque, @ptrCast(b.*.start)), @as(c_ulong, @bitCast(@as(c_long, a.*.length)))) == 0;
 }
-pub fn resolveLocal(arg_compiler: [*c]Compiler, arg_name: [*c]Token) callconv(.C) c_int {
-    var compiler = arg_compiler;
-    _ = &compiler;
-    var name = arg_name;
-    _ = &name;
-    {
-        var i: c_int = compiler.*.localCount - @as(c_int, 1);
-        _ = &i;
-        while (i >= @as(c_int, 0)) : (i -= 1) {
-            var local: [*c]Local = &compiler.*.locals[@as(c_uint, @intCast(i))];
-            _ = &local;
-            if (identifiersEqual(name, &local.*.name)) {
-                if (local.*.depth == -@as(c_int, 1)) {
-                    @"error"("Can't read local variable in its own initializer.");
-                }
-                return i;
+pub fn resolveLocal(compiler: [*c]Compiler, name: [*c]Token) callconv(.C) c_int {
+    var i: c_int = compiler.*.localCount - 1;
+    while (i >= 0) : (i -= 1) {
+        const local: [*c]Local = &compiler.*.locals[@as(c_uint, @intCast(i))];
+        if (identifiersEqual(name, &local.*.name)) {
+            if (local.*.depth == -1) {
+                @"error"("Can't read local variable in its own initializer.");
             }
+            return i;
         }
     }
-    return -@as(c_int, 1);
+
+    return -1;
 }
 
-pub fn addUpvalue(arg_compiler: [*c]Compiler, arg_index_1: u8, arg_isLocal: bool) callconv(.C) c_int {
-    var compiler = arg_compiler;
-    _ = &compiler;
-    var index_1 = arg_index_1;
-    _ = &index_1;
-    var isLocal = arg_isLocal;
-    _ = &isLocal;
-    var upvalueCount: c_int = compiler.*.function.*.upvalueCount;
-    _ = &upvalueCount;
-    {
-        var i: c_int = 0;
-        _ = &i;
-        while (i < upvalueCount) : (i += 1) {
-            var upvalue: [*c]Upvalue = &compiler.*.upvalues[@as(c_uint, @intCast(i))];
-            _ = &upvalue;
-            if ((@as(c_int, @bitCast(@as(c_uint, upvalue.*.index))) == @as(c_int, @bitCast(@as(c_uint, index_1)))) and (@as(c_int, @intFromBool(upvalue.*.isLocal)) == @as(c_int, @intFromBool(isLocal)))) {
-                return i;
-            }
+pub fn addUpvalue(compiler: [*c]Compiler, index_1: u8, isLocal: bool) callconv(.C) c_int {
+    const upvalueCount: c_int = compiler.*.function.*.upvalueCount;
+
+    for (0..@intCast(upvalueCount)) |i| {
+        const upvalue: [*c]Upvalue = &compiler.*.upvalues[@as(c_uint, @intCast(i))];
+
+        if ((upvalue.*.index == index_1) and upvalue.*.isLocal) {
+            return @intCast(i);
         }
     }
-    if (upvalueCount == (@as(c_int, 255) + @as(c_int, 1))) {
+
+    if (upvalueCount == (255 + 1)) {
         @"error"("Too many closures variables in function.");
         return 0;
     }
-    compiler.*.upvalues[@as(c_uint, @intCast(upvalueCount))].isLocal = isLocal;
-    compiler.*.upvalues[@as(c_uint, @intCast(upvalueCount))].index = index_1;
+    compiler.*.upvalues[@intCast(upvalueCount)].isLocal = isLocal;
+    compiler.*.upvalues[@intCast(upvalueCount)].index = index_1;
     return blk: {
         const ref = &compiler.*.function.*.upvalueCount;
         const tmp = ref.*;
@@ -401,33 +351,25 @@ pub fn addUpvalue(arg_compiler: [*c]Compiler, arg_index_1: u8, arg_isLocal: bool
         break :blk tmp;
     };
 }
-pub fn resolveUpvalue(arg_compiler: [*c]Compiler, arg_name: [*c]Token) callconv(.C) c_int {
-    var compiler = arg_compiler;
-    _ = &compiler;
-    var name = arg_name;
-    _ = &name;
-    if (compiler.*.enclosing == @as([*c]Compiler, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) return -@as(c_int, 1);
-    var local: c_int = resolveLocal(compiler.*.enclosing, name);
-    _ = &local;
-    if (local != -@as(c_int, 1)) {
-        compiler.*.enclosing.*.locals[@as(c_uint, @intCast(local))].isCaptured = @as(c_int, 1) != 0;
-        return addUpvalue(compiler, @as(u8, @bitCast(@as(i8, @truncate(local)))), @as(c_int, 1) != 0);
+pub fn resolveUpvalue(compiler: [*c]Compiler, name: [*c]Token) callconv(.C) c_int {
+    if (compiler.*.enclosing == @as([*c]Compiler, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) return -1;
+    const local: c_int = resolveLocal(compiler.*.enclosing, name);
+    if (local != -1) {
+        compiler.*.enclosing.*.locals[@as(c_uint, @intCast(local))].isCaptured = true;
+        return addUpvalue(compiler, @as(u8, @bitCast(@as(i8, @truncate(local)))), true);
     }
-    var upvalue: c_int = resolveUpvalue(compiler.*.enclosing, name);
-    _ = &upvalue;
-    if (upvalue != -@as(c_int, 1)) {
-        return addUpvalue(compiler, @as(u8, @bitCast(@as(i8, @truncate(upvalue)))), @as(c_int, 0) != 0);
+    const upvalue: c_int = resolveUpvalue(compiler.*.enclosing, name);
+    if (upvalue != -1) {
+        return addUpvalue(compiler, @as(u8, @bitCast(@as(i8, @truncate(upvalue)))), false);
     }
-    return -@as(c_int, 1);
+    return -1;
 }
-pub fn addLocal(arg_name: Token) callconv(.C) void {
-    var name = arg_name;
-    _ = &name;
-    if (current.*.localCount == (@as(c_int, 255) + @as(c_int, 1))) {
+pub fn addLocal(name: Token) callconv(.C) void {
+    if (current.*.localCount == (255 + 1)) {
         @"error"("Too many local variables in function.");
         return;
     }
-    var local: [*c]Local = &current.*.locals[
+    const local: [*c]Local = &current.*.locals[
         @as(c_uint, @intCast(blk: {
             const ref = &current.*.localCount;
             const tmp = ref.*;
@@ -435,22 +377,20 @@ pub fn addLocal(arg_name: Token) callconv(.C) void {
             break :blk tmp;
         }))
     ];
-    _ = &local;
     local.*.name = name;
-    local.*.depth = -@as(c_int, 1);
-    local.*.isCaptured = @as(c_int, 0) != 0;
+    local.*.depth = -1;
+    local.*.isCaptured = false;
 }
 pub fn declareVariable() callconv(.C) void {
-    if (current.*.scopeDepth == @as(c_int, 0)) return;
-    var name: [*c]Token = &parser.previous;
-    _ = &name;
+    if (current.*.scopeDepth == 0) return;
+    const name: [*c]Token = &parser.previous;
     {
-        var i: c_int = current.*.localCount - @as(c_int, 1);
+        var i: c_int = current.*.localCount - 1;
         _ = &i;
-        while (i >= @as(c_int, 0)) : (i -= 1) {
+        while (i >= 0) : (i -= 1) {
             var local: [*c]Local = &current.*.locals[@as(c_uint, @intCast(i))];
             _ = &local;
-            if ((local.*.depth != -@as(c_int, 1)) and (local.*.depth < current.*.scopeDepth)) {
+            if ((local.*.depth != -1) and (local.*.depth < current.*.scopeDepth)) {
                 break;
             }
             if (identifiersEqual(name, &local.*.name)) {
@@ -461,22 +401,18 @@ pub fn declareVariable() callconv(.C) void {
     }
     addLocal(name.*);
 }
-pub fn parseVariable(arg_errorMessage: [*c]const u8) callconv(.C) u8 {
-    var errorMessage = arg_errorMessage;
-    _ = &errorMessage;
+pub fn parseVariable(errorMessage: [*c]const u8) callconv(.C) u8 {
     consume(.TOKEN_IDENTIFIER, errorMessage);
     declareVariable();
-    if (current.*.scopeDepth > @as(c_int, 0)) return 0;
+    if (current.*.scopeDepth > 0) return 0;
     return identifierConstant(&parser.previous);
 }
 pub fn markInitialized() callconv(.C) void {
-    if (current.*.scopeDepth == @as(c_int, 0)) return;
-    current.*.locals[@as(c_uint, @intCast(current.*.localCount - @as(c_int, 1)))].depth = current.*.scopeDepth;
+    if (current.*.scopeDepth == 0) return;
+    current.*.locals[@as(c_uint, @intCast(current.*.localCount - 1))].depth = current.*.scopeDepth;
 }
-pub fn defineVariable(arg_global: u8) callconv(.C) void {
-    var global = arg_global;
-    _ = &global;
-    if (current.*.scopeDepth > @as(c_int, 0)) {
+pub fn defineVariable(global: u8) callconv(.C) void {
+    if (current.*.scopeDepth > 0) {
         markInitialized();
         return;
     }
@@ -484,11 +420,10 @@ pub fn defineVariable(arg_global: u8) callconv(.C) void {
 }
 pub fn argumentList() callconv(.C) u8 {
     var argCount: u8 = 0;
-    _ = &argCount;
     if (!check(.TOKEN_RIGHT_PAREN)) {
         while (true) {
             expression();
-            if (@as(c_int, @bitCast(@as(c_uint, argCount))) == @as(c_int, 255)) {
+            if (@as(c_int, @bitCast(@as(c_uint, argCount))) == 255) {
                 @"error"("Can't have more than 255 arguments.");
             }
             argCount +%= 1;
@@ -498,23 +433,19 @@ pub fn argumentList() callconv(.C) u8 {
     consume(.TOKEN_RIGHT_PAREN, "Expect ')' after arguments.");
     return argCount;
 }
-pub fn and_(arg_canAssign: bool) callconv(.C) void {
-    var canAssign = arg_canAssign;
-    _ = &canAssign;
+pub fn and_(canAssign: bool) callconv(.C) void {
+    _ = canAssign;
     var endJump: c_int = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
     _ = &endJump;
     emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
-    parsePrecedence(@as(c_uint, @bitCast(PREC_AND)));
+    parsePrecedence(PREC_AND);
     patchJump(endJump);
 }
-pub fn binary(arg_canAssign: bool) callconv(.C) void {
-    var canAssign = arg_canAssign;
-    _ = &canAssign;
-    var operatorType: TokenType = parser.previous.type;
-    _ = &operatorType;
-    var rule: [*c]ParseRule = getRule(operatorType);
-    _ = &rule;
-    parsePrecedence(rule.*.precedence +% @as(c_uint, @bitCast(@as(c_int, 1))));
+pub fn binary(canAssign: bool) callconv(.C) void {
+    _ = canAssign;
+    const operatorType: TokenType = parser.previous.type;
+    const rule: [*c]ParseRule = getRule(operatorType);
+    parsePrecedence(rule.*.precedence +% 1);
     while (true) {
         switch (operatorType) {
             .TOKEN_BANG_EQUAL => {
@@ -570,16 +501,13 @@ pub fn binary(arg_canAssign: bool) callconv(.C) void {
         break;
     }
 }
-pub fn call(arg_canAssign: bool) callconv(.C) void {
-    var canAssign = arg_canAssign;
+pub fn call(canAssign: bool) callconv(.C) void {
     _ = &canAssign;
     var argCount: u8 = argumentList();
     _ = &argCount;
     emitBytes(@intCast(@intFromEnum(OpCode.OP_CALL)), argCount);
 }
-pub fn dot(arg_canAssign: bool) callconv(.C) void {
-    var canAssign = arg_canAssign;
-    _ = &canAssign;
+pub fn dot(canAssign: bool) callconv(.C) void {
     consume(.TOKEN_IDENTIFIER, "Expect property name after '.'.");
     var name: u8 = identifierConstant(&parser.previous);
     _ = &name;
@@ -595,9 +523,8 @@ pub fn dot(arg_canAssign: bool) callconv(.C) void {
         emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_PROPERTY)), name);
     }
 }
-pub fn literal(arg_canAssign: bool) callconv(.C) void {
-    var canAssign = arg_canAssign;
-    _ = &canAssign;
+pub fn literal(canAssign: bool) callconv(.C) void {
+    _ = canAssign;
     while (true) {
         switch (parser.previous.type) {
             .TOKEN_FALSE => {
@@ -617,14 +544,12 @@ pub fn literal(arg_canAssign: bool) callconv(.C) void {
         break;
     }
 }
-pub fn grouping(arg_canAssign: bool) callconv(.C) void {
-    var canAssign = arg_canAssign;
+pub fn grouping(canAssign: bool) callconv(.C) void {
     _ = &canAssign;
     expression();
     consume(.TOKEN_RIGHT_PAREN, "Expect ')' after expression.");
 }
-pub fn number(arg_canAssign: bool) callconv(.C) void {
-    var canAssign = arg_canAssign;
+pub fn number(canAssign: bool) callconv(.C) void {
     _ = &canAssign;
     if (parser.previous.type == .TOKEN_INT) {
         var value: c_int = atoi(parser.previous.start);
@@ -646,8 +571,7 @@ pub fn number(arg_canAssign: bool) callconv(.C) void {
         });
     }
 }
-pub fn or_(arg_canAssign: bool) callconv(.C) void {
-    var canAssign = arg_canAssign;
+pub fn or_(canAssign: bool) callconv(.C) void {
     _ = &canAssign;
     var elseJump: c_int = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
     _ = &elseJump;
@@ -655,21 +579,19 @@ pub fn or_(arg_canAssign: bool) callconv(.C) void {
     _ = &endJump;
     patchJump(elseJump);
     emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
-    parsePrecedence(@as(c_uint, @bitCast(PREC_OR)));
+    parsePrecedence(PREC_OR);
     patchJump(endJump);
 }
-pub fn string(arg_canAssign: bool) callconv(.C) void {
-    var canAssign = arg_canAssign;
+pub fn string(canAssign: bool) callconv(.C) void {
     _ = &canAssign;
     emitConstant(Value{
         .type = .VAL_OBJ,
         .as = .{
-            .obj = @as([*c]object_h.Obj, @ptrCast(@alignCast(object_h.copyString(parser.previous.start + @as(usize, @bitCast(@as(isize, @intCast(@as(c_int, 1))))), parser.previous.length - @as(c_int, 2))))),
+            .obj = @as([*c]object_h.Obj, @ptrCast(@alignCast(object_h.copyString(parser.previous.start + @as(usize, @bitCast(@as(isize, @intCast(1)))), parser.previous.length - 2)))),
         },
     });
 }
-pub fn array(arg_canAssign: bool) callconv(.C) void {
-    var canAssign = arg_canAssign;
+pub fn array(canAssign: bool) callconv(.C) void {
     _ = &canAssign;
     var argCount: u8 = 0;
     _ = &argCount;
@@ -677,7 +599,7 @@ pub fn array(arg_canAssign: bool) callconv(.C) void {
         while (true) {
             expression();
             argCount +%= 1;
-            if (@as(c_int, @bitCast(@as(c_uint, argCount))) > @as(c_int, 255)) {
+            if (@as(c_int, @bitCast(@as(c_uint, argCount))) > 255) {
                 @"error"("Can't have more than 255 elements in an array.");
             }
             if (!match(.TOKEN_COMMA)) break;
@@ -686,8 +608,7 @@ pub fn array(arg_canAssign: bool) callconv(.C) void {
     consume(.TOKEN_RIGHT_SQPAREN, "Expect ']' after array elements.");
     emitBytes(@intCast(@intFromEnum(OpCode.OP_ARRAY)), argCount);
 }
-pub fn fvector(arg_canAssign: bool) callconv(.C) void {
-    var canAssign = arg_canAssign;
+pub fn fvector(canAssign: bool) callconv(.C) void {
     _ = &canAssign;
     var argCount: u8 = 0;
     _ = &argCount;
@@ -695,7 +616,7 @@ pub fn fvector(arg_canAssign: bool) callconv(.C) void {
         while (true) {
             expression();
             argCount +%= 1;
-            if (@as(c_int, @bitCast(@as(c_uint, argCount))) > @as(c_int, 255)) {
+            if (@as(c_int, @bitCast(@as(c_uint, argCount))) > 255) {
                 @"error"("Can't have more than 255 elements in a vector.");
             }
             if (!match(.TOKEN_COMMA)) break;
@@ -704,29 +625,22 @@ pub fn fvector(arg_canAssign: bool) callconv(.C) void {
     consume(.TOKEN_RIGHT_BRACE, "Expect '}' after vector elements.");
     emitBytes(@intCast(@intFromEnum(OpCode.OP_FVECTOR)), argCount);
 }
-pub fn namedVariable(arg_name: Token, arg_canAssign: bool) callconv(.C) void {
-    var name = arg_name;
-    _ = &name;
-    var canAssign = arg_canAssign;
-    _ = &canAssign;
+pub fn namedVariable(name: Token, canAssign: bool) callconv(.C) void {
     var getOp: u8 = undefined;
-    _ = &getOp;
     var setOp: u8 = undefined;
-    _ = &setOp;
-    var arg: c_int = resolveLocal(current, &name);
-    _ = &arg;
-    if (arg != -@as(c_int, 1)) {
+    var arg: c_int = resolveLocal(current, @constCast(&name));
+    if (arg != -1) {
         getOp = @intCast(@intFromEnum(OpCode.OP_GET_LOCAL));
         setOp = @intCast(@intFromEnum(OpCode.OP_SET_LOCAL));
     } else if ((blk: {
-        const tmp = resolveUpvalue(current, &name);
+        const tmp = resolveUpvalue(current, @constCast(&name));
         arg = tmp;
         break :blk tmp;
-    }) != -@as(c_int, 1)) {
+    }) != -1) {
         getOp = @intCast(@intFromEnum(OpCode.OP_GET_UPVALUE));
         setOp = @intCast(@intFromEnum(OpCode.OP_SET_UPVALUE));
     } else {
-        arg = @as(c_int, @bitCast(@as(c_uint, identifierConstant(&name))));
+        arg = @intCast(identifierConstant(@constCast(&name)));
         getOp = @intCast(@intFromEnum(OpCode.OP_GET_GLOBAL));
         setOp = @intCast(@intFromEnum(OpCode.OP_SET_GLOBAL));
     }
@@ -765,7 +679,7 @@ pub fn namedVariable(arg_name: Token, arg_canAssign: bool) callconv(.C) void {
         emitByte(makeConstant(Value{
             .type = .VAL_INT,
             .as = .{
-                .num_int = @as(c_int, 1),
+                .num_int = 1,
             },
         }));
         emitByte(@intCast(@intFromEnum(OpCode.OP_ADD)));
@@ -776,7 +690,7 @@ pub fn namedVariable(arg_name: Token, arg_canAssign: bool) callconv(.C) void {
         emitByte(makeConstant(Value{
             .type = .VAL_INT,
             .as = .{
-                .num_int = @as(c_int, 1),
+                .num_int = 1,
             },
         }));
         emitByte(@intCast(@intFromEnum(OpCode.OP_SUBTRACT)));
@@ -785,9 +699,7 @@ pub fn namedVariable(arg_name: Token, arg_canAssign: bool) callconv(.C) void {
         emitBytes(getOp, @as(u8, @bitCast(@as(i8, @truncate(arg)))));
     }
 }
-pub fn index_(arg_canAssign: bool) callconv(.C) void {
-    var canAssign = arg_canAssign;
-    _ = &canAssign;
+pub fn index_(canAssign: bool) callconv(.C) void {
     if (check(.TOKEN_LEFT_SQPAREN)) {
         consume(.TOKEN_LEFT_SQPAREN, "Expect '[' after array.");
         expression();
@@ -802,15 +714,11 @@ pub fn index_(arg_canAssign: bool) callconv(.C) void {
         vm_h.runtimeError("Only arrays support indexing.", .{});
     }
 }
-pub fn variable(arg_canAssign: bool) callconv(.C) void {
-    var canAssign = arg_canAssign;
-    _ = &canAssign;
+pub fn variable(canAssign: bool) callconv(.C) void {
     namedVariable(parser.previous, canAssign);
 }
 
-pub fn syntheticToken(arg_text: [*c]const u8) callconv(.C) Token {
-    var text = arg_text;
-    _ = &text;
+pub fn syntheticToken(text: [*c]const u8) callconv(.C) Token {
     var token: Token = Token{
         .type = @import("std").mem.zeroes(TokenType),
         .start = @constCast(text),
@@ -820,10 +728,9 @@ pub fn syntheticToken(arg_text: [*c]const u8) callconv(.C) Token {
     _ = &token;
     return token;
 }
-pub fn super_(arg_canAssign: bool) callconv(.C) void {
-    var canAssign = arg_canAssign;
-    _ = &canAssign;
-    if (currentClass == @as([*c]ClassCompiler, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
+pub fn super_(canAssign: bool) callconv(.C) void {
+    _ = canAssign;
+    if (currentClass == @as([*c]ClassCompiler, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
         @"error"("Can't use 'super' outside of a class.");
     } else if (!currentClass.*.hasSuperClass) {
         @"error"("Can't use 'super' in a class with no superclass.");
@@ -832,34 +739,31 @@ pub fn super_(arg_canAssign: bool) callconv(.C) void {
     consume(.TOKEN_IDENTIFIER, "Expect superclass method name.");
     var name: u8 = identifierConstant(&parser.previous);
     _ = &name;
-    namedVariable(syntheticToken("self"), @as(c_int, 0) != 0);
+    namedVariable(syntheticToken("self"), false);
     if (match(.TOKEN_LEFT_PAREN)) {
         var argCount: u8 = argumentList();
         _ = &argCount;
-        namedVariable(syntheticToken("super"), @as(c_int, 0) != 0);
+        namedVariable(syntheticToken("super"), false);
         emitBytes(@intCast(@intFromEnum(OpCode.OP_SUPER_INVOKE)), name);
         emitByte(argCount);
     } else {
-        namedVariable(syntheticToken("super"), @as(c_int, 0) != 0);
+        namedVariable(syntheticToken("super"), false);
         emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_SUPER)), name);
     }
 }
-pub fn self_(arg_canAssign: bool) callconv(.C) void {
-    var canAssign = arg_canAssign;
+pub fn self_(canAssign: bool) callconv(.C) void {
     _ = &canAssign;
-    if (currentClass == @as([*c]ClassCompiler, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
+    if (currentClass == @as([*c]ClassCompiler, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
         @"error"("Can't use 'self' outside of a class.");
         return;
     }
-    variable(@as(c_int, 0) != 0);
+    variable(false);
 }
-pub fn item_(arg_canAssign: bool) callconv(.C) void {
-    var canAssign = arg_canAssign;
+pub fn item_(canAssign: bool) callconv(.C) void {
     _ = &canAssign;
-    variable(@as(c_int, 0) != 0);
+    variable(false);
 }
-pub fn unary(arg_canAssign: bool) callconv(.C) void {
-    var canAssign = arg_canAssign;
+pub fn unary(canAssign: bool) callconv(.C) void {
     _ = &canAssign;
     var operatorType: TokenType = parser.previous.type;
     _ = &operatorType;
@@ -883,272 +787,196 @@ pub export var rules: [54]ParseRule = .{
     .{
         .prefix = &grouping,
         .infix = &call,
-        .precedence = @as(c_uint, @bitCast(PREC_CALL)),
+        .precedence = PREC_CALL,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
         .prefix = &fvector,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
         .infix = &dot,
-        .precedence = @as(c_uint, @bitCast(PREC_CALL)),
+        .precedence = PREC_CALL,
     },
     .{
         .prefix = &unary,
         .infix = &binary,
-        .precedence = @as(c_uint, @bitCast(PREC_TERM)),
+        .precedence = PREC_TERM,
     },
     .{
-        .prefix = null,
         .infix = &binary,
-        .precedence = @as(c_uint, @bitCast(PREC_TERM)),
+        .precedence = PREC_TERM,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
         .infix = &binary,
-        .precedence = @as(c_uint, @bitCast(PREC_FACTOR)),
+        .precedence = PREC_FACTOR,
     },
     .{
-        .prefix = null,
         .infix = &binary,
-        .precedence = @as(c_uint, @bitCast(PREC_FACTOR)),
+        .precedence = PREC_FACTOR,
     },
     .{
-        .prefix = null,
         .infix = &binary,
-        .precedence = @as(c_uint, @bitCast(PREC_FACTOR)),
+        .precedence = PREC_FACTOR,
     },
     .{
         .prefix = &unary,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
         .infix = &binary,
-        .precedence = @as(c_uint, @bitCast(PREC_EQUALITY)),
+        .precedence = PREC_EQUALITY,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
         .infix = &binary,
-        .precedence = @as(c_uint, @bitCast(PREC_EQUALITY)),
+        .precedence = PREC_EQUALITY,
     },
     .{
-        .prefix = null,
         .infix = &binary,
-        .precedence = @as(c_uint, @bitCast(PREC_COMPARISON)),
+        .precedence = PREC_COMPARISON,
     },
     .{
-        .prefix = null,
         .infix = &binary,
-        .precedence = @as(c_uint, @bitCast(PREC_COMPARISON)),
+        .precedence = PREC_COMPARISON,
     },
     .{
-        .prefix = null,
         .infix = &binary,
-        .precedence = @as(c_uint, @bitCast(PREC_COMPARISON)),
+        .precedence = PREC_COMPARISON,
     },
     .{
-        .prefix = null,
         .infix = &binary,
-        .precedence = @as(c_uint, @bitCast(PREC_COMPARISON)),
+        .precedence = PREC_COMPARISON,
     },
     .{
         .prefix = &variable,
         .infix = &index_,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
         .prefix = &string,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
         .prefix = &number,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
         .prefix = &number,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
         .infix = &and_,
-        .precedence = @as(c_uint, @bitCast(PREC_AND)),
+        .precedence = PREC_AND,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
         .prefix = &literal,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
         .prefix = &literal,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
         .infix = &or_,
-        .precedence = @as(c_uint, @bitCast(PREC_OR)),
+        .precedence = PREC_OR,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
         .prefix = &self_,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
         .prefix = &super_,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
         .prefix = &literal,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
         .prefix = &item_,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
     .{
-        .prefix = null,
         .infix = &binary,
-        .precedence = @as(c_uint, @bitCast(PREC_FACTOR)),
+        .precedence = PREC_FACTOR,
     },
     .{
         .prefix = &array,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_INDEX)),
+        .precedence = PREC_INDEX,
     },
     .{
-        .prefix = null,
-        .infix = null,
-        .precedence = @as(c_uint, @bitCast(PREC_NONE)),
+        .precedence = PREC_NONE,
     },
 };
 pub fn block() callconv(.C) void {
@@ -1157,18 +985,16 @@ pub fn block() callconv(.C) void {
     }
     consume(.TOKEN_RIGHT_BRACE, "Expect '}' after block.");
 }
-pub fn function(arg_type: FunctionType) callconv(.C) void {
-    var @"type" = arg_type;
-    _ = &@"type";
+pub fn function(type_: FunctionType) callconv(.C) void {
     var compiler: Compiler = undefined;
     _ = &compiler;
-    initCompiler(&compiler, @"type");
+    initCompiler(&compiler, type_);
     beginScope();
     consume(.TOKEN_LEFT_PAREN, "Expect '(' after function name.");
     if (!check(.TOKEN_RIGHT_PAREN)) {
         while (true) {
             current.*.function.*.arity += 1;
-            if (current.*.function.*.arity > @as(c_int, 255)) {
+            if (current.*.function.*.arity > 255) {
                 errorAtCurrent("Can't have more than 255 parameters.");
             }
             var constant: u8 = parseVariable("Expect parameter name.");
@@ -1192,7 +1018,7 @@ pub fn function(arg_type: FunctionType) callconv(.C) void {
         var i: c_int = 0;
         _ = &i;
         while (i < function_1.*.upvalueCount) : (i += 1) {
-            emitByte(@as(u8, @bitCast(@as(i8, @truncate(if (@as(c_int, @intFromBool(compiler.upvalues[@as(c_uint, @intCast(i))].isLocal)) != 0) @as(c_int, 1) else @as(c_int, 0))))));
+            emitByte(if (compiler.upvalues[@as(c_uint, @intCast(i))].isLocal) 1 else 0);
             emitByte(compiler.upvalues[@as(c_uint, @intCast(i))].index);
         }
     }
@@ -1201,12 +1027,12 @@ pub fn method() callconv(.C) void {
     consume(.TOKEN_IDENTIFIER, "Expect method name.");
     var constant: u8 = identifierConstant(&parser.previous);
     _ = &constant;
-    var @"type": FunctionType = @as(c_uint, @bitCast(TYPE_METHOD));
-    _ = &@"type";
-    if ((parser.previous.length == @as(c_int, 4)) and (scanner_h.memcmp(@as(?*const anyopaque, @ptrCast(parser.previous.start)), @as(?*const anyopaque, @ptrCast("init")), @as(c_ulong, @bitCast(@as(c_long, @as(c_int, 4))))) == @as(c_int, 0))) {
-        @"type" = @as(c_uint, @bitCast(TYPE_INITIALIZER));
+    var type_: FunctionType = .TYPE_METHOD;
+    _ = &type_;
+    if ((parser.previous.length == @as(c_int, 4)) and (scanner_h.memcmp(@as(?*const anyopaque, @ptrCast(parser.previous.start)), @as(?*const anyopaque, @ptrCast("init")), @as(c_ulong, @bitCast(@as(c_long, @as(c_int, 4))))) == 0)) {
+        type_ = .TYPE_INITIALIZER;
     }
-    function(@"type");
+    function(type_);
     emitBytes(@intCast(@intFromEnum(OpCode.OP_METHOD)), constant);
 }
 
@@ -1222,22 +1048,22 @@ pub fn classDeclaration() callconv(.C) void {
     var classCompiler: ClassCompiler = undefined;
     _ = &classCompiler;
     classCompiler.enclosing = currentClass;
-    classCompiler.hasSuperClass = @as(c_int, 0) != 0;
+    classCompiler.hasSuperClass = false;
     currentClass = &classCompiler;
     if (match(.TOKEN_LESS)) {
         consume(.TOKEN_IDENTIFIER, "Expect superclass name.");
-        variable(@as(c_int, 0) != 0);
+        variable(false);
         if (identifiersEqual(&className, &parser.previous)) {
             @"error"("A class can't inherit itself.");
         }
         beginScope();
         addLocal(syntheticToken("super"));
-        defineVariable(@as(u8, @bitCast(@as(i8, @truncate(@as(c_int, 0))))));
-        namedVariable(className, @as(c_int, 0) != 0);
+        defineVariable(@as(u8, @bitCast(@as(i8, @truncate(0)))));
+        namedVariable(className, false);
         emitByte(@intCast(@intFromEnum(OpCode.OP_INHERIT)));
-        currentClass.*.hasSuperClass = @as(c_int, 1) != 0;
+        currentClass.*.hasSuperClass = true;
     }
-    namedVariable(className, @as(c_int, 0) != 0);
+    namedVariable(className, false);
     consume(.TOKEN_LEFT_BRACE, "Expect '{' before class body.");
     while (!check(.TOKEN_RIGHT_BRACE) and !check(.TOKEN_EOF)) {
         method();
@@ -1253,7 +1079,7 @@ pub fn funDeclaration() callconv(.C) void {
     var global: u8 = parseVariable("Expect function name.");
     _ = &global;
     markInitialized();
-    function(@as(c_uint, @bitCast(TYPE_FUNCTION)));
+    function(.TYPE_FUNCTION);
     defineVariable(global);
 }
 pub fn varDeclaration() callconv(.C) void {
@@ -1282,7 +1108,7 @@ pub fn forStatement() callconv(.C) void {
     }
     var loopStart: c_int = currentChunk().*.count;
     _ = &loopStart;
-    var exitJump: c_int = -@as(c_int, 1);
+    var exitJump: c_int = -1;
     _ = &exitJump;
     if (!match(.TOKEN_SEMICOLON)) {
         expression();
@@ -1304,7 +1130,7 @@ pub fn forStatement() callconv(.C) void {
     }
     statement();
     emitLoop(loopStart);
-    if (exitJump != -@as(c_int, 1)) {
+    if (exitJump != -1) {
         patchJump(exitJump);
         emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
     }
@@ -1354,13 +1180,13 @@ pub fn printStatement() callconv(.C) void {
     emitByte(@intCast(@intFromEnum(OpCode.OP_PRINT)));
 }
 pub fn returnStatement() callconv(.C) void {
-    if (current.*.type == @as(c_uint, @bitCast(TYPE_SCRIPT))) {
+    if (current.*.type_ == .TYPE_SCRIPT) {
         @"error"("Can't return from top-level code.");
     }
     if (match(.TOKEN_SEMICOLON)) {
         emitReturn();
     } else {
-        if (current.*.type == @as(c_uint, @bitCast(TYPE_INITIALIZER))) {
+        if (current.*.type_ == .TYPE_INITIALIZER) {
             @"error"("Can't return a value from an initializer.");
         }
         expression();
@@ -1383,7 +1209,7 @@ pub fn whileStatement() callconv(.C) void {
     emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
 }
 pub fn synchronize() callconv(.C) void {
-    parser.panicMode = @as(c_int, 0) != 0;
+    parser.panicMode = false;
     while (parser.current.type != .TOKEN_EOF) {
         if (parser.previous.type == .TOKEN_SEMICOLON) return;
         while (true) {
@@ -1396,15 +1222,13 @@ pub fn synchronize() callconv(.C) void {
     }
 }
 
-pub export fn compile(arg_source: [*c]const u8) [*c]ObjFunction {
-    var source = arg_source;
-    _ = &source;
+pub export fn compile(source: [*c]const u8) [*c]ObjFunction {
     scanner_h.initScanner(@constCast(source));
     var compiler: Compiler = undefined;
     _ = &compiler;
-    initCompiler(&compiler, @as(c_uint, @bitCast(TYPE_SCRIPT)));
-    parser.hadError = @as(c_int, 0) != 0;
-    parser.panicMode = @as(c_int, 0) != 0;
+    initCompiler(&compiler, .TYPE_SCRIPT);
+    parser.hadError = false;
+    parser.panicMode = false;
     advance();
     while (!match(.TOKEN_EOF)) {
         declaration();
