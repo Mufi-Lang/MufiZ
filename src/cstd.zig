@@ -72,7 +72,7 @@ pub export fn hasNext_nf(argCount: c_int, args: [*c]Value) Value {
         runtimeError("Argument must be an iterable.", .{});
         return Value.init_nil();
     }
-    var hasNext: bool = 0 != 0;
+    var hasNext: bool = false;
     _ = &hasNext;
     if (isObjType(args[0], .OBJ_ARRAY)) {
         hasNext = obj_h.hasNextObjectArray(@as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj))));
@@ -95,11 +95,11 @@ pub export fn peek_nf(argCount: c_int, args: [*c]Value) Value {
         runtimeError("Argument must be an iterable.", .{});
         return Value.init_nil();
     }
-    if (!((args[1].type == .VAL_INT) or (args[1].type == .VAL_DOUBLE))) {
+    if (!((args[1].type == .VAL_INT) or (args[1].is_double()))) {
         runtimeError("Second argument must be a number.", .{});
         return Value.init_nil();
     }
-    var pos: c_int = if (args[1].type == .VAL_DOUBLE) @intFromFloat(args[1].as.num_double) else args[1].as.num_int;
+    var pos: c_int = if (args[1].is_double()) @intFromFloat(args[1].as_num_double()) else args[1].as.num_int;
     _ = &pos;
     var peek: Value = Value.init_nil();
     _ = &peek;
@@ -140,11 +140,11 @@ pub export fn skip_nf(argCount: c_int, args: [*c]Value) Value {
         runtimeError("Argument must be an iterable.", .{});
         return Value.init_nil();
     }
-    if (!((args[1].type == .VAL_INT) or (args[1].type == .VAL_DOUBLE))) {
+    if (!((args[1].type == .VAL_INT) or (args[1].is_double()))) {
         runtimeError("Second argument must be a number.", .{});
         return Value.init_nil();
     }
-    var skip: c_int = if (args[1].type == .VAL_DOUBLE) @intFromFloat(args[1].as.num_double) else args[1].as.num_int;
+    var skip: c_int = if (args[1].is_double()) @intFromFloat(args[1].as_num_double()) else args[1].as.num_int;
     _ = &skip;
     if (isObjType(args[0], .OBJ_ARRAY)) {
         obj_h.skipObjectArray(@as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj))), skip);
@@ -157,16 +157,11 @@ pub export fn array_nf(argCount: c_int, args: [*c]Value) Value {
     if (argCount == 0) {
         var a: [*c]ObjArray = obj_h.newArray();
         _ = &a;
-        return Value{
-            .type = .VAL_OBJ,
-            .as = .{
-                .obj = @as([*c]Obj, @ptrCast(@alignCast(a))),
-            },
-        };
+        return Value.init_obj(@ptrCast(@alignCast(a)));
     } else if ((argCount == 1) and isObjType(args[0], .OBJ_FVECTOR)) {
         var f: [*c]FloatVector = @ptrCast(@alignCast(args[0].as.obj));
         _ = &f;
-        var a: [*c]ObjArray = obj_h.newArrayWithCap(f.*.size, 1 != 0);
+        var a: [*c]ObjArray = obj_h.newArrayWithCap(f.*.size, true);
         _ = &a;
         {
             var i: c_int = 0;
@@ -183,14 +178,9 @@ pub export fn array_nf(argCount: c_int, args: [*c]Value) Value {
                 });
             }
         }
-        return Value{
-            .type = .VAL_OBJ,
-            .as = .{
-                .obj = @as([*c]Obj, @ptrCast(@alignCast(a))),
-            },
-        };
+        return Value.init_obj(@ptrCast(@alignCast(a)));
     } else if (argCount >= 1) {
-        if (!((args[0].type == .VAL_INT) or (args[0].type == .VAL_DOUBLE))) {
+        if (!((args[0].type == .VAL_INT) or (args[0].is_double()))) {
             runtimeError("First argument must be a number when creating an array with a specified capacity.", .{});
             return Value{
                 .type = .VAL_NIL,
@@ -208,14 +198,9 @@ pub export fn array_nf(argCount: c_int, args: [*c]Value) Value {
                 },
             };
         }
-        var a: [*c]ObjArray = obj_h.newArrayWithCap(if (args[0].type == .VAL_DOUBLE) @intFromFloat(args[0].as.num_double) else args[0].as.num_int, args[1].as.boolean);
+        var a: [*c]ObjArray = obj_h.newArrayWithCap(if (args[0].is_double()) @intFromFloat(args[0].as_num_double()) else args[0].as.num_int, args[1].as.boolean);
         _ = &a;
-        return Value{
-            .type = .VAL_OBJ,
-            .as = .{
-                .obj = @as([*c]Obj, @ptrCast(@alignCast(a))),
-            },
-        };
+        return Value.init_obj(@ptrCast(@alignCast(a)));
     } else {
         runtimeError("array() takes 0 or 1 argument.", .{});
         return Value.init_nil();
@@ -254,13 +239,13 @@ pub export fn hashtable_nf(argCount: c_int, args: [*c]Value) Value {
 }
 pub export fn matrix_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    if (!((args[0].type == .VAL_INT) or (args[0].type == .VAL_DOUBLE)) or !((args[1].type == .VAL_INT) or (args[1].type == .VAL_DOUBLE))) {
+    if (!((args[0].type == .VAL_INT) or (args[0].is_double())) or !((args[1].type == .VAL_INT) or (args[1].is_double()))) {
         runtimeError("Both arguments must be numbers.", .{});
         return Value.init_nil();
     }
-    var rows: c_int = if (args[0].type == .VAL_DOUBLE) @intFromFloat(args[0].as.num_double) else args[0].as.num_int;
+    var rows: c_int = if (args[0].is_double()) @intFromFloat(args[0].as_num_double()) else args[0].as.num_int;
     _ = &rows;
-    var cols: c_int = if (args[1].type == .VAL_DOUBLE) @intFromFloat(args[1].as.num_double) else args[1].as.num_int;
+    var cols: c_int = if (args[1].is_double()) @intFromFloat(args[1].as_num_double()) else args[1].as.num_int;
     _ = &cols;
     var m: [*c]ObjMatrix = obj_h.newMatrix(rows, cols);
     _ = &m;
@@ -276,7 +261,7 @@ pub export fn fvector_nf(argCount: c_int, args: [*c]Value) Value {
         runtimeError("fvec() takes 1 argument.", .{});
         return Value.init_nil();
     }
-    if (!((args[0].type == .VAL_INT) or (args[0].type == .VAL_DOUBLE)) and !isObjType(args[0], .OBJ_ARRAY)) {
+    if (!((args[0].type == .VAL_INT) or (args[0].is_double())) and !isObjType(args[0], .OBJ_ARRAY)) {
         runtimeError("First argument must be an numbers or an array.", .{});
         return Value.init_nil();
     }
@@ -302,48 +287,33 @@ pub export fn fvector_nf(argCount: c_int, args: [*c]Value) Value {
                 obj_h.pushFloatVector(f, a.*.values[i].as_num_double());
             }
         }
-        return Value{
-            .type = .VAL_OBJ,
-            .as = .{
-                .obj = @as([*c]Obj, @ptrCast(@alignCast(f))),
-            },
-        };
+        return Value.init_obj(@ptrCast(@alignCast(f)));
     } else {
-        var n: c_int = if (args[0].type == .VAL_DOUBLE) @intFromFloat(args[0].as.num_double) else args[0].as.num_int;
+        var n: c_int = if (args[0].is_double()) @intFromFloat(args[0].as_num_double()) else args[0].as.num_int;
         _ = &n;
         var f: [*c]FloatVector = obj_h.newFloatVector(n);
         _ = &f;
-        return Value{
-            .type = .VAL_OBJ,
-            .as = .{
-                .obj = @as([*c]Obj, @ptrCast(@alignCast(f))),
-            },
-        };
+        return Value.init_obj(@ptrCast(@alignCast(f)));
     }
     return Value.init_nil();
 }
 pub export fn range_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    if (!((args[0].type == .VAL_INT) or (args[0].type == .VAL_DOUBLE)) and !((args[1].type == .VAL_INT) or (args[1].type == .VAL_DOUBLE))) {
+    if (!((args[0].type == .VAL_INT) or (args[0].is_double())) and !((args[1].type == .VAL_INT) or (args[1].is_double()))) {
         runtimeError("Both arguments must be numbers.", .{});
         return Value.init_nil();
     }
-    var start: c_int = if (args[0].type == .VAL_DOUBLE) @intFromFloat(args[0].as.num_double) else args[0].as.num_int;
+    var start: c_int = if (args[0].is_double()) @intFromFloat(args[0].as_num_double()) else args[0].as.num_int;
     _ = &start;
-    var end: c_int = if (args[1].type == .VAL_DOUBLE) @intFromFloat(args[1].as.num_double) else args[1].as.num_int;
+    var end: c_int = if (args[1].is_double()) @intFromFloat(args[1].as_num_double()) else args[1].as.num_int;
     _ = &end;
-    var a: [*c]ObjArray = obj_h.newArrayWithCap(end - start, 1 != 0);
+    var a: [*c]ObjArray = obj_h.newArrayWithCap(end - start, true);
     _ = &a;
     {
         var i: c_int = start;
         _ = &i;
         while (i < end) : (i += 1) {
-            obj_h.pushArray(a, Value{
-                .type = .VAL_INT,
-                .as = .{
-                    .num_int = i,
-                },
-            });
+            obj_h.pushArray(a, Value.init_int(i));
         }
     }
     return Value{
@@ -373,7 +343,7 @@ pub export fn slice_nf(argCount: c_int, args: [*c]Value) Value {
         runtimeError("First argument must be an array, linked list or vector.", .{});
         return Value.init_nil();
     }
-    if (!((args[0].type == .VAL_INT) or (args[0].type == .VAL_DOUBLE)) and !((args[1].type == .VAL_INT) or (args[1].type == .VAL_DOUBLE))) {
+    if (!((args[0].type == .VAL_INT) or (args[0].is_double())) and !((args[1].type == .VAL_INT) or (args[1].is_double()))) {
         runtimeError("Second and third arguments must be numbers.", .{});
         return Value.init_nil();
     }
@@ -383,7 +353,7 @@ pub export fn slice_nf(argCount: c_int, args: [*c]Value) Value {
                 {
                     var a: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &a;
-                    var start: c_int = if (args[1].type == .VAL_DOUBLE) @intFromFloat(args[1].as.num_double) else args[1].as.num_int;
+                    var start: c_int = if (args[1].is_double()) @intFromFloat(args[1].as_num_double()) else args[1].as.num_int;
                     _ = &start;
                     var end: c_int = if (args[2].type == .VAL_DOUBLE) @intFromFloat(args[2].as.num_double) else args[2].as.num_int;
                     _ = &end;
@@ -401,7 +371,7 @@ pub export fn slice_nf(argCount: c_int, args: [*c]Value) Value {
                 {
                     var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &f;
-                    var start: c_int = if (args[1].type == .VAL_DOUBLE) @intFromFloat(args[1].as.num_double) else args[1].as.num_int;
+                    var start: c_int = if (args[1].is_double()) @intFromFloat(args[1].as_num_double()) else args[1].as.num_int;
                     _ = &start;
                     var end: c_int = if (args[2].type == .VAL_DOUBLE) @intFromFloat(args[2].as.num_double) else args[2].as.num_int;
                     _ = &end;
@@ -419,7 +389,7 @@ pub export fn slice_nf(argCount: c_int, args: [*c]Value) Value {
                 {
                     var l: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &l;
-                    var start: c_int = if (args[1].type == .VAL_DOUBLE) @intFromFloat(args[1].as.num_double) else args[1].as.num_int;
+                    var start: c_int = if (args[1].is_double()) @intFromFloat(args[1].as_num_double()) else args[1].as.num_int;
                     _ = &start;
                     var end: c_int = if (args[2].type == .VAL_DOUBLE) @intFromFloat(args[2].as.num_double) else args[2].as.num_int;
                     _ = &end;
@@ -459,7 +429,7 @@ pub export fn splice_nf(argCount: c_int, args: [*c]Value) Value {
         runtimeError("First argument must be an array, linked list or vector.", .{});
         return Value.init_nil();
     }
-    if (!((args[1].type == .VAL_INT) or (args[1].type == .VAL_DOUBLE)) or !((args[2].type == .VAL_INT) or (args[2].type == .VAL_DOUBLE))) {
+    if (!((args[1].type == .VAL_INT) or (args[1].is_double())) or !((args[2].type == .VAL_INT) or (args[2].type == .VAL_DOUBLE))) {
         runtimeError("Second and third arguments must be numbers.", .{});
         return Value.init_nil();
     }
@@ -469,7 +439,7 @@ pub export fn splice_nf(argCount: c_int, args: [*c]Value) Value {
                 {
                     var a: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &a;
-                    var start: c_int = if (args[1].type == .VAL_DOUBLE) @intFromFloat(args[1].as.num_double) else args[1].as.num_int;
+                    var start: c_int = if (args[1].is_double()) @intFromFloat(args[1].as_num_double()) else args[1].as.num_int;
                     _ = &start;
                     var end: c_int = if (args[2].type == .VAL_DOUBLE) @intFromFloat(args[2].as.num_double) else args[2].as.num_int;
                     _ = &end;
@@ -487,7 +457,7 @@ pub export fn splice_nf(argCount: c_int, args: [*c]Value) Value {
                 {
                     var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &f;
-                    var start: c_int = if (args[1].type == .VAL_DOUBLE) @intFromFloat(args[1].as.num_double) else args[1].as.num_int;
+                    var start: c_int = if (args[1].is_double()) @intFromFloat(args[1].as_num_double()) else args[1].as.num_int;
                     _ = &start;
                     var end: c_int = if (args[2].type == .VAL_DOUBLE) @intFromFloat(args[2].as.num_double) else args[2].as.num_int;
                     _ = &end;
@@ -505,7 +475,7 @@ pub export fn splice_nf(argCount: c_int, args: [*c]Value) Value {
                 {
                     var l: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &l;
-                    var start: c_int = if (args[1].type == .VAL_DOUBLE) @intFromFloat(args[1].as.num_double) else args[1].as.num_int;
+                    var start: c_int = if (args[1].is_double()) @intFromFloat(args[1].as_num_double()) else args[1].as.num_int;
                     _ = &start;
                     var end: c_int = if (args[2].type == .VAL_DOUBLE) @intFromFloat(args[2].as.num_double) else args[2].as.num_int;
                     _ = &end;
@@ -691,7 +661,7 @@ pub export fn nth_nf(argCount: c_int, args: [*c]Value) Value {
         runtimeError("First argument must be an array, matrix, linked list or Vector.", .{});
         return Value.init_nil();
     }
-    if (!((args[1].type == .VAL_INT) or (args[1].type == .VAL_DOUBLE))) {
+    if (!((args[1].type == .VAL_INT) or (args[1].is_double()))) {
         runtimeError("Second argument must be a number.", .{});
         return Value.init_nil();
     }
@@ -702,7 +672,7 @@ pub export fn nth_nf(argCount: c_int, args: [*c]Value) Value {
                     if ((argCount == @as(c_int, 3)) and ((args[2].type == .VAL_INT) or (args[2].type == .VAL_DOUBLE))) {
                         var m: [*c]ObjMatrix = @as([*c]ObjMatrix, @ptrCast(@alignCast(args[0].as.obj)));
                         _ = &m;
-                        var row: c_int = if (args[1].type == .VAL_DOUBLE) @intFromFloat(args[1].as.num_double) else args[1].as.num_int;
+                        var row: c_int = if (args[1].is_double()) @intFromFloat(args[1].as_num_double()) else args[1].as.num_int;
                         _ = &row;
                         var col: c_int = if (args[2].type == .VAL_DOUBLE) @intFromFloat(args[2].as.num_double) else args[2].as.num_int;
                         _ = &col;
@@ -715,7 +685,7 @@ pub export fn nth_nf(argCount: c_int, args: [*c]Value) Value {
                 {
                     var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &f;
-                    var index_1: c_int = if (args[1].type == .VAL_DOUBLE) @intFromFloat(args[1].as.num_double) else args[1].as.num_int;
+                    var index_1: c_int = if (args[1].is_double()) @intFromFloat(args[1].as_num_double()) else args[1].as.num_int;
                     _ = &index_1;
                     var value: f64 = obj_h.getFloatVector(f, index_1);
                     _ = &value;
@@ -731,7 +701,7 @@ pub export fn nth_nf(argCount: c_int, args: [*c]Value) Value {
                 {
                     var a: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &a;
-                    var index_1: c_int = if (args[1].type == .VAL_DOUBLE) @intFromFloat(args[1].as.num_double) else args[1].as.num_int;
+                    var index_1: c_int = if (args[1].is_double()) @intFromFloat(args[1].as_num_double()) else args[1].as.num_int;
                     _ = &index_1;
                     if ((index_1 >= 0) and (index_1 < a.*.count)) {
                         return (blk: {
@@ -746,7 +716,7 @@ pub export fn nth_nf(argCount: c_int, args: [*c]Value) Value {
                 {
                     var l: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &l;
-                    var index_1: c_int = if (args[1].type == .VAL_DOUBLE) @intFromFloat(args[1].as.num_double) else args[1].as.num_int;
+                    var index_1: c_int = if (args[1].is_double()) @intFromFloat(args[1].as_num_double()) else args[1].as.num_int;
                     _ = &index_1;
                     if ((index_1 >= 0) and (index_1 < l.*.count)) {
                         var node: [*c]Node = l.*.head;
@@ -863,50 +833,23 @@ pub export fn contains_nf(argCount: c_int, args: [*c]Value) Value {
                                 const tmp = i;
                                 if (tmp >= 0) break :blk a.*.values + @as(usize, @intCast(tmp)) else break :blk a.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
                             }).*, args[1])) {
-                                return Value{
-                                    .type = .VAL_BOOL,
-                                    .as = .{
-                                        .boolean = 1 != 0,
-                                    },
-                                };
+                                return Value.init_bool(true);
                             }
                         }
                     }
-                    return Value{
-                        .type = .VAL_BOOL,
-                        .as = .{
-                            .boolean = 0 != 0,
-                        },
-                    };
+                    return Value.init_bool(false);
                 }
             },
             .OBJ_FVECTOR => {
                 //TODO: Implement contains for float vector
-                return Value{
-                    .type = .VAL_BOOL,
-                    .as = .{
-                        .boolean = 0 != 0,
-                    },
-                };
+                return Value.init_bool(false);
             },
             .OBJ_HASH_TABLE => {
                 {
                     var h: [*c]ObjHashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &h;
                     if (!valuesEqual(obj_h.getHashTable(h, @as([*c]ObjString, @ptrCast(@alignCast(args[1].as.obj)))), Value.init_nil())) {
-                        return Value{
-                            .type = .VAL_BOOL,
-                            .as = .{
-                                .boolean = 1 != 0,
-                            },
-                        };
-                    } else {
-                        return Value{
-                            .type = .VAL_BOOL,
-                            .as = .{
-                                .boolean = 0 != 0,
-                            },
-                        };
+                        return Value.init_bool(false);
                     }
                 }
                 {
@@ -919,18 +862,13 @@ pub export fn contains_nf(argCount: c_int, args: [*c]Value) Value {
                             return Value{
                                 .type = .VAL_BOOL,
                                 .as = .{
-                                    .boolean = 1 != 0,
+                                    .boolean = true,
                                 },
                             };
                         }
                         current = current.*.next;
                     }
-                    return Value{
-                        .type = .VAL_BOOL,
-                        .as = .{
-                            .boolean = 0 != 0,
-                        },
-                    };
+                    return Value.init_bool(false);
                 }
             },
             .OBJ_LINKED_LIST => {
@@ -944,18 +882,13 @@ pub export fn contains_nf(argCount: c_int, args: [*c]Value) Value {
                             return Value{
                                 .type = .VAL_BOOL,
                                 .as = .{
-                                    .boolean = 1 != 0,
+                                    .boolean = true,
                                 },
                             };
                         }
                         current = current.*.next;
                     }
-                    return Value{
-                        .type = .VAL_BOOL,
-                        .as = .{
-                            .boolean = 0 != 0,
-                        },
-                    };
+                    return Value.init_bool(false);
                 }
             },
             else => {
@@ -986,7 +919,7 @@ pub export fn insert_nf(argCount: c_int, args: [*c]Value) Value {
         runtimeError("First argument must be an array or vector.", .{});
         return Value.init_nil();
     }
-    if (!((args[1].type == .VAL_INT) or (args[1].type == .VAL_DOUBLE))) {
+    if (!((args[1].type == .VAL_INT) or (args[1].is_double()))) {
         runtimeError("Second argument must be a number.", .{});
         return Value.init_nil();
     }
@@ -996,7 +929,7 @@ pub export fn insert_nf(argCount: c_int, args: [*c]Value) Value {
                 {
                     var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &f;
-                    var index_1: c_int = if (args[1].type == .VAL_DOUBLE) @intFromFloat(args[1].as.num_double) else args[1].as.num_int;
+                    var index_1: c_int = if (args[1].is_double()) @intFromFloat(args[1].as_num_double()) else args[1].as.num_int;
                     _ = &index_1;
                     if (!((args[2].type == .VAL_INT) or (args[2].type == .VAL_DOUBLE))) {
                         runtimeError("Third argument must be a number.", .{});
@@ -1015,7 +948,7 @@ pub export fn insert_nf(argCount: c_int, args: [*c]Value) Value {
                 {
                     var a: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &a;
-                    var index_1: c_int = if (args[1].type == .VAL_DOUBLE) @intFromFloat(args[1].as.num_double) else args[1].as.num_int;
+                    var index_1: c_int = if (args[1].is_double()) @intFromFloat(args[1].as_num_double()) else args[1].as.num_int;
                     _ = &index_1;
                     obj_h.insertArray(a, index_1, args[2]);
                     return Value.init_nil();
@@ -1167,7 +1100,7 @@ pub export fn search_nf(argCount: c_int, args: [*c]Value) Value {
                 {
                     var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &f;
-                    var result: c_int = obj_h.searchFloatVector(f, if (args[1].type == .VAL_INT) @floatFromInt(args[1].as.num_int) else args[1].as.num_double);
+                    var result: c_int = obj_h.searchFloatVector(f, if (args[1].type == .VAL_INT) @floatFromInt(args[1].as.num_int) else args[1].as_num_double());
                     _ = &result;
                     if (result == -1) return Value.init_nil();
                     return Value{
@@ -2137,7 +2070,7 @@ pub export fn remove_nf(argCount: c_int, args: [*c]Value) Value {
         runtimeError("First argument must be a hash table, array, or float vector.", .{});
         return Value.init_nil();
     }
-    if (!isObjType(args[1], .OBJ_STRING) and !((args[1].type == .VAL_INT) or (args[1].type == .VAL_DOUBLE))) {
+    if (!isObjType(args[1], .OBJ_STRING) and !((args[1].type == .VAL_INT) or (args[1].is_double()))) {
         runtimeError("Second argument must be a string or number.", .{});
         return Value.init_nil();
     }
@@ -2159,7 +2092,7 @@ pub export fn remove_nf(argCount: c_int, args: [*c]Value) Value {
             },
             .OBJ_ARRAY => {
                 {
-                    return obj_h.removeArray(@as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj))), if (args[1].type == .VAL_DOUBLE) @intFromFloat(args[1].as.num_double) else args[1].as.num_int);
+                    return obj_h.removeArray(@as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj))), if (args[1].is_double()) @intFromFloat(args[1].as_num_double()) else args[1].as.num_int);
                 }
             },
             .OBJ_FVECTOR => {
@@ -2167,7 +2100,7 @@ pub export fn remove_nf(argCount: c_int, args: [*c]Value) Value {
                     return Value{
                         .type = .VAL_DOUBLE,
                         .as = .{
-                            .num_double = obj_h.removeFloatVector(@as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj))), if (args[1].type == .VAL_DOUBLE) @intFromFloat(args[1].as.num_double) else args[1].as.num_int),
+                            .num_double = obj_h.removeFloatVector(@as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj))), if (args[1].is_double()) @intFromFloat(args[1].as_num_double()) else args[1].as.num_int),
                         },
                     };
                 }
@@ -2225,7 +2158,7 @@ pub export fn set_row_nf(argCount: c_int, args: [*c]Value) Value {
         runtimeError("First argument must be a matrix.", .{});
         return Value.init_nil();
     }
-    if (!((args[1].type == .VAL_INT) or (args[1].type == .VAL_DOUBLE))) {
+    if (!((args[1].type == .VAL_INT) or (args[1].is_double()))) {
         runtimeError("Second argument must be an numbers.", .{});
         return Value.init_nil();
     }
@@ -2235,7 +2168,7 @@ pub export fn set_row_nf(argCount: c_int, args: [*c]Value) Value {
     }
     var matrix: [*c]ObjMatrix = @as([*c]ObjMatrix, @ptrCast(@alignCast(args[0].as.obj)));
     _ = &matrix;
-    var row: c_int = if (args[1].type == .VAL_DOUBLE) @intFromFloat(args[1].as.num_double) else args[1].as.num_int;
+    var row: c_int = if (args[1].is_double()) @intFromFloat(args[1].as_num_double()) else args[1].as.num_int;
     _ = &row;
     var array: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(args[2].as.obj)));
     _ = &array;
@@ -2250,7 +2183,7 @@ pub export fn set_col_nf(argCount: c_int, args: [*c]Value) Value {
         runtimeError("First argument must be a matrix.", .{});
         return Value.init_nil();
     }
-    if (!((args[1].type == .VAL_INT) or (args[1].type == .VAL_DOUBLE))) {
+    if (!((args[1].type == .VAL_INT) or (args[1].is_double()))) {
         runtimeError("Second argument must be an numbers.", .{});
         return Value.init_nil();
     }
@@ -2260,7 +2193,7 @@ pub export fn set_col_nf(argCount: c_int, args: [*c]Value) Value {
     }
     var matrix: [*c]ObjMatrix = @as([*c]ObjMatrix, @ptrCast(@alignCast(args[0].as.obj)));
     _ = &matrix;
-    var col: c_int = if (args[1].type == .VAL_DOUBLE) @intFromFloat(args[1].as.num_double) else args[1].as.num_int;
+    var col: c_int = if (args[1].is_double()) @intFromFloat(args[1].as_num_double()) else args[1].as.num_int;
     _ = &col;
     var array: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(args[2].as.obj)));
     _ = &array;
@@ -2280,7 +2213,7 @@ pub export fn set_nf(argCount: c_int, args: [*c]Value) Value {
         runtimeError("First argument must be a matrix.", .{});
         return Value.init_nil();
     }
-    if (!((args[1].type == .VAL_INT) or (args[1].type == .VAL_DOUBLE))) {
+    if (!((args[1].type == .VAL_INT) or (args[1].is_double()))) {
         runtimeError("Second argument must be an numbers.", .{});
         return Value.init_nil();
     }
@@ -2290,7 +2223,7 @@ pub export fn set_nf(argCount: c_int, args: [*c]Value) Value {
     }
     var matrix: [*c]ObjMatrix = @as([*c]ObjMatrix, @ptrCast(@alignCast(args[0].as.obj)));
     _ = &matrix;
-    var row: c_int = if (args[1].type == .VAL_DOUBLE) @intFromFloat(args[1].as.num_double) else args[1].as.num_int;
+    var row: c_int = if (args[1].is_double()) @intFromFloat(args[1].as_num_double()) else args[1].as.num_int;
     _ = &row;
     var col: c_int = if (args[2].type == .VAL_DOUBLE) @intFromFloat(args[2].as.num_double) else args[2].as.num_int;
     _ = &col;
@@ -2464,13 +2397,13 @@ pub export fn linspace_nf(argCount: c_int, args: [*c]Value) Value {
         runtimeError("linspace() takes 3 arguments.", .{});
         return Value.init_nil();
     }
-    if ((!((args[0].type == .VAL_INT) or (args[0].type == .VAL_DOUBLE)) and !((args[1].type == .VAL_INT) or (args[1].type == .VAL_DOUBLE))) and !((args[2].type == .VAL_INT) or (args[2].type == .VAL_DOUBLE))) {
+    if ((!((args[0].type == .VAL_INT) or (args[0].is_double())) and !((args[1].type == .VAL_INT) or (args[1].is_double()))) and !((args[2].type == .VAL_INT) or (args[2].type == .VAL_DOUBLE))) {
         runtimeError("First and second arguments must be numbers and the third argument must be an numbers.", .{});
         return Value.init_nil();
     }
-    var start: f64 = if (args[0].type == .VAL_INT) @floatFromInt(args[0].as.num_int) else args[0].as.num_double;
+    var start: f64 = if (args[0].type == .VAL_INT) @floatFromInt(args[0].as.num_int) else args[0].as_num_double();
     _ = &start;
-    var end: f64 = if (args[1].type == .VAL_INT) @floatFromInt(args[1].as.num_int) else args[1].as.num_double;
+    var end: f64 = if (args[1].type == .VAL_INT) @floatFromInt(args[1].as.num_int) else args[1].as_num_double();
     _ = &end;
     var n: c_int = if (args[2].type == .VAL_DOUBLE) @intFromFloat(args[2].as.num_double) else args[2].as.num_int;
     _ = &n;
