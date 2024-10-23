@@ -220,9 +220,7 @@ inline fn zstr(s: [*c]ObjString) []u8 {
     return @ptrCast(@alignCast(s.*.chars[0..len]));
 }
 
-pub export fn interpret(arg_source: [*c]const u8) InterpretResult {
-    var source = arg_source;
-    _ = &source;
+pub export fn interpret(source: [*c]const u8) InterpretResult {
     var function: [*c]ObjFunction = compiler_h.compile(source);
     _ = &function;
     if (function == null) return .INTERPRET_COMPILE_ERROR;
@@ -244,9 +242,7 @@ pub export fn interpret(arg_source: [*c]const u8) InterpretResult {
     _ = call(closure, 0);
     return run();
 }
-pub export fn push(arg_value: Value) void {
-    var value = arg_value;
-    _ = &value;
+pub export fn push(value: Value) void {
     vm.stackTop.* = value;
     vm.stackTop += 1;
 }
@@ -254,24 +250,12 @@ pub export fn pop() Value {
     vm.stackTop -= 1;
     return vm.stackTop.*;
 }
-pub export fn defineNative(arg_name: [*c]const u8, arg_function: NativeFn) void {
-    var name = arg_name;
-    _ = &name;
-    var function = arg_function;
-    _ = &function;
-    push(Value{
-        .type = .VAL_OBJ,
-        .as = .{
-            .obj = @as([*c]Obj, @ptrCast(@alignCast(copyString(name, @as(c_int, @bitCast(@as(c_uint, @truncate(strlen(name))))))))),
-        },
-    });
-    push(Value{
-        .type = .VAL_OBJ,
-        .as = .{
-            .obj = @as([*c]Obj, @ptrCast(@alignCast(object_h.newNative(function)))),
-        },
-    });
-    _ = table_h.tableSet(&vm.globals, @as([*c]ObjString, @ptrCast(@alignCast(vm.stack[@as(c_uint, @intCast(0))].as.obj))), vm.stack[@as(c_uint, @intCast(1))]);
+pub export fn defineNative(name: [*c]const u8, function: NativeFn) void {
+    push(
+        Value.init_obj(@ptrCast(@alignCast(copyString(name, @intCast(strlen(name)))))),
+    );
+    push(Value.init_obj(@ptrCast(@alignCast(object_h.newNative(function)))));
+    _ = table_h.tableSet(&vm.globals, @ptrCast(@alignCast(vm.stack[@as(c_uint, @intCast(0))].as.obj)), vm.stack[@as(c_uint, @intCast(1))]);
     _ = pop();
     _ = pop();
 }
@@ -281,19 +265,13 @@ pub fn resetStack() callconv(.C) void {
     vm.frameCount = 0;
     vm.openUpvalues = null;
 }
-pub fn peek(arg_distance: c_int) callconv(.C) Value {
-    var distance = arg_distance;
-    _ = &distance;
+pub fn peek(distance: c_int) callconv(.C) Value {
     return (blk: {
         const tmp = -1 - distance;
         if (tmp >= 0) break :blk vm.stackTop + @as(usize, @intCast(tmp)) else break :blk vm.stackTop - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
     }).*;
 }
-pub fn call(arg_closure: [*c]ObjClosure, arg_argCount: c_int) callconv(.C) bool {
-    var closure = arg_closure;
-    _ = &closure;
-    var argCount = arg_argCount;
-    _ = &argCount;
+pub fn call(closure: [*c]ObjClosure, argCount: c_int) callconv(.C) bool {
     if (argCount != closure.*.function.*.arity) {
         runtimeError("Expected {d} arguments but got {d}.", .{ closure.*.function.*.arity, argCount });
         return false;
@@ -316,92 +294,79 @@ pub fn call(arg_closure: [*c]ObjClosure, arg_argCount: c_int) callconv(.C) bool 
     frame.*.slots = (vm.stackTop - @as(usize, @bitCast(@as(isize, @intCast(argCount))))) - @as(usize, @bitCast(@as(isize, @intCast(1))));
     return true;
 }
-pub fn callValue(arg_callee: Value, arg_argCount: c_int) callconv(.C) bool {
-    var callee = arg_callee;
-    _ = &callee;
-    var argCount = arg_argCount;
-    _ = &argCount;
+pub fn callValue(callee: Value, argCount: c_int) callconv(.C) bool {
     if (callee.type == .VAL_OBJ) {
-        while (true) {
-            switch (callee.as.obj.*.type) {
-                .OBJ_BOUND_METHOD => {
-                    {
-                        var bound: [*c]ObjBoundMethod = @as([*c]ObjBoundMethod, @ptrCast(@alignCast(callee.as.obj)));
-                        _ = &bound;
-                        (blk: {
-                            const tmp = -argCount - 1;
-                            if (tmp >= 0) break :blk vm.stackTop + @as(usize, @intCast(tmp)) else break :blk vm.stackTop - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                        }).* = bound.*.receiver;
-                        return call(bound.*.method, argCount);
+        switch (callee.as.obj.*.type) {
+            .OBJ_BOUND_METHOD => {
+                {
+                    var bound: [*c]ObjBoundMethod = @as([*c]ObjBoundMethod, @ptrCast(@alignCast(callee.as.obj)));
+                    _ = &bound;
+                    (blk: {
+                        const tmp = -argCount - 1;
+                        if (tmp >= 0) break :blk vm.stackTop + @as(usize, @intCast(tmp)) else break :blk vm.stackTop - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                    }).* = bound.*.receiver;
+                    return call(bound.*.method, argCount);
+                }
+            },
+            .OBJ_CLASS => {
+                {
+                    const klass: [*c]ObjClass = @ptrCast(@alignCast(callee.as.obj));
+
+                    (blk: {
+                        const tmp = -argCount - 1;
+                        if (tmp >= 0) break :blk vm.stackTop + @as(usize, @intCast(tmp)) else break :blk vm.stackTop - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                    }).* = Value{
+                        .type = .VAL_OBJ,
+                        .as = .{
+                            .obj = @as([*c]Obj, @ptrCast(@alignCast(object_h.newInstance(klass)))),
+                        },
+                    };
+                    var initializer: Value = undefined;
+                    _ = &initializer;
+                    if (tableGet(&klass.*.methods, vm.initString, &initializer)) {
+                        return call(@as([*c]ObjClosure, @ptrCast(@alignCast(initializer.as.obj))), argCount);
+                    } else if (argCount != 0) {
+                        runtimeError("Expected 0 arguments but got {d}.", .{argCount});
+                        return false;
                     }
-                },
-                .OBJ_CLASS => {
-                    {
-                        var klass: [*c]ObjClass = @as([*c]ObjClass, @ptrCast(@alignCast(callee.as.obj)));
-                        _ = &klass;
-                        (blk: {
-                            const tmp = -argCount - 1;
-                            if (tmp >= 0) break :blk vm.stackTop + @as(usize, @intCast(tmp)) else break :blk vm.stackTop - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                        }).* = Value{
-                            .type = .VAL_OBJ,
-                            .as = .{
-                                .obj = @as([*c]Obj, @ptrCast(@alignCast(object_h.newInstance(klass)))),
-                            },
-                        };
-                        var initializer: Value = undefined;
-                        _ = &initializer;
-                        if (tableGet(&klass.*.methods, vm.initString, &initializer)) {
-                            return call(@as([*c]ObjClosure, @ptrCast(@alignCast(initializer.as.obj))), argCount);
-                        } else if (argCount != 0) {
-                            runtimeError("Expected 0 arguments but got {d}.", .{argCount});
-                            return false;
-                        }
-                        return true;
-                    }
-                },
-                .OBJ_CLOSURE => return call(@as([*c]ObjClosure, @ptrCast(@alignCast(callee.as.obj))), argCount),
-                .OBJ_INSTANCE => {
-                    {
-                        var klass: [*c]ObjClass = @as([*c]ObjClass, @ptrCast(@alignCast(callee.as.obj)));
-                        _ = &klass;
-                        (blk: {
-                            const tmp = -argCount - 1;
-                            if (tmp >= 0) break :blk vm.stackTop + @as(usize, @intCast(tmp)) else break :blk vm.stackTop - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                        }).* = Value{
-                            .type = .VAL_OBJ,
-                            .as = .{
-                                .obj = @as([*c]Obj, @ptrCast(@alignCast(object_h.newInstance(klass)))),
-                            },
-                        };
-                        return true;
-                    }
-                },
-                .OBJ_NATIVE => {
-                    {
-                        var native: NativeFn = @as([*c]ObjNative, @ptrCast(@alignCast(callee.as.obj))).*.function;
-                        _ = &native;
-                        var result: Value = native.?(argCount, vm.stackTop - @as(usize, @bitCast(@as(isize, @intCast(argCount)))));
-                        _ = &result;
-                        vm.stackTop -= @as(usize, @bitCast(@as(isize, @intCast(argCount + 1))));
-                        push(result);
-                        return true;
-                    }
-                },
-                else => break,
-            }
-            break;
+                    return true;
+                }
+            },
+            .OBJ_CLOSURE => return call(@as([*c]ObjClosure, @ptrCast(@alignCast(callee.as.obj))), argCount),
+            .OBJ_INSTANCE => {
+                {
+                    const klass: [*c]ObjClass = @ptrCast(@alignCast(callee.as.obj));
+
+                    (blk: {
+                        const tmp = -argCount - 1;
+                        if (tmp >= 0) break :blk vm.stackTop + @as(usize, @intCast(tmp)) else break :blk vm.stackTop - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                    }).* = Value{
+                        .type = .VAL_OBJ,
+                        .as = .{
+                            .obj = @as([*c]Obj, @ptrCast(@alignCast(object_h.newInstance(klass)))),
+                        },
+                    };
+                    return true;
+                }
+            },
+            .OBJ_NATIVE => {
+                {
+                    var native: NativeFn = @as([*c]ObjNative, @ptrCast(@alignCast(callee.as.obj))).*.function;
+                    _ = &native;
+                    var result: Value = native.?(argCount, vm.stackTop - @as(usize, @bitCast(@as(isize, @intCast(argCount)))));
+                    _ = &result;
+                    vm.stackTop -= @as(usize, @bitCast(@as(isize, @intCast(argCount + 1))));
+                    push(result);
+                    return true;
+                }
+            },
+            else => {},
         }
     }
     runtimeError("Can only call functions and classes.", .{});
     return false;
 }
-pub fn invokeFromClass(arg_klass: [*c]ObjClass, arg_name: [*c]ObjString, arg_argCount: c_int) callconv(.C) bool {
-    var klass = arg_klass;
-    _ = &klass;
-    var name = arg_name;
-    _ = &name;
-    var argCount = arg_argCount;
-    _ = &argCount;
+pub fn invokeFromClass(klass: [*c]ObjClass, name: [*c]ObjString, argCount: c_int) callconv(.C) bool {
     var method: Value = undefined;
     _ = &method;
     if (!tableGet(&klass.*.methods, name, &method)) {
@@ -411,11 +376,7 @@ pub fn invokeFromClass(arg_klass: [*c]ObjClass, arg_name: [*c]ObjString, arg_arg
     }
     return call(@as([*c]ObjClosure, @ptrCast(@alignCast(method.as.obj))), argCount);
 }
-pub fn invoke(arg_name: [*c]ObjString, arg_argCount: c_int) callconv(.C) bool {
-    var name = arg_name;
-    _ = &name;
-    var argCount = arg_argCount;
-    _ = &argCount;
+pub fn invoke(name: [*c]ObjString, argCount: c_int) callconv(.C) bool {
     var receiver: Value = peek(argCount);
     _ = &receiver;
     if (!object_h.isObjType(receiver, .OBJ_INSTANCE)) {
@@ -425,7 +386,7 @@ pub fn invoke(arg_name: [*c]ObjString, arg_argCount: c_int) callconv(.C) bool {
     var instance: [*c]ObjInstance = @as([*c]ObjInstance, @ptrCast(@alignCast(receiver.as.obj)));
     _ = &instance;
     var value: Value = undefined;
-    _ = &value;
+
     if (tableGet(&instance.*.fields, name, &value)) {
         (blk: {
             const tmp = -argCount - 1;
@@ -435,11 +396,7 @@ pub fn invoke(arg_name: [*c]ObjString, arg_argCount: c_int) callconv(.C) bool {
     }
     return invokeFromClass(instance.*.klass, name, argCount);
 }
-pub fn bindMethod(arg_klass: [*c]ObjClass, arg_name: [*c]ObjString) callconv(.C) bool {
-    var klass = arg_klass;
-    _ = &klass;
-    var name = arg_name;
-    _ = &name;
+pub fn bindMethod(klass: [*c]ObjClass, name: [*c]ObjString) callconv(.C) bool {
     var method: Value = undefined;
     _ = &method;
     if (!tableGet(&klass.*.methods, name, &method)) {
@@ -457,9 +414,7 @@ pub fn bindMethod(arg_klass: [*c]ObjClass, arg_name: [*c]ObjString) callconv(.C)
     });
     return true;
 }
-pub fn captureUpvalue(arg_local: [*c]Value) callconv(.C) [*c]ObjUpvalue {
-    var local = arg_local;
-    _ = &local;
+pub fn captureUpvalue(local: [*c]Value) callconv(.C) [*c]ObjUpvalue {
     var prevUpvalue: [*c]ObjUpvalue = null;
     _ = &prevUpvalue;
     var upvalue: [*c]ObjUpvalue = vm.openUpvalues;
@@ -481,9 +436,7 @@ pub fn captureUpvalue(arg_local: [*c]Value) callconv(.C) [*c]ObjUpvalue {
     }
     return createdUpvalue;
 }
-pub fn closeUpvalues(arg_last: [*c]Value) callconv(.C) void {
-    var last = arg_last;
-    _ = &last;
+pub fn closeUpvalues(last: [*c]Value) callconv(.C) void {
     while ((vm.openUpvalues != null) and (vm.openUpvalues.*.location >= last)) {
         var upvalue: [*c]ObjUpvalue = vm.openUpvalues;
         _ = &upvalue;
@@ -492,25 +445,21 @@ pub fn closeUpvalues(arg_last: [*c]Value) callconv(.C) void {
         vm.openUpvalues = upvalue.*.next;
     }
 }
-pub fn defineMethod(arg_name: [*c]ObjString) callconv(.C) void {
-    var name = arg_name;
-    _ = &name;
-    var method: Value = peek(0);
-    _ = &method;
-    var klass: [*c]ObjClass = @as([*c]ObjClass, @ptrCast(@alignCast(peek(1).as.obj)));
-    _ = &klass;
+pub fn defineMethod(name: [*c]ObjString) callconv(.C) void {
+    const method: Value = peek(0);
+
+    const klass: [*c]ObjClass = @ptrCast(@alignCast(peek(1).as.obj));
     _ = tableSet(&klass.*.methods, name, method);
     _ = pop();
 }
-pub fn isFalsey(arg_value: Value) callconv(.C) bool {
-    var value = arg_value;
-    _ = &value;
+pub fn isFalsey(value: Value) callconv(.C) bool {
     return (value.type == .VAL_NIL) or ((value.type == .VAL_BOOL) and !value.as.boolean);
 }
+
 pub fn concatenate() callconv(.C) void {
-    var b: [*c]ObjString = @as([*c]ObjString, @ptrCast(@alignCast(peek(0).as.obj)));
+    var b: [*c]ObjString = @ptrCast(@alignCast(peek(0).as.obj));
     _ = &b;
-    var a: [*c]ObjString = @as([*c]ObjString, @ptrCast(@alignCast(peek(1).as.obj)));
+    var a: [*c]ObjString = @ptrCast(@alignCast(peek(1).as.obj));
     _ = &a;
     var length: c_int = a.*.length + b.*.length;
     _ = &length;
@@ -533,77 +482,8 @@ pub fn concatenate() callconv(.C) void {
         },
     });
 }
-pub fn complex_add() callconv(.C) void {
-    var b: Complex = pop().as.complex;
-    _ = &b;
-    var a: Complex = pop().as.complex;
-    _ = &a;
-    var result: Complex = undefined;
-    _ = &result;
-    result.r = a.r + b.r;
-    result.i = a.i + b.i;
-    push(Value{
-        .type = .VAL_COMPLEX,
-        .as = .{
-            .complex = result,
-        },
-    });
-}
-pub fn complex_sub() callconv(.C) void {
-    var b: Complex = pop().as.complex;
-    _ = &b;
-    var a: Complex = pop().as.complex;
-    _ = &a;
-    var result: Complex = undefined;
-    _ = &result;
-    result.r = a.r - b.r;
-    result.i = a.i - b.i;
-    push(Value{
-        .type = .VAL_COMPLEX,
-        .as = .{
-            .complex = result,
-        },
-    });
-}
-pub fn complex_mul() callconv(.C) void {
-    var b: Complex = pop().as.complex;
-    _ = &b;
-    var a: Complex = pop().as.complex;
-    _ = &a;
-    var result: Complex = undefined;
-    _ = &result;
-    result.r = (a.r * b.r) - (a.i * b.i);
-    result.i = (a.r * b.i) + (a.i * b.r);
-    push(Value{
-        .type = .VAL_COMPLEX,
-        .as = .{
-            .complex = result,
-        },
-    });
-}
-pub fn complex_div() callconv(.C) void {
-    var b: Complex = pop().as.complex;
-    _ = &b;
-    var a: Complex = pop().as.complex;
-    _ = &a;
-    var result: Complex = undefined;
-    _ = &result;
-    result.r = ((a.r * b.r) + (a.i * b.i)) / ((b.r * b.r) + (b.i * b.i));
-    result.i = ((a.i * b.r) - (a.r * b.i)) / ((b.r * b.r) + (b.i * b.i));
-    push(Value{
-        .type = .VAL_COMPLEX,
-        .as = .{
-            .complex = result,
-        },
-    });
-}
-pub fn setArray(arg_array: [*c]ObjArray, arg_index_1: c_int, arg_value: Value) callconv(.C) void {
-    var array = arg_array;
-    _ = &array;
-    var index_1 = arg_index_1;
-    _ = &index_1;
-    var value = arg_value;
-    _ = &value;
+
+pub fn setArray(array: [*c]ObjArray, index_1: c_int, value: Value) callconv(.C) void {
     if (index_1 >= array.*.count) {
         runtimeError("Index out of bounds.", .{});
         return;
@@ -613,13 +493,7 @@ pub fn setArray(arg_array: [*c]ObjArray, arg_index_1: c_int, arg_value: Value) c
         if (tmp >= 0) break :blk array.*.values + @as(usize, @intCast(tmp)) else break :blk array.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
     }).* = value;
 }
-pub fn setFloatVector(arg_fvec: [*c]FloatVector, arg_index_1: c_int, arg_value: f64) callconv(.C) void {
-    var fvec = arg_fvec;
-    _ = &fvec;
-    var index_1 = arg_index_1;
-    _ = &index_1;
-    var value = arg_value;
-    _ = &value;
+pub fn setFloatVector(fvec: [*c]FloatVector, index_1: c_int, value: f64) callconv(.C) void {
     if (index_1 >= fvec.*.count) {
         runtimeError("Index out of bounds.", .{});
         return;
@@ -699,298 +573,254 @@ pub fn run() callconv(.C) InterpretResult {
                     break;
                 },
                 .OP_GET_GLOBAL => {
-                    {
-                        var name: [*c]ObjString = @as([*c]ObjString, @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
-                            (blk: {
-                                const ref = &frame.*.ip;
-                                const tmp = ref.*;
-                                ref.* += 1;
-                                break :blk tmp;
-                            }).*
-                        ].as.obj)));
-                        _ = &name;
-                        var value: Value = undefined;
-                        _ = &value;
-                        if (!tableGet(&vm.globals, name, &value)) {
-                            runtimeError("Undefined variable '{s}'.", .{zstr(name)});
-                            return .INTERPRET_RUNTIME_ERROR;
-                        }
-                        push(value);
-                        break;
+                    const name: [*c]ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
+                        (blk: {
+                            const ref = &frame.*.ip;
+                            const tmp = ref.*;
+                            ref.* += 1;
+                            break :blk tmp;
+                        }).*
+                    ].as.obj));
+                    var value: Value = undefined;
+                    if (!tableGet(&vm.globals, name, &value)) {
+                        runtimeError("Undefined variable '{s}'.", .{zstr(name)});
+                        return .INTERPRET_RUNTIME_ERROR;
                     }
+                    push(value);
+                    break;
                 },
                 .OP_DEFINE_GLOBAL => {
-                    {
-                        var name: [*c]ObjString = @as([*c]ObjString, @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
-                            (blk: {
-                                const ref = &frame.*.ip;
-                                const tmp = ref.*;
-                                ref.* += 1;
-                                break :blk tmp;
-                            }).*
-                        ].as.obj)));
-                        _ = &name;
-                        _ = tableSet(&vm.globals, name, peek(0));
-                        _ = pop();
-                        break;
-                    }
+                    const name: [*c]ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
+                        (blk: {
+                            const ref = &frame.*.ip;
+                            const tmp = ref.*;
+                            ref.* += 1;
+                            break :blk tmp;
+                        }).*
+                    ].as.obj));
+                    _ = tableSet(&vm.globals, name, peek(0));
+                    _ = pop();
+                    break;
                 },
                 .OP_SET_GLOBAL => {
-                    {
-                        var name: [*c]ObjString = @as([*c]ObjString, @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
-                            (blk: {
-                                const ref = &frame.*.ip;
-                                const tmp = ref.*;
-                                ref.* += 1;
-                                break :blk tmp;
-                            }).*
-                        ].as.obj)));
-                        _ = &name;
-                        if (tableSet(&vm.globals, name, peek(0))) {
-                            _ = tableDelete(&vm.globals, name);
-                            runtimeError("Undefined variable '{s}'.", .{zstr(name)});
-                            return .INTERPRET_RUNTIME_ERROR;
-                        }
-                        break;
+                    const name: [*c]ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
+                        (blk: {
+                            const ref = &frame.*.ip;
+                            const tmp = ref.*;
+                            ref.* += 1;
+                            break :blk tmp;
+                        }).*
+                    ].as.obj));
+                    if (tableSet(&vm.globals, name, peek(0))) {
+                        _ = tableDelete(&vm.globals, name);
+                        runtimeError("Undefined variable '{s}'.", .{zstr(name)});
+                        return .INTERPRET_RUNTIME_ERROR;
                     }
+                    break;
                 },
                 .OP_GET_UPVALUE => {
-                    {
-                        var slot: u8 = (blk: {
-                            const ref = &frame.*.ip;
-                            const tmp = ref.*;
-                            ref.* += 1;
-                            break :blk tmp;
-                        }).*;
-                        _ = &slot;
-                        push(frame.*.closure.*.upvalues[slot].*.location.*);
-                        break;
-                    }
+                    const slot: u8 = (blk: {
+                        const ref = &frame.*.ip;
+                        const tmp = ref.*;
+                        ref.* += 1;
+                        break :blk tmp;
+                    }).*;
+                    push(frame.*.closure.*.upvalues[slot].*.location.*);
+                    break;
                 },
                 .OP_SET_UPVALUE => {
-                    {
-                        var slot: u8 = (blk: {
+                    const slot: u8 = (blk: {
+                        const ref = &frame.*.ip;
+                        const tmp = ref.*;
+                        ref.* += 1;
+                        break :blk tmp;
+                    }).*;
+                    frame.*.closure.*.upvalues[slot].*.location.* = peek(0);
+                    break;
+                },
+                .OP_GET_PROPERTY => {
+                    if (!isObjType(peek(0), .OBJ_INSTANCE)) {
+                        runtimeError("Only instances have properties.", .{});
+                        return .INTERPRET_RUNTIME_ERROR;
+                    }
+                    const instance: [*c]ObjInstance = @as([*c]ObjInstance, @ptrCast(@alignCast(peek(0).as.obj)));
+                    const name: [*c]ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
+                        (blk: {
                             const ref = &frame.*.ip;
                             const tmp = ref.*;
                             ref.* += 1;
                             break :blk tmp;
-                        }).*;
-                        _ = &slot;
-                        frame.*.closure.*.upvalues[slot].*.location.* = peek(0);
-                        break;
-                    }
-                },
-                .OP_GET_PROPERTY => {
-                    {
-                        if (!isObjType(peek(0), .OBJ_INSTANCE)) {
-                            runtimeError("Only instances have properties.", .{});
-                            return .INTERPRET_RUNTIME_ERROR;
-                        }
-                        var instance: [*c]ObjInstance = @as([*c]ObjInstance, @ptrCast(@alignCast(peek(0).as.obj)));
-                        _ = &instance;
-                        var name: [*c]ObjString = @as([*c]ObjString, @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
-                            (blk: {
-                                const ref = &frame.*.ip;
-                                const tmp = ref.*;
-                                ref.* += 1;
-                                break :blk tmp;
-                            }).*
-                        ].as.obj)));
-                        _ = &name;
-                        var value: Value = undefined;
-                        _ = &value;
-                        if (tableGet(&instance.*.fields, name, &value)) {
-                            _ = pop();
-                            push(value);
-                            break;
-                        }
-                        if (!bindMethod(instance.*.klass, name)) {
-                            return .INTERPRET_RUNTIME_ERROR;
-                        }
-                        break;
-                    }
-                },
-                .OP_SET_PROPERTY => {
-                    {
-                        if (!isObjType(peek(1), .OBJ_INSTANCE)) {
-                            runtimeError("Only instances have fields.", .{});
-                            return .INTERPRET_RUNTIME_ERROR;
-                        }
-                        var instance: [*c]ObjInstance = @as([*c]ObjInstance, @ptrCast(@alignCast(peek(1).as.obj)));
-                        _ = &instance;
-                        _ = tableSet(&instance.*.fields, @as([*c]ObjString, @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
-                            (blk: {
-                                const ref = &frame.*.ip;
-                                const tmp = ref.*;
-                                ref.* += 1;
-                                break :blk tmp;
-                            }).*
-                        ].as.obj))), peek(0));
-                        var value: Value = pop();
-                        _ = &value;
+                        }).*
+                    ].as.obj));
+                    var value: Value = undefined;
+                    if (tableGet(&instance.*.fields, name, &value)) {
                         _ = pop();
                         push(value);
                         break;
                     }
+                    if (!bindMethod(instance.*.klass, name)) {
+                        return .INTERPRET_RUNTIME_ERROR;
+                    }
+                    break;
+                },
+                .OP_SET_PROPERTY => {
+                    if (!isObjType(peek(1), .OBJ_INSTANCE)) {
+                        runtimeError("Only instances have fields.", .{});
+                        return .INTERPRET_RUNTIME_ERROR;
+                    }
+                    const instance: [*c]ObjInstance = @as([*c]ObjInstance, @ptrCast(@alignCast(peek(1).as.obj)));
+                    _ = tableSet(&instance.*.fields, @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
+                        (blk: {
+                            const ref = &frame.*.ip;
+                            const tmp = ref.*;
+                            ref.* += 1;
+                            break :blk tmp;
+                        }).*
+                    ].as.obj)), peek(0));
+                    const value: Value = pop();
+                    _ = pop();
+                    push(value);
+                    break;
                 },
                 .OP_GET_SUPER => {
-                    {
-                        var name: [*c]ObjString = @as([*c]ObjString, @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
-                            (blk: {
-                                const ref = &frame.*.ip;
-                                const tmp = ref.*;
-                                ref.* += 1;
-                                break :blk tmp;
-                            }).*
-                        ].as.obj)));
-                        _ = &name;
-                        var superclass: [*c]ObjClass = @as([*c]ObjClass, @ptrCast(@alignCast(pop().as.obj)));
-                        _ = &superclass;
-                        if (!bindMethod(superclass, name)) {
-                            return .INTERPRET_RUNTIME_ERROR;
-                        }
-                        break;
+                    const name: [*c]ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
+                        (blk: {
+                            const ref = &frame.*.ip;
+                            const tmp = ref.*;
+                            ref.* += 1;
+                            break :blk tmp;
+                        }).*
+                    ].as.obj));
+                    const superclass: [*c]ObjClass = @ptrCast(@alignCast(pop().as.obj));
+                    if (!bindMethod(superclass, name)) {
+                        return .INTERPRET_RUNTIME_ERROR;
                     }
+                    break;
                 },
                 .OP_GET_ITERATOR => {
-                    {}
-                    {
-                        _ = printf("Index get\n");
-                        var idx: c_int = @as(c_int, @bitCast(@as(c_uint, (blk: {
-                            const ref = &frame.*.ip;
-                            const tmp = ref.*;
-                            ref.* += 1;
-                            break :blk tmp;
-                        }).*)));
-                        _ = &idx;
-                        var array: Value = frame.*.closure.*.function.*.chunk.constants.values[
-                            (blk: {
-                                const ref = &frame.*.ip;
-                                const tmp = ref.*;
-                                ref.* += 1;
-                                break :blk tmp;
-                            }).*
-                        ];
-                        _ = &array;
-                        printValue(array);
-                        if (!isObjType(array, .OBJ_ARRAY)) {
-                            runtimeError("Only arrays support indexing.", .{});
-                            return .INTERPRET_RUNTIME_ERROR;
-                        }
-                        var arrObj = @as([*c]ObjArray, @ptrCast(@alignCast(array.as.obj)));
-                        _ = &arrObj;
-                        if ((idx < 0) or (idx >= arrObj.*.count)) {
-                            runtimeError("Index out of bounds.", .{});
-                            return .INTERPRET_RUNTIME_ERROR;
-                        }
-                        push((blk: {
-                            const tmp = idx;
-                            if (tmp >= 0) break :blk arrObj.*.values + @as(usize, @intCast(tmp)) else break :blk arrObj.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                        }).*);
-                        break;
-                    }
+                    // {
+                    //     _ = printf("Index get\n");
+                    //     var idx: c_int = @as(c_int, @bitCast(@as(c_uint, (blk: {
+                    //         const ref = &frame.*.ip;
+                    //         const tmp = ref.*;
+                    //         ref.* += 1;
+                    //         break :blk tmp;
+                    //     }).*)));
+                    //     _ = &idx;
+                    //     var array: Value = frame.*.closure.*.function.*.chunk.constants.values[
+                    //         (blk: {
+                    //             const ref = &frame.*.ip;
+                    //             const tmp = ref.*;
+                    //             ref.* += 1;
+                    //             break :blk tmp;
+                    //         }).*
+                    //     ];
+                    //     _ = &array;
+                    //     printValue(array);
+                    //     if (!isObjType(array, .OBJ_ARRAY)) {
+                    //         runtimeError("Only arrays support indexing.", .{});
+                    //         return .INTERPRET_RUNTIME_ERROR;
+                    //     }
+                    //     var arrObj = @as([*c]ObjArray, @ptrCast(@alignCast(array.as.obj)));
+                    //     _ = &arrObj;
+                    //     if ((idx < 0) or (idx >= arrObj.*.count)) {
+                    //         runtimeError("Index out of bounds.", .{});
+                    //         return .INTERPRET_RUNTIME_ERROR;
+                    //     }
+                    //     push((blk: {
+                    //         const tmp = idx;
+                    //         if (tmp >= 0) break :blk arrObj.*.values + @as(usize, @intCast(tmp)) else break :blk arrObj.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                    //     }).*);
+                    //     break;
+                    // }
                 },
                 .OP_INDEX_GET => {
-                    {
-                        _ = printf("Index get\n");
-                        var idx: c_int = @as(c_int, @bitCast(@as(c_uint, (blk: {
-                            const ref = &frame.*.ip;
-                            const tmp = ref.*;
-                            ref.* += 1;
-                            break :blk tmp;
-                        }).*)));
-                        _ = &idx;
-                        var array: Value = frame.*.closure.*.function.*.chunk.constants.values[
-                            (blk: {
-                                const ref = &frame.*.ip;
-                                const tmp = ref.*;
-                                ref.* += 1;
-                                break :blk tmp;
-                            }).*
-                        ];
-                        _ = &array;
-                        printValue(array);
-                        if (!isObjType(array, .OBJ_ARRAY)) {
-                            runtimeError("Only arrays support indexing.", .{});
-                            return .INTERPRET_RUNTIME_ERROR;
-                        }
-                        var arrObj = @as([*c]ObjArray, @ptrCast(@alignCast(array.as.obj)));
-                        _ = &arrObj;
-                        if ((idx < 0) or (idx >= arrObj.*.count)) {
-                            runtimeError("Index out of bounds.", .{});
-                            return .INTERPRET_RUNTIME_ERROR;
-                        }
-                        push((blk: {
-                            const tmp = idx;
-                            if (tmp >= 0) break :blk arrObj.*.values + @as(usize, @intCast(tmp)) else break :blk arrObj.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                        }).*);
-                        break;
-                    }
+
+                    // _ = printf("Index get\n");
+                    // var idx: c_int = @as(c_int, @bitCast(@as(c_uint, (blk: {
+                    //     const ref = &frame.*.ip;
+                    //     const tmp = ref.*;
+                    //     ref.* += 1;
+                    //     break :blk tmp;
+                    // }).*)));
+                    // _ = &idx;
+                    // var array: Value = frame.*.closure.*.function.*.chunk.constants.values[
+                    //     (blk: {
+                    //         const ref = &frame.*.ip;
+                    //         const tmp = ref.*;
+                    //         ref.* += 1;
+                    //         break :blk tmp;
+                    //     }).*
+                    // ];
+                    // _ = &array;
+                    // printValue(array);
+                    // if (!isObjType(array, .OBJ_ARRAY)) {
+                    //     runtimeError("Only arrays support indexing.", .{});
+                    //     return .INTERPRET_RUNTIME_ERROR;
+                    // }
+                    // var arrObj = @as([*c]ObjArray, @ptrCast(@alignCast(array.as.obj)));
+                    // _ = &arrObj;
+                    // if ((idx < 0) or (idx >= arrObj.*.count)) {
+                    //     runtimeError("Index out of bounds.", .{});
+                    //     return .INTERPRET_RUNTIME_ERROR;
+                    // }
+                    // push((blk: {
+                    //     const tmp = idx;
+                    //     if (tmp >= 0) break :blk arrObj.*.values + @as(usize, @intCast(tmp)) else break :blk arrObj.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                    // }).*);
+                    // break;
+
                 },
                 .OP_INDEX_SET => {
-                    {
-                        var value: Value = pop();
-                        _ = &value;
-                        var index_1: Value = pop();
-                        _ = &index_1;
-                        var array: Value = peek(@as(c_int, 2));
-                        _ = &array;
-                        if (!isObjType(array, .OBJ_ARRAY)) {
-                            runtimeError("Only arrays support indexing.", .{});
-                            return .INTERPRET_RUNTIME_ERROR;
-                        }
-                        if (!(index_1.type == .VAL_INT)) {
-                            runtimeError("Array index must be an integer.", .{});
-                            return .INTERPRET_RUNTIME_ERROR;
-                        }
-                        var idx: c_int = index_1.as.num_int;
-                        _ = &idx;
-                        var arrObj = @as([*c]ObjArray, @ptrCast(@alignCast(array.as.obj)));
-                        _ = &arrObj;
-                        if ((idx < 0) or (idx >= arrObj.*.count)) {
-                            runtimeError("Index out of bounds.", .{});
-                            return .INTERPRET_RUNTIME_ERROR;
-                        }
-                        (blk: {
-                            const tmp = idx;
-                            if (tmp >= 0) break :blk arrObj.*.values + @as(usize, @intCast(tmp)) else break :blk arrObj.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                        }).* = value;
-                        break;
-                    }
+
+                    // var value: Value = pop();
+                    //
+                    // const index_1: Value = pop();
+                    //
+                    // var array: Value = peek(@as(c_int, 2));
+                    // _ = &array;
+                    // if (!isObjType(array, .OBJ_ARRAY)) {
+                    //     runtimeError("Only arrays support indexing.", .{});
+                    //     return .INTERPRET_RUNTIME_ERROR;
+                    // }
+                    // if (!(index_1.type == .VAL_INT)) {
+                    //     runtimeError("Array index must be an integer.", .{});
+                    //     return .INTERPRET_RUNTIME_ERROR;
+                    // }
+                    // var idx: c_int = index_1.as.num_int;
+                    // _ = &idx;
+                    // var arrObj = @as([*c]ObjArray, @ptrCast(@alignCast(array.as.obj)));
+                    // _ = &arrObj;
+                    // if ((idx < 0) or (idx >= arrObj.*.count)) {
+                    //     runtimeError("Index out of bounds.", .{});
+                    //     return .INTERPRET_RUNTIME_ERROR;
+                    // }
+                    // (blk: {
+                    //     const tmp = idx;
+                    //     if (tmp >= 0) break :blk arrObj.*.values + @as(usize, @intCast(tmp)) else break :blk arrObj.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                    // }).* = value;
+                    // break;
+
                 },
                 .OP_ARRAY => {
-                    {
-                        var count: c_int = @as(c_int, @bitCast(@as(c_uint, (blk: {
-                            const ref = &frame.*.ip;
-                            const tmp = ref.*;
-                            ref.* += 1;
-                            break :blk tmp;
-                        }).*)));
-                        _ = &count;
-                        var array = object_h.newArrayWithCap(count, 1 != 0);
-                        _ = &array;
-                        {
-                            var i: c_int = 0;
-                            _ = &i;
-                            while (i < count) : (i += 1) {
-                                pushArray(array, peek((count - i) - 1));
-                            }
-                        }
-                        {
-                            var i: c_int = 0;
-                            _ = &i;
-                            while (i < count) : (i += 1) {
-                                _ = pop();
-                            }
-                        }
-                        push(Value{
-                            .type = .VAL_OBJ,
-                            .as = .{
-                                .obj = @as([*c]Obj, @ptrCast(@alignCast(array))),
-                            },
-                        });
-                        break;
+                    const count: c_int = @intCast((blk: {
+                        const ref = &frame.*.ip;
+                        const tmp = ref.*;
+                        ref.* += 1;
+                        break :blk tmp;
+                    }).*);
+                    const array = object_h.newArrayWithCap(count, 1 != 0);
+
+                    for (0..@intCast(count)) |i| {
+                        pushArray(array, peek(count - @as(u8, @intCast(i)) - 1));
                     }
+
+                    for (0..@intCast(count)) |_| {
+                        _ = pop();
+                    }
+
+                    push(Value.init_obj(@ptrCast(@alignCast(array))));
+                    break;
                 },
                 .OP_FVECTOR => {
                     {
@@ -1477,230 +1307,207 @@ pub fn run() callconv(.C) InterpretResult {
                     }
                 },
                 .OP_ITERATOR_NEXT => {
-                    {}
-                    {
-                        var offset: u16 = blk: {
-                            frame.*.ip += @as(usize, @bitCast(@as(isize, @intCast(@as(c_int, 2)))));
-                            break :blk @as(u16, @bitCast(@as(c_short, @truncate((@as(c_int, @bitCast(@as(c_uint, (blk_1: {
-                                const tmp = -@as(c_int, 2);
-                                if (tmp >= 0) break :blk_1 frame.*.ip + @as(usize, @intCast(tmp)) else break :blk_1 frame.*.ip - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                            }).*))) << @intCast(8)) | @as(c_int, @bitCast(@as(c_uint, (blk_1: {
-                                const tmp = -1;
-                                if (tmp >= 0) break :blk_1 frame.*.ip + @as(usize, @intCast(tmp)) else break :blk_1 frame.*.ip - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                            }).*)))))));
-                        };
-                        _ = &offset;
-                        frame.*.ip -= @as(usize, @bitCast(@as(isize, @intCast(@as(c_int, @bitCast(@as(c_uint, offset)))))));
-                        break;
-                    }
+                    // var offset: u16 = blk: {
+                    //     frame.*.ip += @as(usize, @bitCast(@as(isize, @intCast(@as(c_int, 2)))));
+                    //     break :blk @as(u16, @bitCast(@as(c_short, @truncate((@as(c_int, @bitCast(@as(c_uint, (blk_1: {
+                    //         const tmp = -@as(c_int, 2);
+                    //         if (tmp >= 0) break :blk_1 frame.*.ip + @as(usize, @intCast(tmp)) else break :blk_1 frame.*.ip - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                    //     }).*))) << @intCast(8)) | @as(c_int, @bitCast(@as(c_uint, (blk_1: {
+                    //         const tmp = -1;
+                    //         if (tmp >= 0) break :blk_1 frame.*.ip + @as(usize, @intCast(tmp)) else break :blk_1 frame.*.ip - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                    //     }).*)))))));
+                    // };
+                    // _ = &offset;
+                    // frame.*.ip -= @as(usize, @bitCast(@as(isize, @intCast(@as(c_int, @bitCast(@as(c_uint, offset)))))));
+                    // break;
                 },
                 .OP_LOOP => {
-                    {
-                        var offset: u16 = blk: {
-                            frame.*.ip += @as(usize, @bitCast(@as(isize, @intCast(@as(c_int, 2)))));
-                            break :blk @as(u16, @bitCast(@as(c_short, @truncate((@as(c_int, @bitCast(@as(c_uint, (blk_1: {
-                                const tmp = -@as(c_int, 2);
-                                if (tmp >= 0) break :blk_1 frame.*.ip + @as(usize, @intCast(tmp)) else break :blk_1 frame.*.ip - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                            }).*))) << @intCast(8)) | @as(c_int, @bitCast(@as(c_uint, (blk_1: {
-                                const tmp = -1;
-                                if (tmp >= 0) break :blk_1 frame.*.ip + @as(usize, @intCast(tmp)) else break :blk_1 frame.*.ip - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                            }).*)))))));
-                        };
-                        _ = &offset;
-                        frame.*.ip -= @as(usize, @bitCast(@as(isize, @intCast(@as(c_int, @bitCast(@as(c_uint, offset)))))));
-                        break;
-                    }
+                    var offset: u16 = blk: {
+                        frame.*.ip += @as(usize, @bitCast(@as(isize, @intCast(@as(c_int, 2)))));
+                        break :blk @as(u16, @bitCast(@as(c_short, @truncate((@as(c_int, @bitCast(@as(c_uint, (blk_1: {
+                            const tmp = -@as(c_int, 2);
+                            if (tmp >= 0) break :blk_1 frame.*.ip + @as(usize, @intCast(tmp)) else break :blk_1 frame.*.ip - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                        }).*))) << @intCast(8)) | @as(c_int, @bitCast(@as(c_uint, (blk_1: {
+                            const tmp = -1;
+                            if (tmp >= 0) break :blk_1 frame.*.ip + @as(usize, @intCast(tmp)) else break :blk_1 frame.*.ip - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                        }).*)))))));
+                    };
+                    _ = &offset;
+                    frame.*.ip -= @as(usize, @bitCast(@as(isize, @intCast(@as(c_int, @bitCast(@as(c_uint, offset)))))));
+                    break;
                 },
                 .OP_CALL => {
-                    {
-                        var argCount: c_int = @as(c_int, @bitCast(@as(c_uint, (blk: {
-                            const ref = &frame.*.ip;
-                            const tmp = ref.*;
-                            ref.* += 1;
-                            break :blk tmp;
-                        }).*)));
-                        _ = &argCount;
-                        if (!callValue(peek(argCount), argCount)) {
-                            return .INTERPRET_RUNTIME_ERROR;
-                        }
-                        if (vm.frameCount - 1 < 0) return .INTERPRET_RUNTIME_ERROR;
-                        frame = &vm.frames[@intCast(vm.frameCount - 1)];
-                        break;
+                    const argCount: c_int = @as(c_int, @bitCast(@as(c_uint, (blk: {
+                        const ref = &frame.*.ip;
+                        const tmp = ref.*;
+                        ref.* += 1;
+                        break :blk tmp;
+                    }).*)));
+
+                    if (!callValue(peek(argCount), argCount)) {
+                        return .INTERPRET_RUNTIME_ERROR;
                     }
+                    if (vm.frameCount - 1 < 0) return .INTERPRET_RUNTIME_ERROR;
+                    frame = &vm.frames[@intCast(vm.frameCount - 1)];
+                    break;
                 },
                 .OP_INVOKE => {
-                    {
-                        var method: [*c]ObjString = @as([*c]ObjString, @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
-                            (blk: {
-                                const ref = &frame.*.ip;
-                                const tmp = ref.*;
-                                ref.* += 1;
-                                break :blk tmp;
-                            }).*
-                        ].as.obj)));
-                        _ = &method;
-                        var argCount: c_int = @as(c_int, @bitCast(@as(c_uint, (blk: {
+                    var method: [*c]ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
+                        (blk: {
                             const ref = &frame.*.ip;
                             const tmp = ref.*;
                             ref.* += 1;
                             break :blk tmp;
-                        }).*)));
-                        _ = &argCount;
-                        if (!invoke(method, argCount)) {
-                            return .INTERPRET_RUNTIME_ERROR;
-                        }
-                        frame = &vm.frames[@as(c_uint, @intCast(vm.frameCount - 1))];
-                        break;
+                        }).*
+                    ].as.obj));
+                    _ = &method;
+                    const argCount: c_int = @as(c_int, @bitCast(@as(c_uint, (blk: {
+                        const ref = &frame.*.ip;
+                        const tmp = ref.*;
+                        ref.* += 1;
+                        break :blk tmp;
+                    }).*)));
+
+                    if (!invoke(method, argCount)) {
+                        return .INTERPRET_RUNTIME_ERROR;
                     }
+                    frame = &vm.frames[@as(c_uint, @intCast(vm.frameCount - 1))];
+                    break;
                 },
                 .OP_SUPER_INVOKE => {
-                    {
-                        var method: [*c]ObjString = @as([*c]ObjString, @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
-                            (blk: {
-                                const ref = &frame.*.ip;
-                                const tmp = ref.*;
-                                ref.* += 1;
-                                break :blk tmp;
-                            }).*
-                        ].as.obj)));
-                        _ = &method;
-                        var argCount: c_int = @as(c_int, @bitCast(@as(c_uint, (blk: {
+                    var method: [*c]ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
+                        (blk: {
                             const ref = &frame.*.ip;
                             const tmp = ref.*;
                             ref.* += 1;
                             break :blk tmp;
-                        }).*)));
-                        _ = &argCount;
-                        var superclass: [*c]ObjClass = @as([*c]ObjClass, @ptrCast(@alignCast(pop().as.obj)));
-                        _ = &superclass;
-                        if (!invokeFromClass(superclass, method, argCount)) {
-                            return .INTERPRET_RUNTIME_ERROR;
-                        }
-                        frame = &vm.frames[@as(c_uint, @intCast(vm.frameCount - 1))];
-                        break;
+                        }).*
+                    ].as.obj));
+                    _ = &method;
+                    const argCount: c_int = @as(c_int, @bitCast(@as(c_uint, (blk: {
+                        const ref = &frame.*.ip;
+                        const tmp = ref.*;
+                        ref.* += 1;
+                        break :blk tmp;
+                    }).*)));
+
+                    var superclass: [*c]ObjClass = @ptrCast(@alignCast(pop().as.obj));
+                    _ = &superclass;
+                    if (!invokeFromClass(superclass, method, argCount)) {
+                        return .INTERPRET_RUNTIME_ERROR;
                     }
+                    frame = &vm.frames[@as(c_uint, @intCast(vm.frameCount - 1))];
+                    break;
                 },
                 .OP_CLOSURE => {
+                    var function: [*c]ObjFunction = @as([*c]ObjFunction, @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
+                        (blk: {
+                            const ref = &frame.*.ip;
+                            const tmp = ref.*;
+                            ref.* += 1;
+                            break :blk tmp;
+                        }).*
+                    ].as.obj)));
+                    _ = &function;
+                    var closure: [*c]ObjClosure = object_h.newClosure(function);
+                    _ = &closure;
+                    push(Value{
+                        .type = .VAL_OBJ,
+                        .as = .{
+                            .obj = @as([*c]Obj, @ptrCast(@alignCast(closure))),
+                        },
+                    });
                     {
-                        var function: [*c]ObjFunction = @as([*c]ObjFunction, @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
-                            (blk: {
+                        var i: c_int = 0;
+                        _ = &i;
+                        while (i < closure.*.upvalueCount) : (i += 1) {
+                            var isLocal: u8 = (blk: {
                                 const ref = &frame.*.ip;
                                 const tmp = ref.*;
                                 ref.* += 1;
                                 break :blk tmp;
-                            }).*
-                        ].as.obj)));
-                        _ = &function;
-                        var closure: [*c]ObjClosure = object_h.newClosure(function);
-                        _ = &closure;
-                        push(Value{
-                            .type = .VAL_OBJ,
-                            .as = .{
-                                .obj = @as([*c]Obj, @ptrCast(@alignCast(closure))),
-                            },
-                        });
-                        {
-                            var i: c_int = 0;
-                            _ = &i;
-                            while (i < closure.*.upvalueCount) : (i += 1) {
-                                var isLocal: u8 = (blk: {
-                                    const ref = &frame.*.ip;
-                                    const tmp = ref.*;
-                                    ref.* += 1;
-                                    break :blk tmp;
-                                }).*;
-                                _ = &isLocal;
-                                var index_1: u8 = (blk: {
-                                    const ref = &frame.*.ip;
-                                    const tmp = ref.*;
-                                    ref.* += 1;
-                                    break :blk tmp;
-                                }).*;
-                                _ = &index_1;
-                                if (isLocal != 0) {
-                                    (blk: {
-                                        const tmp = i;
-                                        if (tmp >= 0) break :blk closure.*.upvalues + @as(usize, @intCast(tmp)) else break :blk closure.*.upvalues - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                                    }).* = captureUpvalue(frame.*.slots + @as(usize, @bitCast(@as(isize, @intCast(@as(c_int, @bitCast(@as(c_uint, index_1))))))));
-                                } else {
-                                    (blk: {
-                                        const tmp = i;
-                                        if (tmp >= 0) break :blk closure.*.upvalues + @as(usize, @intCast(tmp)) else break :blk closure.*.upvalues - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                                    }).* = frame.*.closure.*.upvalues[index_1];
-                                }
+                            }).*;
+                            _ = &isLocal;
+                            const index_1: u8 = (blk: {
+                                const ref = &frame.*.ip;
+                                const tmp = ref.*;
+                                ref.* += 1;
+                                break :blk tmp;
+                            }).*;
+
+                            if (isLocal != 0) {
+                                (blk: {
+                                    const tmp = i;
+                                    if (tmp >= 0) break :blk closure.*.upvalues + @as(usize, @intCast(tmp)) else break :blk closure.*.upvalues - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                                }).* = captureUpvalue(frame.*.slots + @as(usize, @bitCast(@as(isize, @intCast(@as(c_int, @bitCast(@as(c_uint, index_1))))))));
+                            } else {
+                                (blk: {
+                                    const tmp = i;
+                                    if (tmp >= 0) break :blk closure.*.upvalues + @as(usize, @intCast(tmp)) else break :blk closure.*.upvalues - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                                }).* = frame.*.closure.*.upvalues[index_1];
                             }
                         }
-                        break;
                     }
+                    break;
                 },
                 .OP_CLOSE_UPVALUE => {
-                    {
-                        closeUpvalues(vm.stackTop - @as(usize, @bitCast(@as(isize, @intCast(1)))));
-                        _ = pop();
-                        break;
-                    }
+                    closeUpvalues(vm.stackTop - @as(usize, @bitCast(@as(isize, @intCast(1)))));
+                    _ = pop();
+                    break;
                 },
                 .OP_RETURN => {
-                    {
-                        var result: Value = pop();
-                        _ = &result;
-                        closeUpvalues(frame.*.slots);
-                        vm.frameCount -= 1;
-                        if (vm.frameCount == 0) {
-                            _ = pop();
-                            return .INTERPRET_OK;
-                        }
-                        vm.stackTop = frame.*.slots;
-                        push(result);
-                        frame = &vm.frames[@as(c_uint, @intCast(vm.frameCount - 1))];
-                        break;
+                    var result: Value = pop();
+                    _ = &result;
+                    closeUpvalues(frame.*.slots);
+                    vm.frameCount -= 1;
+                    if (vm.frameCount == 0) {
+                        _ = pop();
+                        return .INTERPRET_OK;
                     }
+                    vm.stackTop = frame.*.slots;
+                    push(result);
+                    frame = &vm.frames[@as(c_uint, @intCast(vm.frameCount - 1))];
+                    break;
                 },
                 .OP_CLASS => {
-                    {
-                        push(Value{
-                            .type = .VAL_OBJ,
-                            .as = .{
-                                .obj = @as([*c]Obj, @ptrCast(@alignCast(object_h.newClass(@as([*c]ObjString, @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
-                                    (blk: {
-                                        const ref = &frame.*.ip;
-                                        const tmp = ref.*;
-                                        ref.* += 1;
-                                        break :blk tmp;
-                                    }).*
-                                ].as.obj))))))),
-                            },
-                        });
-                        break;
-                    }
+                    push(Value{
+                        .type = .VAL_OBJ,
+                        .as = .{
+                            .obj = @as([*c]Obj, @ptrCast(@alignCast(object_h.newClass(@ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
+                                (blk: {
+                                    const ref = &frame.*.ip;
+                                    const tmp = ref.*;
+                                    ref.* += 1;
+                                    break :blk tmp;
+                                }).*
+                            ].as.obj)))))),
+                        },
+                    });
+                    break;
                 },
                 .OP_INHERIT => {
-                    {
-                        var superclass: Value = peek(1);
-                        _ = &superclass;
-                        if (!isObjType(superclass, .OBJ_CLASS)) {
-                            runtimeError("Superclass must be a class.", .{});
-                            return .INTERPRET_RUNTIME_ERROR;
-                        }
-                        var subclass: [*c]ObjClass = @as([*c]ObjClass, @ptrCast(@alignCast(peek(0).as.obj)));
-                        _ = &subclass;
-                        table_h.tableAddAll(&@as([*c]ObjClass, @ptrCast(@alignCast(superclass.as.obj))).*.methods, &subclass.*.methods);
-                        _ = pop();
-                        break;
+                    var superclass: Value = peek(1);
+                    _ = &superclass;
+                    if (!isObjType(superclass, .OBJ_CLASS)) {
+                        runtimeError("Superclass must be a class.", .{});
+                        return .INTERPRET_RUNTIME_ERROR;
                     }
+                    var subclass: [*c]ObjClass = @ptrCast(@alignCast(peek(0).as.obj));
+                    _ = &subclass;
+                    table_h.tableAddAll(&@as([*c]ObjClass, @ptrCast(@alignCast(superclass.as.obj))).*.methods, &subclass.*.methods);
+                    _ = pop();
+                    break;
                 },
                 .OP_METHOD => {
-                    {
-                        defineMethod(@as([*c]ObjString, @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
-                            (blk: {
-                                const ref = &frame.*.ip;
-                                const tmp = ref.*;
-                                ref.* += 1;
-                                break :blk tmp;
-                            }).*
-                        ].as.obj))));
-                        break;
-                    }
+                    defineMethod(@ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
+                        (blk: {
+                            const ref = &frame.*.ip;
+                            const tmp = ref.*;
+                            ref.* += 1;
+                            break :blk tmp;
+                        }).*
+                    ].as.obj)));
+                    break;
                 },
                 .OP_ITERATOR_HAS_NEXT => {},
             }
