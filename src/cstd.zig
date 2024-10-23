@@ -428,12 +428,7 @@ pub export fn fvector_nf(argCount: c_int, args: [*c]Value) Value {
                     if (tmp >= 0) break :blk a.*.values + @as(usize, @intCast(tmp)) else break :blk a.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
                 }).*.type == .VAL_DOUBLE))) {
                     runtimeError("All elements of the vector must be numbers.", .{});
-                    return Value{
-                        .type = .VAL_NIL,
-                        .as = .{
-                            .num_int = 0,
-                        },
-                    };
+                    return Value.init_nil();
                 }
                 obj_h.pushFloatVector(f, value_h.AS_NUM_DOUBLE(a.*.values[i]));
             }
@@ -715,12 +710,7 @@ pub export fn push_nf(argCount: c_int, args: [*c]Value) Value {
                 for (0..@intCast(argCount)) |i| {
                     obj_h.pushArray(a, args[i]);
                 }
-                return Value{
-                    .type = .VAL_NIL,
-                    .as = .{
-                        .num_int = 0,
-                    },
-                };
+                return Value.init_nil();
             }
         },
         .OBJ_FVECTOR => {
@@ -763,12 +753,7 @@ pub export fn push_nf(argCount: c_int, args: [*c]Value) Value {
                         }).*);
                     }
                 }
-                return Value{
-                    .type = .VAL_NIL,
-                    .as = .{
-                        .num_int = 0,
-                    },
-                };
+                return Value.init_nil();
             }
         },
         else => {
@@ -843,12 +828,7 @@ pub export fn pop_nf(argCount: c_int, args: [*c]Value) Value {
             },
             else => {
                 runtimeError("Argument must be a linked list, array or float vector.", .{});
-                return Value{
-                    .type = .VAL_NIL,
-                    .as = .{
-                        .num_int = 0,
-                    },
-                };
+                return Value.init_nil();
             },
         }
         break;
@@ -967,12 +947,7 @@ pub export fn nth_nf(argCount: c_int, args: [*c]Value) Value {
             else => {
                 {
                     runtimeError("Invalid argument types or index out of bounds.", .{});
-                    return Value{
-                        .type = .VAL_NIL,
-                        .as = .{
-                            .num_int = 0,
-                        },
-                    };
+                    return Value.init_nil();
                 }
             },
         }
@@ -1012,12 +987,7 @@ pub export fn sort_nf(argCount: c_int, args: [*c]Value) Value {
                     var a: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &a;
                     obj_h.sortArray(a);
-                    return Value{
-                        .type = .VAL_NIL,
-                        .as = .{
-                            .num_int = 0,
-                        },
-                    };
+                    return Value.init_nil();
                 }
             },
             .OBJ_FVECTOR => {
@@ -1025,12 +995,7 @@ pub export fn sort_nf(argCount: c_int, args: [*c]Value) Value {
                     var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &f;
                     obj_h.sortFloatVector(f);
-                    return Value{
-                        .type = .VAL_NIL,
-                        .as = .{
-                            .num_int = 0,
-                        },
-                    };
+                    return Value.init_nil();
                 }
             },
             .OBJ_LINKED_LIST => {
@@ -1038,22 +1003,12 @@ pub export fn sort_nf(argCount: c_int, args: [*c]Value) Value {
                     var l: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &l;
                     obj_h.mergeSort(l);
-                    return Value{
-                        .type = .VAL_NIL,
-                        .as = .{
-                            .num_int = 0,
-                        },
-                    };
+                    return Value.init_nil();
                 }
             },
             else => {
                 runtimeError("Argument must be a linked list, array or float vector.", .{});
-                return Value{
-                    .type = .VAL_NIL,
-                    .as = .{
-                        .num_int = 0,
-                    },
-                };
+                return Value.init_nil();
             },
         }
         break;
@@ -1129,12 +1084,7 @@ pub export fn contains_nf(argCount: c_int, args: [*c]Value) Value {
                 {
                     var h: [*c]ObjHashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &h;
-                    if (!valuesEqual(obj_h.getHashTable(h, @as([*c]ObjString, @ptrCast(@alignCast(args[1].as.obj)))), Value{
-                        .type = .VAL_NIL,
-                        .as = .{
-                            .num_int = 0,
-                        },
-                    })) {
+                    if (!valuesEqual(obj_h.getHashTable(h, @as([*c]ObjString, @ptrCast(@alignCast(args[1].as.obj)))), Value.init_nil())) {
                         return Value{
                             .type = .VAL_BOOL,
                             .as = .{
@@ -1202,12 +1152,7 @@ pub export fn contains_nf(argCount: c_int, args: [*c]Value) Value {
             else => {
                 {
                     runtimeError("Invalid argument type.", .{});
-                    return Value{
-                        .type = .VAL_NIL,
-                        .as = .{
-                            .num_int = 0,
-                        },
-                    };
+                    return Value.init_nil();
                 }
             },
         }
@@ -1269,12 +1214,7 @@ pub export fn insert_nf(argCount: c_int, args: [*c]Value) Value {
                         };
                     }
                     obj_h.insertFloatVector(f, index_1, if (args[2].type == .VAL_INT) @floatFromInt(args[2].as.num_int) else args[2].as.num_double);
-                    return Value{
-                        .type = .VAL_NIL,
-                        .as = .{
-                            .num_int = 0,
-                        },
-                    };
+                    return Value.init_nil();
                 }
             },
             .OBJ_ARRAY => {
@@ -1284,22 +1224,12 @@ pub export fn insert_nf(argCount: c_int, args: [*c]Value) Value {
                     var index_1: c_int = if (args[1].type == .VAL_DOUBLE) @intFromFloat(args[1].as.num_double) else args[1].as.num_int;
                     _ = &index_1;
                     obj_h.insertArray(a, index_1, args[2]);
-                    return Value{
-                        .type = .VAL_NIL,
-                        .as = .{
-                            .num_int = 0,
-                        },
-                    };
+                    return Value.init_nil();
                 }
             },
             else => {
                 runtimeError("Invalid argument type.", .{});
-                return Value{
-                    .type = .VAL_NIL,
-                    .as = .{
-                        .num_int = 0,
-                    },
-                };
+                return Value.init_nil();
             },
         }
         break;
@@ -1440,12 +1370,7 @@ pub export fn search_nf(argCount: c_int, args: [*c]Value) Value {
                     _ = &a;
                     var result: c_int = obj_h.searchArray(a, args[1]);
                     _ = &result;
-                    if (result == -1) return Value{
-                        .type = .VAL_NIL,
-                        .as = .{
-                            .num_int = 0,
-                        },
-                    };
+                    if (result == -1) return Value.init_nil();
                     return Value{
                         .type = .VAL_INT,
                         .as = .{
@@ -1460,12 +1385,7 @@ pub export fn search_nf(argCount: c_int, args: [*c]Value) Value {
                     _ = &f;
                     var result: c_int = obj_h.searchFloatVector(f, if (args[1].type == .VAL_INT) @floatFromInt(args[1].as.num_int) else args[1].as.num_double);
                     _ = &result;
-                    if (result == -1) return Value{
-                        .type = .VAL_NIL,
-                        .as = .{
-                            .num_int = 0,
-                        },
-                    };
+                    if (result == -1) return Value.init_nil();
                     return Value{
                         .type = .VAL_INT,
                         .as = .{
@@ -1480,12 +1400,7 @@ pub export fn search_nf(argCount: c_int, args: [*c]Value) Value {
                     _ = &l;
                     var result: c_int = obj_h.searchLinkedList(l, args[1]);
                     _ = &result;
-                    if (result == -1) return Value{
-                        .type = .VAL_NIL,
-                        .as = .{
-                            .num_int = 0,
-                        },
-                    };
+                    if (result == -1) return Value.init_nil();
                     return Value{
                         .type = .VAL_INT,
                         .as = .{
@@ -1586,12 +1501,7 @@ pub export fn is_empty_nf(argCount: c_int, args: [*c]Value) Value {
             else => {
                 {
                     runtimeError("Unsupported type for is_empty().", .{});
-                    return Value{
-                        .type = .VAL_NIL,
-                        .as = .{
-                            .num_int = 0,
-                        },
-                    };
+                    return Value.init_nil();
                 }
             },
         }
@@ -1684,12 +1594,7 @@ pub export fn equal_list_nf(argCount: c_int, args: [*c]Value) Value {
             else => {
                 {
                     runtimeError("Argument must be a linked list, array or float vector.", .{});
-                    return Value{
-                        .type = .VAL_NIL,
-                        .as = .{
-                            .num_int = 0,
-                        },
-                    };
+                    return Value.init_nil();
                 }
             },
         }
@@ -1729,12 +1634,7 @@ pub export fn reverse_nf(argCount: c_int, args: [*c]Value) Value {
                     var a: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &a;
                     obj_h.reverseArray(a);
-                    return Value{
-                        .type = .VAL_NIL,
-                        .as = .{
-                            .num_int = 0,
-                        },
-                    };
+                    return Value.init_nil();
                 }
             },
             .OBJ_FVECTOR => {
@@ -1742,12 +1642,7 @@ pub export fn reverse_nf(argCount: c_int, args: [*c]Value) Value {
                     var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &f;
                     obj_h.reverseFloatVector(f);
-                    return Value{
-                        .type = .VAL_NIL,
-                        .as = .{
-                            .num_int = 0,
-                        },
-                    };
+                    return Value.init_nil();
                 }
             },
             .OBJ_LINKED_LIST => {
@@ -1755,12 +1650,7 @@ pub export fn reverse_nf(argCount: c_int, args: [*c]Value) Value {
                     var l: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &l;
                     obj_h.reverseLinkedList(l);
-                    return Value{
-                        .type = .VAL_NIL,
-                        .as = .{
-                            .num_int = 0,
-                        },
-                    };
+                    return Value.init_nil();
                 }
             },
             else => break,
@@ -1954,12 +1844,7 @@ pub export fn clone_nf(argCount: c_int, args: [*c]Value) Value {
             },
             else => {
                 runtimeError("Unsupported type for clone().", .{});
-                return Value{
-                    .type = .VAL_NIL,
-                    .as = .{
-                        .num_int = 0,
-                    },
-                };
+                return Value.init_nil();
             },
         }
         break;
@@ -2054,12 +1939,7 @@ pub export fn sum_nf(argCount: c_int, args: [*c]Value) Value {
             },
             else => {
                 runtimeError("Unsupported type for clear().", .{});
-                return Value{
-                    .type = .VAL_NIL,
-                    .as = .{
-                        .num_int = 0,
-                    },
-                };
+                return Value.init_nil();
             },
         }
         break;
@@ -2126,12 +2006,7 @@ pub export fn std_nf(argCount: c_int, args: [*c]Value) Value {
             },
             else => {
                 runtimeError("Unsupported type for clear().", .{});
-                return Value{
-                    .type = .VAL_NIL,
-                    .as = .{
-                        .num_int = 0,
-                    },
-                };
+                return Value.init_nil();
             },
         }
         break;
@@ -2182,12 +2057,7 @@ pub export fn var_nf(argCount: c_int, args: [*c]Value) Value {
             },
             else => {
                 runtimeError("Unsupported type for clear().", .{});
-                return Value{
-                    .type = .VAL_NIL,
-                    .as = .{
-                        .num_int = 0,
-                    },
-                };
+                return Value.init_nil();
             },
         }
         break;
@@ -2238,12 +2108,7 @@ pub export fn maxl_nf(argCount: c_int, args: [*c]Value) Value {
             },
             else => {
                 runtimeError("Unsupported type for clear().", .{});
-                return Value{
-                    .type = .VAL_NIL,
-                    .as = .{
-                        .num_int = 0,
-                    },
-                };
+                return Value.init_nil();
             },
         }
         break;
@@ -2294,12 +2159,7 @@ pub export fn minl_nf(argCount: c_int, args: [*c]Value) Value {
             },
             else => {
                 runtimeError("Unsupported type for clear().", .{});
-                return Value{
-                    .type = .VAL_NIL,
-                    .as = .{
-                        .num_int = 0,
-                    },
-                };
+                return Value.init_nil();
             },
         }
         break;
@@ -2668,12 +2528,7 @@ pub export fn remove_nf(argCount: c_int, args: [*c]Value) Value {
             else => {
                 {
                     runtimeError("Argument must be a hash table, array or float vector.", .{});
-                    return Value{
-                        .type = .VAL_NIL,
-                        .as = .{
-                            .num_int = 0,
-                        },
-                    };
+                    return Value.init_nil();
                 }
             },
         }
