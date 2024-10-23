@@ -496,7 +496,7 @@ pub export fn range_nf(argCount: c_int, args: [*c]Value) Value {
 }
 pub export fn slice_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
     if ((notObjTypes(ObjTypeCheckParams{
         .values = args,
@@ -592,7 +592,7 @@ pub export fn slice_nf(argCount: c_int, args: [*c]Value) Value {
 }
 pub export fn splice_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
     if ((notObjTypes(ObjTypeCheckParams{
         .values = args,
@@ -855,12 +855,10 @@ pub export fn pop_nf(argCount: c_int, args: [*c]Value) Value {
     }
     return @import("std").mem.zeroes(Value);
 }
-pub export fn nth_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn nth_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
-    _ = &args;
-    if ((((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+
+    if ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_HASH_TABLE,
         .count = 1,
@@ -868,7 +866,7 @@ pub export fn nth_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         .values = args,
         .objType = .OBJ_MATRIX,
         .count = 1,
-    }))) and ((notObjTypes(ObjTypeCheckParams{
+    })) and ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_LINKED_LIST,
         .count = 1,
@@ -880,7 +878,7 @@ pub export fn nth_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         .values = args,
         .objType = .OBJ_FVECTOR,
         .count = 1,
-    }))))) and (isObjType(args[0], .OBJ_HASH_TABLE))) {
+    })))) and (isObjType(args[0], .OBJ_HASH_TABLE))) {
         runtimeError("First argument must be an array, matrix, linked list or Vector.", .{});
         return Value{
             .type = .VAL_NIL,
@@ -984,13 +982,13 @@ pub export fn nth_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
 }
 pub export fn sort_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
-    if ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    if (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_LINKED_LIST,
         .count = 1,
-    })) and ((notObjTypes(ObjTypeCheckParams{
+    }) and ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_ARRAY,
         .count = 1,
@@ -1064,9 +1062,9 @@ pub export fn sort_nf(argCount: c_int, args: [*c]Value) Value {
 }
 pub export fn contains_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
-    if (((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    if ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_LINKED_LIST,
         .count = 1,
@@ -1078,7 +1076,7 @@ pub export fn contains_nf(argCount: c_int, args: [*c]Value) Value {
         .values = args,
         .objType = .OBJ_FVECTOR,
         .count = 1,
-    })))) and !isObjType(args[0], .OBJ_HASH_TABLE)) {
+    }))) and !isObjType(args[0], .OBJ_HASH_TABLE)) {
         runtimeError("First argument must be a collection type.", .{});
         return Value{
             .type = .VAL_NIL,
@@ -1310,9 +1308,9 @@ pub export fn insert_nf(argCount: c_int, args: [*c]Value) Value {
 }
 pub export fn len_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
-    if (((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    if ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_HASH_TABLE,
         .count = 1,
@@ -1320,7 +1318,7 @@ pub export fn len_nf(argCount: c_int, args: [*c]Value) Value {
         .values = args,
         .objType = .OBJ_MATRIX,
         .count = 1,
-    }))) and ((notObjTypes(ObjTypeCheckParams{
+    })) and ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_LINKED_LIST,
         .count = 1,
@@ -1411,13 +1409,13 @@ pub export fn len_nf(argCount: c_int, args: [*c]Value) Value {
 }
 pub export fn search_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
-    if ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    if ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_LINKED_LIST,
         .count = 1,
-    })) and ((notObjTypes(ObjTypeCheckParams{
+    }) and ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_ARRAY,
         .count = 1,
@@ -1425,7 +1423,7 @@ pub export fn search_nf(argCount: c_int, args: [*c]Value) Value {
         .values = args,
         .objType = .OBJ_FVECTOR,
         .count = 1,
-    })))) {
+    }))))) {
         runtimeError("First argument must be a list type.", .{});
         return Value{
             .type = .VAL_NIL,
@@ -1504,9 +1502,9 @@ pub export fn search_nf(argCount: c_int, args: [*c]Value) Value {
 }
 pub export fn is_empty_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
-    if (((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    if ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_HASH_TABLE,
         .count = 1,
@@ -1514,7 +1512,7 @@ pub export fn is_empty_nf(argCount: c_int, args: [*c]Value) Value {
         .values = args,
         .objType = .OBJ_MATRIX,
         .count = 1,
-    }))) and ((notObjTypes(ObjTypeCheckParams{
+    })) and ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_LINKED_LIST,
         .count = 1,
@@ -1701,9 +1699,9 @@ pub export fn equal_list_nf(argCount: c_int, args: [*c]Value) Value {
 }
 pub export fn reverse_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
-    if ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    if ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_LINKED_LIST,
         .count = 1,
@@ -1863,12 +1861,11 @@ pub export fn merge_nf(argCount: c_int, args: [*c]Value) Value {
     }
     return @import("std").mem.zeroes(Value);
 }
-pub export fn clone_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn clone_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
-    if (((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    if ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_HASH_TABLE,
         .count = 1,
@@ -1876,7 +1873,7 @@ pub export fn clone_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         .values = args,
         .objType = .OBJ_MATRIX,
         .count = 1,
-    }))) and ((notObjTypes(ObjTypeCheckParams{
+    })) and ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_LINKED_LIST,
         .count = 1,
@@ -1969,12 +1966,11 @@ pub export fn clone_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     return @import("std").mem.zeroes(Value);
 }
-pub export fn clear_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn clear_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
-    if (((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    if ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_HASH_TABLE,
         .count = 1,
@@ -1994,7 +1990,7 @@ pub export fn clear_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
         .values = args,
         .objType = .OBJ_FVECTOR,
         .count = 1,
-    })))) {
+    }))))) {
         runtimeError("First argument must be an array, linked list, hash table or vector.", .{});
         return nil();
     }
@@ -2019,12 +2015,11 @@ pub export fn clear_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
 
     return nil();
 }
-pub export fn sum_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn sum_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
-    if ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    if ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_ARRAY,
         .count = 1,
@@ -2071,12 +2066,11 @@ pub export fn sum_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     return @import("std").mem.zeroes(Value);
 }
-pub export fn mean_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn mean_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
-    if ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    if ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_ARRAY,
         .count = 1,
@@ -2100,12 +2094,11 @@ pub export fn mean_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
 
     return nil();
 }
-pub export fn std_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn std_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
-    if ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    if ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_ARRAY,
         .count = 1,
@@ -2145,12 +2138,11 @@ pub export fn std_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     return @import("std").mem.zeroes(Value);
 }
-pub export fn var_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn var_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
-    if ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    if ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_ARRAY,
         .count = 1,
@@ -2202,12 +2194,11 @@ pub export fn var_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     }
     return @import("std").mem.zeroes(Value);
 }
-pub export fn maxl_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+pub export fn maxl_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
+
     _ = &args;
-    if ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    if ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_ARRAY,
         .count = 1,
