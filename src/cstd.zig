@@ -26,28 +26,13 @@ const printf = @cImport(@cInclude("stdio.h")).printf;
 pub export fn assert_nf(argCount: c_int, args: [*c]Value) Value {
     if (argCount != @as(c_int, 2)) {
         runtimeError("assert() takes 1 argument.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     if (valuesEqual(args[0], args[1])) {
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     } else {
         runtimeError("Assertion failed {s} != {s}", .{ valueToString(args[0]), valueToString(args[1]) });
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     return Value.init_nil();
 }
@@ -64,21 +49,11 @@ pub fn iter_nf(argCount: c_int, args: [*c]Value) Value {
 pub export fn next_nf(argCount: c_int, args: [*c]Value) Value {
     if (argCount != 1) {
         runtimeError("next() takes 1 argument.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     if (!isObjType(args[0], .OBJ_ARRAY) and !isObjType(args[0], .OBJ_FVECTOR)) {
         runtimeError("Argument must be an iterable.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     var next: Value = Value{
         .type = .VAL_NIL,
@@ -102,21 +77,11 @@ pub export fn next_nf(argCount: c_int, args: [*c]Value) Value {
 pub export fn hasNext_nf(argCount: c_int, args: [*c]Value) Value {
     if (argCount != 1) {
         runtimeError("has_next() takes 1 argument.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     if (!isObjType(args[0], .OBJ_ARRAY) and !isObjType(args[0], .OBJ_FVECTOR)) {
         runtimeError("Argument must be an iterable.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     var hasNext: bool = 0 != 0;
     _ = &hasNext;
@@ -135,30 +100,15 @@ pub export fn hasNext_nf(argCount: c_int, args: [*c]Value) Value {
 pub export fn peek_nf(argCount: c_int, args: [*c]Value) Value {
     if (argCount != @as(c_int, 2)) {
         runtimeError("peek() takes 2 argument.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     if (!isObjType(args[0], .OBJ_ARRAY) and !isObjType(args[0], .OBJ_FVECTOR)) {
         runtimeError("Argument must be an iterable.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     if (!((args[1].type == .VAL_INT) or (args[1].type == .VAL_DOUBLE))) {
         runtimeError("Second argument must be a number.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     var pos: c_int = if (args[1].type == .VAL_DOUBLE) @intFromFloat(args[1].as.num_double) else args[1].as.num_int;
     _ = &pos;
@@ -184,21 +134,11 @@ pub export fn peek_nf(argCount: c_int, args: [*c]Value) Value {
 pub export fn reset_nf(argCount: c_int, args: [*c]Value) Value {
     if (argCount != 1) {
         runtimeError("reset() takes 1 argument.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     if (!isObjType(args[0], .OBJ_ARRAY) and !isObjType(args[0], .OBJ_FVECTOR)) {
         runtimeError("Argument must be an iterable.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     if (isObjType(args[0], .OBJ_ARRAY)) {
         obj_h.resetObjectArray(@as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj))));
@@ -215,30 +155,15 @@ pub export fn reset_nf(argCount: c_int, args: [*c]Value) Value {
 pub export fn skip_nf(argCount: c_int, args: [*c]Value) Value {
     if (argCount != @as(c_int, 2)) {
         runtimeError("skip() takes 2 arguments.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     if (!isObjType(args[0], .OBJ_ARRAY) and !isObjType(args[0], .OBJ_FVECTOR)) {
         runtimeError("Argument must be an iterable.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     if (!((args[1].type == .VAL_INT) or (args[1].type == .VAL_DOUBLE))) {
         runtimeError("Second argument must be a number.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     var skip: c_int = if (args[1].type == .VAL_DOUBLE) @intFromFloat(args[1].as.num_double) else args[1].as.num_int;
     _ = &skip;
@@ -319,12 +244,7 @@ pub export fn array_nf(argCount: c_int, args: [*c]Value) Value {
         };
     } else {
         runtimeError("array() takes 0 or 1 argument.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     return Value.init_nil();
 }
@@ -332,12 +252,7 @@ pub export fn linkedlist_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &args;
     if (argCount != 0) {
         runtimeError("linked_list() takes no arguments.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     var l: [*c]ObjLinkedList = obj_h.newLinkedList();
     _ = &l;
@@ -352,12 +267,7 @@ pub export fn hashtable_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &args;
     if (argCount != 0) {
         runtimeError("hash_table() takes no arguments.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     var h: [*c]ObjHashTable = obj_h.newHashTable();
     _ = &h;
@@ -372,12 +282,7 @@ pub export fn matrix_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
     if (!((args[0].type == .VAL_INT) or (args[0].type == .VAL_DOUBLE)) or !((args[1].type == .VAL_INT) or (args[1].type == .VAL_DOUBLE))) {
         runtimeError("Both arguments must be numbers.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     var rows: c_int = if (args[0].type == .VAL_DOUBLE) @intFromFloat(args[0].as.num_double) else args[0].as.num_int;
     _ = &rows;
@@ -395,21 +300,11 @@ pub export fn matrix_nf(argCount: c_int, args: [*c]Value) Value {
 pub export fn fvector_nf(argCount: c_int, args: [*c]Value) Value {
     if (argCount != 1) {
         runtimeError("fvec() takes 1 argument.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     if (!((args[0].type == .VAL_INT) or (args[0].type == .VAL_DOUBLE)) and !isObjType(args[0], .OBJ_ARRAY)) {
         runtimeError("First argument must be an numbers or an array.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     if (isObjType(args[0], .OBJ_ARRAY)) {
         var a: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj)));
@@ -457,12 +352,7 @@ pub export fn range_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
     if (!((args[0].type == .VAL_INT) or (args[0].type == .VAL_DOUBLE)) and !((args[1].type == .VAL_INT) or (args[1].type == .VAL_DOUBLE))) {
         runtimeError("Both arguments must be numbers.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     var start: c_int = if (args[0].type == .VAL_DOUBLE) @intFromFloat(args[0].as.num_double) else args[0].as.num_int;
     _ = &start;
@@ -507,21 +397,11 @@ pub export fn slice_nf(argCount: c_int, args: [*c]Value) Value {
         .count = 1,
     })))) {
         runtimeError("First argument must be an array, linked list or vector.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     if (!((args[0].type == .VAL_INT) or (args[0].type == .VAL_DOUBLE)) and !((args[1].type == .VAL_INT) or (args[1].type == .VAL_DOUBLE))) {
         runtimeError("Second and third arguments must be numbers.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
@@ -603,21 +483,11 @@ pub export fn splice_nf(argCount: c_int, args: [*c]Value) Value {
         .count = 1,
     })))) {
         runtimeError("First argument must be an array, linked list or vector.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     if (!((args[1].type == .VAL_INT) or (args[1].type == .VAL_DOUBLE)) or !((args[2].type == .VAL_INT) or (args[2].type == .VAL_DOUBLE))) {
         runtimeError("Second and third arguments must be numbers.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
@@ -696,12 +566,7 @@ pub export fn push_nf(argCount: c_int, args: [*c]Value) Value {
         .count = 1,
     })) {
         runtimeError("First argument must be a list type.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     switch (args[0].as.obj.*.type) {
         .OBJ_ARRAY => {
@@ -770,12 +635,7 @@ pub export fn push_nf(argCount: c_int, args: [*c]Value) Value {
 pub export fn pop_nf(argCount: c_int, args: [*c]Value) Value {
     if (argCount != 1) {
         runtimeError("pop() takes 1 argument.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     if ((notObjTypes(ObjTypeCheckParams{
         .values = args,
@@ -791,12 +651,7 @@ pub export fn pop_nf(argCount: c_int, args: [*c]Value) Value {
         .count = 1,
     })))) {
         runtimeError("First argument must be a list type.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
@@ -860,21 +715,11 @@ pub export fn nth_nf(argCount: c_int, args: [*c]Value) Value {
         .count = 1,
     })))) and (isObjType(args[0], .OBJ_HASH_TABLE))) {
         runtimeError("First argument must be an array, matrix, linked list or Vector.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     if (!((args[1].type == .VAL_INT) or (args[1].type == .VAL_DOUBLE))) {
         runtimeError("Second argument must be a number.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
@@ -973,12 +818,7 @@ pub export fn sort_nf(argCount: c_int, args: [*c]Value) Value {
         .count = 1,
     })))) {
         runtimeError("First argument must be a list type.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
@@ -1033,12 +873,7 @@ pub export fn contains_nf(argCount: c_int, args: [*c]Value) Value {
         .count = 1,
     }))) and !isObjType(args[0], .OBJ_HASH_TABLE)) {
         runtimeError("First argument must be a collection type.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
@@ -1163,12 +998,7 @@ pub export fn contains_nf(argCount: c_int, args: [*c]Value) Value {
 pub export fn insert_nf(argCount: c_int, args: [*c]Value) Value {
     if (argCount != @as(c_int, 3)) {
         runtimeError("insert() takes 3 arguments.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     if ((notObjTypes(ObjTypeCheckParams{
         .values = args,
@@ -1180,21 +1010,11 @@ pub export fn insert_nf(argCount: c_int, args: [*c]Value) Value {
         .count = 1,
     }))) {
         runtimeError("First argument must be an array or vector.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     if (!((args[1].type == .VAL_INT) or (args[1].type == .VAL_DOUBLE))) {
         runtimeError("Second argument must be a number.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
@@ -1262,12 +1082,7 @@ pub export fn len_nf(argCount: c_int, args: [*c]Value) Value {
         .count = 1,
     }))))) {
         runtimeError("First argument must be a collection type.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
@@ -1355,12 +1170,7 @@ pub export fn search_nf(argCount: c_int, args: [*c]Value) Value {
         .count = 1,
     }))))) {
         runtimeError("First argument must be a list type.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
@@ -1441,12 +1251,7 @@ pub export fn is_empty_nf(argCount: c_int, args: [*c]Value) Value {
         .count = 1,
     }))))) {
         runtimeError("First argument must be a collection type.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
@@ -1513,12 +1318,7 @@ pub export fn equal_list_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
     if (!isObjType(args[0], .OBJ_ARRAY) and !isObjType(args[0], .OBJ_LINKED_LIST)) {
         runtimeError("First argument must be an array, linked list or vector.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
@@ -1620,12 +1420,7 @@ pub export fn reverse_nf(argCount: c_int, args: [*c]Value) Value {
         .count = 1,
     })))) {
         runtimeError("First argument must be a list type.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
@@ -1662,12 +1457,7 @@ pub export fn reverse_nf(argCount: c_int, args: [*c]Value) Value {
 pub export fn merge_nf(argCount: c_int, args: [*c]Value) Value {
     if (argCount != @as(c_int, 2)) {
         runtimeError("merge() takes 2 arguments.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     if ((notObjTypes(ObjTypeCheckParams{
         .values = args,
@@ -1683,12 +1473,7 @@ pub export fn merge_nf(argCount: c_int, args: [*c]Value) Value {
         .count = @as(c_int, 2),
     })))) {
         runtimeError("Both arguments must be the same list type.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
@@ -1777,12 +1562,7 @@ pub export fn clone_nf(argCount: c_int, args: [*c]Value) Value {
         .count = 1,
     }))))) {
         runtimeError("First argument must be an array, linked list or vector.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
@@ -1853,8 +1633,6 @@ pub export fn clone_nf(argCount: c_int, args: [*c]Value) Value {
 }
 pub export fn clear_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-
-    _ = &args;
     if ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_HASH_TABLE,
@@ -1988,12 +1766,7 @@ pub export fn std_nf(argCount: c_int, args: [*c]Value) Value {
         .count = 1,
     }))) {
         runtimeError("First argument must be an array or vector.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
@@ -2027,12 +1800,7 @@ pub export fn var_nf(argCount: c_int, args: [*c]Value) Value {
         .count = 1,
     }))) {
         runtimeError("First argument must be an array or vector.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
@@ -2078,12 +1846,7 @@ pub export fn maxl_nf(argCount: c_int, args: [*c]Value) Value {
         .count = 1,
     }))) {
         runtimeError("First argument must be an array or vector.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
@@ -2129,12 +1892,7 @@ pub export fn minl_nf(argCount: c_int, args: [*c]Value) Value {
         .count = 1,
     }))) {
         runtimeError("First argument must be an array or vector.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
@@ -2172,12 +1930,7 @@ pub export fn dot_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &args;
     if (!isObjType(args[0], .OBJ_FVECTOR) and !isObjType(args[1], .OBJ_FVECTOR)) {
         runtimeError("Both arguments must be vectors.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     var a: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
     _ = &a;
@@ -2198,12 +1951,7 @@ pub export fn cross_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &args;
     if (!isObjType(args[0], .OBJ_FVECTOR) and !isObjType(args[1], .OBJ_FVECTOR)) {
         runtimeError("Both arguments must be vectors.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     var a: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
     _ = &a;
@@ -2224,12 +1972,7 @@ pub export fn norm_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &args;
     if (!isObjType(args[0], .OBJ_FVECTOR)) {
         runtimeError("First argument must be a vector.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     var a: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
     _ = &a;
@@ -2248,12 +1991,7 @@ pub export fn proj_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &args;
     if (!isObjType(args[0], .OBJ_FVECTOR) and !isObjType(args[1], .OBJ_FVECTOR)) {
         runtimeError("Both arguments must be vectors.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     var a: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
     _ = &a;
@@ -2274,12 +2012,7 @@ pub export fn reject_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &args;
     if (!isObjType(args[0], .OBJ_FVECTOR) and !isObjType(args[1], .OBJ_FVECTOR)) {
         runtimeError("Both arguments must be vectors.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     var a: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
     _ = &a;
@@ -2300,12 +2033,7 @@ pub export fn reflect_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &args;
     if (!isObjType(args[0], .OBJ_FVECTOR) and !isObjType(args[1], .OBJ_FVECTOR)) {
         runtimeError("Both arguments must be vectors.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     var a: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
     _ = &a;
@@ -2326,12 +2054,7 @@ pub export fn refract_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &args;
     if (((!isObjType(args[0], .OBJ_FVECTOR) and !isObjType(args[1], .OBJ_FVECTOR)) and !((args[2].type == .VAL_INT) or (args[2].type == .VAL_DOUBLE))) and !((args[@as(c_uint, @intCast(@as(c_int, 3)))].type == .VAL_INT) or (args[@as(c_uint, @intCast(@as(c_int, 3)))].type == .VAL_DOUBLE))) {
         runtimeError("First and second arguments must be vectors and the third and fourth arguments must be numbers.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     var a: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
     _ = &a;
@@ -2356,12 +2079,7 @@ pub export fn angle_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &args;
     if (!isObjType(args[0], .OBJ_FVECTOR) or !isObjType(args[1], .OBJ_FVECTOR)) {
         runtimeError("Both arguments must be vectors.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     var a: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
     _ = &a;
@@ -2382,30 +2100,15 @@ pub export fn put_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &args;
     if (argCount != @as(c_int, 3)) {
         runtimeError("put() takes 3 arguments.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     if (!isObjType(args[0], .OBJ_HASH_TABLE)) {
         runtimeError("First argument must be a hash table.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     if (!isObjType(args[1], .OBJ_STRING)) {
         runtimeError("Second argument must be a string.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     var h: [*c]ObjHashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
     _ = &h;
@@ -2424,30 +2127,15 @@ pub export fn get_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &args;
     if (argCount != @as(c_int, 2)) {
         runtimeError("get() takes 2 arguments.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     if (!isObjType(args[0], .OBJ_HASH_TABLE)) {
         runtimeError("First argument must be a hash table.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     if (!isObjType(args[1], .OBJ_STRING)) {
         runtimeError("Second argument must be a string.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     var h: [*c]ObjHashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
     _ = &h;
@@ -2461,12 +2149,7 @@ pub export fn remove_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &args;
     if (argCount != @as(c_int, 2)) {
         runtimeError("remove() takes 2 arguments.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     if (!isObjType(args[0], .OBJ_HASH_TABLE) and ((notObjTypes(ObjTypeCheckParams{
         .values = args,
@@ -2478,21 +2161,11 @@ pub export fn remove_nf(argCount: c_int, args: [*c]Value) Value {
         .count = 1,
     })))) {
         runtimeError("First argument must be a hash table, array, or float vector.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     if (!isObjType(args[1], .OBJ_STRING) and !((args[1].type == .VAL_INT) or (args[1].type == .VAL_DOUBLE))) {
         runtimeError("Second argument must be a string or number.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     while (true) {
         switch (args[0].as.obj.*.type) {
@@ -2542,12 +2215,7 @@ pub export fn push_front_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &args;
     if (!isObjType(args[0], .OBJ_LINKED_LIST)) {
         runtimeError("First argument must be a linked list.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     var l: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
     _ = &l;
@@ -2574,12 +2242,7 @@ pub export fn pop_front_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &args;
     if (!isObjType(args[0], .OBJ_LINKED_LIST)) {
         runtimeError("First argument must be a linked list.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     var l: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
     _ = &l;
@@ -2591,30 +2254,15 @@ pub export fn set_row_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &args;
     if (!isObjType(args[0], .OBJ_MATRIX)) {
         runtimeError("First argument must be a matrix.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     if (!((args[1].type == .VAL_INT) or (args[1].type == .VAL_DOUBLE))) {
         runtimeError("Second argument must be an numbers.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     if (!isObjType(args[2], .OBJ_ARRAY)) {
         runtimeError("Third argument must be an array.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     var matrix: [*c]ObjMatrix = @as([*c]ObjMatrix, @ptrCast(@alignCast(args[0].as.obj)));
     _ = &matrix;
@@ -2636,30 +2284,15 @@ pub export fn set_col_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &args;
     if (!isObjType(args[0], .OBJ_MATRIX)) {
         runtimeError("First argument must be a matrix.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     if (!((args[1].type == .VAL_INT) or (args[1].type == .VAL_DOUBLE))) {
         runtimeError("Second argument must be an numbers.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     if (!isObjType(args[2], .OBJ_ARRAY)) {
         runtimeError("Third argument must be an array.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     var matrix: [*c]ObjMatrix = @as([*c]ObjMatrix, @ptrCast(@alignCast(args[0].as.obj)));
     _ = &matrix;
@@ -2682,39 +2315,19 @@ pub export fn set_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &args;
     if (argCount != @as(c_int, 4)) {
         runtimeError("set() takes 4 arguments.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     if (!isObjType(args[0], .OBJ_MATRIX)) {
         runtimeError("First argument must be a matrix.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     if (!((args[1].type == .VAL_INT) or (args[1].type == .VAL_DOUBLE))) {
         runtimeError("Second argument must be an numbers.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     if (!((args[2].type == .VAL_INT) or (args[2].type == .VAL_DOUBLE))) {
         runtimeError("Third argument must be an numbers.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     var matrix: [*c]ObjMatrix = @as([*c]ObjMatrix, @ptrCast(@alignCast(args[0].as.obj)));
     _ = &matrix;
@@ -2736,12 +2349,7 @@ pub export fn kolasa_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &args;
     if (argCount != 0) {
         runtimeError("kolasa() takes no arguments.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     var m: [*c]ObjMatrix = obj_h.newMatrix(@as(c_int, 3), @as(c_int, 3));
     _ = &m;
@@ -2773,12 +2381,7 @@ pub export fn rref_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &args;
     if (!isObjType(args[0], .OBJ_MATRIX)) {
         runtimeError("First argument must be a matrix.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     var m: [*c]ObjMatrix = @as([*c]ObjMatrix, @ptrCast(@alignCast(args[0].as.obj)));
     _ = &m;
@@ -2796,12 +2399,7 @@ pub export fn rank_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &args;
     if (!isObjType(args[0], .OBJ_MATRIX)) {
         runtimeError("First argument must be a matrix.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     var m: [*c]ObjMatrix = @as([*c]ObjMatrix, @ptrCast(@alignCast(args[0].as.obj)));
     _ = &m;
@@ -2818,12 +2416,7 @@ pub export fn transpose_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &args;
     if (!isObjType(args[0], .OBJ_MATRIX)) {
         runtimeError("First argument must be a matrix.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     var m: [*c]ObjMatrix = @as([*c]ObjMatrix, @ptrCast(@alignCast(args[0].as.obj)));
     _ = &m;
@@ -2842,12 +2435,7 @@ pub export fn determinant_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &args;
     if (!isObjType(args[0], .OBJ_MATRIX)) {
         runtimeError("First argument must be a matrix.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     var m: [*c]ObjMatrix = @as([*c]ObjMatrix, @ptrCast(@alignCast(args[0].as.obj)));
     _ = &m;
@@ -2864,12 +2452,7 @@ pub export fn lu_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &args;
     if (!isObjType(args[0], .OBJ_MATRIX)) {
         runtimeError("First argument must be a matrix.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     var m: [*c]ObjMatrix = @as([*c]ObjMatrix, @ptrCast(@alignCast(args[0].as.obj)));
     _ = &m;
@@ -2888,12 +2471,7 @@ pub export fn workspace_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &args;
     if (argCount != 0) {
         runtimeError("workspace() takes no arguments.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     var e: [*c]Entry = entries_(&vm_h.vm.globals);
     _ = &e;
@@ -2940,21 +2518,11 @@ pub export fn linspace_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &args;
     if (argCount != @as(c_int, 3)) {
         runtimeError("linspace() takes 3 arguments.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     if ((!((args[0].type == .VAL_INT) or (args[0].type == .VAL_DOUBLE)) and !((args[1].type == .VAL_INT) or (args[1].type == .VAL_DOUBLE))) and !((args[2].type == .VAL_INT) or (args[2].type == .VAL_DOUBLE))) {
         runtimeError("First and second arguments must be numbers and the third argument must be an numbers.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     var start: f64 = if (args[0].type == .VAL_INT) @floatFromInt(args[0].as.num_int) else args[0].as.num_double;
     _ = &start;
@@ -2977,21 +2545,11 @@ pub export fn interp1_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &args;
     if (argCount != @as(c_int, 3)) {
         runtimeError("interp1() takes 3 arguments.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     if ((!isObjType(args[0], .OBJ_FVECTOR) and !isObjType(args[1], .OBJ_FVECTOR)) and !((args[2].type == .VAL_INT) or (args[2].type == .VAL_DOUBLE))) {
         runtimeError("First and second arguments must be vectors and the third argument must be a number.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     var x: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
     _ = &x;

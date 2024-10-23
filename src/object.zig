@@ -795,12 +795,7 @@ pub fn removeArray(arg_arr: [*c]ObjArray, arg_index_1: c_int) Value {
     _ = &index_1;
     if ((index_1 < 0) or (index_1 >= arr.*.count)) {
         _ = printf("Index out of bounds");
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     var v: Value = (blk: {
         const tmp = index_1;
@@ -830,12 +825,7 @@ pub fn getArray(arg_arr: [*c]ObjArray, arg_index_1: c_int) Value {
     _ = &index_1;
     if ((index_1 < 0) or (index_1 >= arr.*.count)) {
         _ = printf("Index out of bounds");
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     return (blk: {
         const tmp = index_1;
@@ -846,12 +836,7 @@ pub fn popArray(arg_array: [*c]ObjArray) Value {
     var array = arg_array;
     _ = &array;
     if (array.*.count == 0) {
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     return (blk: {
         const tmp = blk_1: {
@@ -1164,12 +1149,7 @@ pub fn minArray(arg_array: [*c]ObjArray) Value {
     var array = arg_array;
     _ = &array;
     if (array.*.count == 0) {
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     var _min: Value = array.*.values[0];
     _ = &_min;
@@ -1194,12 +1174,7 @@ pub fn maxArray(arg_array: [*c]ObjArray) Value {
     var array = arg_array;
     _ = &array;
     if (array.*.count == 0) {
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     var _max: Value = array.*.values[0];
     _ = &_max;
@@ -1224,12 +1199,7 @@ pub fn meanArray(arg_array: [*c]ObjArray) Value {
     var array = arg_array;
     _ = &array;
     if (array.*.count == 0) {
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     var sum: Value = array.*.values[0];
     _ = &sum;
@@ -1256,12 +1226,7 @@ pub fn varianceArray(arg_array: [*c]ObjArray) Value {
     var array = arg_array;
     _ = &array;
     if (array.*.count == 0) {
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     var mean: Value = meanArray(array);
     _ = &mean;
@@ -1551,12 +1516,7 @@ pub fn nextObjectArray(arg_array: [*c]ObjArray) Value {
     var array = arg_array;
     _ = &array;
     if (array.*.pos >= array.*.count) {
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     return (blk: {
         const tmp = blk_1: {
@@ -1579,12 +1539,7 @@ pub fn peekObjectArray(arg_array: [*c]ObjArray, arg_pos: c_int) Value {
     var pos = arg_pos;
     _ = &pos;
     if (pos >= array.*.count) {
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     return (blk: {
         const tmp = pos;
@@ -1681,12 +1636,7 @@ pub fn popFront(arg_list: [*c]ObjLinkedList) Value {
     var list = arg_list;
     _ = &list;
     if (list.*.head == null) {
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     var node: [*c]Node = list.*.head;
     _ = &node;
@@ -1707,12 +1657,7 @@ pub fn popBack(arg_list: [*c]ObjLinkedList) Value {
     var list = arg_list;
     _ = &list;
     if (list.*.tail == null) {
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     var node: [*c]Node = list.*.tail;
     _ = &node;
@@ -1941,12 +1886,7 @@ pub fn getHashTable(arg_table: [*c]ObjHashTable, arg_key: [*c]ObjString) Value {
     if (table_h.tableGet(&table.*.table, key, &value)) {
         return value;
     } else {
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return Value.init_nil();
     }
     return @import("std").mem.zeroes(Value);
 }
