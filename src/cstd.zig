@@ -2,6 +2,7 @@ const value_h = @import("value.zig");
 const obj_h = @import("object.zig");
 const table_h = @import("table.zig");
 const conv = @import("conv.zig");
+const nil = conv.nil_val;
 const Entry = table_h.Entry;
 const entries_ = table_h.entries_;
 const Value = value_h.Value;
@@ -542,19 +543,19 @@ pub export fn slice_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     _ = &argCount;
     var args = arg_args;
     _ = &args;
-    if ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    if ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_LINKED_LIST,
         .count = 1,
-    }))) != 0) and ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    })) and ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_ARRAY,
         .count = 1,
-    }))) != 0) and (@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    })) and (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_FVECTOR,
         .count = 1,
-    }))) != 0))) {
+    })))) {
         runtimeError("First argument must be an array, linked list or vector.", .{});
         return Value{
             .type = .VAL_NIL,
@@ -639,19 +640,19 @@ pub export fn splice_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     _ = &argCount;
     var args = arg_args;
     _ = &args;
-    if ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    if ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_LINKED_LIST,
         .count = 1,
-    }))) != 0) and ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    })) and ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_ARRAY,
         .count = 1,
-    }))) != 0) and (@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    })) and (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_FVECTOR,
         .count = 1,
-    }))) != 0))) {
+    })))) {
         runtimeError("First argument must be an array, linked list or vector.", .{});
         return Value{
             .type = .VAL_NIL,
@@ -841,19 +842,19 @@ pub export fn pop_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
             },
         };
     }
-    if ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    if ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_LINKED_LIST,
         .count = 1,
-    }))) != 0) and ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    })) and ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_ARRAY,
         .count = 1,
-    }))) != 0) and (@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    })) and (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_FVECTOR,
         .count = 1,
-    }))) != 0))) {
+    })))) {
         runtimeError("First argument must be a list type.", .{});
         return Value{
             .type = .VAL_NIL,
@@ -909,27 +910,27 @@ pub export fn nth_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     _ = &argCount;
     var args = arg_args;
     _ = &args;
-    if ((((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    if ((((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_HASH_TABLE,
         .count = 1,
-    }))) != 0) and (@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    })) and (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_MATRIX,
         .count = 1,
-    }))) != 0)) and ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    }))) and ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_LINKED_LIST,
         .count = 1,
-    }))) != 0) and ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    })) and ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_ARRAY,
         .count = 1,
-    }))) != 0) and (@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    })) and (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_FVECTOR,
         .count = 1,
-    }))) != 0)))) and (@as(c_int, @intFromBool(isObjType(args[0], .OBJ_HASH_TABLE))) != 0)) {
+    }))))) and (isObjType(args[0], .OBJ_HASH_TABLE))) {
         runtimeError("First argument must be an array, matrix, linked list or Vector.", .{});
         return Value{
             .type = .VAL_NIL,
@@ -1036,19 +1037,19 @@ pub export fn sort_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     _ = &argCount;
     var args = arg_args;
     _ = &args;
-    if ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    if ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_LINKED_LIST,
         .count = 1,
-    }))) != 0) and ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    })) and ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_ARRAY,
         .count = 1,
-    }))) != 0) and (@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    })) and (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_FVECTOR,
         .count = 1,
-    }))) != 0))) {
+    })))) {
         runtimeError("First argument must be a list type.", .{});
         return Value{
             .type = .VAL_NIL,
@@ -1117,19 +1118,19 @@ pub export fn contains_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     _ = &argCount;
     var args = arg_args;
     _ = &args;
-    if (((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    if (((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_LINKED_LIST,
         .count = 1,
-    }))) != 0) and ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    })) and ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_ARRAY,
         .count = 1,
-    }))) != 0) and (@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    })) and (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_FVECTOR,
         .count = 1,
-    }))) != 0))) and !isObjType(args[0], .OBJ_HASH_TABLE)) {
+    })))) and !isObjType(args[0], .OBJ_HASH_TABLE)) {
         runtimeError("First argument must be a collection type.", .{});
         return Value{
             .type = .VAL_NIL,
@@ -1282,15 +1283,15 @@ pub export fn insert_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
             },
         };
     }
-    if ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    if ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_ARRAY,
         .count = 1,
-    }))) != 0) and (@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    })) and (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_FVECTOR,
         .count = 1,
-    }))) != 0)) {
+    }))) {
         runtimeError("First argument must be an array or vector.", .{});
         return Value{
             .type = .VAL_NIL,
@@ -1368,27 +1369,27 @@ pub export fn len_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     _ = &argCount;
     var args = arg_args;
     _ = &args;
-    if (((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    if (((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_HASH_TABLE,
         .count = 1,
-    }))) != 0) and (@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    })) and (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_MATRIX,
         .count = 1,
-    }))) != 0)) and ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    }))) and ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_LINKED_LIST,
         .count = 1,
-    }))) != 0) and ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    })) and ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_ARRAY,
         .count = 1,
-    }))) != 0) and (@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    })) and (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_FVECTOR,
         .count = 1,
-    }))) != 0)))) {
+    }))))) {
         runtimeError("First argument must be a collection type.", .{});
         return Value{
             .type = .VAL_NIL,
@@ -1470,19 +1471,19 @@ pub export fn search_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     _ = &argCount;
     var args = arg_args;
     _ = &args;
-    if ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    if ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_LINKED_LIST,
         .count = 1,
-    }))) != 0) and ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    })) and ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_ARRAY,
         .count = 1,
-    }))) != 0) and (@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    })) and (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_FVECTOR,
         .count = 1,
-    }))) != 0))) {
+    })))) {
         runtimeError("First argument must be a list type.", .{});
         return Value{
             .type = .VAL_NIL,
@@ -1564,27 +1565,27 @@ pub export fn is_empty_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     _ = &argCount;
     var args = arg_args;
     _ = &args;
-    if (((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    if (((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_HASH_TABLE,
         .count = 1,
-    }))) != 0) and (@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    })) and (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_MATRIX,
         .count = 1,
-    }))) != 0)) and ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    }))) and ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_LINKED_LIST,
         .count = 1,
-    }))) != 0) and ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    })) and ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_ARRAY,
         .count = 1,
-    }))) != 0) and (@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    })) and (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_FVECTOR,
         .count = 1,
-    }))) != 0)))) {
+    }))))) {
         runtimeError("First argument must be a collection type.", .{});
         return Value{
             .type = .VAL_NIL,
@@ -1765,19 +1766,19 @@ pub export fn reverse_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     _ = &argCount;
     var args = arg_args;
     _ = &args;
-    if ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    if ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_LINKED_LIST,
         .count = 1,
-    }))) != 0) and ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    })) and ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_ARRAY,
         .count = 1,
-    }))) != 0) and (@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    })) and (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_FVECTOR,
         .count = 1,
-    }))) != 0))) {
+    })))) {
         runtimeError("First argument must be a list type.", .{});
         return Value{
             .type = .VAL_NIL,
@@ -1847,19 +1848,19 @@ pub export fn merge_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
             },
         };
     }
-    if ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    if ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_LINKED_LIST,
         .count = @as(c_int, 2),
-    }))) != 0) and ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    })) and ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_ARRAY,
         .count = @as(c_int, 2),
-    }))) != 0) and (@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    })) and (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_FVECTOR,
         .count = @as(c_int, 2),
-    }))) != 0))) {
+    })))) {
         runtimeError("Both arguments must be the same list type.", .{});
         return Value{
             .type = .VAL_NIL,
@@ -1934,27 +1935,27 @@ pub export fn clone_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     _ = &argCount;
     var args = arg_args;
     _ = &args;
-    if (((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    if (((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_HASH_TABLE,
         .count = 1,
-    }))) != 0) and (@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    })) and (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_MATRIX,
         .count = 1,
-    }))) != 0)) and ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    }))) and ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_LINKED_LIST,
         .count = 1,
-    }))) != 0) and ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    })) and ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_ARRAY,
         .count = 1,
-    }))) != 0) and (@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    })) and (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_FVECTOR,
         .count = 1,
-    }))) != 0)))) {
+    }))))) {
         runtimeError("First argument must be an array, linked list or vector.", .{});
         return Value{
             .type = .VAL_NIL,
@@ -2040,188 +2041,123 @@ pub export fn clear_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     _ = &argCount;
     var args = arg_args;
     _ = &args;
-    if (((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    if (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_HASH_TABLE,
         .count = 1,
-    }))) != 0) and (@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    }) and (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_MATRIX,
         .count = 1,
-    }))) != 0)) and ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    })) and (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_LINKED_LIST,
         .count = 1,
-    }))) != 0) and ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    })) and ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_ARRAY,
         .count = 1,
-    }))) != 0) and (@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    })) and (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_FVECTOR,
         .count = 1,
-    }))) != 0)))) {
+    })))) {
         runtimeError("First argument must be an array, linked list, hash table or vector.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return nil();
     }
-    while (true) {
-        switch (args[0].as.obj.*.type) {
-            .OBJ_ARRAY => {
-                obj_h.clearArray(@as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj))));
-                break;
-            },
-            .OBJ_FVECTOR => {
-                obj_h.clearFloatVector(@as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj))));
-                break;
-            },
-            .OBJ_LINKED_LIST => {
-                obj_h.clearLinkedList(@as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj))));
-                break;
-            },
-            .OBJ_HASH_TABLE => {
-                obj_h.clearHashTable(@as([*c]ObjHashTable, @ptrCast(@alignCast(args[0].as.obj))));
-                break;
-            },
-            else => {
-                runtimeError("Unsupported type for clear().", .{});
-                return Value{
-                    .type = .VAL_NIL,
-                    .as = .{
-                        .num_int = 0,
-                    },
-                };
-            },
-        }
-        break;
-    }
-    return Value{
-        .type = .VAL_NIL,
-        .as = .{
-            .num_int = 0,
+
+    switch (args[0].as.obj.*.type) {
+        .OBJ_ARRAY => {
+            obj_h.clearArray(@as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj))));
         },
-    };
+        .OBJ_FVECTOR => {
+            obj_h.clearFloatVector(@as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj))));
+        },
+        .OBJ_LINKED_LIST => {
+            obj_h.clearLinkedList(@as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj))));
+        },
+        .OBJ_HASH_TABLE => {
+            obj_h.clearHashTable(@as([*c]ObjHashTable, @ptrCast(@alignCast(args[0].as.obj))));
+        },
+        else => {
+            runtimeError("Unsupported type for clear().", .{});
+        },
+    }
+
+    return nil();
 }
-pub export fn sum_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
+
+pub export fn sum_nf(argCount: c_int, args: [*c]Value) Value {
     _ = &argCount;
-    var args = arg_args;
-    _ = &args;
-    if ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    if ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_ARRAY,
         .count = 1,
-    }))) != 0) and (@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    })) and (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_FVECTOR,
         .count = 1,
-    }))) != 0)) {
+    }))) {
         runtimeError("First argument must be an array or vector.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return nil();
     }
-    while (true) {
-        switch (args[0].as.obj.*.type) {
-            .OBJ_ARRAY => {
-                {
-                    var a: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &a;
-                    return obj_h.sumArray(a);
-                }
-            },
-            .OBJ_FVECTOR => {
-                {
-                    var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &f;
-                    return Value{
-                        .type = .VAL_DOUBLE,
-                        .as = .{
-                            .num_double = obj_h.sumFloatVector(f),
-                        },
-                    };
-                }
-            },
-            else => {
-                runtimeError("Unsupported type for clear().", .{});
-                return Value{
-                    .type = .VAL_NIL,
-                    .as = .{
-                        .num_int = 0,
-                    },
-                };
-            },
-        }
-        break;
+    switch (args[0].as.obj.*.type) {
+        .OBJ_ARRAY => {
+            const a: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj)));
+
+            return obj_h.sumArray(a);
+        },
+        .OBJ_FVECTOR => {
+            const f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
+            return conv.double_val(obj_h.sumFloatVector(f));
+        },
+        else => {
+            runtimeError("Unsupported type for clear().", .{});
+            return nil();
+        },
     }
-    return @import("std").mem.zeroes(Value);
 }
-pub export fn mean_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
-    var argCount = arg_argCount;
-    _ = &argCount;
-    var args = arg_args;
-    _ = &args;
-    if ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+
+pub export fn mean_nf(argCount: c_int, args: [*c]Value) Value {
+    _ = argCount;
+    if ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_ARRAY,
         .count = 1,
-    }))) != 0) and (@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    })) and (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_FVECTOR,
         .count = 1,
-    }))) != 0)) {
+    }))) {
         runtimeError("First argument must be an array or vector.", .{});
-        return Value{
-            .type = .VAL_NIL,
-            .as = .{
-                .num_int = 0,
-            },
-        };
+        return nil();
     }
-    while (true) {
-        switch (args[0].as.obj.*.type) {
-            .OBJ_ARRAY => return obj_h.meanArray(@as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj)))),
-            .OBJ_FVECTOR => return Value{
-                .type = .VAL_DOUBLE,
-                .as = .{
-                    .num_double = obj_h.meanFloatVector(@as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)))),
-                },
-            },
-            else => {
-                runtimeError("Unsupported type for clear().", .{});
-                return Value{
-                    .type = .VAL_NIL,
-                    .as = .{
-                        .num_int = 0,
-                    },
-                };
-            },
-        }
-        break;
+
+    switch (args[0].as.obj.*.type) {
+        .OBJ_ARRAY => return obj_h.meanArray(@as([*c]ObjArray, @ptrCast(@alignCast(args[0].as.obj)))),
+        .OBJ_FVECTOR => return conv.double_val(obj_h.meanFloatVector(@ptrCast(@alignCast(args[0].as.obj)))),
+        else => {
+            runtimeError("Unsupported type for mean().", .{});
+            return nil();
+        },
     }
-    return @import("std").mem.zeroes(Value);
+
+    return nil();
 }
 pub export fn std_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     var argCount = arg_argCount;
     _ = &argCount;
     var args = arg_args;
     _ = &args;
-    if ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    if ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_ARRAY,
         .count = 1,
-    }))) != 0) and (@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    })) and (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_FVECTOR,
         .count = 1,
-    }))) != 0)) {
+    }))) {
         runtimeError("First argument must be an array or vector.", .{});
         return Value{
             .type = .VAL_NIL,
@@ -2258,15 +2194,15 @@ pub export fn var_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     _ = &argCount;
     var args = arg_args;
     _ = &args;
-    if ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    if ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_ARRAY,
         .count = 1,
-    }))) != 0) and (@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    })) and (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_FVECTOR,
         .count = 1,
-    }))) != 0)) {
+    }))) {
         runtimeError("First argument must be an array or vector.", .{});
         return Value{
             .type = .VAL_NIL,
@@ -2315,15 +2251,15 @@ pub export fn maxl_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     _ = &argCount;
     var args = arg_args;
     _ = &args;
-    if ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    if ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_ARRAY,
         .count = 1,
-    }))) != 0) and (@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    })) and (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_FVECTOR,
         .count = 1,
-    }))) != 0)) {
+    }))) {
         runtimeError("First argument must be an array or vector.", .{});
         return Value{
             .type = .VAL_NIL,
@@ -2372,15 +2308,15 @@ pub export fn minl_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
     _ = &argCount;
     var args = arg_args;
     _ = &args;
-    if ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    if ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_ARRAY,
         .count = 1,
-    }))) != 0) and (@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    })) and (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_FVECTOR,
         .count = 1,
-    }))) != 0)) {
+    }))) {
         runtimeError("First argument must be an array or vector.", .{});
         return Value{
             .type = .VAL_NIL,
@@ -2737,15 +2673,15 @@ pub export fn remove_nf(arg_argCount: c_int, arg_args: [*c]Value) Value {
             },
         };
     }
-    if (!isObjType(args[0], .OBJ_HASH_TABLE) and ((@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    if (!isObjType(args[0], .OBJ_HASH_TABLE) and ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_ARRAY,
         .count = 1,
-    }))) != 0) and (@as(c_int, @intFromBool(notObjTypes(ObjTypeCheckParams{
+    })) and (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_FVECTOR,
         .count = 1,
-    }))) != 0))) {
+    })))) {
         runtimeError("First argument must be a hash table, array, or float vector.", .{});
         return Value{
             .type = .VAL_NIL,

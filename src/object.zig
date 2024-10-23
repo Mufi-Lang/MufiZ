@@ -61,7 +61,7 @@ pub inline fn _mm256_div_pd(a: __m256d, b: __m256d) __m256d {
 }
 
 pub inline fn _mm256_fmadd_pd(a: __m256d, b: __m256d, c: __m256d) __m256d {
-    return (a * b) + c;
+    return @mulAdd(__m256d, a, b, c);
 }
 
 pub inline fn _mm256_set1_pd(w: f64) __m256d {
