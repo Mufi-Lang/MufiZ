@@ -651,92 +651,54 @@ pub fn run() callconv(.C) InterpretResult {
         _ = debug_h.disassembleInstruction(chunk, c_instruction_index);
     }
     while (true) {
-        var instruction: u8 = undefined;
-        _ = &instruction;
         while (true) {
-            switch (@as(c_int, @bitCast(@as(c_uint, blk: {
-                const tmp = (blk_1: {
-                    const ref = &frame.*.ip;
-                    const tmp_2 = ref.*;
-                    ref.* += 1;
-                    break :blk_1 tmp_2;
-                }).*;
-                instruction = tmp;
-                break :blk tmp;
-            })))) {
-                0 => {
-                    {
-                        var constant: Value = frame.*.closure.*.function.*.chunk.constants.values[
-                            (blk: {
-                                const ref = &frame.*.ip;
-                                const tmp = ref.*;
-                                ref.* += 1;
-                                break :blk tmp;
-                            }).*
-                        ];
-                        _ = &constant;
-                        push(constant);
-                        break;
-                    }
-                },
-                1 => {
-                    push(Value{
-                        .type = .VAL_NIL,
-                        .as = .{
-                            .num_int = 0,
-                        },
-                    });
+            const instruction = frame.*.ip[0];
+            frame.*.ip += 1;
+            switch (@as(chunk_h.OpCode, @enumFromInt(instruction))) {
+                .OP_CONSTANT => {
+                    // C: (frame->closure->function->chunk.constants.values[(*frame->ip++)])
+                    const constant = frame.*.closure.*.function.*.chunk.constants.values[frame.*.ip[0]];
+                    frame.*.ip += 1;
+                    push(constant);
                     break;
                 },
-                @as(c_int, 2) => {
-                    push(Value{
-                        .type = .VAL_BOOL,
-                        .as = .{
-                            .boolean = 1 != 0,
-                        },
-                    });
+                .OP_NIL => {
+                    push(Value.init_nil());
                     break;
                 },
-                @as(c_int, 3) => {
-                    push(Value{
-                        .type = .VAL_BOOL,
-                        .as = .{
-                            .boolean = 0 != 0,
-                        },
-                    });
+                .OP_TRUE => {
+                    push(Value.init_bool(true));
                     break;
                 },
-                @as(c_int, 4) => {
+                .OP_FALSE => {
+                    push(Value.init_bool(false));
+                    break;
+                },
+                .OP_POP => {
                     _ = pop();
                     break;
                 },
-                @as(c_int, 5) => {
-                    {
-                        var slot: u8 = (blk: {
-                            const ref = &frame.*.ip;
-                            const tmp = ref.*;
-                            ref.* += 1;
-                            break :blk tmp;
-                        }).*;
-                        _ = &slot;
-                        push(frame.*.slots[slot]);
-                        break;
-                    }
+                .OP_GET_LOCAL => {
+                    const slot: u8 = (blk: {
+                        const ref = &frame.*.ip;
+                        const tmp = ref.*;
+                        ref.* += 1;
+                        break :blk tmp;
+                    }).*;
+                    push(frame.*.slots[slot]);
+                    break;
                 },
-                @as(c_int, 6) => {
-                    {
-                        var slot: u8 = (blk: {
-                            const ref = &frame.*.ip;
-                            const tmp = ref.*;
-                            ref.* += 1;
-                            break :blk tmp;
-                        }).*;
-                        _ = &slot;
-                        frame.*.slots[slot] = peek(0);
-                        break;
-                    }
+                .OP_SET_LOCAL => {
+                    const slot: u8 = (blk: {
+                        const ref = &frame.*.ip;
+                        const tmp = ref.*;
+                        ref.* += 1;
+                        break :blk tmp;
+                    }).*;
+                    frame.*.slots[slot] = peek(0);
+                    break;
                 },
-                @as(c_int, 7) => {
+                .OP_GET_GLOBAL => {
                     {
                         var name: [*c]ObjString = @as([*c]ObjString, @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
                             (blk: {
@@ -757,7 +719,7 @@ pub fn run() callconv(.C) InterpretResult {
                         break;
                     }
                 },
-                @as(c_int, 8) => {
+                .OP_DEFINE_GLOBAL => {
                     {
                         var name: [*c]ObjString = @as([*c]ObjString, @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
                             (blk: {
@@ -773,7 +735,7 @@ pub fn run() callconv(.C) InterpretResult {
                         break;
                     }
                 },
-                @as(c_int, 9) => {
+                .OP_SET_GLOBAL => {
                     {
                         var name: [*c]ObjString = @as([*c]ObjString, @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
                             (blk: {
@@ -792,7 +754,7 @@ pub fn run() callconv(.C) InterpretResult {
                         break;
                     }
                 },
-                @as(c_int, 10) => {
+                .OP_GET_UPVALUE => {
                     {
                         var slot: u8 = (blk: {
                             const ref = &frame.*.ip;
@@ -805,7 +767,7 @@ pub fn run() callconv(.C) InterpretResult {
                         break;
                     }
                 },
-                @as(c_int, 11) => {
+                .OP_SET_UPVALUE => {
                     {
                         var slot: u8 = (blk: {
                             const ref = &frame.*.ip;
@@ -818,7 +780,7 @@ pub fn run() callconv(.C) InterpretResult {
                         break;
                     }
                 },
-                @as(c_int, 12) => {
+                .OP_GET_PROPERTY => {
                     {
                         if (!isObjType(peek(0), .OBJ_INSTANCE)) {
                             runtimeError("Only instances have properties.", .{});
@@ -848,7 +810,7 @@ pub fn run() callconv(.C) InterpretResult {
                         break;
                     }
                 },
-                @as(c_int, 13) => {
+                .OP_SET_PROPERTY => {
                     {
                         if (!isObjType(peek(1), .OBJ_INSTANCE)) {
                             runtimeError("Only instances have fields.", .{});
@@ -871,7 +833,7 @@ pub fn run() callconv(.C) InterpretResult {
                         break;
                     }
                 },
-                @as(c_int, 14) => {
+                .OP_GET_SUPER => {
                     {
                         var name: [*c]ObjString = @as([*c]ObjString, @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
                             (blk: {
@@ -890,7 +852,7 @@ pub fn run() callconv(.C) InterpretResult {
                         break;
                     }
                 },
-                @as(c_int, 44) => {
+                .OP_GET_ITERATOR => {
                     {}
                     {
                         _ = printf("Index get\n");
@@ -928,7 +890,7 @@ pub fn run() callconv(.C) InterpretResult {
                         break;
                     }
                 },
-                @as(c_int, 15) => {
+                .OP_INDEX_GET => {
                     {
                         _ = printf("Index get\n");
                         var idx: c_int = @as(c_int, @bitCast(@as(c_uint, (blk: {
@@ -965,7 +927,7 @@ pub fn run() callconv(.C) InterpretResult {
                         break;
                     }
                 },
-                @as(c_int, 16) => {
+                .OP_INDEX_SET => {
                     {
                         var value: Value = pop();
                         _ = &value;
@@ -996,7 +958,7 @@ pub fn run() callconv(.C) InterpretResult {
                         break;
                     }
                 },
-                @as(c_int, 42) => {
+                .OP_ARRAY => {
                     {
                         var count: c_int = @as(c_int, @bitCast(@as(c_uint, (blk: {
                             const ref = &frame.*.ip;
@@ -1030,7 +992,7 @@ pub fn run() callconv(.C) InterpretResult {
                         break;
                     }
                 },
-                @as(c_int, 43) => {
+                .OP_FVECTOR => {
                     {
                         var count: c_int = @as(c_int, @bitCast(@as(c_uint, (blk: {
                             const ref = &frame.*.ip;
@@ -1064,7 +1026,7 @@ pub fn run() callconv(.C) InterpretResult {
                         break;
                     }
                 },
-                @as(c_int, 17) => {
+                .OP_EQUAL => {
                     {
                         if ((isObjType(peek(0), .OBJ_ARRAY)) and (isObjType(peek(1), .OBJ_ARRAY))) {
                             var b = @as([*c]ObjArray, @ptrCast(@alignCast(pop().as.obj)));
@@ -1103,7 +1065,7 @@ pub fn run() callconv(.C) InterpretResult {
                         break;
                     }
                 },
-                @as(c_int, 18) => {
+                .OP_GREATER => {
                     while (true) {
                         if ((peek(0).type == .VAL_INT) and (peek(1).type == .VAL_INT)) {
                             var b: c_int = pop().as.num_int;
@@ -1135,7 +1097,7 @@ pub fn run() callconv(.C) InterpretResult {
                     }
                     break;
                 },
-                @as(c_int, 19) => {
+                .OP_LESS => {
                     while (true) {
                         if ((peek(0).type == .VAL_INT) and (peek(1).type == .VAL_INT)) {
                             var b: c_int = pop().as.num_int;
@@ -1167,7 +1129,7 @@ pub fn run() callconv(.C) InterpretResult {
                     }
                     break;
                 },
-                @as(c_int, 20) => {
+                .OP_ADD => {
                     {
                         if (isObjType(peek(0), .OBJ_STRING) and (isObjType(peek(1), .OBJ_STRING))) {
                             concatenate();
@@ -1193,7 +1155,7 @@ pub fn run() callconv(.C) InterpretResult {
                     }
                     break;
                 },
-                @as(c_int, 21) => {
+                .OP_SUBTRACT => {
                     if ((isObjType(peek(0), .OBJ_MATRIX)) and (isObjType(peek(1), .OBJ_MATRIX))) {
                         const b = @as([*c]ObjMatrix, @ptrCast(@alignCast(pop().as.obj)));
                         const a = @as([*c]ObjMatrix, @ptrCast(@alignCast(pop().as.obj)));
@@ -1244,7 +1206,7 @@ pub fn run() callconv(.C) InterpretResult {
                         push(a.sub(b));
                     }
                 },
-                @as(c_int, 22) => {
+                .OP_MULTIPLY => {
                     if ((isObjType(peek(0), .OBJ_MATRIX)) and (isObjType(peek(1), .OBJ_MATRIX))) {
                         const b = @as([*c]ObjMatrix, @ptrCast(@alignCast(pop().as.obj)));
                         const a = @as([*c]ObjMatrix, @ptrCast(@alignCast(pop().as.obj)));
@@ -1294,7 +1256,7 @@ pub fn run() callconv(.C) InterpretResult {
                         push(a.mul(b));
                     }
                 },
-                @as(c_int, 23) => {
+                .OP_DIVIDE => {
                     if ((isObjType(peek(0), .OBJ_MATRIX)) and (isObjType(peek(1), .OBJ_MATRIX))) {
                         const b = @as([*c]ObjMatrix, @ptrCast(@alignCast(pop().as.obj)));
                         const a = @as([*c]ObjMatrix, @ptrCast(@alignCast(pop().as.obj)));
@@ -1344,7 +1306,7 @@ pub fn run() callconv(.C) InterpretResult {
                         push(a.div(b));
                     }
                 },
-                @as(c_int, 24) => {
+                .OP_MODULO => {
                     {
                         if ((peek(0).type == .VAL_INT) and (peek(1).type == .VAL_INT)) {
                             var b: c_int = pop().as.num_int;
@@ -1364,7 +1326,7 @@ pub fn run() callconv(.C) InterpretResult {
                         break;
                     }
                 },
-                @as(c_int, 25) => {
+                .OP_EXPONENT => {
                     {
                         if ((peek(0).type == .VAL_INT) and (peek(1).type == .VAL_INT)) {
                             var b: c_int = pop().as.num_int;
@@ -1414,7 +1376,7 @@ pub fn run() callconv(.C) InterpretResult {
                         break;
                     }
                 },
-                @as(c_int, 26) => {
+                .OP_NOT => {
                     push(Value{
                         .type = .VAL_BOOL,
                         .as = .{
@@ -1423,47 +1385,18 @@ pub fn run() callconv(.C) InterpretResult {
                     });
                     break;
                 },
-                @as(c_int, 27) => {
-                    if ((!(peek(0).type == .VAL_INT) and !(peek(0).type == .VAL_DOUBLE)) and !(peek(0).type == .VAL_COMPLEX)) {
-                        runtimeError("Operand must be a number (int/double).", .{});
-                        return .INTERPRET_RUNTIME_ERROR;
-                    }
-                    if (peek(0).type == .VAL_INT) {
-                        push(Value{
-                            .type = .VAL_INT,
-                            .as = .{
-                                .num_int = -pop().as.num_int,
-                            },
-                        });
-                    } else if (peek(0).type == .VAL_COMPLEX) {
-                        var c: Complex = pop().as.complex;
-                        _ = &c;
-                        c.r *= @as(f64, @floatFromInt(-1));
-                        c.i *= @as(f64, @floatFromInt(-1));
-                        push(Value{
-                            .type = .VAL_COMPLEX,
-                            .as = .{
-                                .complex = c,
-                            },
-                        });
-                    } else {
-                        push(Value{
-                            .type = .VAL_DOUBLE,
-                            .as = .{
-                                .num_double = -pop().as.num_double,
-                            },
-                        });
-                    }
+                .OP_NEGATE => {
+                    push(pop().negate());
                     break;
                 },
-                @as(c_int, 28) => {
+                .OP_PRINT => {
                     {
                         printValue(pop());
                         _ = printf("\n");
                         break;
                     }
                 },
-                @as(c_int, 29) => {
+                .OP_JUMP => {
                     {
                         var offset: u16 = blk: {
                             frame.*.ip += @as(usize, @bitCast(@as(isize, @intCast(@as(c_int, 2)))));
@@ -1480,7 +1413,7 @@ pub fn run() callconv(.C) InterpretResult {
                         break;
                     }
                 },
-                @as(c_int, 30) => {
+                .OP_JUMP_IF_FALSE => {
                     {
                         var offset: u16 = blk: {
                             frame.*.ip += @as(usize, @bitCast(@as(isize, @intCast(@as(c_int, 2)))));
@@ -1499,7 +1432,7 @@ pub fn run() callconv(.C) InterpretResult {
                         break;
                     }
                 },
-                @as(c_int, 31) => {
+                .OP_JUMP_IF_DONE => {
                     {
                         var offset: u16 = blk: {
                             frame.*.ip += @as(usize, @bitCast(@as(isize, @intCast(@as(c_int, 2)))));
@@ -1543,7 +1476,7 @@ pub fn run() callconv(.C) InterpretResult {
                         break;
                     }
                 },
-                @as(c_int, 45) => {
+                .OP_ITERATOR_NEXT => {
                     {}
                     {
                         var offset: u16 = blk: {
@@ -1561,7 +1494,7 @@ pub fn run() callconv(.C) InterpretResult {
                         break;
                     }
                 },
-                @as(c_int, 32) => {
+                .OP_LOOP => {
                     {
                         var offset: u16 = blk: {
                             frame.*.ip += @as(usize, @bitCast(@as(isize, @intCast(@as(c_int, 2)))));
@@ -1578,7 +1511,7 @@ pub fn run() callconv(.C) InterpretResult {
                         break;
                     }
                 },
-                @as(c_int, 33) => {
+                .OP_CALL => {
                     {
                         var argCount: c_int = @as(c_int, @bitCast(@as(c_uint, (blk: {
                             const ref = &frame.*.ip;
@@ -1595,7 +1528,7 @@ pub fn run() callconv(.C) InterpretResult {
                         break;
                     }
                 },
-                @as(c_int, 34) => {
+                .OP_INVOKE => {
                     {
                         var method: [*c]ObjString = @as([*c]ObjString, @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
                             (blk: {
@@ -1620,7 +1553,7 @@ pub fn run() callconv(.C) InterpretResult {
                         break;
                     }
                 },
-                @as(c_int, 35) => {
+                .OP_SUPER_INVOKE => {
                     {
                         var method: [*c]ObjString = @as([*c]ObjString, @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
                             (blk: {
@@ -1647,7 +1580,7 @@ pub fn run() callconv(.C) InterpretResult {
                         break;
                     }
                 },
-                @as(c_int, 36) => {
+                .OP_CLOSURE => {
                     {
                         var function: [*c]ObjFunction = @as([*c]ObjFunction, @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
                             (blk: {
@@ -1700,14 +1633,14 @@ pub fn run() callconv(.C) InterpretResult {
                         break;
                     }
                 },
-                @as(c_int, 37) => {
+                .OP_CLOSE_UPVALUE => {
                     {
                         closeUpvalues(vm.stackTop - @as(usize, @bitCast(@as(isize, @intCast(1)))));
                         _ = pop();
                         break;
                     }
                 },
-                @as(c_int, 38) => {
+                .OP_RETURN => {
                     {
                         var result: Value = pop();
                         _ = &result;
@@ -1723,7 +1656,7 @@ pub fn run() callconv(.C) InterpretResult {
                         break;
                     }
                 },
-                @as(c_int, 39) => {
+                .OP_CLASS => {
                     {
                         push(Value{
                             .type = .VAL_OBJ,
@@ -1741,7 +1674,7 @@ pub fn run() callconv(.C) InterpretResult {
                         break;
                     }
                 },
-                @as(c_int, 40) => {
+                .OP_INHERIT => {
                     {
                         var superclass: Value = peek(1);
                         _ = &superclass;
@@ -1756,7 +1689,7 @@ pub fn run() callconv(.C) InterpretResult {
                         break;
                     }
                 },
-                @as(c_int, 41) => {
+                .OP_METHOD => {
                     {
                         defineMethod(@as([*c]ObjString, @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
                             (blk: {
@@ -1769,7 +1702,7 @@ pub fn run() callconv(.C) InterpretResult {
                         break;
                     }
                 },
-                else => {},
+                .OP_ITERATOR_HAS_NEXT => {},
             }
             break;
         }

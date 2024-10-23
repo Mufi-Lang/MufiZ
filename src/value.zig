@@ -54,7 +54,7 @@ pub const Value = extern struct {
         return Value{ .type = .VAL_COMPLEX, .as = .{ .complex = c } };
     }
 
-    fn negate(self: Self) Self {
+    pub fn negate(self: Self) Self {
         switch (self.type) {
             .VAL_INT => return Value.init_int(-self.as.num_int),
             .VAL_DOUBLE => return Value.init_double(-self.as.num_double),
