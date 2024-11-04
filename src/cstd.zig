@@ -35,6 +35,7 @@ pub export fn assert_nf(argCount: c_int, args: [*c]Value) Value {
     }
     return Value.init_nil();
 }
+
 pub fn iter_nf(argCount: c_int, args: [*c]Value) Value {
     _ = argCount;
     _ = args;

@@ -680,24 +680,25 @@ pub fn clearArray(arg_arr: [*c]ObjArray) void {
     arr.*.count = 0;
 }
 pub fn pushArray(array: [*c]ObjArray, val: Value) void {
-    if ((array.*.capacity < (array.*.count + @as(c_int, 1))) and !array.*._static) {
-        var oldCapacity: c_int = array.*.capacity;
-        _ = &oldCapacity;
-        array.*.capacity = if (oldCapacity < @as(c_int, 8)) @as(c_int, 8) else oldCapacity * @as(c_int, 2);
-        array.*.values = @as([*c]Value, @ptrCast(@alignCast(reallocate(@as(?*anyopaque, @ptrCast(array.*.values)), @intCast(@sizeOf(Value) *% oldCapacity), @intCast(@sizeOf(Value) *% array.*.capacity)))));
-    } else if ((array.*.capacity < (array.*.count + @as(c_int, 1))) and (@as(c_int, @intFromBool(array.*._static)) != 0)) {
-        _ = printf("Array is full");
-        return;
-    }
-    (blk: {
-        const tmp = blk_1: {
-            const ref = &array.*.count;
-            const tmp_2 = ref.*;
-            ref.* += 1;
-            break :blk_1 tmp_2;
-        };
-        if (tmp >= 0) break :blk array.*.values + @as(usize, @intCast(tmp)) else break :blk array.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    }).* = val;
+    // if ((array.*.capacity < (array.*.count + 1)) and !array.*._static) {
+    //     var oldCapacity: c_int = array.*.capacity;
+    //     _ = &oldCapacity;
+    //     array.*.capacity = if (oldCapacity < @as(c_int, 8)) @as(c_int, 8) else oldCapacity * @as(c_int, 2);
+    //     array.*.values = @as([*c]Value, @ptrCast(@alignCast(reallocate(@as(?*anyopaque, @ptrCast(array.*.values)), @intCast(@sizeOf(Value) *% oldCapacity), @intCast(@sizeOf(Value) *% array.*.capacity)))));
+    // } else if ((array.*.capacity < (array.*.count + 1)) and (@as(c_int, @intFromBool(array.*._static)) != 0)) {
+    //     _ = printf("Array is full");
+    //     return;
+    // }
+    // (blk: {
+    //     const tmp = blk_1: {
+    //         const ref = &array.*.count;
+    //         const tmp_2 = ref.*;
+    //         ref.* += 1;
+    //         break :blk_1 tmp_2;
+    //     };
+    //     if (tmp >= 0) break :blk array.*.values + @as(usize, @intCast(tmp)) else break :blk array.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+    // }).* = val;
+    ObjArray.push(array, val);
 }
 pub fn insertArray(arg_arr: [*c]ObjArray, arg_index_1: c_int, arg_value: Value) void {
     var arr = arg_arr;
@@ -710,12 +711,12 @@ pub fn insertArray(arg_arr: [*c]ObjArray, arg_index_1: c_int, arg_value: Value) 
         _ = printf("Index out of bounds");
         return;
     }
-    if ((arr.*.capacity < (arr.*.count + @as(c_int, 1))) and !arr.*._static) {
+    if ((arr.*.capacity < (arr.*.count + 1)) and !arr.*._static) {
         var oldCapacity: c_int = arr.*.capacity;
         _ = &oldCapacity;
         arr.*.capacity = if (oldCapacity < @as(c_int, 8)) @as(c_int, 8) else oldCapacity * @as(c_int, 2);
         arr.*.values = @as([*c]Value, @ptrCast(@alignCast(reallocate(@as(?*anyopaque, @ptrCast(arr.*.values)), @intCast(@sizeOf(Value) *% oldCapacity), @intCast(@sizeOf(Value) *% arr.*.capacity)))));
-    } else if ((arr.*.capacity < (arr.*.count + @as(c_int, 1))) and (@as(c_int, @intFromBool(arr.*._static)) != 0)) {
+    } else if ((arr.*.capacity < (arr.*.count + 1)) and (@as(c_int, @intFromBool(arr.*._static)) != 0)) {
         _ = printf("Array is full");
         return;
     }
@@ -727,7 +728,7 @@ pub fn insertArray(arg_arr: [*c]ObjArray, arg_index_1: c_int, arg_value: Value) 
                 const tmp = i;
                 if (tmp >= 0) break :blk arr.*.values + @as(usize, @intCast(tmp)) else break :blk arr.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
             }).* = (blk: {
-                const tmp = i - @as(c_int, 1);
+                const tmp = i - 1;
                 if (tmp >= 0) break :blk arr.*.values + @as(usize, @intCast(tmp)) else break :blk arr.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
             }).*;
         }
@@ -755,12 +756,12 @@ pub fn removeArray(arg_arr: [*c]ObjArray, arg_index_1: c_int) Value {
     {
         var i: c_int = index_1;
         _ = &i;
-        while (i < (arr.*.count - @as(c_int, 1))) : (i += 1) {
+        while (i < (arr.*.count - 1)) : (i += 1) {
             (blk: {
                 const tmp = i;
                 if (tmp >= 0) break :blk arr.*.values + @as(usize, @intCast(tmp)) else break :blk arr.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
             }).* = (blk: {
-                const tmp = i + @as(c_int, 1);
+                const tmp = i + 1;
                 if (tmp >= 0) break :blk arr.*.values + @as(usize, @intCast(tmp)) else break :blk arr.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
             }).*;
         }
@@ -820,7 +821,7 @@ pub fn searchArray(arg_array: [*c]ObjArray, arg_value: Value) c_int {
     _ = &value;
     var low: c_int = 0;
     _ = &low;
-    var high: c_int = array.*.count - @as(c_int, 1);
+    var high: c_int = array.*.count - 1;
     _ = &high;
     while (low <= high) {
         var mid: c_int = @divTrunc(low + high, @as(c_int, 2));
@@ -833,19 +834,19 @@ pub fn searchArray(arg_array: [*c]ObjArray, arg_value: Value) c_int {
         if (valuesEqual(midValue, value)) {
             return mid;
         } else if (valuesLess(midValue, value)) {
-            low = mid + @as(c_int, 1);
+            low = mid + 1;
         } else {
-            high = mid - @as(c_int, 1);
+            high = mid - 1;
         }
     }
-    return -@as(c_int, 1);
+    return -1;
 }
 pub fn reverseArray(arg_array: [*c]ObjArray) void {
     var array = arg_array;
     _ = &array;
     var i: c_int = 0;
     _ = &i;
-    var j: c_int = array.*.count - @as(c_int, 1);
+    var j: c_int = array.*.count - 1;
     _ = &j;
     while (i < j) {
         var temp: Value = (blk: {
@@ -894,8 +895,9 @@ pub fn equalArray(arg_a: [*c]ObjArray, arg_b: [*c]ObjArray) bool {
     return false;
 }
 pub fn freeObjectArray(array: [*c]ObjArray) void {
-    _ = reallocate(@ptrCast(array.*.values), @intCast(@sizeOf(Value) * array.*.capacity), 0);
-    _ = reallocate(@ptrCast(array), @intCast(@sizeOf(ObjArray)), 0);
+    //_ = reallocate(@ptrCast(array.*.values), @intCast(@sizeOf(Value) * array.*.capacity), 0);
+    //_ = reallocate(@ptrCast(array), @intCast(@sizeOf(ObjArray)), 0);
+    ObjArray.deinit(array);
 }
 pub fn sliceArray(arg_array: [*c]ObjArray, arg_start: c_int, arg_end: c_int) [*c]ObjArray {
     var array = arg_array;
@@ -942,7 +944,7 @@ pub fn spliceArray(arg_array: [*c]ObjArray, arg_start: c_int, arg_end: c_int) [*
         }
     }
     {
-        var i: c_int = end + @as(c_int, 1);
+        var i: c_int = end + 1;
         _ = &i;
         while (i < array.*.count) : (i += 1) {
             pushArray(spliced, (blk: {
@@ -1199,10 +1201,10 @@ pub fn varianceArray(arg_array: [*c]ObjArray) Value {
             sum = add_val(sum, mul_val(temp, temp));
         }
     }
-    var variance: Value = if (array.*.count > @as(c_int, 1)) div_val(sum, Value{
+    var variance: Value = if (array.*.count > 1) div_val(sum, Value{
         .type = .VAL_DOUBLE,
         .as = .{
-            .num_double = @as(f64, @floatFromInt(array.*.count - @as(c_int, 1))),
+            .num_double = @as(f64, @floatFromInt(array.*.count - 1)),
         },
     }) else Value.init_nil();
     _ = &variance;
@@ -1237,7 +1239,7 @@ pub fn printArray(arg_arr: [*c]ObjArray) void {
                 const tmp = i;
                 if (tmp >= 0) break :blk arr.*.values + @as(usize, @intCast(tmp)) else break :blk arr.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
             }).*);
-            if (i != (arr.*.count - @as(c_int, 1))) {
+            if (i != (arr.*.count - 1)) {
                 _ = printf(", ");
             }
         }
@@ -1263,7 +1265,7 @@ pub fn split(arg_list: [*c]ObjLinkedList, arg_left: [*c]ObjLinkedList, arg_right
     {
         var i: c_int = 0;
         _ = &i;
-        while (i < (middle - @as(c_int, 1))) : (i += 1) {
+        while (i < (middle - 1)) : (i += 1) {
             current = current.*.next;
         }
     }
@@ -1370,13 +1372,13 @@ pub fn backSubstitution(arg_matrix: [*c]ObjMatrix, arg_vector: [*c]ObjArray) [*c
     var result: [*c]ObjArray = newArrayWithCap(matrix.*.rows, false);
     _ = &result;
     {
-        var i: c_int = matrix.*.rows - @as(c_int, 1);
+        var i: c_int = matrix.*.rows - 1;
         _ = &i;
         while (i >= 0) : (i -= 1) {
             var sum: f64 = 0;
             _ = &sum;
             {
-                var j: c_int = i + @as(c_int, 1);
+                var j: c_int = i + 1;
                 _ = &j;
                 while (j < matrix.*.cols) : (j += 1) {
                     sum += getMatrix(matrix, i, j).as.num_double * (blk: {
@@ -1414,7 +1416,7 @@ pub fn binarySearchFloatVector(arg_vector: [*c]FloatVector, arg_value: f64) call
     _ = &value;
     var left: c_int = 0;
     _ = &left;
-    var right: c_int = vector.*.count - @as(c_int, 1);
+    var right: c_int = vector.*.count - 1;
     _ = &right;
     while (left <= right) {
         var mid: c_int = left + @divTrunc(right - left, @as(c_int, 2));
@@ -1429,12 +1431,12 @@ pub fn binarySearchFloatVector(arg_vector: [*c]FloatVector, arg_value: f64) call
             const tmp = mid;
             if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
         }).* < value) {
-            left = mid + @as(c_int, 1);
+            left = mid + 1;
         } else {
-            right = mid - @as(c_int, 1);
+            right = mid - 1;
         }
     }
-    return -@as(c_int, 1);
+    return -1;
 }
 pub fn printFunction(arg_function: [*c]ObjFunction) callconv(.C) void {
     var function = arg_function;
@@ -1693,7 +1695,7 @@ pub fn searchLinkedList(arg_list: [*c]ObjLinkedList, arg_value: Value) c_int {
         current = current.*.next;
         index_1 += 1;
     }
-    return -@as(c_int, 1);
+    return -1;
 }
 pub fn reverseLinkedList(arg_list: [*c]ObjLinkedList) void {
     var list = arg_list;
@@ -1894,7 +1896,7 @@ pub fn printMatrix(arg_matrix: [*c]ObjMatrix) void {
                             if (tmp >= 0) break :blk matrix.*.data.*.values + @as(usize, @intCast(tmp)) else break :blk matrix.*.data.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
                         }).*);
                         _ = printf(" ");
-                        if (@import("std").zig.c_translation.signedRemainder(i + @as(c_int, 1), matrix.*.cols) == 0) {
+                        if (@import("std").zig.c_translation.signedRemainder(i + 1, matrix.*.cols) == 0) {
                             _ = printf("\n");
                         }
                     }
@@ -2265,7 +2267,7 @@ pub fn rank(arg_matrix: [*c]ObjMatrix) c_int {
             }
         }
     }
-    freeObjectArray(copy.*.data);
+    ObjArray.deinit(copy.*.data);
     _ = reallocate(@as(?*anyopaque, @ptrCast(copy)), @sizeOf(ObjMatrix), 0);
     return rank_1;
 }
@@ -2381,7 +2383,7 @@ pub fn lu(arg_matrix: [*c]ObjMatrix) [*c]ObjMatrix {
             }
         }
     }
-    var result: [*c]ObjMatrix = newMatrix(@as(c_int, 2), @as(c_int, 1));
+    var result: [*c]ObjMatrix = newMatrix(@as(c_int, 2), 1);
     _ = &result;
     setMatrix(result, 0, 0, Value{
         .type = .VAL_OBJ,
@@ -2389,7 +2391,7 @@ pub fn lu(arg_matrix: [*c]ObjMatrix) [*c]ObjMatrix {
             .obj = @as([*c]Obj, @ptrCast(@alignCast(L))),
         },
     });
-    setMatrix(result, @as(c_int, 1), 0, Value{
+    setMatrix(result, 1, 0, Value{
         .type = .VAL_OBJ,
         .as = .{
             .obj = @as([*c]Obj, @ptrCast(@alignCast(U))),
@@ -2412,11 +2414,11 @@ pub fn determinant(arg_matrix: [*c]ObjMatrix) f64 {
     if (n == @as(c_int, 2)) {
         var a: Value = getMatrix(copy, 0, 0);
         _ = &a;
-        var b: Value = getMatrix(copy, 0, @as(c_int, 1));
+        var b: Value = getMatrix(copy, 0, 1);
         _ = &b;
-        var c: Value = getMatrix(copy, @as(c_int, 1), 0);
+        var c: Value = getMatrix(copy, 1, 0);
         _ = &c;
-        var d: Value = getMatrix(copy, @as(c_int, 1), @as(c_int, 1));
+        var d: Value = getMatrix(copy, 1, 1);
         _ = &d;
         var det_1: f64 = undefined;
         _ = &det_1;
@@ -2448,7 +2450,7 @@ pub fn determinant(arg_matrix: [*c]ObjMatrix) f64 {
         _ = &i;
         while (i < n) : (i += 1) {
             {
-                var j: c_int = i + @as(c_int, 1);
+                var j: c_int = i + 1;
                 _ = &j;
                 while (j < n) : (j += 1) {
                     var factor: f64 = undefined;
@@ -2651,12 +2653,12 @@ pub fn removeFloatVector(arg_vector: [*c]FloatVector, arg_index_1: c_int) f64 {
     {
         var i: c_int = index_1;
         _ = &i;
-        while (i < (vector.*.count - @as(c_int, 1))) : (i += 1) {
+        while (i < (vector.*.count - 1)) : (i += 1) {
             (blk: {
                 const tmp = i;
                 if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
             }).* = (blk: {
-                const tmp = i + @as(c_int, 1);
+                const tmp = i + 1;
                 if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
             }).*;
         }
@@ -2666,7 +2668,7 @@ pub fn removeFloatVector(arg_vector: [*c]FloatVector, arg_index_1: c_int) f64 {
         const tmp = index_1;
         if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
     }).* < (blk: {
-        const tmp = index_1 - @as(c_int, 1);
+        const tmp = index_1 - 1;
         if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
     }).*)) {
         vector.*.sorted = false;
@@ -2730,7 +2732,7 @@ pub fn sliceFloatVector(arg_vector: [*c]FloatVector, arg_start: c_int, arg_end: 
         _ = printf("Index out of bounds\n");
         return null;
     }
-    var result: [*c]FloatVector = newFloatVector((end - start) + @as(c_int, 1));
+    var result: [*c]FloatVector = newFloatVector((end - start) + 1);
     _ = &result;
     {
         var i: c_int = start;
@@ -2768,7 +2770,7 @@ pub fn spliceFloatVector(arg_vector: [*c]FloatVector, arg_start: c_int, arg_end:
         }
     }
     {
-        var i: c_int = end + @as(c_int, 1);
+        var i: c_int = end + 1;
         _ = &i;
         while (i < vector.*.count) : (i += 1) {
             pushFloatVector(result, (blk: {
@@ -2860,7 +2862,7 @@ pub fn varianceFloatVector(arg_vector: [*c]FloatVector) f64 {
             variance += simd_variance_arr[@as(c_uint, @intCast(i))];
         }
     }
-    return variance / @as(f64, @floatFromInt(vector.*.count - @as(c_int, 1)));
+    return variance / @as(f64, @floatFromInt(vector.*.count - 1));
 }
 pub fn stdDevFloatVector(arg_vector: [*c]FloatVector) f64 {
     var vector = arg_vector;
@@ -3190,11 +3192,11 @@ pub fn reverseFloatVector(arg_vector: [*c]FloatVector) void {
                 const tmp = i;
                 if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
             }).* = (blk: {
-                const tmp = (vector.*.count - i) - @as(c_int, 1);
+                const tmp = (vector.*.count - i) - 1;
                 if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
             }).*;
             (blk: {
-                const tmp = (vector.*.count - i) - @as(c_int, 1);
+                const tmp = (vector.*.count - i) - 1;
                 if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
             }).* = temp;
         }
@@ -3267,7 +3269,7 @@ pub fn searchFloatVector(arg_vector: [*c]FloatVector, arg_value: f64) c_int {
             }
         }
     }
-    return -@as(c_int, 1);
+    return -1;
 }
 pub fn linspace(arg_start: f64, arg_end: f64, arg_n: c_int) [*c]FloatVector {
     var start = arg_start;
@@ -3278,7 +3280,7 @@ pub fn linspace(arg_start: f64, arg_end: f64, arg_n: c_int) [*c]FloatVector {
     _ = &n;
     var result: [*c]FloatVector = newFloatVector(n);
     _ = &result;
-    var step: f64 = (end - start) / @as(f64, @floatFromInt(n - @as(c_int, 1)));
+    var step: f64 = (end - start) / @as(f64, @floatFromInt(n - 1));
     _ = &step;
     {
         var i: c_int = 0;
@@ -3305,7 +3307,7 @@ pub fn interp1(arg_x: [*c]FloatVector, arg_y: [*c]FloatVector, arg_x0: f64) f64 
         return 0;
     }
     if ((x0 < x.*.data[0]) or (x0 > (blk: {
-        const tmp = x.*.count - @as(c_int, 1);
+        const tmp = x.*.count - 1;
         if (tmp >= 0) break :blk x.*.data + @as(usize, @intCast(tmp)) else break :blk x.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
     }).*)) {
         _ = printf("x0 is out of bounds\n");
@@ -3332,21 +3334,21 @@ pub fn interp1(arg_x: [*c]FloatVector, arg_y: [*c]FloatVector, arg_x0: f64) f64 
         const tmp = i;
         if (tmp >= 0) break :blk y.*.data + @as(usize, @intCast(tmp)) else break :blk y.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
     }).* - (blk: {
-        const tmp = i - @as(c_int, 1);
+        const tmp = i - 1;
         if (tmp >= 0) break :blk y.*.data + @as(usize, @intCast(tmp)) else break :blk y.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
     }).*) / ((blk: {
         const tmp = i;
         if (tmp >= 0) break :blk x.*.data + @as(usize, @intCast(tmp)) else break :blk x.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
     }).* - (blk: {
-        const tmp = i - @as(c_int, 1);
+        const tmp = i - 1;
         if (tmp >= 0) break :blk x.*.data + @as(usize, @intCast(tmp)) else break :blk x.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
     }).*);
     _ = &slope;
     return (blk: {
-        const tmp = i - @as(c_int, 1);
+        const tmp = i - 1;
         if (tmp >= 0) break :blk y.*.data + @as(usize, @intCast(tmp)) else break :blk y.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
     }).* + (slope * (x0 - (blk: {
-        const tmp = i - @as(c_int, 1);
+        const tmp = i - 1;
         if (tmp >= 0) break :blk x.*.data + @as(usize, @intCast(tmp)) else break :blk x.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
     }).*));
 }
@@ -3436,15 +3438,15 @@ pub fn refraction(arg_a: [*c]FloatVector, arg_b: [*c]FloatVector, arg_n1: f64, a
     _ = &theta;
     var sin_theta_r: f64 = (n1 / n2) * std.math.sin(theta);
     _ = &sin_theta_r;
-    if (sin_theta_r > @as(f64, @floatFromInt(@as(c_int, 1)))) {
+    if (sin_theta_r > @as(f64, @floatFromInt(1))) {
         _ = printf("Total internal reflection\n");
         return null;
     }
-    var cos_theta_r: f64 = @sqrt(@as(f64, @floatFromInt(@as(c_int, 1))) - std.math.pow(f64, sin_theta_r, @as(f64, @floatFromInt(@as(c_int, 2)))));
+    var cos_theta_r: f64 = @sqrt(@as(f64, @floatFromInt(1)) - std.math.pow(f64, sin_theta_r, @as(f64, @floatFromInt(@as(c_int, 2)))));
     _ = &cos_theta_r;
     var result: [*c]FloatVector = scaleFloatVector(a, n1 / n2);
     _ = &result;
-    var temp: [*c]FloatVector = scaleFloatVector(b, ((n1 / n2) * cos_theta_r) - @sqrt(@as(f64, @floatFromInt(@as(c_int, 1))) - std.math.pow(f64, sin_theta_r, @as(f64, @floatFromInt(@as(c_int, 2))))));
+    var temp: [*c]FloatVector = scaleFloatVector(b, ((n1 / n2) * cos_theta_r) - @sqrt(@as(f64, @floatFromInt(1)) - std.math.pow(f64, sin_theta_r, @as(f64, @floatFromInt(@as(c_int, 2))))));
     _ = &temp;
     return addFloatVector(result, temp);
 }
@@ -3512,7 +3514,7 @@ pub fn printObject(value: Value) void {
                             const tmp = i;
                             if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
                         }).*);
-                        if (i != (vector.*.count - @as(c_int, 1))) {
+                        if (i != (vector.*.count - 1)) {
                             _ = printf(", ");
                         }
                     }

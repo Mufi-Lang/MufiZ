@@ -1,6 +1,6 @@
 var a = array();
 push(a, 1, 2, 3);
-
+print a;
 assert(a, [1, 2, 3]);
 
 var popped = pop(a);

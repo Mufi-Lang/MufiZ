@@ -308,9 +308,11 @@ pub fn valuesEqual(a: Value, b: Value) bool {
                             const arr_a: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(a.as.obj)));
                             const arr_b: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(b.as.obj)));
                             if (arr_a.*.count != arr_b.*.count) return false;
-                            var i: c_int = 0;
-                            while (i < arr_a.*.count) : (i += 1) {
-                                if (!valuesEqual(arr_a.*.values[@intCast(i)], arr_b.*.values[@intCast(i)])) return false;
+                            // while (i < arr_a.*.count) : (i += 1) {
+                            //     if (!valuesEqual(arr_a.*.values[@intCast(i)], arr_b.*.values[@intCast(i)])) return false;
+                            // }
+                            for (arr_a.*.values, arr_b.*.values) |v_a, v_b| {
+                                if (!valuesEqual(v_a, v_b)) return false;
                             }
                             return true;
                         }
