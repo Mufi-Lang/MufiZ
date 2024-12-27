@@ -29,10 +29,8 @@ pub fn what_is(val: Value) []const u8 {
                 .OBJ_UPVALUE => return "Upvalue",
                 .OBJ_BOUND_METHOD => return "Bound Method",
                 .OBJ_CLASS => return "Class",
-                .OBJ_ARRAY => return "Array",
                 .OBJ_LINKED_LIST => return "Linked List",
                 .OBJ_HASH_TABLE => return "Hash Table",
-                .OBJ_MATRIX => return "Matrix",
                 .OBJ_FVECTOR => return "Float Vector",
             }
         },

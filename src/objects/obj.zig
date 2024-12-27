@@ -13,9 +13,7 @@ pub const ObjType = enum(c_int) {
     OBJ_UPVALUE = 5,
     OBJ_BOUND_METHOD = 6,
     OBJ_CLASS = 7,
-    OBJ_ARRAY = 8,
-    OBJ_LINKED_LIST = 9,
-    OBJ_HASH_TABLE = 10,
-    OBJ_MATRIX = 11,
-    OBJ_FVECTOR = 12,
+    OBJ_LINKED_LIST = 8,
+    OBJ_HASH_TABLE = 9,
+    OBJ_FVECTOR = 10,
 };

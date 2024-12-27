@@ -14,6 +14,7 @@ const ObjHashTable = obj_h.ObjHashTable;
 const ObjMatrix = obj_h.ObjMatrix;
 const markTable = table_h.markTable;
 const freeTable = table_h.freeTable;
+const fvec = @import("objects/fvec.zig");
 
 pub const GC_HEAP_GROW_FACTOR = 2;
 
@@ -42,33 +43,38 @@ const free = stdlib.free;
 pub fn reallocate(pointer: ?*anyopaque, oldSize: usize, newSize: usize) ?*anyopaque {
     if (newSize > oldSize) {
         if (debug_opts.stress_gc) collectGarbage();
+
+        // Check for overflow
         if (vm_h.vm.bytesAllocated > std.math.maxInt(usize) - (newSize - oldSize)) {
-            // Handle overflow error
-            print("Memory allocation would cause overflow.\n", .{});
-            exit(1);
+            std.debug.print("Memory allocation would cause overflow.\n", .{});
+            std.process.exit(1);
         }
+
         vm_h.vm.bytesAllocated += newSize - oldSize;
-    } else {
+    } else if (oldSize > newSize) {
         vm_h.vm.bytesAllocated -= oldSize - newSize;
     }
 
     if (vm_h.vm.bytesAllocated > vm_h.vm.nextGC) {
         collectGarbage();
     }
+
     if (newSize == 0) {
-        free(pointer);
+        if (pointer != null) free(pointer);
         return null;
     }
-    var result: ?*anyopaque = realloc(pointer, newSize);
+
+    var result = realloc(pointer, newSize);
     if (result == null and newSize > 0) {
-        print("Memory allocation failed. Attempted to allocate {} bytes.\n", .{newSize});
+        std.debug.print("Memory allocation failed. Attempted to allocate {} bytes.\n", .{newSize});
         collectGarbage();
         result = realloc(pointer, newSize);
         if (result == null) {
-            print("Critical error: Memory allocation failed after garbage collection attempt\n", .{});
-            exit(1);
+            std.debug.print("Critical error: Memory allocation failed after garbage collection attempt.\n", .{});
+            std.process.exit(1);
         }
     }
+
     return result;
 }
 
@@ -113,7 +119,7 @@ pub fn freeObjects() void {
     free(@ptrCast(vm_h.vm.grayStack));
 }
 
-pub fn freeObject(object: [*c]Obj) callconv(.C) void {
+pub fn freeObject(object: [*c]Obj) void {
     if (debug_opts.log_gc) print("{p} free type {any}\n", .{ @as(*anyopaque, @ptrCast(@alignCast(object))), object.*.type });
 
     switch (object.*.type) {
@@ -152,10 +158,7 @@ pub fn freeObject(object: [*c]Obj) callconv(.C) void {
         .OBJ_UPVALUE => {
             _ = reallocate(@ptrCast(object), @sizeOf(obj_h.ObjUpvalue), 0);
         },
-        .OBJ_ARRAY => {
-            const array: [*c]obj_h.ObjArray = @ptrCast(@alignCast(object));
-            obj_h.freeObjectArray(array);
-        },
+
         .OBJ_LINKED_LIST => {
             const linkedList: [*c]obj_h.ObjLinkedList = @ptrCast(@alignCast(object));
             _ = &linkedList;
@@ -167,13 +170,12 @@ pub fn freeObject(object: [*c]Obj) callconv(.C) void {
         },
         .OBJ_FVECTOR => {
             const fvector: [*c]obj_h.FloatVector = @ptrCast(@alignCast(object));
-            obj_h.freeFloatVector(fvector);
+            fvec.freeFloatVector(fvector);
         },
-        else => {},
     }
 }
 
-pub fn blackenObject(object: [*c]Obj) callconv(.C) void {
+pub fn blackenObject(object: [*c]Obj) void {
     if (debug_opts.log_gc) {
         print("{p} blacken ", .{@as(*anyopaque, @ptrCast(@alignCast(object)))});
         value_h.printValue(value_h.OBJ_VAL(@ptrCast(@alignCast(object))));
@@ -212,12 +214,12 @@ pub fn blackenObject(object: [*c]Obj) callconv(.C) void {
         .OBJ_UPVALUE => {
             markValue(@as([*c]obj_h.ObjUpvalue, @ptrCast(@alignCast(object))).*.closed);
         },
-        .OBJ_ARRAY => {
-            const array: [*c]obj_h.ObjArray = @ptrCast(@alignCast(object));
-            for (0..@intCast(array.*.count)) |i| {
-                markValue(array.*.values[i]);
-            }
-        },
+        // .OBJ_ARRAY => {
+        //     const array: [*c]obj_h.ObjArray = @ptrCast(@alignCast(object));
+        //     for (0..@intCast(array.*.count)) |i| {
+        //         markValue(array.*.values[i]);
+        //     }
+        // },
         .OBJ_LINKED_LIST => {
             const linkedList: [*c]obj_h.ObjLinkedList = @ptrCast(@alignCast(object));
             var current: [*c]Node = linkedList.*.head;
@@ -230,17 +232,12 @@ pub fn blackenObject(object: [*c]Obj) callconv(.C) void {
             const hashTable: [*c]ObjHashTable = @ptrCast(@alignCast(object));
             markTable(&hashTable.*.table);
         },
-        .OBJ_MATRIX => {
-            const matrix: [*c]ObjMatrix = @as([*c]ObjMatrix, @ptrCast(@alignCast(object)));
-            for (0..@intCast(matrix.*.len)) |i| {
-                markValue(matrix.*.data.*.values[i]);
-            }
-        },
+
         else => {},
     }
 }
 
-pub fn markArray(array: [*c]value_h.ValueArray) callconv(.C) void {
+pub fn markArray(array: [*c]value_h.ValueArray) void {
     for (0..@intCast(array.*.count)) |i| {
         markValue(array.*.values[i]);
     }

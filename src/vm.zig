@@ -15,8 +15,9 @@ const ObjString = object_h.ObjString;
 const ObjUpvalue = object_h.ObjUpvalue;
 const ObjFunction = object_h.ObjFunction;
 const ObjNative = object_h.ObjNative;
-const ObjArray = object_h.ObjArray;
-const FloatVector = object_h.FloatVector;
+const fvec = @import("objects/fvec.zig");
+
+const FloatVector = fvec.FloatVector;
 const printf = @cImport(@cInclude("stdio.h")).printf;
 const printValue = value_h.printValue;
 const tableGet = table_h.tableGet;
@@ -27,32 +28,20 @@ const newUpvalue = object_h.newUpvalue;
 const newBoundMethod = object_h.newBoundMethod;
 const ObjInstance = object_h.ObjInstance;
 const newInstance = object_h.newInstance;
-const newArrayWithCap = object_h.newArrayWithCap;
 const takeString = object_h.takeString;
-const pushArray = object_h.pushArray;
-const newFloatVector = object_h.newFloatVector;
-const pushFloatVector = object_h.pushFloatVector;
-const equalArray = object_h.equalArray;
+const newFloatVector = fvec.newFloatVector;
+const pushFloatVector = fvec.pushFloatVector;
 const ObjLinkedList = object_h.ObjLinkedList;
 const equalLinkedList = object_h.equalLinkedList;
 const valuesEqual = value_h.valuesEqual;
-const addArray = object_h.addArray;
-const addFloatVector = object_h.addFloatVector;
-const singleAddFloatVector = object_h.singleAddFloatVector;
-const ObjMatrix = object_h.ObjMatrix;
-const addMatrix = object_h.addMatrix;
-const subMatrix = object_h.subMatrix;
-const subArray = object_h.subArray;
-const subFloatVector = object_h.subFloatVector;
-const singleSubFloatVector = object_h.singleSubFloatVector;
-const mulMatrix = object_h.mulMatrix;
-const mulArray = object_h.mulArray;
-const mulFloatVector = object_h.mulFloatVector;
-const scaleFloatVector = object_h.scaleFloatVector;
-const divMatrix = object_h.divMatrix;
-const divFloatVector = object_h.divFloatVector;
-const divArray = object_h.divArray;
-const singleDivFloatVector = object_h.singleDivFloatVector;
+const addFloatVector = fvec.addFloatVector;
+const singleAddFloatVector = fvec.singleAddFloatVector;
+const subFloatVector = fvec.subFloatVector;
+const singleSubFloatVector = fvec.singleSubFloatVector;
+const mulFloatVector = fvec.mulFloatVector;
+const scaleFloatVector = fvec.scaleFloatVector;
+const divFloatVector = fvec.divFloatVector;
+const singleDivFloatVector = fvec.singleDivFloatVector;
 const Obj = object_h.Obj;
 const Value = value_h.Value;
 const Chunk = chunk_h.Chunk;
@@ -156,12 +145,12 @@ pub export fn freeVM() void {
 pub export fn importCollections() void {
     defineNative("assert", cstd_h.assert_nf);
     defineNative("simd_stat", &cstd_h.simd_stat_nf);
-    defineNative("array", &cstd_h.array_nf);
+    // defineNative("array", &cstd_h.array_nf);
     defineNative("linked_list", &cstd_h.linkedlist_nf);
     defineNative("hash_table", &cstd_h.hashtable_nf);
-    defineNative("matrix", &cstd_h.matrix_nf);
+    // defineNative("matrix", &cstd_h.matrix_nf);
     defineNative("fvec", &cstd_h.fvector_nf);
-    defineNative("range", &cstd_h.range_nf);
+    // defineNative("range", &cstd_h.range_nf);
     defineNative("linspace", &cstd_h.linspace_nf);
     defineNative("slice", &cstd_h.slice_nf);
     defineNative("splice", &cstd_h.splice_nf);
@@ -188,15 +177,15 @@ pub export fn importCollections() void {
     defineNative("put", &cstd_h.put_nf);
     defineNative("get", &cstd_h.get_nf);
     defineNative("remove", &cstd_h.remove_nf);
-    defineNative("set_row", &cstd_h.set_row_nf);
-    defineNative("set_col", &cstd_h.set_col_nf);
-    defineNative("set", &cstd_h.set_nf);
-    defineNative("kolasa", &cstd_h.kolasa_nf);
-    defineNative("rref", &cstd_h.rref_nf);
-    defineNative("rank", &cstd_h.rank_nf);
-    defineNative("transpose", &cstd_h.transpose_nf);
-    defineNative("det", &cstd_h.determinant_nf);
-    defineNative("lu", &cstd_h.lu_nf);
+    // defineNative("set_row", &cstd_h.set_row_nf);
+    // defineNative("set_col", &cstd_h.set_col_nf);
+    // defineNative("set", &cstd_h.set_nf);
+    // defineNative("kolasa", &cstd_h.kolasa_nf);
+    // defineNative("rref", &cstd_h.rref_nf);
+    // defineNative("rank", &cstd_h.rank_nf);
+    // defineNative("transpose", &cstd_h.transpose_nf);
+    // defineNative("det", &cstd_h.determinant_nf);
+    // defineNative("lu", &cstd_h.lu_nf);
     defineNative("workspace", &cstd_h.workspace_nf);
     defineNative("interp1", &cstd_h.interp1_nf);
     defineNative("sum", &cstd_h.sum_nf);
@@ -483,24 +472,24 @@ pub fn concatenate() callconv(.C) void {
     });
 }
 
-pub fn setArray(array: [*c]ObjArray, index_1: c_int, value: Value) callconv(.C) void {
-    if (index_1 >= array.*.count) {
+// pub fn setArray(array: [*c]ObjArray, index_1: c_int, value: Value) callconv(.C) void {
+//     if (index_1 >= array.*.count) {
+//         runtimeError("Index out of bounds.", .{});
+//         return;
+//     }
+//     (blk: {
+//         const tmp = index_1;
+//         if (tmp >= 0) break :blk array.*.values + @as(usize, @intCast(tmp)) else break :blk array.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+//     }).* = value;
+// }
+pub fn setFloatVector(f: [*c]FloatVector, index_1: c_int, value: f64) callconv(.C) void {
+    if (index_1 >= f.*.count) {
         runtimeError("Index out of bounds.", .{});
         return;
     }
     (blk: {
         const tmp = index_1;
-        if (tmp >= 0) break :blk array.*.values + @as(usize, @intCast(tmp)) else break :blk array.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    }).* = value;
-}
-pub fn setFloatVector(fvec: [*c]FloatVector, index_1: c_int, value: f64) callconv(.C) void {
-    if (index_1 >= fvec.*.count) {
-        runtimeError("Index out of bounds.", .{});
-        return;
-    }
-    (blk: {
-        const tmp = index_1;
-        if (tmp >= 0) break :blk fvec.*.data + @as(usize, @intCast(tmp)) else break :blk fvec.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+        if (tmp >= 0) break :blk f.*.data + @as(usize, @intCast(tmp)) else break :blk f.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
     }).* = value;
 }
 
@@ -520,8 +509,7 @@ pub fn run() callconv(.C) InterpretResult {
         const chunk = &frame.*.closure.*.function.*.chunk;
         const offset = @intFromPtr(frame.*.ip) - @intFromPtr(frame.*.closure.*.function.*.chunk.code);
         const instruction_index = @divExact(offset, @sizeOf(u8));
-        const c_instruction_index = @as(c_int, @truncate(instruction_index));
-
+        const c_instruction_index = @as(c_int, @intCast(@as(u32, @truncate(instruction_index))));
         _ = debug_h.disassembleInstruction(chunk, c_instruction_index);
     }
     while (true) {
@@ -802,26 +790,26 @@ pub fn run() callconv(.C) InterpretResult {
                     // break;
 
                 },
-                .OP_ARRAY => {
-                    const count: c_int = @intCast((blk: {
-                        const ref = &frame.*.ip;
-                        const tmp = ref.*;
-                        ref.* += 1;
-                        break :blk tmp;
-                    }).*);
-                    const array = object_h.newArrayWithCap(count, 1 != 0);
+                // .OP_ARRAY => {
+                //     const count: c_int = @intCast((blk: {
+                //         const ref = &frame.*.ip;
+                //         const tmp = ref.*;
+                //         ref.* += 1;
+                //         break :blk tmp;
+                //     }).*);
+                //     const array = object_h.newArrayWithCap(count, 1 != 0);
 
-                    for (0..@intCast(count)) |i| {
-                        pushArray(array, peek(count - @as(u8, @intCast(i)) - 1));
-                    }
+                //     for (0..@intCast(count)) |i| {
+                //         pushArray(array, peek(count - @as(u8, @intCast(i)) - 1));
+                //     }
 
-                    for (0..@intCast(count)) |_| {
-                        _ = pop();
-                    }
+                //     for (0..@intCast(count)) |_| {
+                //         _ = pop();
+                //     }
 
-                    push(Value.init_obj(@ptrCast(@alignCast(array))));
-                    break;
-                },
+                //     push(Value.init_obj(@ptrCast(@alignCast(array))));
+                //     break;
+                // },
                 .OP_FVECTOR => {
                     {
                         var count: c_int = @as(c_int, @bitCast(@as(c_uint, (blk: {
@@ -831,13 +819,12 @@ pub fn run() callconv(.C) InterpretResult {
                             break :blk tmp;
                         }).*)));
                         _ = &count;
-                        var fvec = object_h.newFloatVector(count);
-                        _ = &fvec;
+                        const f = fvec.newFloatVector(count);
                         {
                             var i: c_int = 0;
                             _ = &i;
                             while (i < count) : (i += 1) {
-                                pushFloatVector(fvec, peek((count - i) - 1).as.num_double);
+                                pushFloatVector(f, peek((count - i) - 1).as.num_double);
                             }
                         }
                         {
@@ -850,7 +837,7 @@ pub fn run() callconv(.C) InterpretResult {
                         push(Value{
                             .type = .VAL_OBJ,
                             .as = .{
-                                .obj = @as([*c]Obj, @ptrCast(@alignCast(fvec))),
+                                .obj = @as([*c]Obj, @ptrCast(@alignCast(f))),
                             },
                         });
                         break;
@@ -858,18 +845,7 @@ pub fn run() callconv(.C) InterpretResult {
                 },
                 .OP_EQUAL => {
                     {
-                        if ((isObjType(peek(0), .OBJ_ARRAY)) and (isObjType(peek(1), .OBJ_ARRAY))) {
-                            var b = @as([*c]ObjArray, @ptrCast(@alignCast(pop().as.obj)));
-                            _ = &b;
-                            var a = @as([*c]ObjArray, @ptrCast(@alignCast(pop().as.obj)));
-                            _ = &a;
-                            push(Value{
-                                .type = .VAL_BOOL,
-                                .as = .{
-                                    .boolean = equalArray(a, b),
-                                },
-                            });
-                        } else if ((isObjType(peek(0), .OBJ_LINKED_LIST)) and (isObjType(peek(1), .OBJ_LINKED_LIST))) {
+                        if ((isObjType(peek(0), .OBJ_LINKED_LIST)) and (isObjType(peek(1), .OBJ_LINKED_LIST))) {
                             var b: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(pop().as.obj)));
                             _ = &b;
                             var a: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(pop().as.obj)));
@@ -963,11 +939,6 @@ pub fn run() callconv(.C) InterpretResult {
                     {
                         if (isObjType(peek(0), .OBJ_STRING) and (isObjType(peek(1), .OBJ_STRING))) {
                             concatenate();
-                        } else if ((isObjType(peek(0), .OBJ_ARRAY)) and (isObjType(peek(1), .OBJ_ARRAY))) {
-                            const b = @as([*c]ObjArray, @ptrCast(@alignCast(pop().as.obj)));
-                            const a = @as([*c]ObjArray, @ptrCast(@alignCast(pop().as.obj)));
-                            const result = addArray(a, b);
-                            push(Value.init_obj(@ptrCast(result)));
                         } else if ((isObjType(peek(0), .OBJ_FVECTOR)) and (isObjType(peek(1), .OBJ_FVECTOR))) {
                             const b = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
                             const a = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
@@ -986,17 +957,7 @@ pub fn run() callconv(.C) InterpretResult {
                     break;
                 },
                 .OP_SUBTRACT => {
-                    if ((isObjType(peek(0), .OBJ_MATRIX)) and (isObjType(peek(1), .OBJ_MATRIX))) {
-                        const b = @as([*c]ObjMatrix, @ptrCast(@alignCast(pop().as.obj)));
-                        const a = @as([*c]ObjMatrix, @ptrCast(@alignCast(pop().as.obj)));
-                        const result = subMatrix(a, b);
-                        push(Value.init_obj(@ptrCast(result)));
-                    } else if ((isObjType(peek(0), .OBJ_ARRAY)) and (isObjType(peek(1), .OBJ_ARRAY))) {
-                        const b = @as([*c]ObjArray, @ptrCast(@alignCast(pop().as.obj)));
-                        const a = @as([*c]ObjArray, @ptrCast(@alignCast(pop().as.obj)));
-                        const result = subArray(a, b);
-                        push(Value.init_obj(@ptrCast(result)));
-                    } else if ((isObjType(peek(0), .OBJ_FVECTOR)) and (isObjType(peek(1), .OBJ_FVECTOR))) {
+                    if ((isObjType(peek(0), .OBJ_FVECTOR)) and (isObjType(peek(1), .OBJ_FVECTOR))) {
                         const b = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
                         const a = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
                         const result = subFloatVector(a, b);
@@ -1037,17 +998,7 @@ pub fn run() callconv(.C) InterpretResult {
                     }
                 },
                 .OP_MULTIPLY => {
-                    if ((isObjType(peek(0), .OBJ_MATRIX)) and (isObjType(peek(1), .OBJ_MATRIX))) {
-                        const b = @as([*c]ObjMatrix, @ptrCast(@alignCast(pop().as.obj)));
-                        const a = @as([*c]ObjMatrix, @ptrCast(@alignCast(pop().as.obj)));
-                        const result = mulMatrix(a, b);
-                        push(Value.init_obj(@ptrCast(result)));
-                    } else if ((isObjType(peek(0), .OBJ_ARRAY)) and (isObjType(peek(1), .OBJ_ARRAY))) {
-                        const b = @as([*c]ObjArray, @ptrCast(@alignCast(pop().as.obj)));
-                        const a = @as([*c]ObjArray, @ptrCast(@alignCast(pop().as.obj)));
-                        const result = mulArray(a, b);
-                        push(Value.init_obj(@ptrCast(result)));
-                    } else if ((isObjType(peek(0), .OBJ_FVECTOR)) and (isObjType(peek(1), .OBJ_FVECTOR))) {
+                    if ((isObjType(peek(0), .OBJ_FVECTOR)) and (isObjType(peek(1), .OBJ_FVECTOR))) {
                         const b = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
                         const a = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
                         const result = mulFloatVector(a, b);
@@ -1087,17 +1038,7 @@ pub fn run() callconv(.C) InterpretResult {
                     }
                 },
                 .OP_DIVIDE => {
-                    if ((isObjType(peek(0), .OBJ_MATRIX)) and (isObjType(peek(1), .OBJ_MATRIX))) {
-                        const b = @as([*c]ObjMatrix, @ptrCast(@alignCast(pop().as.obj)));
-                        const a = @as([*c]ObjMatrix, @ptrCast(@alignCast(pop().as.obj)));
-                        const result = divMatrix(a, b);
-                        push(Value.init_obj(@ptrCast(result)));
-                    } else if ((isObjType(peek(0), .OBJ_ARRAY)) and (isObjType(peek(1), .OBJ_ARRAY))) {
-                        const b = @as([*c]ObjArray, @ptrCast(@alignCast(pop().as.obj)));
-                        const a = @as([*c]ObjArray, @ptrCast(@alignCast(pop().as.obj)));
-                        const result = divArray(a, b);
-                        push(Value.init_obj(@ptrCast(result)));
-                    } else if ((isObjType(peek(0), .OBJ_FVECTOR)) and (isObjType(peek(1), .OBJ_FVECTOR))) {
+                    if ((isObjType(peek(0), .OBJ_FVECTOR)) and (isObjType(peek(1), .OBJ_FVECTOR))) {
                         const b = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
                         const a = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
                         const result = divFloatVector(a, b);
@@ -1277,28 +1218,19 @@ pub fn run() callconv(.C) InterpretResult {
                         _ = &offset;
                         var val: Value = peek(0);
                         _ = &val;
-                        if (!isObjType(val, .OBJ_ARRAY) and !isObjType(val, .OBJ_FVECTOR)) {
-                            runtimeError("Operand must be an array or a vector.", .{});
+                        if (!isObjType(val, .OBJ_FVECTOR)) {
+                            runtimeError("Operand must be a vector.", .{});
                             return .INTERPRET_RUNTIME_ERROR;
-                        }
-                        if (isObjType(val, .OBJ_ARRAY)) {
-                            var array = @as([*c]ObjArray, @ptrCast(@alignCast(val.as.obj)));
-                            _ = &array;
-                            if (!object_h.hasNextObjectArray(array)) {
-                                frame.*.ip += @as(usize, @bitCast(@as(isize, @intCast(@as(c_int, @bitCast(@as(c_uint, offset)))))));
-                            } else {
-                                push(object_h.nextObjectArray(array));
-                            }
                         } else {
                             var fvector = @as([*c]FloatVector, @ptrCast(@alignCast(val.as.obj)));
                             _ = &fvector;
-                            if (!object_h.hasNextFloatVector(fvector)) {
+                            if (!fvec.hasNextFloatVector(fvector)) {
                                 frame.*.ip += @as(usize, @bitCast(@as(isize, @intCast(@as(c_int, @bitCast(@as(c_uint, offset)))))));
                             } else {
                                 push(Value{
                                     .type = .VAL_DOUBLE,
                                     .as = .{
-                                        .num_double = object_h.nextFloatVector(fvector),
+                                        .num_double = fvec.nextFloatVector(fvector),
                                     },
                                 });
                             }

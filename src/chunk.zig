@@ -45,11 +45,10 @@ pub const OpCode = enum(c_int) {
     OP_CLASS = 39,
     OP_INHERIT = 40,
     OP_METHOD = 41,
-    OP_ARRAY = 42,
-    OP_FVECTOR = 43,
-    OP_GET_ITERATOR = 44,
-    OP_ITERATOR_NEXT = 45,
-    OP_ITERATOR_HAS_NEXT = 46,
+    OP_FVECTOR = 42,
+    OP_GET_ITERATOR = 43,
+    OP_ITERATOR_NEXT = 44,
+    OP_ITERATOR_HAS_NEXT = 45,
 };
 
 pub const Chunk = extern struct {

@@ -32,7 +32,7 @@ pub const PREC_INDEX: c_int = 10;
 pub const PREC_PRIMARY: c_int = 11;
 pub const Precedence = c_uint;
 
-pub const ParseFn = ?*const fn (bool) callconv(.C) void;
+pub const ParseFn = ?*const fn (bool) void;
 pub const ParseRule = extern struct {
     prefix: ParseFn = null,
     infix: ParseFn = null,
@@ -74,10 +74,10 @@ pub export var parser: Parser = undefined;
 pub export var current: [*c]Compiler = null;
 pub export var currentClass: [*c]ClassCompiler = null;
 
-pub fn currentChunk() callconv(.C) [*c]Chunk {
+pub fn currentChunk() [*c]Chunk {
     return &current.*.function.*.chunk;
 }
-pub fn errorAt(token: [*c]Token, message: [*c]const u8) callconv(.C) void {
+pub fn errorAt(token: [*c]Token, message: [*c]const u8) void {
     if (parser.panicMode) return;
     parser.panicMode = true;
     print("[line {d}] Error", .{token.*.line});
@@ -90,14 +90,14 @@ pub fn errorAt(token: [*c]Token, message: [*c]const u8) callconv(.C) void {
     parser.hadError = true;
 }
 
-pub fn @"error"(message: [*c]const u8) callconv(.C) void {
+pub fn @"error"(message: [*c]const u8) void {
     errorAt(&parser.previous, message);
 }
-pub fn errorAtCurrent(message: [*c]const u8) callconv(.C) void {
+pub fn errorAtCurrent(message: [*c]const u8) void {
     errorAt(&parser.current, message);
 }
 
-pub fn advance() callconv(.C) void {
+pub fn advance() void {
     parser.previous = parser.current;
     while (true) {
         parser.current = scanner_h.scanToken();
@@ -105,29 +105,29 @@ pub fn advance() callconv(.C) void {
         errorAtCurrent(parser.current.start);
     }
 }
-pub fn consume(type_: TokenType, message: [*c]const u8) callconv(.C) void {
+pub fn consume(type_: TokenType, message: [*c]const u8) void {
     if (parser.current.type == type_) {
         advance();
         return;
     }
     errorAtCurrent(message);
 }
-pub fn check(type_: TokenType) callconv(.C) bool {
+pub fn check(type_: TokenType) bool {
     return parser.current.type == type_;
 }
-pub fn match(type_: TokenType) callconv(.C) bool {
+pub fn match(type_: TokenType) bool {
     if (!check(type_)) return false;
     advance();
     return true;
 }
-pub fn emitByte(byte: u8) callconv(.C) void {
+pub fn emitByte(byte: u8) void {
     chunk_h.writeChunk(currentChunk(), byte, parser.previous.line);
 }
-pub fn emitBytes(byte1: u8, byte2: u8) callconv(.C) void {
+pub fn emitBytes(byte1: u8, byte2: u8) void {
     emitByte(byte1);
     emitByte(byte2);
 }
-pub fn emitLoop(loopStart: c_int) callconv(.C) void {
+pub fn emitLoop(loopStart: c_int) void {
     emitByte(@intFromEnum(OpCode.OP_LOOP));
     const offset: c_int = (currentChunk().*.count - loopStart) + 2;
 
@@ -138,13 +138,13 @@ pub fn emitLoop(loopStart: c_int) callconv(.C) void {
     emitByte(@intCast(offset & 255));
 }
 
-pub fn emitJump(instruction: u8) callconv(.C) c_int {
+pub fn emitJump(instruction: u8) c_int {
     emitByte(instruction);
     emitByte(255);
     emitByte(255);
     return currentChunk().*.count - 2;
 }
-pub fn emitReturn() callconv(.C) void {
+pub fn emitReturn() void {
     if (current.*.type_ == .TYPE_INITIALIZER) {
         emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), 0);
     } else {
@@ -152,7 +152,7 @@ pub fn emitReturn() callconv(.C) void {
     }
     emitByte(@intCast(@intFromEnum(OpCode.OP_RETURN)));
 }
-pub fn makeConstant(value: Value) callconv(.C) u8 {
+pub fn makeConstant(value: Value) u8 {
     const constant: c_int = chunk_h.addConstant(currentChunk(), value);
     if (constant > 255) {
         @"error"("Too many constants in one chunk.");
@@ -160,11 +160,11 @@ pub fn makeConstant(value: Value) callconv(.C) u8 {
     }
     return @intCast(constant);
 }
-pub fn emitConstant(value: Value) callconv(.C) void {
+pub fn emitConstant(value: Value) void {
     emitBytes(@intFromEnum(OpCode.OP_CONSTANT), makeConstant(value));
 }
 
-pub fn patchJump(offset: c_int) callconv(.C) void {
+pub fn patchJump(offset: c_int) void {
     const jump: c_int = (currentChunk().*.count - offset) - 2;
     if (jump > 65535) {
         @"error"("Too much code to jump over.");
@@ -173,7 +173,7 @@ pub fn patchJump(offset: c_int) callconv(.C) void {
     currentChunk().*.code[@intCast(offset)] = @intCast((jump >> 8) & 255);
     currentChunk().*.code[@intCast(offset + 1)] = @intCast(jump & 255);
 }
-pub fn initCompiler(compiler: [*c]Compiler, type_: FunctionType) callconv(.C) void {
+pub fn initCompiler(compiler: [*c]Compiler, type_: FunctionType) void {
     compiler.*.enclosing = current;
     compiler.*.function = null;
     compiler.*.type_ = type_;
@@ -196,7 +196,7 @@ pub fn initCompiler(compiler: [*c]Compiler, type_: FunctionType) callconv(.C) vo
         local.*.name.length = 0;
     }
 }
-pub fn endCompiler() callconv(.C) [*c]ObjFunction {
+pub fn endCompiler() [*c]ObjFunction {
     emitReturn();
     const function_1: [*c]ObjFunction = current.*.function;
 
@@ -210,10 +210,10 @@ pub fn endCompiler() callconv(.C) [*c]ObjFunction {
     current = current.*.enclosing;
     return function_1;
 }
-pub fn beginScope() callconv(.C) void {
+pub fn beginScope() void {
     current.*.scopeDepth += 1;
 }
-pub fn endScope() callconv(.C) void {
+pub fn endScope() void {
     current.*.scopeDepth -= 1;
     while ((current.*.localCount > 0) and (current.*.locals[@intCast(current.*.localCount - 1)].depth > current.*.scopeDepth)) {
         if (current.*.locals[@as(c_uint, @intCast(current.*.localCount - 1))].isCaptured) {
@@ -224,10 +224,10 @@ pub fn endScope() callconv(.C) void {
         current.*.localCount -= 1;
     }
 }
-pub fn expression() callconv(.C) void {
+pub fn expression() void {
     parsePrecedence(PREC_ASSIGNMENT);
 }
-pub fn statement() callconv(.C) void {
+pub fn statement() void {
     switch (parser.current.type) {
         .TOKEN_PRINT => {
             advance();
@@ -262,7 +262,7 @@ pub fn statement() callconv(.C) void {
         else => expressionStatement(),
     }
 }
-pub fn declaration() callconv(.C) void {
+pub fn declaration() void {
     if (match(.TOKEN_CLASS)) {
         classDeclaration();
     } else if (match(.TOKEN_FUN)) {
@@ -276,11 +276,11 @@ pub fn declaration() callconv(.C) void {
         synchronize();
     }
 }
-pub fn getRule(type_: TokenType) callconv(.C) [*c]ParseRule {
+pub fn getRule(type_: TokenType) [*c]ParseRule {
     const index: usize = @intCast(@intFromEnum(type_));
     return &rules[index];
 }
-pub fn parsePrecedence(precedence: Precedence) callconv(.C) void {
+pub fn parsePrecedence(precedence: Precedence) void {
     advance();
     const prefixRule: ParseFn = getRule(parser.previous.type).*.prefix;
 
@@ -300,7 +300,7 @@ pub fn parsePrecedence(precedence: Precedence) callconv(.C) void {
     }
 }
 
-pub fn identifierConstant(name: [*c]Token) callconv(.C) u8 {
+pub fn identifierConstant(name: [*c]Token) u8 {
     return makeConstant(Value{
         .type = .VAL_OBJ,
         .as = .{
@@ -308,11 +308,11 @@ pub fn identifierConstant(name: [*c]Token) callconv(.C) u8 {
         },
     });
 }
-pub fn identifiersEqual(a: [*c]Token, b: [*c]Token) callconv(.C) bool {
+pub fn identifiersEqual(a: [*c]Token, b: [*c]Token) bool {
     if (a.*.length != b.*.length) return false;
     return scanner_h.memcmp(@as(?*const anyopaque, @ptrCast(a.*.start)), @as(?*const anyopaque, @ptrCast(b.*.start)), @as(c_ulong, @bitCast(@as(c_long, a.*.length)))) == 0;
 }
-pub fn resolveLocal(compiler: [*c]Compiler, name: [*c]Token) callconv(.C) c_int {
+pub fn resolveLocal(compiler: [*c]Compiler, name: [*c]Token) c_int {
     var i: c_int = compiler.*.localCount - 1;
     while (i >= 0) : (i -= 1) {
         const local: [*c]Local = &compiler.*.locals[@as(c_uint, @intCast(i))];
@@ -327,7 +327,7 @@ pub fn resolveLocal(compiler: [*c]Compiler, name: [*c]Token) callconv(.C) c_int 
     return -1;
 }
 
-pub fn addUpvalue(compiler: [*c]Compiler, index_1: u8, isLocal: bool) callconv(.C) c_int {
+pub fn addUpvalue(compiler: [*c]Compiler, index_1: u8, isLocal: bool) c_int {
     const upvalueCount: c_int = compiler.*.function.*.upvalueCount;
 
     for (0..@intCast(upvalueCount)) |i| {
@@ -351,7 +351,7 @@ pub fn addUpvalue(compiler: [*c]Compiler, index_1: u8, isLocal: bool) callconv(.
         break :blk tmp;
     };
 }
-pub fn resolveUpvalue(compiler: [*c]Compiler, name: [*c]Token) callconv(.C) c_int {
+pub fn resolveUpvalue(compiler: [*c]Compiler, name: [*c]Token) c_int {
     if (compiler.*.enclosing == @as([*c]Compiler, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) return -1;
     const local: c_int = resolveLocal(compiler.*.enclosing, name);
     if (local != -1) {
@@ -364,7 +364,7 @@ pub fn resolveUpvalue(compiler: [*c]Compiler, name: [*c]Token) callconv(.C) c_in
     }
     return -1;
 }
-pub fn addLocal(name: Token) callconv(.C) void {
+pub fn addLocal(name: Token) void {
     if (current.*.localCount == (255 + 1)) {
         @"error"("Too many local variables in function.");
         return;
@@ -381,7 +381,7 @@ pub fn addLocal(name: Token) callconv(.C) void {
     local.*.depth = -1;
     local.*.isCaptured = false;
 }
-pub fn declareVariable() callconv(.C) void {
+pub fn declareVariable() void {
     if (current.*.scopeDepth == 0) return;
     const name: [*c]Token = &parser.previous;
     {
@@ -401,24 +401,24 @@ pub fn declareVariable() callconv(.C) void {
     }
     addLocal(name.*);
 }
-pub fn parseVariable(errorMessage: [*c]const u8) callconv(.C) u8 {
+pub fn parseVariable(errorMessage: [*c]const u8) u8 {
     consume(.TOKEN_IDENTIFIER, errorMessage);
     declareVariable();
     if (current.*.scopeDepth > 0) return 0;
     return identifierConstant(&parser.previous);
 }
-pub fn markInitialized() callconv(.C) void {
+pub fn markInitialized() void {
     if (current.*.scopeDepth == 0) return;
     current.*.locals[@as(c_uint, @intCast(current.*.localCount - 1))].depth = current.*.scopeDepth;
 }
-pub fn defineVariable(global: u8) callconv(.C) void {
+pub fn defineVariable(global: u8) void {
     if (current.*.scopeDepth > 0) {
         markInitialized();
         return;
     }
     emitBytes(@intCast(@intFromEnum(OpCode.OP_DEFINE_GLOBAL)), global);
 }
-pub fn argumentList() callconv(.C) u8 {
+pub fn argumentList() u8 {
     var argCount: u8 = 0;
     if (!check(.TOKEN_RIGHT_PAREN)) {
         while (true) {
@@ -433,7 +433,7 @@ pub fn argumentList() callconv(.C) u8 {
     consume(.TOKEN_RIGHT_PAREN, "Expect ')' after arguments.");
     return argCount;
 }
-pub fn and_(canAssign: bool) callconv(.C) void {
+pub fn and_(canAssign: bool) void {
     _ = canAssign;
     var endJump: c_int = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
     _ = &endJump;
@@ -441,7 +441,7 @@ pub fn and_(canAssign: bool) callconv(.C) void {
     parsePrecedence(PREC_AND);
     patchJump(endJump);
 }
-pub fn binary(canAssign: bool) callconv(.C) void {
+pub fn binary(canAssign: bool) void {
     _ = canAssign;
     const operatorType: TokenType = parser.previous.type;
     const rule: [*c]ParseRule = getRule(operatorType);
@@ -501,13 +501,13 @@ pub fn binary(canAssign: bool) callconv(.C) void {
         break;
     }
 }
-pub fn call(canAssign: bool) callconv(.C) void {
+pub fn call(canAssign: bool) void {
     _ = &canAssign;
     var argCount: u8 = argumentList();
     _ = &argCount;
     emitBytes(@intCast(@intFromEnum(OpCode.OP_CALL)), argCount);
 }
-pub fn dot(canAssign: bool) callconv(.C) void {
+pub fn dot(canAssign: bool) void {
     consume(.TOKEN_IDENTIFIER, "Expect property name after '.'.");
     var name: u8 = identifierConstant(&parser.previous);
     _ = &name;
@@ -523,7 +523,7 @@ pub fn dot(canAssign: bool) callconv(.C) void {
         emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_PROPERTY)), name);
     }
 }
-pub fn literal(canAssign: bool) callconv(.C) void {
+pub fn literal(canAssign: bool) void {
     _ = canAssign;
     while (true) {
         switch (parser.previous.type) {
@@ -544,12 +544,12 @@ pub fn literal(canAssign: bool) callconv(.C) void {
         break;
     }
 }
-pub fn grouping(canAssign: bool) callconv(.C) void {
+pub fn grouping(canAssign: bool) void {
     _ = &canAssign;
     expression();
     consume(.TOKEN_RIGHT_PAREN, "Expect ')' after expression.");
 }
-pub fn number(canAssign: bool) callconv(.C) void {
+pub fn number(canAssign: bool) void {
     _ = &canAssign;
     if (parser.previous.type == .TOKEN_INT) {
         var value: c_int = atoi(parser.previous.start);
@@ -571,7 +571,7 @@ pub fn number(canAssign: bool) callconv(.C) void {
         });
     }
 }
-pub fn or_(canAssign: bool) callconv(.C) void {
+pub fn or_(canAssign: bool) void {
     _ = &canAssign;
     var elseJump: c_int = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
     _ = &elseJump;
@@ -582,7 +582,7 @@ pub fn or_(canAssign: bool) callconv(.C) void {
     parsePrecedence(PREC_OR);
     patchJump(endJump);
 }
-pub fn string(canAssign: bool) callconv(.C) void {
+pub fn string(canAssign: bool) void {
     _ = &canAssign;
     emitConstant(Value{
         .type = .VAL_OBJ,
@@ -591,24 +591,24 @@ pub fn string(canAssign: bool) callconv(.C) void {
         },
     });
 }
-pub fn array(canAssign: bool) callconv(.C) void {
-    _ = &canAssign;
-    var argCount: u8 = 0;
-    _ = &argCount;
-    if (!check(.TOKEN_RIGHT_SQPAREN)) {
-        while (true) {
-            expression();
-            argCount +%= 1;
-            if (@as(c_int, @bitCast(@as(c_uint, argCount))) > 255) {
-                @"error"("Can't have more than 255 elements in an array.");
-            }
-            if (!match(.TOKEN_COMMA)) break;
-        }
-    }
-    consume(.TOKEN_RIGHT_SQPAREN, "Expect ']' after array elements.");
-    emitBytes(@intCast(@intFromEnum(OpCode.OP_ARRAY)), argCount);
-}
-pub fn fvector(canAssign: bool) callconv(.C) void {
+// pub fn array(canAssign: bool)  void {
+//     _ = &canAssign;
+//     var argCount: u8 = 0;
+//     _ = &argCount;
+//     if (!check(.TOKEN_RIGHT_SQPAREN)) {
+//         while (true) {
+//             expression();
+//             argCount +%= 1;
+//             if (@as(c_int, @bitCast(@as(c_uint, argCount))) > 255) {
+//                 @"error"("Can't have more than 255 elements in an array.");
+//             }
+//             if (!match(.TOKEN_COMMA)) break;
+//         }
+//     }
+//     consume(.TOKEN_RIGHT_SQPAREN, "Expect ']' after array elements.");
+//     emitBytes(@intCast(@intFromEnum(OpCode.OP_ARRAY)), argCount);
+// }
+pub fn fvector(canAssign: bool) void {
     _ = &canAssign;
     var argCount: u8 = 0;
     _ = &argCount;
@@ -625,7 +625,7 @@ pub fn fvector(canAssign: bool) callconv(.C) void {
     consume(.TOKEN_RIGHT_BRACE, "Expect '}' after vector elements.");
     emitBytes(@intCast(@intFromEnum(OpCode.OP_FVECTOR)), argCount);
 }
-pub fn namedVariable(name: Token, canAssign: bool) callconv(.C) void {
+pub fn namedVariable(name: Token, canAssign: bool) void {
     var getOp: u8 = undefined;
     var setOp: u8 = undefined;
     var arg: c_int = resolveLocal(current, @constCast(&name));
@@ -699,7 +699,7 @@ pub fn namedVariable(name: Token, canAssign: bool) callconv(.C) void {
         emitBytes(getOp, @as(u8, @bitCast(@as(i8, @truncate(arg)))));
     }
 }
-pub fn index_(canAssign: bool) callconv(.C) void {
+pub fn index_(canAssign: bool) void {
     if (check(.TOKEN_LEFT_SQPAREN)) {
         consume(.TOKEN_LEFT_SQPAREN, "Expect '[' after array.");
         expression();
@@ -714,11 +714,11 @@ pub fn index_(canAssign: bool) callconv(.C) void {
         vm_h.runtimeError("Only arrays support indexing.", .{});
     }
 }
-pub fn variable(canAssign: bool) callconv(.C) void {
+pub fn variable(canAssign: bool) void {
     namedVariable(parser.previous, canAssign);
 }
 
-pub fn syntheticToken(text: [*c]const u8) callconv(.C) Token {
+pub fn syntheticToken(text: [*c]const u8) Token {
     var token: Token = Token{
         .type = @import("std").mem.zeroes(TokenType),
         .start = @constCast(text),
@@ -728,7 +728,7 @@ pub fn syntheticToken(text: [*c]const u8) callconv(.C) Token {
     _ = &token;
     return token;
 }
-pub fn super_(canAssign: bool) callconv(.C) void {
+pub fn super_(canAssign: bool) void {
     _ = canAssign;
     if (currentClass == @as([*c]ClassCompiler, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
         @"error"("Can't use 'super' outside of a class.");
@@ -751,7 +751,7 @@ pub fn super_(canAssign: bool) callconv(.C) void {
         emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_SUPER)), name);
     }
 }
-pub fn self_(canAssign: bool) callconv(.C) void {
+pub fn self_(canAssign: bool) void {
     _ = &canAssign;
     if (currentClass == @as([*c]ClassCompiler, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
         @"error"("Can't use 'self' outside of a class.");
@@ -759,11 +759,11 @@ pub fn self_(canAssign: bool) callconv(.C) void {
     }
     variable(false);
 }
-pub fn item_(canAssign: bool) callconv(.C) void {
+pub fn item_(canAssign: bool) void {
     _ = &canAssign;
     variable(false);
 }
-pub fn unary(canAssign: bool) callconv(.C) void {
+pub fn unary(canAssign: bool) void {
     _ = &canAssign;
     var operatorType: TokenType = parser.previous.type;
     _ = &operatorType;
@@ -783,7 +783,7 @@ pub fn unary(canAssign: bool) callconv(.C) void {
         break;
     }
 }
-pub export var rules: [54]ParseRule = .{
+pub export var rules: [53]ParseRule = .{
     .{
         .prefix = &grouping,
         .infix = &call,
@@ -972,20 +972,16 @@ pub export var rules: [54]ParseRule = .{
         .precedence = PREC_FACTOR,
     },
     .{
-        .prefix = &array,
-        .precedence = PREC_INDEX,
-    },
-    .{
         .precedence = PREC_NONE,
     },
 };
-pub fn block() callconv(.C) void {
+pub fn block() void {
     while (!check(.TOKEN_RIGHT_BRACE) and !check(.TOKEN_EOF)) {
         declaration();
     }
     consume(.TOKEN_RIGHT_BRACE, "Expect '}' after block.");
 }
-pub fn function(type_: FunctionType) callconv(.C) void {
+pub fn function(type_: FunctionType) void {
     var compiler: Compiler = undefined;
     _ = &compiler;
     initCompiler(&compiler, type_);
@@ -1023,7 +1019,7 @@ pub fn function(type_: FunctionType) callconv(.C) void {
         }
     }
 }
-pub fn method() callconv(.C) void {
+pub fn method() void {
     consume(.TOKEN_IDENTIFIER, "Expect method name.");
     var constant: u8 = identifierConstant(&parser.previous);
     _ = &constant;
@@ -1036,7 +1032,7 @@ pub fn method() callconv(.C) void {
     emitBytes(@intCast(@intFromEnum(OpCode.OP_METHOD)), constant);
 }
 
-pub fn classDeclaration() callconv(.C) void {
+pub fn classDeclaration() void {
     consume(.TOKEN_IDENTIFIER, "Expect class name.");
     var className: Token = parser.previous;
     _ = &className;
@@ -1075,14 +1071,14 @@ pub fn classDeclaration() callconv(.C) void {
     }
     currentClass = currentClass.*.enclosing;
 }
-pub fn funDeclaration() callconv(.C) void {
+pub fn funDeclaration() void {
     var global: u8 = parseVariable("Expect function name.");
     _ = &global;
     markInitialized();
     function(.TYPE_FUNCTION);
     defineVariable(global);
 }
-pub fn varDeclaration() callconv(.C) void {
+pub fn varDeclaration() void {
     var global: u8 = parseVariable("Expect variable name.");
     _ = &global;
     if (match(.TOKEN_EQUAL)) {
@@ -1093,12 +1089,12 @@ pub fn varDeclaration() callconv(.C) void {
     consume(.TOKEN_SEMICOLON, "Expect ';' after variable declaration.");
     defineVariable(global);
 }
-pub fn expressionStatement() callconv(.C) void {
+pub fn expressionStatement() void {
     expression();
     consume(.TOKEN_SEMICOLON, "Expect ';' after expression.");
     emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
 }
-pub fn forStatement() callconv(.C) void {
+pub fn forStatement() void {
     beginScope();
     consume(.TOKEN_LEFT_PAREN, "Expect '(' after 'for'.");
     if (match(.TOKEN_SEMICOLON)) {} else if (match(.TOKEN_VAR)) {
@@ -1136,7 +1132,7 @@ pub fn forStatement() callconv(.C) void {
     }
     endScope();
 }
-pub fn eachStatement() callconv(.C) void {
+pub fn eachStatement() void {
     var loopStart: c_int = currentChunk().*.count;
     _ = &loopStart;
     consume(.TOKEN_LEFT_PAREN, "Expect '(' after 'while'.");
@@ -1157,7 +1153,7 @@ pub fn eachStatement() callconv(.C) void {
     patchJump(exitJump);
     emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
 }
-pub fn ifStatement() callconv(.C) void {
+pub fn ifStatement() void {
     consume(.TOKEN_LEFT_PAREN, "Expect '(' after 'if'.");
     expression();
     consume(.TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
@@ -1174,12 +1170,12 @@ pub fn ifStatement() callconv(.C) void {
     }
     patchJump(elseJump);
 }
-pub fn printStatement() callconv(.C) void {
+pub fn printStatement() void {
     expression();
     consume(.TOKEN_SEMICOLON, "Expect ';' after value.");
     emitByte(@intCast(@intFromEnum(OpCode.OP_PRINT)));
 }
-pub fn returnStatement() callconv(.C) void {
+pub fn returnStatement() void {
     if (current.*.type_ == .TYPE_SCRIPT) {
         @"error"("Can't return from top-level code.");
     }
@@ -1194,7 +1190,7 @@ pub fn returnStatement() callconv(.C) void {
         emitByte(@intCast(@intFromEnum(OpCode.OP_RETURN)));
     }
 }
-pub fn whileStatement() callconv(.C) void {
+pub fn whileStatement() void {
     var loopStart: c_int = currentChunk().*.count;
     _ = &loopStart;
     consume(.TOKEN_LEFT_PAREN, "Expect '(' after 'while'.");
@@ -1208,7 +1204,7 @@ pub fn whileStatement() callconv(.C) void {
     patchJump(exitJump);
     emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
 }
-pub fn synchronize() callconv(.C) void {
+pub fn synchronize() void {
     parser.panicMode = false;
     while (parser.current.type != .TOKEN_EOF) {
         if (parser.previous.type == .TOKEN_SEMICOLON) return;

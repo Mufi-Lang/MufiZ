@@ -303,20 +303,6 @@ pub fn valuesEqual(a: Value, b: Value) bool {
                             return (str_a.*.length == str_b.*.length) and (scanner_h.memcmp(@ptrCast(str_a.*.chars), @ptrCast(str_b.*.chars), @intCast(str_a.*.length)) == 0);
                         }
                     },
-                    .OBJ_ARRAY => {
-                        {
-                            const arr_a: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(a.as.obj)));
-                            const arr_b: [*c]ObjArray = @as([*c]ObjArray, @ptrCast(@alignCast(b.as.obj)));
-                            if (arr_a.*.count != arr_b.*.count) return false;
-                            // while (i < arr_a.*.count) : (i += 1) {
-                            //     if (!valuesEqual(arr_a.*.values[@intCast(i)], arr_b.*.values[@intCast(i)])) return false;
-                            // }
-                            for (arr_a.*.values, arr_b.*.values) |v_a, v_b| {
-                                if (!valuesEqual(v_a, v_b)) return false;
-                            }
-                            return true;
-                        }
-                    },
                     .OBJ_LINKED_LIST => {
                         {
                             const list_a: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(a.as.obj)));
