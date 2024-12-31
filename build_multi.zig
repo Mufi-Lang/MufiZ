@@ -25,7 +25,7 @@ const targets: []const std.Target.Query = &.{
     .{ .cpu_arch = .aarch64, .os_tag = .windows, .abi = .gnu },
     .{ .cpu_arch = .mips64, .os_tag = .linux, .abi = .musl },
     .{ .cpu_arch = .mips64el, .os_tag = .linux, .abi = .musl },
-   // .{ .cpu_arch = .mipsel, .os_tag = .linux, .abi = .musl },
+    .{ .cpu_arch = .mipsel, .os_tag = .linux, .abi = .musl },
     .{ .cpu_arch = .mips, .os_tag = .linux, .abi = .musl },
     .{ .cpu_arch = .powerpc64, .os_tag = .linux, .abi = .gnu },
     .{ .cpu_arch = .powerpc64, .os_tag = .linux, .abi = .musl },
@@ -80,7 +80,7 @@ fn buildTarget(b: *std.Build, target: std.Target.Query, options: *std.Build.Step
         .name = "mufiz",
         .root_source_file = b.path("src/main.zig"),
         .target = b.resolveTargetQuery(target),
-        .optimize = if (target.cpu_arch != .arm) .ReleaseSafe else .Debug,
+        .optimize = .ReleaseSafe,
         .link_libc = true,
     });
 
