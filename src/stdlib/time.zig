@@ -8,7 +8,7 @@ pub fn now(argc: c_int, args: [*c]Value) callconv(.C) Value {
     if (argc != 0) return stdlib.stdlib_error("now() expects no arguments!", .{ .argn = argc });
 
     const time = std.time.timestamp();
-    return conv.int_val(@intCast(time));
+    return Value.init_int(@intCast(time));
 }
 
 pub fn now_ns(argc: c_int, args: [*c]Value) callconv(.C) Value {
@@ -16,7 +16,7 @@ pub fn now_ns(argc: c_int, args: [*c]Value) callconv(.C) Value {
     if (argc != 0) return stdlib.stdlib_error("now_ns() expects no arguments!", .{ .argn = argc });
 
     const time = std.time.nanoTimestamp();
-    return conv.double_val(@floatFromInt(time));
+    return Value.init_double(@floatFromInt(time));
 }
 
 pub fn now_ms(argc: c_int, args: [*c]Value) callconv(.C) Value {
@@ -24,5 +24,5 @@ pub fn now_ms(argc: c_int, args: [*c]Value) callconv(.C) Value {
     if (argc != 0) return stdlib.stdlib_error("now_ms() expects no arguments!", .{ .argn = argc });
 
     const time = std.time.milliTimestamp();
-    return conv.double_val(@floatFromInt(time));
+    return Value.init_double(@floatFromInt(time));
 }

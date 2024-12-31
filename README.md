@@ -3,15 +3,15 @@
 
 🌐 [mufiz.mustafif.com](https://mufiz.mustafif.com)
 
-This project aims to integrate the Mufi-Lang compiler with the Zig language by using the 
-Zig Build system. We hope to integrate more features with this language and see how nicely 
+This project aims to integrate the Mufi-Lang compiler with the Zig language by using the
+Zig Build system. We hope to integrate more features with this language and see how nicely
 we can utilize both languages in unity. The advantage of Zig's Build system is easy cross-compatibility and caching, and as we integrate more,
 we can ensure more memory safety.
 
 ## Usage:
 
 ```shell
-$ mufiz --help 
+$ mufiz --help
     -h, --help
             Displays this help and exit.
 
@@ -30,90 +30,9 @@ $ mufiz --help
 
 ---
 
-## Debug vs Release Modes
-
-Now when building under the `Debug` optimize mode, MufiZ will contain the debugging macros
-that shows GC tracing, and chunk disassembly. These will be turned off when built under any of
-the other `Release*` optimize modes with command `zig build -Doptimize=`.
-
-> Note: The following components are built under a specific optimize mode:
->
-> - `libmufiz_scanner`: `ReleaseFast`
->   - Since this library doesn't involve memory management on the Zig side, we can prioritize performance.
-> - `libmufiz_table`: `ReleaseFast`
->   - Since this library doesn't involve memory management on the Zig side, we can prioritize performance.
-> - `clap`: `ReleaseSafe`
->   - Since this library involves components that require allocations, we prioritize safety.
-
----
-
-## Installation
-
-### Deb Package
-
-```shell
-$ sudo dpkg -i mufiz_{version}_{target}.deb
-```
-
-## APT
-
-We host our official APT repository on Github on the [MufiZ-APT](https://github.com/Mustafif/MufiZ-APT) repository. To install using `apt` follow the instructions below:
-
-```bash
-$ echo "deb [arch= {arch}, trusted=yes] https://mustafif.github.io/Mufi-APT mufiz main" | sudo tee /etc/apt/sources.list.d/mufiz.list
-$ sudo apt update && sudo apt upgrade
-$ sudo apt install mufiz
-```
-
-Where `{arch}` is the architecture of your system.
-
-Supported architectures are:
-
-- amd64
-- i386
-- arm64
-- mipsel
-- mips64el
-- mips64
-- mips
-- powerpc
-- powerpc64
-- powerpc64le
-- riscv64
-
-### RPM Package
-
-```shell
-$ sudo rpm -i mufiz_{version}_{target}.rpm
-```
-
-### Linux/MacOS Zip
-
-```shell
-$ unzip mufiz_{version}_{target}.zip
-$ mv mufiz /usr/local/bin
-```
-
-### Windows
-
-- Download the `mufiz_{version}_{target}.zip` file from the releases page.
-- Extract the zip file to a directory of your choice.
-- Add the directory to your PATH environment variable.
-- Open a new terminal and run `mufiz --version` to verify the installation.
-
-### Scoop
-You can also install on Windows for 64/32 bit and `arm64` using the Scoop package manager: 
-
-```pwsh
-scoop bucket add mufi-bucket https://github.com/mustafif/mufi-bucket
-scoop install mufi-bucket/MufiZ
-```
-
----
-
 ## Goal
 
-> View [MufiZ Project Roadmap](https://github.com/users/Mustafif/projects/1) to see current goals I am currently working on or planning to implement for the current or next versions. 
+> View [MufiZ Project Roadmap](https://github.com/users/Mustafif/projects/1) to see current goals I am currently working on or planning to implement for the current or next versions.
 
 ---
 
@@ -127,8 +46,8 @@ scoop install mufi-bucket/MufiZ
 | 0.4.0   | [Voxl](https://github.com/Mustafif/MufiZ/releases/tag/v0.4.0)            | Released    |
 | 0.5.0   | [Luna](https://github.com/Mustafif/MufiZ/releases/tag/v0.5.0)            | Released    |
 | 0.6.0   | [Mars](https://github.com/Mustafif/MufiZ/releases/tag/v0.6.0)            | Released      |
-| 0.7.0   | [Jade](https://github.com/Mustafif/MufiZ/releases/tag/v0.7.0) | Latest |
-| 0.8.0 | [Ruby](https://github.com/Mustafif/MufiZ/releases/tag/next-experimental) | In Progress|
+| 0.7.0   | [Jade](https://github.com/Mustafif/MufiZ/releases/tag/v0.7.0) | Released |
+| 0.8.0 | [Ruby](https://github.com/Mustafif/MufiZ/releases/tag/v0.8.0) | Latest |
 
 ---
 
@@ -141,6 +60,5 @@ To support various toolchains, we have added the following features to the proje
 
 ## Related Repositories
 
-- [MufiZ-APT](https://github.com/Mustafif/MufiZ-APT): The official APT repository for MufiZ.
 - [homebrew-mufi](https://github.com/Mustafif/homebrew-mufi): The official Homebrew Tap for MufiZ.
 - [mufi-bucket](https://github.com/Mustafif/mufi-bucket): The official Scoop bucket for MufiZ.

@@ -83,7 +83,7 @@ void importCollections(void) {
   defineNative("clone", clone_nf);
   defineNative("clear", clear_nf);
 
-  defineNative("iter", iter_nf);
+  // defineNative("iter", iter_nf);
   defineNative("next", next_nf);
   defineNative("has_next", hasNext_nf);
   defineNative("reset", reset_nf);
@@ -534,6 +534,27 @@ static InterpretResult run() {
       break;
     }
 
+    case OP_GET_ITERATOR: {
+        // Value collection = pop();
+        // if (!IS_ARRAY(collection) && !IS_FVECTOR(collection)) {
+        //   runtimeError("Only arrays and float vectors support iteration.");
+        //   return INTERPRET_RUNTIME_ERROR;
+        // }
+
+        // if(IS_ARRAY(collection)){
+        //     ObjArray* array = AS_ARRAY(collection);
+        //     ArrayIter *aiter = newArrayIter(array);
+        //     ObjIterator* iter = newIterator(ARRAY_ITER, (IterUnion){.arr = aiter});
+        //     push(OBJ_VAL(iter));
+        // } else {
+        //     FloatVector *fvec = AS_FVECTOR(collection);
+        //     FloatVecIter *fiter = newFloatVecIter(fvec);
+        //     ObjIterator* iter = newIterator(FLOAT_VEC_ITER, (IterUnion){.fvec = fiter});
+        //     push(OBJ_VAL(iter));
+        // }
+        // break;
+    }
+
     case OP_INDEX_GET: {
       printf("Index get\n");
       int idx = READ_BYTE();         // Pop index
@@ -825,6 +846,45 @@ static InterpretResult run() {
         frame->ip += offset;
       break;
     }
+
+    case OP_JUMP_IF_DONE: {
+        uint16_t offset = READ_SHORT();
+        Value val = peek(0);
+
+        if(!IS_ARRAY(val) && !IS_FVECTOR(val)){
+            runtimeError("Operand must be an array or a vector.");
+            return INTERPRET_RUNTIME_ERROR;
+        }
+
+        if(IS_ARRAY(val)){
+            ObjArray *array = AS_ARRAY(val);
+            if(!hasNextObjectArray(array)){
+                frame->ip += offset;
+            } else {
+                push(nextObjectArray(array));
+            }
+        } else {
+            FloatVector *fvector = AS_FVECTOR(val);
+            if(!hasNextFloatVector(fvector)){
+                frame->ip += offset;
+            }else{
+                push(DOUBLE_VAL(nextFloatVector(fvector)));
+            }
+        }
+        break;
+    }
+
+    case OP_ITERATOR_NEXT: {
+      // ObjIterator* iterator = AS_ITERATOR(peek(0));
+      //   Value nextValue = iteratorNext(iterator);
+      //   push(nextValue);
+      //   break;
+    }
+
+    // case OP_ITERATOR_HAS_NEXT: {
+    //    if(!IS_ARRAY(peek(0)) && !IS_FVECTOR(peek(0)))
+    // }
+
     case OP_LOOP: {
       uint16_t offset = READ_SHORT();
       frame->ip -= offset;

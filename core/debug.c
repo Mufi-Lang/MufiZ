@@ -110,6 +110,8 @@ int disassembleInstruction(Chunk *chunk, int offset) {
     return jumpInstruction("OP_JUMP", 1, chunk, offset);
   case OP_JUMP_IF_FALSE:
     return jumpInstruction("OP_JUMP_IF_FALSE", 1, chunk, offset);
+ case OP_JUMP_IF_DONE:
+    return jumpInstruction("OP_JUMP_IF_DONE", 1, chunk, offset);
   case OP_LOOP:
     return jumpInstruction("OP_LOOP", -1, chunk, offset);
   case OP_CALL:
@@ -145,6 +147,14 @@ int disassembleInstruction(Chunk *chunk, int offset) {
     return simpleInstruction("OP_INHERIT", offset);
   case OP_METHOD:
     return constantInstruction("OP_METHOD", chunk, offset);
+case OP_ARRAY:
+    return simpleInstruction("OP_ARRAY", offset);
+case OP_FVECTOR:
+    return simpleInstruction("OP_FVECTOR", offset);
+case OP_ITERATOR_NEXT:
+    return simpleInstruction("OP_ITERATOR_NEXT", offset);
+case OP_GET_ITERATOR:
+    return simpleInstruction("OP_GET_ITERATOR", offset);
   default:
     printf("Unknown opcode %d\n", instruction);
     return offset + 1;

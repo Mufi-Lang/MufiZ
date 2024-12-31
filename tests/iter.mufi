@@ -1,0 +1,6 @@
+var a = [1, 2, 3, 4];
+
+while(has_next(a)){
+    var i = next(a);
+    print i;
+}

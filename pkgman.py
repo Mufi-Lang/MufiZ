@@ -1,14 +1,14 @@
 """
-This script is responsible for creating zip files, as well as generating the appropriate 
+This script is responsible for creating zip files, as well as generating the appropriate
 Debian and RPM packages.
 
-- The `zipper` method will read the `targets.json` file and create zip files for each target, with 
+- The `zipper` method will read the `targets.json` file and create zip files for each target, with
 the following naming convention: `mufiz_{version}_{target}.zip`.
 
-- The `build_package` method will create the Debian and RPM packages using the 
+- The `build_package` method will create the Debian and RPM packages using the
 `fpm` tool for given target.
 
-Note: This script requires the necessary dependencies and tools installed on the system 
+Note: This script requires the necessary dependencies and tools installed on the system
 for creating Debian and RPM packages.
 
 - To create the Debian package, you need to have the `dpkg` tool installed.
@@ -22,10 +22,28 @@ import os
 import json
 import shutil
 import zipfile
+import re
 
 out_path = "zig-out/"
 pkg_path = "pkg/"
-version = "0.7.0"
+
+def extract_version():
+    # Regular expression to find the version
+    version_pattern = r'\.version\s*=\s*"([\d.]+)"'
+    data = ""
+    with open("build.zig.zon", "r") as file:
+        data = file.read()
+
+    # Search for the version in the data
+    match = re.search(version_pattern, data)
+
+    if match:
+        return match.group(1)
+    else:
+        return None
+
+
+version = extract_version()
 
 arch_map_deb = {
     "x86_64-linux": "amd64",
@@ -44,7 +62,7 @@ arch_map_deb = {
 
 arch_map_rpm = {
     "x86_64-linux": "x86_64",
-    "x86-linux": "i386", 
+    "x86-linux": "i386",
     "aarch64-linux": "aarch64",
     # "arm-linux": "arm",
     "mips64-linux-musl": "mips64",
@@ -64,7 +82,7 @@ def load_targets():
 
 
 def command_str(arch, target, pkg):
-    return f"fpm -v {version} -a {arch} -s zip -t {pkg} --prefix /usr/bin -m 'Mustafif0929@gmail.com' --description 'The Mufi Programming Language' -n mufiz ./pkg/mufiz_{version}_{target}.zip "
+    return f"fpm -v {version} -a {arch} -t {pkg} ./pkg/mufiz_{version}_{target}.zip "
 
 
 def zipper():

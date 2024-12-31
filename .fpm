@@ -1,0 +1,6 @@
+--prefix /usr/bin
+--maintainer 'Mustafif Khan <me@mustafif.com>'
+--description 'The Mufi Programming Language'
+--url 'https://mufiz.mustafif.com'
+-s zip
+-n mufiz

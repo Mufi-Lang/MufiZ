@@ -1,6 +1,6 @@
-const object_h = @cImport(@cInclude("object.h"));
-const memory = @cImport(@cInclude("memory.h"));
-const value_h = @cImport(@cInclude("value.h"));
+const object_h = @import("object.zig");
+const memory = @import("memory.zig");
+const value_h = @import("value.zig");
 
 const ObjString = object_h.ObjString;
 const Obj = object_h.Obj;
@@ -20,7 +20,7 @@ pub const Table = extern struct {
 };
 
 pub const Entry = extern struct {
-    key: ?*ObjString,
+    key: [*c]ObjString,
     value: Value,
     deleted: bool,
 };
@@ -44,7 +44,7 @@ pub export fn initTable(table: *Table) callconv(.C) void {
 }
 
 pub export fn freeTable(table: *Table) callconv(.C) void {
-    _ = memory.FREE_ARRAY(Entry, table.entries, @as(usize, @intCast(table.capacity))) orelse unreachable;
+    _ = reallocate(@ptrCast(@alignCast(table.entries)), @intCast(table.capacity), 0);
     initTable(table);
 }
 
@@ -52,8 +52,8 @@ pub export fn entries_(table: *Table) [*c]Entry {
     return table.entries;
 }
 
-pub export fn findEntry(entries: [*]Entry, capacity: c_int, key: ?*ObjString) callconv(.C) *Entry {
-    var index: usize = @as(usize, @intCast(key.?.hash)) & @as(usize, @intCast(capacity - 1));
+pub export fn findEntry(entries: [*]Entry, capacity: c_int, key: [*c]ObjString) callconv(.C) *Entry {
+    var index: usize = @as(usize, @intCast(key.*.hash)) & @as(usize, @intCast(capacity - 1));
     while (true) {
         const entry: *Entry = &entries[index];
         if (entry.*.key == null or entry.*.deleted) {
@@ -80,7 +80,7 @@ pub export fn adjustCapacity(table: *Table, capacity: c_int) callconv(.C) void {
 
     for (0..c) |i| {
         entries[i].key = null;
-        entries[i].value = .{ .type = VAL_NIL, .as = .{ .num_int = 0 } };
+        entries[i].value = .{ .type = .VAL_NIL, .as = .{ .num_int = 0 } };
     }
     table.*.count = 0;
 
@@ -92,7 +92,7 @@ pub export fn adjustCapacity(table: *Table, capacity: c_int) callconv(.C) void {
         dest.*.value = entry.*.value;
         table.*.count += 1;
     }
-    _ = memory.FREE_ARRAY(Entry, table.entries, @as(usize, @intCast(table.*.capacity)));
+    _ = reallocate(table.*.entries, @intCast(table.*.capacity), 0);
     table.*.entries = entries;
     table.*.capacity = capacity;
 }
@@ -104,7 +104,7 @@ pub export fn tableSet(table: *Table, key: ?*ObjString, value: Value) bool {
     }
     const entry: [*c]Entry = findEntry(table.*.entries, table.*.capacity, key);
     const isNewKey: bool = entry.*.key == null or entry.*.deleted;
-    if (isNewKey and (entry.*.value.type == VAL_NIL)) {
+    if (isNewKey and (entry.*.value.type == .VAL_NIL)) {
         if (entry.*.deleted) {
             entry.*.deleted = false; // reusing deleted entry
         } else {
@@ -141,8 +141,8 @@ pub export fn tableFindString(table: *Table, chars: [*c]const u8, length: c_int,
     while (true) {
         const entry: [*c]Entry = &table.*.entries[index];
         if (entry.*.key == null) {
-            if (entry.*.value.type == VAL_NIL) return null;
-        } else if ( !entry.*.deleted and ((entry.*.key.?.length == length) and (entry.*.key.?.hash == hash)) and (memcmp(@ptrCast(entry.*.key.?.chars), @ptrCast(chars), @as(usize, @intCast(length))) == 0)) {
+            if (entry.*.value.type == .VAL_NIL) return null;
+        } else if (!entry.*.deleted and ((entry.*.key.*.length == length) and (entry.*.key.*.hash == hash)) and (memcmp(@ptrCast(entry.*.key.*.chars), @ptrCast(chars), @as(usize, @intCast(length))) == 0)) {
             return entry.*.key;
         }
         index = (index + 1) & @as(usize, @intCast(table.*.capacity - 1));
@@ -153,14 +153,14 @@ pub export fn tableFindString(table: *Table, chars: [*c]const u8, length: c_int,
 pub export fn tableRemoveWhite(table: *Table) callconv(.C) void {
     for (0..@as(usize, @intCast(table.*.capacity))) |i| {
         const entry: [*c]Entry = &table.*.entries[i];
-        if (entry.*.key != null and !entry.*.key.?.obj.isMarked) {
+        if (entry.*.key != null and !entry.*.key.*.obj.isMarked) {
             _ = tableDelete(table, entry.*.key);
         }
     }
 }
 
 inline fn markValue(value: Value) void {
-    if (value_h.IS_OBJ(value)) markObject(@ptrCast(@alignCast(value_h.AS_OBJ(value))));
+    if (value.is_obj()) markObject(@ptrCast(@alignCast(value.as_obj())));
 }
 
 pub export fn markTable(table: *Table) void {

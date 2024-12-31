@@ -32,45 +32,24 @@ Value simd_stat_nf(int argCount, Value *args) {
   return NIL_VAL;
 }
 
-Value iter_nf(int argCount, Value *args) {
-  if (argCount != 1) {
-    runtimeError("iter() takes 1 argument.");
-    return NIL_VAL;
-  }
-  if (NOT_ARRAY_TYPES(args, 1)) {
-    runtimeError("Argument must be an array type.");
-    return NIL_VAL;
-  }
-  switch (AS_OBJ(args[0])->type) {
-  case OBJ_ARRAY: {
-    ObjArray *a = AS_ARRAY(args[0]);
-    ArrayIter *aiter = newArrayIter(a);
-    ObjIterator *iter = newIterator(ARRAY_ITER, (IterUnion){.arr = aiter});
-    return OBJ_VAL(iter);
-  }
-  case OBJ_FVECTOR: {
-    FloatVector *f = AS_FVECTOR(args[0]);
-    FloatVecIter *fiter = newFloatVecIter(f);
-    ObjIterator *iter = newIterator(FLOAT_VEC_ITER, (IterUnion){.fvec = fiter});
-    return OBJ_VAL(iter);
-  }
-  default:
-    runtimeError("Invalid argument type.");
-    return NIL_VAL;
-  }
-}
 
 Value next_nf(int argCount, Value *args) {
   if (argCount != 1) {
     runtimeError("next() takes 1 argument.");
     return NIL_VAL;
   }
-  if (!IS_ITERATOR(args[0])) {
-    runtimeError("Argument must be an iterator.");
+  if (!IS_ARRAY(args[0]) && !IS_FVECTOR(args[0])) {
+    runtimeError("Argument must be an iterable.");
     return NIL_VAL;
   }
-  ObjIterator *iter = AS_ITERATOR(args[0]);
-  return iteratorNext(iter);
+    Value next = NIL_VAL;
+    if (IS_ARRAY(args[0])) {
+      next = nextObjectArray(AS_ARRAY(args[0]));
+    } else if (IS_FVECTOR(args[0])) {
+      next = DOUBLE_VAL(nextFloatVector(AS_FVECTOR(args[0])));
+    }
+
+    return next;
 }
 
 Value hasNext_nf(int argCount, Value *args) {
@@ -78,21 +57,26 @@ Value hasNext_nf(int argCount, Value *args) {
     runtimeError("has_next() takes 1 argument.");
     return NIL_VAL;
   }
-  if (!IS_ITERATOR(args[0])) {
-    runtimeError("Argument must be an iterator.");
-    return NIL_VAL;
-  }
-  ObjIterator *iter = AS_ITERATOR(args[0]);
-  return BOOL_VAL(iteratorHasNext(iter));
+    if (!IS_ARRAY(args[0]) && !IS_FVECTOR(args[0])) {
+        runtimeError("Argument must be an iterable.");
+        return NIL_VAL;
+    }
+    bool hasNext = false;
+    if (IS_ARRAY(args[0])) {
+      hasNext = hasNextObjectArray(AS_ARRAY(args[0]));
+    } else if (IS_FVECTOR(args[0])) {
+      hasNext = hasNextFloatVector(AS_FVECTOR(args[0]));
+    }
+    return BOOL_VAL(hasNext);
 }
 
 Value peek_nf(int argCount, Value *args) {
-  if (argCount != 1) {
+  if (argCount != 2) {
     runtimeError("peek() takes 2 argument.");
     return NIL_VAL;
   }
-  if (!IS_ITERATOR(args[0])) {
-    runtimeError("Argument must be an iterator.");
+  if (!IS_ARRAY(args[0]) && !IS_FVECTOR(args[0])) {
+    runtimeError("Argument must be an iterable.");
     return NIL_VAL;
   }
 
@@ -101,9 +85,15 @@ Value peek_nf(int argCount, Value *args) {
     return NIL_VAL;
   }
 
-  ObjIterator *iter = AS_ITERATOR(args[0]);
   int pos = AS_NUM_INT(args[1]);
-  return iteratorPeek(iter, pos);
+  Value peek = NIL_VAL;
+
+    if (IS_ARRAY(args[0])) {
+        peek = peekObjectArray(AS_ARRAY(args[0]), pos);
+    } else if (IS_FVECTOR(args[0])) {
+        peek = DOUBLE_VAL(peekFloatVector(AS_FVECTOR(args[0]), pos));
+    }
+    return peek;
 }
 
 Value reset_nf(int argCount, Value *args) {
@@ -111,13 +101,18 @@ Value reset_nf(int argCount, Value *args) {
     runtimeError("reset() takes 1 argument.");
     return NIL_VAL;
   }
-  if (!IS_ITERATOR(args[0])) {
-    runtimeError("Argument must be an iterator.");
+    if (!IS_ARRAY(args[0]) && !IS_FVECTOR(args[0])) {
+        runtimeError("Argument must be an iterable.");
+        return NIL_VAL;
+    }
+
+    if (IS_ARRAY(args[0])) {
+      resetObjectArray(AS_ARRAY(args[0]));
+    } else if (IS_FVECTOR(args[0])) {
+      resetFloatVector(AS_FVECTOR(args[0]));
+    }
+
     return NIL_VAL;
-  }
-  ObjIterator *iter = AS_ITERATOR(args[0]);
-  iteratorReset(iter);
-  return NIL_VAL;
 }
 
 Value skip_nf(int argCount, Value *args) {
@@ -125,18 +120,24 @@ Value skip_nf(int argCount, Value *args) {
     runtimeError("skip() takes 2 arguments.");
     return NIL_VAL;
   }
-  if (!IS_ITERATOR(args[0])) {
-    runtimeError("First argument must be an iterator.");
+    if (!IS_ARRAY(args[0]) && !IS_FVECTOR(args[0])) {
+        runtimeError("Argument must be an iterable.");
+        return NIL_VAL;
+    }
+
+    if (!IS_PRIM_NUM(args[1])) {
+        runtimeError("Second argument must be a number.");
+        return NIL_VAL;
+    }
+
+    int skip = AS_NUM_INT(args[1]);
+    if (IS_ARRAY(args[0])) {
+      skipObjectArray(AS_ARRAY(args[0]), skip);
+    } else if (IS_FVECTOR(args[0])) {
+      skipFloatVector(AS_FVECTOR(args[0]), skip);
+    }
+
     return NIL_VAL;
-  }
-  if (!IS_PRIM_NUM(args[1])) {
-    runtimeError("Second argument must be a number.");
-    return NIL_VAL;
-  }
-  ObjIterator *iter = AS_ITERATOR(args[0]);
-  int n = AS_NUM_INT(args[1]);
-  iteratorSkip(iter, n);
-  return NIL_VAL;
 }
 
 Value array_nf(int argCount, Value *args) {
@@ -152,7 +153,8 @@ Value array_nf(int argCount, Value *args) {
     return OBJ_VAL(a);
   } else if (argCount >= 1) {
     if (!IS_PRIM_NUM(args[0])) {
-      runtimeError("First argument must be a number.");
+      runtimeError("First argument must be a number when creating an array "
+                   "with a specified capacity.");
       return NIL_VAL;
     }
 
@@ -256,7 +258,8 @@ Value remove_nf(int argCount, Value *args) {
         removeFloatVector(AS_FVECTOR(args[0]), AS_NUM_INT(args[1])));
   }
   default: {
-    // Handle invalid argument type
+    runtimeError("Argument must be a hash table, array or float vector.");
+    return NIL_VAL;
     break;
   }
   }
@@ -295,7 +298,7 @@ Value push_nf(int argCount, Value *args) {
     return NIL_VAL;
   }
   default:
-    runtimeError("Invalid argument type.");
+    runtimeError("Argument must be a linked list, array or float vector.");
     return NIL_VAL;
   }
 }
@@ -336,7 +339,9 @@ Value pop_nf(int argCount, Value *args) {
     ObjLinkedList *l = AS_LINKED_LIST(args[0]);
     return popBack(l);
   }
-  default: // unreachable
+  default:
+    runtimeError("Argument must be a linked list, array or float vector.");
+    return NIL_VAL;
     break;
   }
 }
@@ -455,7 +460,9 @@ Value sort_nf(int argCount, Value *args) {
     mergeSort(l);
     return NIL_VAL;
   }
-  default: // unreachable
+  default:
+    runtimeError("Argument must be a linked list, array or float vector.");
+    return NIL_VAL;
     break;
   }
 }
@@ -495,7 +502,8 @@ Value equal_list_nf(int argCount, Value *args) {
     return BOOL_VAL(equalLinkedList(a, b));
   }
   default: {
-    runtimeError("Invalid argument type.");
+    runtimeError("Argument must be a linked list, array or float vector.");
+    return NIL_VAL;
     return NIL_VAL;
   }
   }
@@ -503,7 +511,7 @@ Value equal_list_nf(int argCount, Value *args) {
 
 Value contains_nf(int argCount, Value *args) {
   if (NOT_LIST_TYPES(args, 1) && !IS_HASH_TABLE(args[0])) {
-    runtimeError("First argument must be an array, linked list or hash table.");
+    runtimeError("First argument must be a collection type.");
     return NIL_VAL;
   }
 
@@ -585,7 +593,8 @@ Value insert_nf(int argCount, Value *args) {
     return NIL_VAL;
   }
   default:
-    // Handle error or default case here
+    runtimeError("Invalid argument type.");
+    return NIL_VAL;
     break;
   }
 }

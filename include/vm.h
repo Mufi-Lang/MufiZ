@@ -1,4 +1,4 @@
-/* 
+/*
  * File:   vm.h
  * Author: Mustafif Khan
  * Brief:  The Virtual Machine Frontend of Mufi

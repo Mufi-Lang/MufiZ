@@ -15,6 +15,7 @@
 #include "chunk.h"
 #include "value.h"
 #include "table.h"
+#include "stdint.h"
 #include <stdbool.h>
 
 #ifdef __AVX2__
@@ -40,11 +41,19 @@
 #define IS_HASH_TABLE(value) isObjType(value, OBJ_HASH_TABLE)
 #define IS_MATRIX(value) isObjType(value, OBJ_MATRIX)
 #define IS_FVECTOR(value) isObjType(value, OBJ_FVECTOR)
-#define IS_ITERATOR(value) isObjType(value, OBJ_ITERATOR)
 
-#define NOT_ARRAY_TYPES(args, n) notObjTypes(args, OBJ_ARRAY, n) && notObjTypes(args, OBJ_FVECTOR, n)
-#define NOT_LIST_TYPES(args, n) notObjTypes(args, OBJ_LINKED_LIST, n) && NOT_ARRAY_TYPES(args, n)
-#define NOT_COLLECTION_TYPES(args, n) notObjTypes(args, OBJ_HASH_TABLE, n) && notObjTypes(args, OBJ_MATRIX, n) && NOT_LIST_TYPES(args, n)
+#define NOT_ARRAY_TYPES(values, n) \
+    ((notObjTypes((ObjTypeCheckParams){values, OBJ_ARRAY, n})) && \
+     (notObjTypes((ObjTypeCheckParams){values, OBJ_FVECTOR, n})))
+
+    #define NOT_LIST_TYPES(values, n) \
+        ((notObjTypes((ObjTypeCheckParams){values, OBJ_LINKED_LIST, n})) && \
+         (NOT_ARRAY_TYPES(values, n)))
+
+    #define NOT_COLLECTION_TYPES(values, n) \
+        ((notObjTypes((ObjTypeCheckParams){values, OBJ_HASH_TABLE, n})) && \
+         (notObjTypes((ObjTypeCheckParams){values, OBJ_MATRIX, n})) && \
+         (NOT_LIST_TYPES(values, n)))
 
 #define AS_BOUND_METHOD(value) ((ObjBoundMethod *)AS_OBJ(value))
 #define AS_CLASS(value) ((ObjClass *)AS_OBJ(value))
@@ -60,7 +69,6 @@
 #define AS_HASH_TABLE(value) ((ObjHashTable *)AS_OBJ(value))
 #define AS_MATRIX(value) ((ObjMatrix *)AS_OBJ(value))
 #define AS_FVECTOR(value) ((FloatVector *)AS_OBJ(value))
-#define AS_ITERATOR(value) ((ObjIterator *)AS_OBJ(value))
 
 //> Object Type
 //> An object type is a type of an object in Mufi
@@ -79,7 +87,6 @@ typedef enum
     OBJ_HASH_TABLE,
     OBJ_MATRIX,
     OBJ_FVECTOR,
-    OBJ_ITERATOR,
 } ObjType;
 
 //> Object Structure
@@ -127,6 +134,7 @@ typedef struct
     Obj obj;
     int capacity;
     int count;
+    int pos;
     bool _static;
     Value *values;
 } ObjArray;
@@ -151,6 +159,7 @@ typedef struct
     Obj obj;
     int size;
     int count;
+    int pos;
     double *data;
     bool sorted;
 } FloatVector;
@@ -233,34 +242,6 @@ typedef struct
     ObjClosure *method;
 } ObjBoundMethod;
 
-typedef struct{
-    FloatVector *vec;
-    int pos;
-}FloatVecIter;
-
-typedef struct
-{
-    ObjArray *arr;
-    int pos;
-}ArrayIter;
-
-typedef enum{
-    FLOAT_VEC_ITER,
-    ARRAY_ITER
-}IterType;
-
-typedef union{
-    FloatVecIter* fvec;
-    ArrayIter* arr;
-}IterUnion;
-
-//> Iterator Object
-typedef struct{
-    Obj obj;
-    IterType type;
-    IterUnion iter;
-}ObjIterator;
-
 /*-------------------------- Object Functions --------------------------------*/
 ObjBoundMethod *newBoundMethod(Value receiver, ObjClosure *method);
 ObjClass *newClass(ObjString *name);
@@ -268,24 +249,14 @@ ObjClosure *newClosure(ObjFunction *function);
 ObjFunction *newFunction();
 ObjInstance *newInstance(ObjClass *klass);
 ObjNative *newNative(NativeFn function);
-ObjString *allocateString(char *chars, int length, uint64_t hash);
+typedef struct {
+char *chars; int length; uint64_t hash;
+} AllocStringParams;
+ObjString *allocateString(AllocStringParams params);
 uint64_t hashString(const char *key, int length);
 ObjString *takeString(char *chars, int length);
 ObjString *copyString(const char *chars, int length);
 ObjUpvalue *newUpvalue(Value *slot);
-/*----------------------------------------------------------------------------*/
-
-/* ------------------------- Iterator Functions ----------------------------- */
-FloatVecIter *newFloatVecIter(FloatVector *vec);
-ArrayIter *newArrayIter(ObjArray *arr);
-
-ObjIterator *newIterator(IterType type, IterUnion iter);
-Value iteratorNext(ObjIterator *iter);
-bool iteratorHasNext(ObjIterator *iter);
-Value iteratorPeek(ObjIterator *iter, int pos);
-void iteratorReset(ObjIterator *iter);
-void iteratorSkip(ObjIterator *iter, int n);
-void freeObjectIterator(ObjIterator *iter);
 /*----------------------------------------------------------------------------*/
 
 /*-------------------------- Array Functions --------------------------------*/
@@ -373,6 +344,11 @@ void printArray(ObjArray *array);
 ObjArray *newArray();
 //> Creates a new array with a given capacity and static flag
 ObjArray *newArrayWithCap(int capacity, bool _static);
+Value nextObjectArray(ObjArray *array);
+bool hasNextObjectArray(ObjArray *array);
+Value peekObjectArray(ObjArray *array, int pos);
+void resetObjectArray(ObjArray *array);
+void skipObjectArray(ObjArray *array, int n);
 /*----------------------------------------------------------------------------*/
 
 /*-------------------------- Linked List Functions ---------------------------*/
@@ -594,6 +570,11 @@ void sortFloatVector(FloatVector *vector);
 //> Reverses the float vector
 //> Time Complexity: O(n)
 void reverseFloatVector(FloatVector *vector);
+double nextFloatVector(FloatVector *vector);
+bool hasNextFloatVector(FloatVector *vector);
+double peekFloatVector(FloatVector *vector, int pos);
+void resetFloatVector(FloatVector *vector);
+void skipFloatVector(FloatVector *vector, int n);
 //> Searches for a value in the float vector using binary search
 //> Time Complexity:
 //> Best Case: O(1)
@@ -631,16 +612,20 @@ static inline bool isObjType(Value value, ObjType type)
     return IS_OBJ(value) && AS_OBJ(value)->type == type;
 }
 
-static inline bool notObjTypes(Value *value, ObjType type, int n)
-{
-    for (int i = 0; i < n; i++)
-    {
-        if (isObjType(value[i], type))
-        {
+typedef struct {
+    Value *values;
+    ObjType objType;
+    int count;
+} ObjTypeCheckParams;
+
+static inline bool notObjTypes(ObjTypeCheckParams params) {
+    for (int i = 0; i < params.count; i++) {
+        if (isObjType(params.values[i], params.objType)) {
             return false;
         }
     }
     return true;
 }
+
 
 #endif

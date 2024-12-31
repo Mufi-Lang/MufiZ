@@ -1,20 +1,18 @@
 const std = @import("std");
+pub const strlen = @cImport(@cInclude("string.h")).strlen;
 
-fn memcmp(s1: ?*const anyopaque, s2: ?*const anyopaque, n: usize) c_int {
+pub fn memcmp(s1: ?*const anyopaque, s2: ?*const anyopaque, n: usize) c_int {
     const str1: [*c]const u8 = @ptrCast(s1.?);
     const str2: [*c]const u8 = @ptrCast(s2.?);
     const num: usize = @intCast(n);
 
     for (0..num) |i| {
-        if (str1[i] != str2[i]) return @intCast(str1[i] - str2[i]);
+        if (str1[i] != str2[i]) {
+            return @as(c_int, @intCast(@as(i32, str1[i]) - @as(i32, str2[i])));
+        }
     }
 
     return 0;
-}
-
-fn strlen(s: [*c]const u8) usize {
-    const str: *[]u8 = @constCast(@ptrCast(@alignCast(s)));
-    return str.*.len;
 }
 
 pub const TokenType = enum(c_int) {
@@ -64,19 +62,20 @@ pub const TokenType = enum(c_int) {
     TOKEN_TRUE = 39,
     TOKEN_VAR = 40,
     TOKEN_WHILE = 41,
+    TOKEN_ITEM = 42,
     // Misc
-    TOKEN_ERROR = 42,
-    TOKEN_EOF = 43,
-    TOKEN_PLUS_EQUAL = 44,
-    TOKEN_MINUS_EQUAL = 45,
-    TOKEN_STAR_EQUAL = 46,
-    TOKEN_SLASH_EQUAL = 47,
-    TOKEN_PLUS_PLUS = 48,
-    TOKEN_MINUS_MINUS = 49,
-    TOKEN_HAT = 50,
-    TOKEN_LEFT_SQPAREN = 51,
-    TOKEN_RIGHT_SQPAREN = 52,
-    TOKEN_COLON = 53, 
+    TOKEN_ERROR = 43,
+    TOKEN_EOF = 44,
+    TOKEN_PLUS_EQUAL = 45,
+    TOKEN_MINUS_EQUAL = 46,
+    TOKEN_STAR_EQUAL = 47,
+    TOKEN_SLASH_EQUAL = 48,
+    TOKEN_PLUS_PLUS = 49,
+    TOKEN_MINUS_MINUS = 50,
+    TOKEN_HAT = 51,
+    TOKEN_LEFT_SQPAREN = 52,
+    TOKEN_RIGHT_SQPAREN = 53,
+    TOKEN_COLON = 54,
 };
 
 pub const Token = extern struct {
@@ -210,7 +209,15 @@ pub export fn identifierType() callconv(.C) TokenType {
                 }
             }
         },
-        'i' => return checkKeyword(1, 1, @ptrCast("f"), .TOKEN_IF),
+        'i' => {
+            if (@intFromPtr(scanner.current) - @intFromPtr(scanner.start) > 1) {
+                switch (scanner.start[1]) {
+                    'f' => return checkKeyword(2, 0, @ptrCast(""), .TOKEN_IF),
+                    't' => return checkKeyword(2, 2, @ptrCast("em"), .TOKEN_ITEM),
+                    else => {},
+                }
+            }
+        },
         'l' => return checkKeyword(1, 2, @ptrCast("et"), .TOKEN_LET),
         'n' => return checkKeyword(1, 2, @ptrCast("il"), .TOKEN_NIL),
         'p' => return checkKeyword(1, 4, @ptrCast("rint"), .TOKEN_PRINT),
@@ -281,7 +288,7 @@ pub export fn scanToken() Token {
         '[' => return makeToken(.TOKEN_LEFT_SQPAREN),
         ']' => return makeToken(.TOKEN_RIGHT_SQPAREN),
         ';' => return makeToken(.TOKEN_SEMICOLON),
-        ':' => return makeToken(.TOKEN_COLON), 
+        ':' => return makeToken(.TOKEN_COLON),
         ',' => return makeToken(.TOKEN_COMMA),
         '.' => return makeToken(.TOKEN_DOT),
         '-' => {
