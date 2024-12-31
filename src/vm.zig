@@ -811,149 +811,69 @@ pub fn run() callconv(.C) InterpretResult {
                 //     break;
                 // },
                 .OP_FVECTOR => {
+                    var count: c_int = @as(c_int, @bitCast(@as(c_uint, (blk: {
+                        const ref = &frame.*.ip;
+                        const tmp = ref.*;
+                        ref.* += 1;
+                        break :blk tmp;
+                    }).*)));
+                    _ = &count;
+                    const f = fvec.newFloatVector(count);
                     {
-                        var count: c_int = @as(c_int, @bitCast(@as(c_uint, (blk: {
-                            const ref = &frame.*.ip;
-                            const tmp = ref.*;
-                            ref.* += 1;
-                            break :blk tmp;
-                        }).*)));
-                        _ = &count;
-                        const f = fvec.newFloatVector(count);
-                        {
-                            var i: c_int = 0;
-                            _ = &i;
-                            while (i < count) : (i += 1) {
-                                pushFloatVector(f, peek((count - i) - 1).as.num_double);
-                            }
+                        var i: c_int = 0;
+                        _ = &i;
+                        while (i < count) : (i += 1) {
+                            pushFloatVector(f, peek((count - i) - 1).as.num_double);
                         }
-                        {
-                            var i: c_int = 0;
-                            _ = &i;
-                            while (i < count) : (i += 1) {
-                                _ = pop();
-                            }
-                        }
-                        push(Value{
-                            .type = .VAL_OBJ,
-                            .as = .{
-                                .obj = @as([*c]Obj, @ptrCast(@alignCast(f))),
-                            },
-                        });
-                        break;
                     }
+                    {
+                        var i: c_int = 0;
+                        _ = &i;
+                        while (i < count) : (i += 1) {
+                            _ = pop();
+                        }
+                    }
+                    push(Value.init_obj(@ptrCast(@alignCast(f))));
+                    break;
                 },
                 .OP_EQUAL => {
-                    {
-                        if ((isObjType(peek(0), .OBJ_LINKED_LIST)) and (isObjType(peek(1), .OBJ_LINKED_LIST))) {
-                            var b: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(pop().as.obj)));
-                            _ = &b;
-                            var a: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(pop().as.obj)));
-                            _ = &a;
-                            push(Value{
-                                .type = .VAL_BOOL,
-                                .as = .{
-                                    .boolean = equalLinkedList(a, b),
-                                },
-                            });
-                        } else {
-                            var b: Value = pop();
-                            _ = &b;
-                            var a: Value = pop();
-                            _ = &a;
-                            push(Value{
-                                .type = .VAL_BOOL,
-                                .as = .{
-                                    .boolean = valuesEqual(a, b),
-                                },
-                            });
-                        }
-                        break;
-                    }
+                    const b: Value = pop();
+                    const a: Value = pop();
+                    push(Value.init_bool(valuesEqual(a, b)));
+                    break;
                 },
                 .OP_GREATER => {
-                    while (true) {
-                        if ((peek(0).type == .VAL_INT) and (peek(1).type == .VAL_INT)) {
-                            var b: c_int = pop().as.num_int;
-                            _ = &b;
-                            var a: c_int = pop().as.num_int;
-                            _ = &a;
-                            push(Value{
-                                .type = .VAL_BOOL,
-                                .as = .{
-                                    .boolean = a > b,
-                                },
-                            });
-                        } else if ((peek(0).type == .VAL_DOUBLE) and (peek(1).type == .VAL_DOUBLE)) {
-                            var b: f64 = pop().as.num_double;
-                            _ = &b;
-                            var a: f64 = pop().as.num_double;
-                            _ = &a;
-                            push(Value{
-                                .type = .VAL_BOOL,
-                                .as = .{
-                                    .boolean = a > b,
-                                },
-                            });
-                        } else {
-                            runtimeError("Operands must be numeric type (double/int/complex).", .{});
-                            return .INTERPRET_RUNTIME_ERROR;
-                        }
-                        if (!false) break;
-                    }
+                    const b = pop();
+                    const a = pop();
+                    const result = value_h.valueCompare(a, b);
+                    push(Value.init_bool(result == 1));
                     break;
                 },
                 .OP_LESS => {
-                    while (true) {
-                        if ((peek(0).type == .VAL_INT) and (peek(1).type == .VAL_INT)) {
-                            var b: c_int = pop().as.num_int;
-                            _ = &b;
-                            var a: c_int = pop().as.num_int;
-                            _ = &a;
-                            push(Value{
-                                .type = .VAL_BOOL,
-                                .as = .{
-                                    .boolean = a < b,
-                                },
-                            });
-                        } else if ((peek(0).type == .VAL_DOUBLE) and (peek(1).type == .VAL_DOUBLE)) {
-                            var b: f64 = pop().as.num_double;
-                            _ = &b;
-                            var a: f64 = pop().as.num_double;
-                            _ = &a;
-                            push(Value{
-                                .type = .VAL_BOOL,
-                                .as = .{
-                                    .boolean = a < b,
-                                },
-                            });
-                        } else {
-                            runtimeError("Operands must be numeric type (double/int/complex).", .{});
-                            return .INTERPRET_RUNTIME_ERROR;
-                        }
-                        if (!false) break;
-                    }
+                    const b = pop();
+                    const a = pop();
+                    const result = value_h.valueCompare(a, b);
+                    push(Value.init_bool(result == -1));
                     break;
                 },
                 .OP_ADD => {
-                    {
-                        if (isObjType(peek(0), .OBJ_STRING) and (isObjType(peek(1), .OBJ_STRING))) {
-                            concatenate();
-                        } else if ((isObjType(peek(0), .OBJ_FVECTOR)) and (isObjType(peek(1), .OBJ_FVECTOR))) {
-                            const b = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
-                            const a = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
-                            const result = addFloatVector(a, b);
-                            push(Value.init_obj(@ptrCast(result)));
-                        } else {
-                            const b = pop();
-                            const a = pop();
-                            if (a.type == .VAL_NIL) {
-                                runtimeError("Invalid Binary Operation.", .{});
-                                return .INTERPRET_RUNTIME_ERROR;
-                            }
-                            push(a.add(b));
+                    if (isObjType(peek(0), .OBJ_STRING) and (isObjType(peek(1), .OBJ_STRING))) {
+                        concatenate();
+                    } else if ((isObjType(peek(0), .OBJ_FVECTOR)) and (isObjType(peek(1), .OBJ_FVECTOR))) {
+                        const b = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
+                        const a = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
+                        const result = addFloatVector(a, b);
+                        push(Value.init_obj(@ptrCast(result)));
+                    } else {
+                        const b = pop();
+                        const a = pop();
+                        if (a.type == .VAL_NIL) {
+                            runtimeError("Invalid Binary Operation.", .{});
+                            return .INTERPRET_RUNTIME_ERROR;
                         }
+                        push(a.add(b));
                     }
+
                     break;
                 },
                 .OP_SUBTRACT => {

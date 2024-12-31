@@ -16,3 +16,5 @@ grammar.y
 update_apt.sh
 __pycache__
 ctests/hashdict.c
+
+dist/

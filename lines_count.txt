@@ -1,15 +1,15 @@
     94 build.zig
     90 src/objects/array.zig
-  1038 src/objects/fvec.zig
+  1039 src/objects/fvec.zig
     19 src/objects/obj.zig
-    95 src/chunk.zig
-  1239 src/compiler.zig
-    66 src/conv.zig
+    94 src/chunk.zig
+  1235 src/compiler.zig
+    64 src/conv.zig
    154 src/core.zig
-  2253 src/cstd.zig
+  1787 src/cstd.zig
    229 src/debug.zig
     74 src/main.zig
-   332 src/memory.zig
+   324 src/memory.zig
    155 src/net_curl.zig
    173 src/net.zig
    919 src/object.zig
@@ -18,10 +18,10 @@
     98 src/system.zig
    172 src/table.zig
    444 src/value.zig
-  1517 src/vm.zig
+  1450 src/vm.zig
     66 src/stdlib/fs.zig
     20 src/stdlib/io.zig
    200 src/stdlib/math.zig
     28 src/stdlib/time.zig
     78 src/stdlib/types.zig
- 10107 total
+  9560 total

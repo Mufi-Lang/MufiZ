@@ -96,6 +96,7 @@ pub const Value = extern struct {
                     else => {},
                 }
             },
+
             else => {},
         }
         return Value.init_nil();
