@@ -1,0 +1,5 @@
+--prefix /usr/bin
+-m 'Mustafif0929@gmail.com'
+--description 'The Mufi Programming Language'
+-s zip
+-n mufiz

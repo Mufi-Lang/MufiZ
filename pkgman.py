@@ -82,7 +82,7 @@ def load_targets():
 
 
 def command_str(arch, target, pkg):
-    return f"fpm -v {version} -a {arch} -s zip -t {pkg} --prefix /usr/bin -m 'Mustafif0929@gmail.com' --description 'The Mufi Programming Language' -n mufiz ./pkg/mufiz_{version}_{target}.zip "
+    return f"fpm -v {version} -a {arch} -t {pkg} ./pkg/mufiz_{version}_{target}.zip "
 
 
 def zipper():
