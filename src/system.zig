@@ -4,9 +4,9 @@ const conv = @import("conv.zig");
 const GlobalAlloc = @import("main.zig").GlobalAlloc;
 
 const MAJOR: u8 = 0;
-const MINOR: u8 = 7;
+const MINOR: u8 = 8;
 const PATCH: u8 = 0;
-const CODENAME: []const u8 = "Jade";
+const CODENAME: []const u8 = "Ruby";
 
 pub inline fn version() void {
     std.debug.print("MufiZ v{d}.{d}.{d} ({s} Release)\n", .{ MAJOR, MINOR, PATCH, CODENAME });
@@ -64,8 +64,8 @@ pub const Runner = struct {
 
     fn run(str: []u8) InterpreterError!void {
         const result = vm_h.interpret(conv.cstr(str));
-        if (result == vm_h.INTERPRET_COMPILE_ERROR) return InterpreterError.CompileError;
-        if (result == vm_h.INTERPRET_RUNTIME_ERROR) return InterpreterError.RuntimeError;
+        if (result == .INTERPRET_COMPILE_ERROR) return InterpreterError.CompileError;
+        if (result == .INTERPRET_RUNTIME_ERROR) return InterpreterError.RuntimeError;
     }
 
     pub fn setMain(self: *Self, main: []u8) !void {

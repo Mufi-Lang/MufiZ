@@ -1,14 +1,13 @@
-pub const chunk_h = @cImport(@cInclude("chunk.h"));
-pub const common_h = @cImport(@cInclude("common.h"));
-pub const compiler_h = @cImport(@cInclude("compiler.h"));
-pub const debug_h = @cImport(@cInclude("debug.h"));
-pub const memory_h = @cImport(@cInclude("memory.h"));
-pub const object_h = @cImport(@cInclude("object.h"));
-pub const pre_h = @cImport(@cInclude("pre.h"));
-pub const scanner_h = @cImport(@cInclude("scanner.h"));
-pub const table_h = @cImport(@cInclude("table.h"));
-pub const value_h = @cImport(@cInclude("value.h"));
-pub const vm_h = @cImport(@cInclude("vm.h"));
+pub const chunk_h = @import("chunk.zig");
+
+pub const compiler_h = @import("compiler.zig");
+pub const debug_h = @import("debug.zig");
+pub const memory_h = @import("memory.zig");
+pub const object_h = @import("object.zig");
+pub const scanner_h = @import("scanner.zig");
+pub const table_h = @import("table.zig");
+pub const value_h = @import("value.zig");
+pub const vm_h = @import("vm.zig");
 
 /// Bindings to a Chunk of bytecode.
 pub const Chunk = chunk_h.Chunk;
@@ -91,10 +90,6 @@ pub const OP_METHOD = chunk_h.OP_METHOD;
 
 /// Bindings to the Object Type.
 pub const ObjType = object_h.ObjType;
-/// Bindings to a Closure Object Type.
-pub const OBJ_CLOSURE = object_h.OBJ_CLOSURE;
-/// Bindings to a Function Object Type.
-pub const OBJ_FUNCTION = object_h.OBJ_FUNCTION;
 /// Bindings to a Native Object (Native Function) Type.
 pub const OBJ_NATIVE = object_h.OBJ_NATIVE;
 /// Bindings to a String Object Type.
@@ -151,21 +146,9 @@ pub const copyString = object_h.copyString;
 pub const Value = value_h.Value;
 /// Bindings to ValueType which represents all possible value types in the language.
 pub const ValueType = value_h.ValueType;
-/// Bindings to a Boolean Value Type.
-pub const VAL_BOOL = value_h.VAL_BOOL;
-/// Bindings to a Nil Value Type.
-pub const VAL_NIL = value_h.VAL_NIL;
-/// Bindings to an Integer Value Type.
-pub const VAL_INT = value_h.VAL_INT;
-/// Bindings to a Double Value Type.
-pub const VAL_DOUBLE = value_h.VAL_DOUBLE;
-/// Bindings to an Object Value Type.
-pub const VAL_OBJ = value_h.VAL_OBJ;
-/// Bindings to the Complex Value Type.
-pub const VAL_COMPLEX = value_h.VAL_COMPLEX;
 /// Bindings to a Value Array Type which represents an array of values.
 pub const ValueArray = value_h.ValueArray;
-/// Bindings to a Complex Value. 
+/// Bindings to a Complex Value.
 pub const Complex = value_h.Complex;
 /// Bindings to a Hash Table implementation.
 pub const Table = table_h.Table;
