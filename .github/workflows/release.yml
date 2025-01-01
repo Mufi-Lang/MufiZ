@@ -11,7 +11,7 @@ on:
 jobs:
   build:
     name: Create Release
-    runs-on: ubuntu-latest  # Switched to Ubuntu environment
+    runs-on: ubuntu-latest # Switched to Ubuntu environment
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -24,12 +24,12 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: '3.x'
+          python-version: "3.x"
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.0'
+          ruby-version: "3.0"
 
       - name: Install fpm and unzip
         run: |
@@ -40,7 +40,7 @@ jobs:
 
       - name: Run Build Multi
         run: zig build --build-file build_multi.zig
-      
+
       - name: Run Package Man
         run: python3 pkgman.py
 
