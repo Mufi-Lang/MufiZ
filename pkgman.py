@@ -116,7 +116,7 @@ def build_package(arch, target, pkg):
     elif pkg == "pacman":
         shutil.move(
             f"mufiz-{version}-1-{arch}.pkg.tar.zst",
-            f"{pkg_path}mufiz-{version}-1.{arch}.{pkg}",
+            f"{pkg_path}mufiz-{version}-1.{arch}.pkg.tar.zst",
         )
     print(f"Built {pkg} package for {target}")
 
