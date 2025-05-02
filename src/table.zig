@@ -136,18 +136,36 @@ pub export fn tableAddAll(from: *Table, to: *Table) void {
 }
 
 pub export fn tableFindString(table: *Table, chars: [*c]const u8, length: c_int, hash: u64) callconv(.C) ?*ObjString {
-    if (table.*.count == 0) return null;
-    var index: usize = @as(usize, @intCast(hash)) & @as(usize, @intCast(table.*.capacity - 1));
+    // Early return if count is 0
+    if (table.count <= 0) return null;
+
+    // Calculate the initial index
+    const cap = table.capacity;
+    var index: usize = @as(usize, @intCast(hash & @as(u64, @intCast(cap -| 1))));
+
+    // Get entries array
+    const entries_ptr = table.entries;
+
     while (true) {
-        const entry: [*c]Entry = &table.*.entries[index];
-        if (entry.*.key == null) {
-            if (entry.*.value.type == .VAL_NIL) return null;
-        } else if (!entry.*.deleted and ((entry.*.key.*.length == length) and (entry.*.key.*.hash == hash)) and (memcmp(@ptrCast(entry.*.key.*.chars), @ptrCast(chars), @as(usize, @intCast(length))) == 0)) {
-            return entry.*.key;
+        const entry = &entries_ptr[index];
+        const key = entry.key;
+
+        // Check for empty slot
+        if (key == null) {
+            if (entry.value.type == .VAL_NIL) return null;
+        } else if (!entry.deleted) {
+            // Check string matches
+            if (key.*.length == length and key.*.hash == hash) {
+                // Compare contents
+                if (memcmp(@ptrCast(key.*.chars), @ptrCast(chars), @intCast(length)) == 0) {
+                    return key;
+                }
+            }
         }
-        index = (index + 1) & @as(usize, @intCast(table.*.capacity - 1));
+
+        // Move to next slot
+        index = (index +% 1) & @as(usize, @intCast(cap -| 1));
     }
-    return null;
 }
 
 pub export fn tableRemoveWhite(table: *Table) callconv(.C) void {

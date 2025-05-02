@@ -4,6 +4,7 @@ const Value = @import("../core.zig").value_h.Value;
 const stdlib_error = @import("../stdlib.zig").stdlib_error;
 const NativeFn = @import("../stdlib.zig").NativeFn;
 const type_check = conv.type_check;
+const Prng = std.rand.Xoshiro256; // Using Xoshiro256 as the PRNG
 
 // Int = 2
 // Double = 3
@@ -123,27 +124,33 @@ pub fn phase(argc: c_int, args: [*c]Value) callconv(.C) Value {
 pub fn sfc(argc: c_int, args: [*c]Value) callconv(.C) Value {
     _ = args;
     if (argc != 0) return stdlib_error("rand() expects no arguments!", .{ .argn = argc });
-    const seed: u64 = @intCast(std.time.milliTimestamp());
-    var gen = std.rand.Sfc64.init(seed);
-    const random = gen.random().int(i32);
-    return Value.init_int(random);
+    var seed_bytes: [8]u8 = undefined;
+    std.crypto.random.bytes(&seed_bytes);
+    const seed = std.mem.readInt(u64, &seed_bytes, .little);
+    var rng = Prng.init(seed);
+    const random_int = rng.random().int(i32);
+    return Value.init_int(random_int);
 }
 
 pub fn rand(argc: c_int, args: [*c]Value) callconv(.C) Value {
     _ = args;
     if (argc != 0) return stdlib_error("rand() expects no arguments!", .{ .argn = argc });
-    var pcg = std.rand.Pcg.init(@intCast(std.time.microTimestamp()));
-    var random = pcg.random();
-    const r = random.float(f64);
+    var seed_bytes: [8]u8 = undefined;
+    std.crypto.random.bytes(&seed_bytes);
+    const seed = std.mem.readInt(u64, &seed_bytes, .little);
+    var rng = Prng.init(seed);
+    const r = rng.random().float(f64);
     return Value.init_double(r);
 }
 
 pub fn randn(argc: c_int, args: [*c]Value) callconv(.C) Value {
     _ = args;
     if (argc != 0) return stdlib_error("randn() expects no arguments!", .{ .argn = argc });
-    var pcg = std.rand.Pcg.init(@intCast(std.time.microTimestamp()));
-    var random = pcg.random();
-    const r = random.floatNorm(f64);
+    var seed_bytes: [8]u8 = undefined;
+    std.crypto.random.bytes(&seed_bytes);
+    const seed = std.mem.readInt(u64, &seed_bytes, .little);
+    var rng = Prng.init(seed);
+    const r = rng.random().floatNorm(f64);
     return Value.init_double(r);
 }
 

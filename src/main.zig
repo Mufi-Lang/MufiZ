@@ -16,7 +16,7 @@ pub const COMPILE_ERROR: u8 = core.vm_h.INTERPRET_COMPILE_ERROR;
 pub const RUNTIME_ERROR: u8 = core.vm_h.INTERPRET_RUNTIME_ERROR;
 
 var Global = heap.GeneralPurposeAllocator(.{}){};
-pub const GlobalAlloc = if (builtin.target.isWasm()) heap.wasm_allocator else Global.allocator();
+pub const GlobalAlloc = if (builtin.target.cpu.arch.isWasm()) heap.wasm_allocator else Global.allocator();
 
 const params = clap.parseParamsComptime(
     \\-h, --help             Displays this help and exit.

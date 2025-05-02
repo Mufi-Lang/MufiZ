@@ -20,7 +20,7 @@ const Node = obj_h.Node;
 const ObjTypeCheckParams = obj_h.ObjTypeCheckParams;
 const printf = @cImport(@cInclude("stdio.h")).printf;
 const fvec = @import("objects/fvec.zig");
-const pushFloatVector = fvec.pushFloatVector;
+const pushFloatVector = fvec.FloatVector.push;
 
 pub fn assert_nf(argCount: c_int, args: [*c]Value) Value {
     if (argCount != @as(c_int, 2)) {
@@ -185,7 +185,7 @@ pub fn fvector_nf(argCount: c_int, args: [*c]Value) Value {
     }
 
     const cap: i32 = if (args[0].is_double()) @intFromFloat(args[0].as_num_double()) else args[0].as.num_int;
-    const f: [*c]FloatVector = fvec.newFloatVector(cap);
+    const f: [*c]FloatVector = fvec.FloatVector.init(cap);
     return Value.init_obj(@ptrCast(@alignCast(f)));
 }
 
@@ -539,7 +539,7 @@ pub fn sort_nf(argCount: c_int, args: [*c]Value) Value {
                 {
                     var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
                     _ = &f;
-                    fvec.sortFloatVector(f);
+                    fvec.FloatVector.sort(f);
                     return Value.init_nil();
                 }
             },

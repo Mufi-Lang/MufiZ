@@ -170,7 +170,7 @@ pub fn freeObject(object: [*c]Obj) void {
         },
         .OBJ_FVECTOR => {
             const fvector: [*c]obj_h.FloatVector = @ptrCast(@alignCast(object));
-            fvec.freeFloatVector(fvector);
+            fvec.FloatVector.deinit(fvector);
         },
     }
 }

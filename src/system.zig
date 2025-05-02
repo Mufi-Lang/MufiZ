@@ -4,9 +4,9 @@ const conv = @import("conv.zig");
 const GlobalAlloc = @import("main.zig").GlobalAlloc;
 
 const MAJOR: u8 = 0;
-const MINOR: u8 = 8;
+const MINOR: u8 = 9;
 const PATCH: u8 = 0;
-const CODENAME: []const u8 = "Ruby";
+const CODENAME: []const u8 = "Kova";
 
 pub inline fn version() void {
     std.debug.print("MufiZ v{d}.{d}.{d} ({s} Release)\n", .{ MAJOR, MINOR, PATCH, CODENAME });
