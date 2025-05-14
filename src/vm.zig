@@ -281,50 +281,25 @@ pub fn callValue(callee: Value, argCount: c_int) bool {
         switch (callee.as.obj.*.type) {
             .OBJ_BOUND_METHOD => {
                 const bound: [*c]ObjBoundMethod = @as([*c]ObjBoundMethod, @ptrCast(@alignCast(callee.as.obj)));
-                // (blk: {
-                //     const tmp = -argCount - 1;
-                //     if (tmp >= 0) break :blk vm.stackTop + @as(usize, @intCast(tmp)) else break :blk vm.stackTop - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                // }).* = bound.*.receiver;
+
                 set_stack_top(argCount, bound.*.receiver);
                 return call(bound.*.method, argCount);
             },
             .OBJ_CLASS => {
-                {
-                    const klass: [*c]ObjClass = @ptrCast(@alignCast(callee.as.obj));
-
-                    // (blk: {
-                    //     const tmp = -argCount - 1;
-                    //     if (tmp >= 0) break :blk vm.stackTop + @as(usize, @intCast(tmp)) else break :blk vm.stackTop - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                    // }).* = Value{
-                    //     .type = .VAL_OBJ,
-                    //     .as = .{
-                    //         .obj = @as([*c]Obj, @ptrCast(@alignCast(object_h.newInstance(klass)))),
-                    //     },
-                    // };
-                    set_stack_top(argCount, Value.init_obj(@ptrCast(@alignCast(object_h.newInstance(klass)))));
-                    var initializer: Value = undefined;
-                    if (tableGet(&klass.*.methods, vm.initString, &initializer)) {
-                        return call(@as([*c]ObjClosure, @ptrCast(@alignCast(initializer.as.obj))), argCount);
-                    } else if (argCount != 0) {
-                        runtimeError("Expected 0 arguments but got {d}.", .{argCount});
-                        return false;
-                    }
-                    return true;
+                const klass: [*c]ObjClass = @ptrCast(@alignCast(callee.as.obj));
+                set_stack_top(argCount, Value.init_obj(@ptrCast(@alignCast(object_h.newInstance(klass)))));
+                var initializer: Value = undefined;
+                if (tableGet(&klass.*.methods, vm.initString, &initializer)) {
+                    return call(@as([*c]ObjClosure, @ptrCast(@alignCast(initializer.as.obj))), argCount);
+                } else if (argCount != 0) {
+                    runtimeError("Expected 0 arguments but got {d}.", .{argCount});
+                    return false;
                 }
+                return true;
             },
             .OBJ_CLOSURE => return call(@as([*c]ObjClosure, @ptrCast(@alignCast(callee.as.obj))), argCount),
             .OBJ_INSTANCE => {
                 const klass: [*c]ObjClass = @ptrCast(@alignCast(callee.as.obj));
-
-                // (blk: {
-                //     const tmp = -argCount - 1;
-                //     if (tmp >= 0) break :blk vm.stackTop + @as(usize, @intCast(tmp)) else break :blk vm.stackTop - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                // }).* = Value{
-                //     .type = .VAL_OBJ,
-                //     .as = .{
-                //         .obj = @as([*c]Obj, @ptrCast(@alignCast(object_h.newInstance(klass)))),
-                //     },
-                // };
                 set_stack_top(argCount, Value.init_obj(@ptrCast(@alignCast(object_h.newInstance(klass)))));
 
                 return true;
@@ -481,7 +456,6 @@ pub fn run() InterpretResult {
         const c_instruction_index = @as(c_int, @intCast(@as(u32, @truncate(instruction_index))));
         _ = debug_h.disassembleInstruction(chunk, c_instruction_index);
     }
-    while (true) {
         while (true) {
             const instruction = frame.*.ip[0];
             frame.*.ip += 1;
@@ -491,39 +465,36 @@ pub fn run() InterpretResult {
                     const constant = frame.*.closure.*.function.*.chunk.constants.values[frame.*.ip[0]];
                     frame.*.ip += 1;
                     push(constant);
-                    break;
+                    continue;
                 },
                 .OP_NIL => {
                     push(Value.init_nil());
-                    break;
+                    continue;
                 },
                 .OP_TRUE => {
                     push(Value.init_bool(true));
-                    break;
+                    continue;
                 },
                 .OP_FALSE => {
                     push(Value.init_bool(false));
-                    break;
+                    continue;
                 },
                 .OP_POP => {
                     _ = pop();
-                    break;
+                    continue;
                 },
                 .OP_GET_LOCAL => {
-  
                     const slot = get_slot(frame);
                     push(frame.*.slots[slot]);
-                    break;
+                    continue;
                 },
                 .OP_SET_LOCAL => {
-
                     const slot = get_slot(frame);
                     frame.*.slots[slot] = peek(0);
-                    break;
+                    continue;
                 },
                 .OP_GET_GLOBAL => {
                     const name: [*c]ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
-   
                         get_slot(frame)
                     ].as.obj));
                     var value: Value = undefined;
@@ -532,16 +503,15 @@ pub fn run() InterpretResult {
                         return .INTERPRET_RUNTIME_ERROR;
                     }
                     push(value);
-                    break;
+                    continue;
                 },
                 .OP_DEFINE_GLOBAL => {
                     const name: [*c]ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
- 
                         get_slot(frame)
                     ].as.obj));
                     _ = tableSet(&vm.globals, name, peek(0));
                     _ = pop();
-                    break;
+                    continue;
                 },
                 .OP_SET_GLOBAL => {
                     const name: [*c]ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
@@ -552,17 +522,17 @@ pub fn run() InterpretResult {
                         runtimeError("Undefined variable '{s}'.", .{zstr(name)});
                         return .INTERPRET_RUNTIME_ERROR;
                     }
-                    break;
+                    continue;
                 },
                 .OP_GET_UPVALUE => {
                     const slot = get_slot(frame);
                     push(frame.*.closure.*.upvalues[slot].*.location.*);
-                    break;
+                    continue;
                 },
                 .OP_SET_UPVALUE => {
                     const slot = get_slot(frame);
                     frame.*.closure.*.upvalues[slot].*.location.* = peek(0);
-                    break;
+                    continue;
                 },
                 .OP_GET_PROPERTY => {
                     if (!isObjType(peek(0), .OBJ_INSTANCE)) {
@@ -577,12 +547,12 @@ pub fn run() InterpretResult {
                     if (tableGet(&instance.*.fields, name, &value)) {
                         _ = pop();
                         push(value);
-                        break;
+                        continue;
                     }
                     if (!bindMethod(instance.*.klass, name)) {
                         return .INTERPRET_RUNTIME_ERROR;
                     }
-                    break;
+                    continue;
                 },
                 .OP_SET_PROPERTY => {
                     if (!isObjType(peek(1), .OBJ_INSTANCE)) {
@@ -596,7 +566,7 @@ pub fn run() InterpretResult {
                     const value: Value = pop();
                     _ = pop();
                     push(value);
-                    break;
+                    continue;
                 },
                 .OP_GET_SUPER => {
                     const name: [*c]ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
@@ -606,17 +576,11 @@ pub fn run() InterpretResult {
                     if (!bindMethod(superclass, name)) {
                         return .INTERPRET_RUNTIME_ERROR;
                     }
-                    break;
+                    continue;
                 },
-                .OP_GET_ITERATOR => {
-                },
-                .OP_INDEX_GET => {
-
-                },
-                .OP_INDEX_SET => {
-
-
-                },
+                .OP_GET_ITERATOR => {},
+                .OP_INDEX_GET => {},
+                .OP_INDEX_SET => {},
                 .OP_FVECTOR => {
                     const count: c_int = @as(c_int, @bitCast(@as(c_uint, get_slot(frame))));
                     const f = fvec.FloatVector.init(count);
@@ -627,31 +591,29 @@ pub fn run() InterpretResult {
                         _ = pop();
                     }
                     push(Value.init_obj(@ptrCast(@alignCast(f))));
-                    break;
+                    continue;
                 },
                 .OP_EQUAL => {
                     const b: Value = pop();
                     const a: Value = pop();
                     push(Value.init_bool(valuesEqual(a, b)));
-                    break;
+                    continue;
                 },
                 .OP_GREATER => {
                     const b = pop();
                     const a = pop();
                     const result = value_h.valueCompare(a, b);
                     push(Value.init_bool(result == 1));
-                    break;
+                    continue;
                 },
                 .OP_LESS => {
                     const b = pop();
                     const a = pop();
                     const result = value_h.valueCompare(a, b);
                     push(Value.init_bool(result == -1));
-                    break;
+                    continue;
                 },
                 .OP_ADD => {
-   
-
                     const b = pop();
                     const a = pop();
                     if (a.is_nil()) {
@@ -660,7 +622,7 @@ pub fn run() InterpretResult {
                     }
                     push(a.add(b));
 
-                    break;
+                    continue;
                 },
                 .OP_SUBTRACT => {
                     const b = pop();
@@ -704,7 +666,7 @@ pub fn run() InterpretResult {
                         runtimeError("Operands must be integers.", .{});
                         return .INTERPRET_RUNTIME_ERROR;
                     }
-                    break;
+                    continue;
                 },
                 .OP_EXPONENT => {
                     if (peek(0).is_prim_num() and peek(1).is_prim_num()) {
@@ -729,43 +691,35 @@ pub fn run() InterpretResult {
                         runtimeError("Operands must be numeric type.", .{});
                         return .INTERPRET_RUNTIME_ERROR;
                     }
-                    break;
+                    continue;
                 },
                 .OP_NOT => {
                     push(Value.init_bool(isFalsey(pop())));
-                    break;
+                    continue;
                 },
                 .OP_NEGATE => {
                     push(pop().negate());
-                    break;
+                    continue;
                 },
                 .OP_PRINT => {
                     printValue(pop());
                     _ = printf("\n");
-                    break;
+                    continue;
                 },
                 .OP_JUMP => {
-
-
                     const offset = readOffset(frame);
                     frame.*.ip += @as(usize, @intCast(offset));
-                    break;
+                    continue;
                 },
                 .OP_JUMP_IF_FALSE => {
-
-
                     const offset = readOffset(frame);
                     if (isFalsey(peek(0))) {
                         frame.*.ip += @as(usize, @intCast(offset));
                     }
-                    break;
+                    continue;
                 },
-                .OP_JUMP_IF_DONE => {
-
-                },
-                .OP_ITERATOR_NEXT => {
-
-                },
+                .OP_JUMP_IF_DONE => {},
+                .OP_ITERATOR_NEXT => {},
                 .OP_LOOP => {
 
                     // Read a 16-bit offset from bytecode and jump backward
@@ -783,7 +737,7 @@ pub fn run() InterpretResult {
 
                     // Jump backward by the offset amount
                     frame.*.ip -= offset;
-                    break;
+                    continue;
                 },
                 .OP_CALL => {
                     const argCount: c_int = @as(c_int, @bitCast(@as(c_uint, get_slot(frame))));
@@ -793,7 +747,7 @@ pub fn run() InterpretResult {
                     }
                     if (vm.frameCount - 1 < 0) return .INTERPRET_RUNTIME_ERROR;
                     frame = &vm.frames[@intCast(vm.frameCount - 1)];
-                    break;
+                    continue;
                 },
                 .OP_INVOKE => {
                     const method: [*c]ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
@@ -806,7 +760,7 @@ pub fn run() InterpretResult {
                         return .INTERPRET_RUNTIME_ERROR;
                     }
                     frame = &vm.frames[@as(c_uint, @intCast(vm.frameCount - 1))];
-                    break;
+                    continue;
                 },
                 .OP_SUPER_INVOKE => {
                     const method: [*c]ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
@@ -820,7 +774,7 @@ pub fn run() InterpretResult {
                         return .INTERPRET_RUNTIME_ERROR;
                     }
                     frame = &vm.frames[@as(c_uint, @intCast(vm.frameCount - 1))];
-                    break;
+                    continue;
                 },
                 .OP_CLOSURE => {
                     const function: [*c]ObjFunction = @as([*c]ObjFunction, @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
@@ -844,12 +798,12 @@ pub fn run() InterpretResult {
                         }
                     }
 
-                    break;
+                    continue;
                 },
                 .OP_CLOSE_UPVALUE => {
                     closeUpvalues(vm.stackTop - @as(usize, @bitCast(@as(isize, @intCast(1)))));
                     _ = pop();
-                    break;
+                    continue;
                 },
                 .OP_RETURN => {
                     const result: Value = pop();
@@ -862,13 +816,13 @@ pub fn run() InterpretResult {
                     vm.stackTop = frame.*.slots;
                     push(result);
                     frame = &vm.frames[@as(c_uint, @intCast(vm.frameCount - 1))];
-                    break;
+                    continue;
                 },
                 .OP_CLASS => {
                     push(Value.init_obj(@ptrCast(@alignCast(object_h.newClass(@ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
                         get_slot(frame)
                     ].as.obj)))))));
-                    break;
+                    continue;
                 },
                 .OP_INHERIT => {
                     const superclass: Value = peek(1);
@@ -879,18 +833,18 @@ pub fn run() InterpretResult {
                     const subclass: [*c]ObjClass = @ptrCast(@alignCast(peek(0).as.obj));
                     table_h.tableAddAll(&@as([*c]ObjClass, @ptrCast(@alignCast(superclass.as.obj))).*.methods, &subclass.*.methods);
                     _ = pop();
-                    break;
+                    continue;
                 },
                 .OP_METHOD => {
                     defineMethod(@ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
                         get_slot(frame)
                     ].as.obj)));
-                    break;
+                    continue;
                 },
                 .OP_ITERATOR_HAS_NEXT => {},
             }
-            break;
+            continue;
         }
-    }
+    
     return .INTERPRET_RUNTIME_ERROR;
 }
