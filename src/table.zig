@@ -29,11 +29,57 @@ fn memcmp(s1: ?*const anyopaque, s2: ?*const anyopaque, n: usize) c_int {
     const str1: [*c]const u8 = @ptrCast(s1.?);
     const str2: [*c]const u8 = @ptrCast(s2.?);
     const num: usize = @intCast(n);
-
-    for (0..num) |i| {
-        if (str1[i] != str2[i]) return @intCast(str1[i] - str2[i]);
+    
+    if (num == 0) return 0;
+    
+    const ptr1 = @as([*]const u8, @ptrCast(str1));
+    const ptr2 = @as([*]const u8, @ptrCast(str2));
+    var offset: usize = 0;
+    
+    // SIMD comparison using vector types (16 bytes at once)
+    const Vec16 = @Vector(16, u8);
+    while (offset + 16 <= num) {
+        const v1 = @as(*align(1) const Vec16, @ptrCast(ptr1 + offset)).*;
+        const v2 = @as(*align(1) const Vec16, @ptrCast(ptr2 + offset)).*;
+        
+        // Compare 16 bytes at once
+        const mask = v1 != v2;
+        if (@reduce(.Or, mask)) {
+            // Find first differing byte in the SIMD vector
+            inline for (0..16) |i| {
+                if (mask[i]) {
+                    return @intCast(ptr1[offset + i] - ptr2[offset + i]);
+                }
+            }
+        }
+        offset += 16;
     }
-
+    
+    // Process 8 bytes at a time for the remainder
+    while (offset + 8 <= num) {
+        const v1 = @as(*align(1) const u64, @ptrCast(ptr1 + offset)).*;
+        const v2 = @as(*align(1) const u64, @ptrCast(ptr2 + offset)).*;
+        if (v1 != v2) {
+            // Find first differing byte
+            inline for (0..8) |i| {
+                const byte1 = @as(u8, @truncate(v1 >> @as(u6, @intCast(i * 8))));
+                const byte2 = @as(u8, @truncate(v2 >> @as(u6, @intCast(i * 8))));
+                if (byte1 != byte2) {
+                    return @intCast(byte1 - byte2);
+                }
+            }
+        }
+        offset += 8;
+    }
+    
+    // Handle remaining bytes
+    while (offset < num) {
+        if (ptr1[offset] != ptr2[offset]) {
+            return @intCast(ptr1[offset] - ptr2[offset]);
+        }
+        offset += 1;
+    }
+    
     return 0;
 }
 
