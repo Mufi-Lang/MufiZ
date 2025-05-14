@@ -1,2 +1,4 @@
-- [ ] Cleanup `vm.zig`
+- [X] Cleanup `vm.zig`
+- [ ] Cleanup native functions from cstd.zig
+- [ ] Bounded methods for all objects
 - [ ] add class test suites, more with the types to ensure they are sound

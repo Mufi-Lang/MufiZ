@@ -11,7 +11,8 @@ const FloatVector = obj_h.FloatVector;
 const fvec = @import("objects/fvec.zig");
 const reallocate = @import("memory.zig").reallocate;
 const print = std.debug.print;
-const memcpy = @cImport(@cInclude("string.h")).memcpy;
+const memcpy = @import("memcpy.zig").memcpyFast;
+
 
 pub const ValueType = enum(c_int) { VAL_BOOL = 0, VAL_NIL = 1, VAL_INT = 2, VAL_DOUBLE = 3, VAL_OBJ = 4, VAL_COMPLEX = 5 };
 

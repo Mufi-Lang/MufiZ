@@ -36,8 +36,12 @@ const stdio = @cImport(@cInclude("stdio.h"));
 const stdlib = @cImport(@cInclude("stdlib.h"));
 const exit = std.process.exit;
 const fprintf = stdio.fprintf;
-const realloc = stdlib.realloc;
-const free = stdlib.free;
+// const realloc = stdlib.realloc;
+// const free = stdlib.free;
+
+const mem_utils = @import("mem_utils.zig");
+const realloc = mem_utils.realloc;
+const free = mem_utils.free;
 
 //todo: fix collect garbage debugging
 pub fn reallocate(pointer: ?*anyopaque, oldSize: usize, newSize: usize) ?*anyopaque {
@@ -63,6 +67,7 @@ pub fn reallocate(pointer: ?*anyopaque, oldSize: usize, newSize: usize) ?*anyopa
         if (pointer != null) free(pointer);
         return null;
     }
+
 
     var result = realloc(pointer, newSize);
     if (result == null and newSize > 0) {

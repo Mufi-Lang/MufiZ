@@ -68,7 +68,7 @@ pub const VM = struct {
     stackTop: [*c]Value = null,
     globals: Table,
     strings: Table,
-    initString: [*c]ObjString = copyString(@ptrCast("init"), 4),
+    initString: [*c]ObjString = null,
     openUpvalues: [*c]ObjUpvalue = null,
     bytesAllocated: u128 = 0,
     nextGC: u128 = 1024 * 1024,
@@ -80,8 +80,9 @@ pub const VM = struct {
 
 pub fn initVM() void {
     resetStack();
+    initTable(&vm.strings);  // Initialize strings table first
     initTable(&vm.globals);
-    initTable(&vm.strings);
+    vm.initString = copyString(@ptrCast("init"), 4);  // Create initString after tables are ready
 }
 
 pub const InterpretResult = enum(c_int) {
@@ -110,7 +111,7 @@ inline fn set_stack_top(argc: c_int, value: Value) void {
     if (tmp >= 0) {
         ref = vm.stackTop + @as(usize, @intCast(tmp));
     } else {
-        ref = vm.stackTop - @as(usize, @intCast(tmp - 1));
+        ref = vm.stackTop - @as(usize, @intCast(-tmp - 1));
     }
     ref.* = value;
 }
@@ -273,7 +274,10 @@ pub fn call(closure: [*c]ObjClosure, argCount: c_int) bool {
     const frame: [*c]CallFrame = &vm.frames[@intCast(next_frame_count())];
     frame.*.closure = closure;
     frame.*.ip = closure.*.function.*.chunk.code;
-    frame.*.slots = (vm.stackTop - @as(usize, @bitCast(@as(isize, @intCast(argCount))))) - @as(usize, @bitCast(@as(isize, @intCast(1))));
+    
+    // The slots pointer should point to the first argument, which is 'self' for methods
+    frame.*.slots = vm.stackTop - @as(usize, @intCast(argCount + 1));
+    
     return true;
 }
 pub fn callValue(callee: Value, argCount: c_int) bool {
@@ -287,14 +291,38 @@ pub fn callValue(callee: Value, argCount: c_int) bool {
             },
             .OBJ_CLASS => {
                 const klass: [*c]ObjClass = @ptrCast(@alignCast(callee.as.obj));
-                set_stack_top(argCount, Value.init_obj(@ptrCast(@alignCast(object_h.newInstance(klass)))));
-                var initializer: Value = undefined;
-                if (tableGet(&klass.*.methods, vm.initString, &initializer)) {
-                    return call(@as([*c]ObjClosure, @ptrCast(@alignCast(initializer.as.obj))), argCount);
-                } else if (argCount != 0) {
-                    runtimeError("Expected 0 arguments but got {d}.", .{argCount});
+                if (klass == null) {
+                    runtimeError("Cannot instantiate null class.", .{});
                     return false;
                 }
+                
+                // Create instance
+                const instance = object_h.newInstance(klass);
+                if (instance == null) {
+                    runtimeError("Failed to create instance.", .{});
+                    return false;
+                }
+                
+                // Create the instance value
+                const instanceValue = Value.init_obj(@ptrCast(@alignCast(instance)));
+                
+                // Calculate where 'self' should go on the stack (below the arguments)
+                const selfSlot = vm.stackTop - @as(usize, @intCast(argCount + 1));
+                
+                // Create the instance value and place it at the self slot
+                selfSlot.* = instanceValue;
+                
+                // Call initializer if it exists
+                if (vm.initString != null) {
+                    var initializer: Value = undefined;
+                    if (tableGet(&klass.*.methods, vm.initString, &initializer)) {
+                        return call(@as([*c]ObjClosure, @ptrCast(@alignCast(initializer.as.obj))), argCount);
+                    } else if (argCount != 0) {
+                        runtimeError("Expected 0 arguments but got {d}.", .{argCount});
+                        return false;
+                    }
+                }
+                
                 return true;
             },
             .OBJ_CLOSURE => return call(@as([*c]ObjClosure, @ptrCast(@alignCast(callee.as.obj))), argCount),

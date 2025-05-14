@@ -14,7 +14,7 @@ const printf = @cImport(@cInclude("stdio.h")).printf;
 const push = vm_h.push;
 const pop = vm_h.pop;
 const scanner_h = @import("scanner.zig");
-const memcpy = @cImport(@cInclude("string.h")).memcpy;
+const memcpy = @import("memcpy.zig").memcpyFast;
 const valuesEqual = value_h.valuesEqual;
 
 // Objects

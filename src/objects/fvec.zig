@@ -48,7 +48,7 @@ pub const FloatVector = extern struct {
     const Int = c_int;
 
     pub fn init(size: Int) Self {
-        const vector: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(allocateObject(@sizeOf(FloatVector), .OBJ_FVECTOR))));
+        const vector: [*c]FloatVector = @ptrCast(@alignCast(allocateObject(@sizeOf(FloatVector), .OBJ_FVECTOR)));
         vector.*.size = size;
         vector.*.count = 0;
         vector.*.data = @as(Ptr, @ptrCast(@alignCast(reallocate(null, 0, @intCast(@sizeOf(f64) *% size)))));
@@ -198,7 +198,7 @@ pub const FloatVector = extern struct {
             printf("Index out of bounds\n");
             return null;
         }
-        
+
         const result = FloatVector.init(_size(self));
         for (0..@as(usize, @intCast(start))) |i| {
             FloatVector.push(result, _get(self, @intCast(i)));
@@ -210,41 +210,6 @@ pub const FloatVector = extern struct {
     }
 
     pub fn sum(self: Self) f64 {
-        // var sum_result: f64 = 0;
-        // const simdSize: usize = @intCast(@as(usize, @intCast(_count(self))) - @as(usize, @intCast(_count(self))) % 4);
-        // var simd_sum: __m256 = @as(__m256, @bitCast(_mm256_setzero_pd()));
-        // {
-        //     var i: usize = 0;
-        //     _ = &i;
-        //     while (i < simdSize) : (i +%= 4) {
-        //         var simd_arr: __m256 = @as(__m256, @bitCast(_mm256_loadu_pd(&_get(self, @intCast(i)))));
-        //         _ = &simd_arr;
-        //         simd_sum = @as(__m256, @bitCast(_mm256_add_pd(@as(__m256d, @bitCast(simd_arr)), @as(__m256d, @bitCast(simd_sum)))));
-        //     }
-        // }
-        // {
-        //     var i: usize = simdSize;
-        //     _ = &i;
-        //     while (i < _count(self)) : (i +%= 1) {
-        //         const val = _get(self, @as(Int, @intCast(i)));
-        //         sum_result += val;
-        //     }
-        // }
-        // var simd_sum_arr: [4]f64 = undefined;
-        // _mm256_storeu_pd(@as([*c]f64, @ptrCast(@alignCast(&simd_sum_arr))), @as(__m256d, @bitCast(simd_sum)));
-        // {
-        //     var i: c_int = 0;
-        //     _ = &i;
-        //     while (i < @as(c_int, 4)) : (i += 1) {
-        //         sum_result += simd_sum_arr[@as(c_uint, @intCast(i))];
-        //     }
-        // }
-        // return sum_result;
-        // var sum_value: f64 = 0;
-        // for (0..@as(usize, @intCast(_count(self)))) |i| {
-        //     sum_value += _get(self, @as(Int, @intCast(i)));
-        // }
-        // return sum_value;
         const len = _count(self);
         const Vec4 = @Vector(4, f64);
         var sum_vec: Vec4 = @splat(@as(f64, 0.0));
@@ -284,30 +249,6 @@ pub const FloatVector = extern struct {
     }
 
     pub fn variance(self: Self) f64 {
-        // const mean_value: f64 = FloatVector.mean(self);
-        // var variance_result: f64 = 0;
-        // const simdSize: usize = @as(usize, @intCast(_count(self))) - @as(usize, @intCast(@rem(_count(self), 4)));
-        // var simd_variance: __m256 = @as(__m256, @bitCast(_mm256_setzero_pd()));
-        // for (0..simdSize) |i| {
-        //     const simd_arr: __m256 = @as(__m256, @bitCast(_mm256_loadu_pd(&_get(self, @intCast(i)))));
-        //     const simd_diff: __m256 = @as(__m256, @bitCast(_mm256_sub_pd(@as(__m256d, @bitCast(simd_arr)), _mm256_set1_pd(mean_value))));
-        //     simd_variance = @as(__m256, @bitCast(_mm256_fmadd_pd(@as(__m256d, @bitCast(simd_diff)), @as(__m256d, @bitCast(simd_diff)), @as(__m256d, @bitCast(simd_variance)))));
-        // }
-        // for (simdSize..@as(usize, @intCast(_count(self)))) |i| {
-        //     variance_result += (_get(self, @as(Int, @intCast(i))) - mean_value) * (_get(self, @as(Int, @intCast(i))) - mean_value);
-        // }
-        // var simd_variance_arr: [4]f64 = undefined;
-        // _mm256_storeu_pd(@as([*c]f64, @ptrCast(@alignCast(&simd_variance_arr))), @as(__m256d, @bitCast(simd_variance)));
-        // for (0..4) |i| {
-        //     variance_result += simd_variance_arr[i];
-        // }
-        // return variance_result / @as(f64, @floatFromInt(_count(self) - 1));
-        // const mean_value: f64 = FloatVector.mean(self);
-        // var variance_value: f64 = 0;
-        // for (0..@as(usize, @intCast(_count(self)))) |i| {
-        //     variance_value += (_get(self, @as(Int, @intCast(i))) - mean_value) * (_get(self, @as(Int, @intCast(i))) - mean_value);
-        // }
-        // return variance_value / @as(f64, @floatFromInt(_count(self) - 1));
 
         const len = _count(self);
         const mean_value: f64 = FloatVector.mean(self);
@@ -421,59 +362,59 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 }
 
 // SIMD
-pub const __m256 = @Vector(8, f32);
-pub const __m256d = @Vector(4, f64);
-pub const __m256_u = @Vector(8, f32);
-pub const __m256d_u = @Vector(4, f64);
+// pub const __m256 = @Vector(8, f32);
+// pub const __m256d = @Vector(4, f64);
+// pub const __m256_u = @Vector(8, f32);
+// pub const __m256d_u = @Vector(4, f64);
 
-inline fn _mm256_setzero_pd() __m256d {
-    return .{ 0.0, 0.0, 0.0, 0.0 };
-}
+// inline fn _mm256_setzero_pd() __m256d {
+//     return .{ 0.0, 0.0, 0.0, 0.0 };
+// }
 
-inline fn _mm256_storeu_pd(p: [*c]f64, a: __m256d) void {
-    const __p = p;
-    const __a = a;
-    const struct___storeu_pd = extern struct {
-        __v: __m256d_u align(1) = @import("std").mem.zeroes(__m256d_u),
-    };
-    @as([*c]struct___storeu_pd, @ptrCast(@alignCast(__p))).*.__v = __a;
-}
+// inline fn _mm256_storeu_pd(p: [*c]f64, a: __m256d) void {
+//     const __p = p;
+//     const __a = a;
+//     const struct___storeu_pd = extern struct {
+//         __v: __m256d_u align(1) = @import("std").mem.zeroes(__m256d_u),
+//     };
+//     @as([*c]struct___storeu_pd, @ptrCast(@alignCast(__p))).*.__v = __a;
+// }
 
-inline fn _mm256_loadu_pd(p: [*c]const f64) __m256d {
-    const __p = p;
-    const struct___loadu_pd = extern struct {
-        __v: __m256d_u align(1) = @import("std").mem.zeroes(__m256d_u),
-    };
-    return @as([*c]const struct___loadu_pd, @ptrCast(@alignCast(__p))).*.__v;
-}
+// inline fn _mm256_loadu_pd(p: [*c]const f64) __m256d {
+//     const __p = p;
+//     const struct___loadu_pd = extern struct {
+//         __v: __m256d_u align(1) = @import("std").mem.zeroes(__m256d_u),
+//     };
+//     return @as([*c]const struct___loadu_pd, @ptrCast(@alignCast(__p))).*.__v;
+// }
 
-inline fn _mm256_add_pd(a: __m256d, b: __m256d) __m256d {
-    return a + b;
-}
+// inline fn _mm256_add_pd(a: __m256d, b: __m256d) __m256d {
+//     return a + b;
+// }
 
-inline fn _mm256_sub_pd(a: __m256d, b: __m256d) __m256d {
-    return a - b;
-}
+// inline fn _mm256_sub_pd(a: __m256d, b: __m256d) __m256d {
+//     return a - b;
+// }
 
-inline fn _mm256_mul_pd(a: __m256d, b: __m256d) __m256d {
-    return a * b;
-}
+// inline fn _mm256_mul_pd(a: __m256d, b: __m256d) __m256d {
+//     return a * b;
+// }
 
-inline fn _mm256_div_pd(a: __m256d, b: __m256d) __m256d {
-    return a / b;
-}
+// inline fn _mm256_div_pd(a: __m256d, b: __m256d) __m256d {
+//     return a / b;
+// }
 
-inline fn _mm256_fmadd_pd(a: __m256d, b: __m256d, c: __m256d) __m256d {
-    return @mulAdd(__m256d, a, b, c);
-}
+// inline fn _mm256_fmadd_pd(a: __m256d, b: __m256d, c: __m256d) __m256d {
+//     return @mulAdd(__m256d, a, b, c);
+// }
 
-inline fn _mm256_set1_pd(w: f64) __m256d {
-    return _mm256_set_pd(w, w, w, w);
-}
+// inline fn _mm256_set1_pd(w: f64) __m256d {
+//     return _mm256_set_pd(w, w, w, w);
+// }
 
-inline fn _mm256_set_pd(a: f64, b: f64, c: f64, d: f64) __m256d {
-    return .{ d, c, b, a };
-}
+// inline fn _mm256_set_pd(a: f64, b: f64, c: f64, d: f64) __m256d {
+//     return .{ d, c, b, a };
+// }
 
 // pub fn newFloatVector(arg_size: c_int) [*c]FloatVector {
 //     var size = arg_size;
@@ -861,6 +802,7 @@ inline fn _mm256_set_pd(a: f64, b: f64, c: f64, d: f64) __m256d {
 //     }
 //     return min;
 // }
+
 pub fn addFloatVector(vector1: [*c]FloatVector, vector2: [*c]FloatVector) [*c]FloatVector {
     if (_size(vector1) != _size(vector2)) {
         printf("Vectors are not of the same size\n");
@@ -913,112 +855,162 @@ pub fn addFloatVector(vector1: [*c]FloatVector, vector2: [*c]FloatVector) [*c]Fl
     result.*.count = len;
     return result;
 }
-pub fn subFloatVector(arg_vector1: [*c]FloatVector, arg_vector2: [*c]FloatVector) [*c]FloatVector {
-    var vector1 = arg_vector1;
-    _ = &vector1;
-    var vector2 = arg_vector2;
-    _ = &vector2;
+pub fn subFloatVector(vector1: [*c]FloatVector, vector2: [*c]FloatVector) [*c]FloatVector {
     if (_size(vector1) != _size(vector2)) {
         printf("Vectors are not of the same size\n");
         return null;
     }
-    var result: [*c]FloatVector = FloatVector.init(_size(vector1));
-    _ = &result;
-    var simdSize: usize = @intCast(@as(usize, @intCast(vector1.*.count)) - @as(usize, @intCast(vector1.*.count)) % 4);
-    _ = &simdSize;
-    {
-        var i: usize = 0;
-        _ = &i;
-        while (i < simdSize) : (i +%= 4) {
-            var simd_arr1: __m256 = @as(__m256, @bitCast(_mm256_loadu_pd(&vector1.*.data[i])));
-            _ = &simd_arr1;
-            var simd_arr2: __m256 = @as(__m256, @bitCast(_mm256_loadu_pd(&vector2.*.data[i])));
-            _ = &simd_arr2;
-            var simd_result: __m256 = @as(__m256, @bitCast(_mm256_sub_pd(@as(__m256d, @bitCast(simd_arr1)), @as(__m256d, @bitCast(simd_arr2)))));
-            _ = &simd_result;
-            _mm256_storeu_pd(&result.*.data[i], @as(__m256d, @bitCast(simd_result)));
+
+    const result = FloatVector.init(_size(vector1));
+    const len = vector1.*.count;
+
+    // Process elements in chunks of 4
+    const Vec4 = @Vector(4, f64);
+    const vec_iterations = @divTrunc(len, 4);
+
+    var i: usize = 0;
+    while (i < vec_iterations) : (i += 1) {
+        const offset = i * 4;
+
+        // Load 4 elements from each vector
+        const vec1 = Vec4{
+            vector1.*.data[offset],
+            vector1.*.data[offset + 1],
+            vector1.*.data[offset + 2],
+            vector1.*.data[offset + 3],
+        };
+
+        const vec2 = Vec4{
+            vector2.*.data[offset],
+            vector2.*.data[offset + 1],
+            vector2.*.data[offset + 2],
+            vector2.*.data[offset + 3],
+        };
+
+        // Add vectors and store result
+        const diff = vec1 - vec2;
+        result.*.data[offset] = diff[0];
+        result.*.data[offset + 1] = diff[1];
+        result.*.data[offset + 2] = diff[2];
+        result.*.data[offset + 3] = diff[3];
+    }
+
+    // Handle remaining elements
+    const remaining = @mod(len, 4);
+    if (remaining > 0) {
+        const start: usize = @intCast(len - remaining);
+        for (start..@intCast(len)) |j| {
+            result.*.data[j] = vector1.*.data[j] - vector2.*.data[j];
         }
     }
-    {
-        var i: usize = simdSize;
-        _ = &i;
-        while (i < vector1.*.count) : (i +%= 1) {
-            result.*.data[i] = vector1.*.data[i] - vector2.*.data[i];
-        }
-    }
-    result.*.count = vector1.*.count;
+
+    result.*.count = len;
     return result;
 }
-pub fn mulFloatVector(arg_vector1: [*c]FloatVector, arg_vector2: [*c]FloatVector) [*c]FloatVector {
-    var vector1 = arg_vector1;
-    _ = &vector1;
-    var vector2 = arg_vector2;
-    _ = &vector2;
+
+pub fn mulFloatVector(vector1: [*c]FloatVector, vector2: [*c]FloatVector) [*c]FloatVector {
     if (_size(vector1) != _size(vector2)) {
         printf("Vectors are not of the same size\n");
         return null;
     }
-    var result: [*c]FloatVector = FloatVector.init(_size(vector1));
-    _ = &result;
-    var simdSize: usize = @intCast(@as(usize, @intCast(vector1.*.count)) - @as(usize, @intCast(vector1.*.count)) % 4);
-    _ = &simdSize;
-    {
-        var i: usize = 0;
-        _ = &i;
-        while (i < simdSize) : (i +%= 4) {
-            var simd_arr1: __m256 = @as(__m256, @bitCast(_mm256_loadu_pd(&vector1.*.data[i])));
-            _ = &simd_arr1;
-            var simd_arr2: __m256 = @as(__m256, @bitCast(_mm256_loadu_pd(&vector2.*.data[i])));
-            _ = &simd_arr2;
-            var simd_result: __m256 = @as(__m256, @bitCast(_mm256_mul_pd(@as(__m256d, @bitCast(simd_arr1)), @as(__m256d, @bitCast(simd_arr2)))));
-            _ = &simd_result;
-            _mm256_storeu_pd(&result.*.data[i], @as(__m256d, @bitCast(simd_result)));
+
+    const result = FloatVector.init(_size(vector1));
+    const len = vector1.*.count;
+
+    // Process elements in chunks of 4
+    const Vec4 = @Vector(4, f64);
+    const vec_iterations = @divTrunc(len, 4);
+
+    var i: usize = 0;
+    while (i < vec_iterations) : (i += 1) {
+        const offset = i * 4;
+
+        // Load 4 elements from each vector
+        const vec1 = Vec4{
+            vector1.*.data[offset],
+            vector1.*.data[offset + 1],
+            vector1.*.data[offset + 2],
+            vector1.*.data[offset + 3],
+        };
+
+        const vec2 = Vec4{
+            vector2.*.data[offset],
+            vector2.*.data[offset + 1],
+            vector2.*.data[offset + 2],
+            vector2.*.data[offset + 3],
+        };
+
+        // Add vectors and store result
+        const prod = vec1 * vec2;
+        result.*.data[offset] = prod[0];
+        result.*.data[offset + 1] = prod[1];
+        result.*.data[offset + 2] = prod[2];
+        result.*.data[offset + 3] = prod[3];
+    }
+
+    // Handle remaining elements
+    const remaining = @mod(len, 4);
+    if (remaining > 0) {
+        const start: usize = @intCast(len - remaining);
+        for (start..@intCast(len)) |j| {
+            result.*.data[j] = vector1.*.data[j] * vector2.*.data[j];
         }
     }
-    {
-        var i: usize = simdSize;
-        _ = &i;
-        while (i < vector1.*.count) : (i +%= 1) {
-            result.*.data[i] = vector1.*.data[i] * vector2.*.data[i];
-        }
-    }
-    result.*.count = vector1.*.count;
+
+    result.*.count = len;
     return result;
 }
-pub fn divFloatVector(arg_vector1: [*c]FloatVector, arg_vector2: [*c]FloatVector) [*c]FloatVector {
-    var vector1 = arg_vector1;
-    _ = &vector1;
-    var vector2 = arg_vector2;
-    _ = &vector2;
+
+pub fn divFloatVector(vector1: [*c]FloatVector, vector2: [*c]FloatVector) [*c]FloatVector {
     if (_size(vector1) != _size(vector2)) {
         printf("Vectors are not of the same size\n");
         return null;
     }
-    var result: [*c]FloatVector = FloatVector.init(_size(vector1));
-    _ = &result;
-    var simdSize: usize = @intCast(@as(usize, @intCast(vector1.*.count)) - @as(usize, @intCast(vector1.*.count)) % 4);
-    _ = &simdSize;
-    {
-        var i: usize = 0;
-        _ = &i;
-        while (i < simdSize) : (i +%= 4) {
-            var simd_arr1: __m256 = @as(__m256, @bitCast(_mm256_loadu_pd(&vector1.*.data[i])));
-            _ = &simd_arr1;
-            var simd_arr2: __m256 = @as(__m256, @bitCast(_mm256_loadu_pd(&vector2.*.data[i])));
-            _ = &simd_arr2;
-            var simd_result: __m256 = @as(__m256, @bitCast(_mm256_div_pd(@as(__m256d, @bitCast(simd_arr1)), @as(__m256d, @bitCast(simd_arr2)))));
-            _ = &simd_result;
-            _mm256_storeu_pd(&result.*.data[i], @as(__m256d, @bitCast(simd_result)));
+
+    const result = FloatVector.init(_size(vector1));
+    const len = vector1.*.count;
+
+    // Process elements in chunks of 4
+    const Vec4 = @Vector(4, f64);
+    const vec_iterations = @divTrunc(len, 4);
+
+    var i: usize = 0;
+    while (i < vec_iterations) : (i += 1) {
+        const offset = i * 4;
+
+        // Load 4 elements from each vector
+        const vec1 = Vec4{
+            vector1.*.data[offset],
+            vector1.*.data[offset + 1],
+            vector1.*.data[offset + 2],
+            vector1.*.data[offset + 3],
+        };
+
+        const vec2 = Vec4{
+            vector2.*.data[offset],
+            vector2.*.data[offset + 1],
+            vector2.*.data[offset + 2],
+            vector2.*.data[offset + 3],
+        };
+
+        // Add vectors and store result
+        const quotient = vec1 / vec2;
+        result.*.data[offset] = quotient[0];
+        result.*.data[offset + 1] = quotient[1];
+        result.*.data[offset + 2] = quotient[2];
+        result.*.data[offset + 3] = quotient[3];
+    }
+
+    // Handle remaining elements
+    const remaining = @mod(len, 4);
+    if (remaining > 0) {
+        const start: usize = @intCast(len - remaining);
+        for (start..@intCast(len)) |j| {
+            result.*.data[j] = vector1.*.data[j] / vector2.*.data[j];
         }
     }
-    {
-        var i: usize = simdSize;
-        _ = &i;
-        while (i < vector1.*.count) : (i +%= 1) {
-            result.*.data[i] = vector1.*.data[i] / vector2.*.data[i];
-        }
-    }
-    result.*.count = vector1.*.count;
+
+    result.*.count = len;
     return result;
 }
 
@@ -1061,76 +1053,42 @@ pub fn scaleFloatVector(vector: [*c]FloatVector, scalar: f64) [*c]FloatVector {
     result.*.count = vector.*.count;
     return result;
 }
-pub fn singleAddFloatVector(arg_a: [*c]FloatVector, arg_b: f64) [*c]FloatVector {
-    var a = arg_a;
-    _ = &a;
-    var b = arg_b;
-    _ = &b;
-    var result: [*c]FloatVector = FloatVector.init(a.*.size);
-    _ = &result;
-    var simdSize: usize = @intCast(@as(usize, @intCast(a.*.count)) - @as(usize, @intCast(a.*.count)) % 4);
-    _ = &simdSize;
-    {
-        var i: usize = 0;
-        _ = &i;
-        while (i < simdSize) : (i +%= 4) {
-            var simd_arr1: __m256 = @as(__m256, @bitCast(_mm256_loadu_pd(&a.*.data[i])));
-            _ = &simd_arr1;
-            var simd_scalar: __m256 = @as(__m256, @bitCast(_mm256_set1_pd(b)));
-            _ = &simd_scalar;
-            var simd_result: __m256 = @as(__m256, @bitCast(_mm256_add_pd(@as(__m256d, @bitCast(simd_arr1)), @as(__m256d, @bitCast(simd_scalar)))));
-            _ = &simd_result;
-            _mm256_storeu_pd(&result.*.data[i], @as(__m256d, @bitCast(simd_result)));
-        }
+pub fn singleAddFloatVector(vector: [*c]FloatVector, scalar: f64) [*c]FloatVector {
+    const result = FloatVector.init(vector.*.size);
+    const simdSize: usize = @intCast(vector.*.count - @mod(vector.*.count, 4));
+
+    // Process 4 elements at a time using Zig SIMD
+    var i: usize = 0;
+    while (i < simdSize) : (i += 4) {
+        const vec4 = @Vector(4, f64){
+            vector.*.data[i],
+            vector.*.data[i + 1],
+            vector.*.data[i + 2],
+            vector.*.data[i + 3],
+        };
+        const sum = vec4 + @as(@Vector(4, f64), @splat(scalar));
+
+        result.*.data[i] = sum[0];
+        result.*.data[i + 1] = sum[1];
+        result.*.data[i + 2] = sum[2];
+        result.*.data[i + 3] = sum[3];
     }
-    {
-        var i: usize = simdSize;
-        _ = &i;
-        while (i < a.*.count) : (i +%= 1) {
-            result.*.data[i] = a.*.data[i] + b;
-        }
+
+    // Process remaining elements
+    i = simdSize;
+    while (i < vector.*.count) : (i += 1) {
+        result.*.data[i] = vector.*.data[i] * scalar;
     }
-    result.*.count = a.*.count;
+
+    result.*.count = vector.*.count;
     return result;
 }
-pub fn singleSubFloatVector(arg_a: [*c]FloatVector, arg_b: f64) [*c]FloatVector {
-    var a = arg_a;
-    _ = &a;
-    var b = arg_b;
-    _ = &b;
-    var result: [*c]FloatVector = FloatVector.init(a.*.size);
-    _ = &result;
-    var simdSize: usize = @intCast(@as(usize, @intCast(a.*.count)) - @as(usize, @intCast(a.*.count)) % 4);
-    _ = &simdSize;
-    {
-        var i: usize = 0;
-        _ = &i;
-        while (i < simdSize) : (i +%= 4) {
-            var simd_arr1: __m256 = @as(__m256, @bitCast(_mm256_loadu_pd(&a.*.data[i])));
-            _ = &simd_arr1;
-            var simd_scalar: __m256 = @as(__m256, @bitCast(_mm256_set1_pd(b)));
-            _ = &simd_scalar;
-            var simd_result: __m256 = @as(__m256, @bitCast(_mm256_sub_pd(@as(__m256d, @bitCast(simd_arr1)), @as(__m256d, @bitCast(simd_scalar)))));
-            _ = &simd_result;
-            _mm256_storeu_pd(&result.*.data[i], @as(__m256d, @bitCast(simd_result)));
-        }
-    }
-    {
-        var i: usize = simdSize;
-        _ = &i;
-        while (i < a.*.count) : (i +%= 1) {
-            result.*.data[i] = a.*.data[i] - b;
-        }
-    }
-    result.*.count = a.*.count;
-    return result;
+
+pub fn singleSubFloatVector(vector: [*c]FloatVector, b: f64) [*c]FloatVector {
+    return singleAddFloatVector(vector, b * -1.0);
 }
-pub extern fn singleMulFloatVector(a: [*c]FloatVector, b: f64) [*c]FloatVector;
-pub fn singleDivFloatVector(arg_a: [*c]FloatVector, arg_b: f64) [*c]FloatVector {
-    var a = arg_a;
-    _ = &a;
-    var b = arg_b;
-    _ = &b;
+
+pub fn singleDivFloatVector(a: [*c]FloatVector, b: f64) [*c]FloatVector {
     return scaleFloatVector(a, 1.0 / b);
 }
 

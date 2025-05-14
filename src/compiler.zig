@@ -181,19 +181,28 @@ pub fn initCompiler(compiler: [*c]Compiler, type_: FunctionType) void {
     compiler.*.scopeDepth = 0;
     compiler.*.function = object_h.newFunction();
     current = compiler;
+    
+    // Set function name if not a script
     if (type_ != .TYPE_SCRIPT) {
         current.*.function.*.name = object_h.copyString(parser.previous.start, parser.previous.length);
     }
-    current.*.localCount += 1;
-    const local: [*c]Local = &current.*.locals[@intCast(current.*.localCount)];
-    local.*.depth = 0;
-    local.*.isCaptured = false;
-    if (type_ != .TYPE_FUNCTION) {
+    
+    // Create first local slot - used for 'self' in methods
+    const local: [*c]Local = &current.*.locals[0];
+    current.*.localCount = 1;
+    
+    if (type_ == .TYPE_METHOD or type_ == .TYPE_INITIALIZER) {
+        // For methods, initialize first local as 'self'
         local.*.name.start = @ptrCast(@constCast("self"));
         local.*.name.length = 4;
+        local.*.depth = compiler.*.scopeDepth;  // Mark as initialized immediately
+        local.*.isCaptured = false;
     } else {
+        // For functions and scripts, leave first local slot empty
         local.*.name.start = @ptrCast(@constCast(""));
         local.*.name.length = 0;
+        local.*.depth = 0;
+        local.*.isCaptured = false;
     }
 }
 pub fn endCompiler() [*c]ObjFunction {
