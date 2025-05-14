@@ -43,7 +43,7 @@ fn ensureInitialized() void {
 /// @return Pointer to the reallocated memory block, which may be different
 ///         from __ptr, or NULL if the request fails or __size is 0.
 ///
-pub fn realloc(__ptr: ?*anyopaque, __size: c_ulong) ?*anyopaque {
+pub fn realloc(__ptr: ?*anyopaque, __size: usize) ?*anyopaque {
     ensureInitialized();
 
     const allocator = gpa.allocator();
@@ -141,7 +141,7 @@ pub fn free(__ptr: ?*anyopaque) void {
 ///
 /// @return Pointer to the allocated memory, or NULL if the request fails
 ///
-pub fn malloc(__size: c_ulong) ?*anyopaque {
+pub fn malloc(__size: usize) ?*anyopaque {
     ensureInitialized();
 
     if (__size == 0) return null;
