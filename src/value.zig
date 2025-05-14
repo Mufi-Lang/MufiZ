@@ -8,8 +8,10 @@ const ObjFunction = obj_h.ObjFunction;
 const ObjLinkedList = obj_h.ObjLinkedList;
 const Node = obj_h.Node;
 const FloatVector = obj_h.FloatVector;
+const fvec = @import("objects/fvec.zig");
 const reallocate = @import("memory.zig").reallocate;
 const print = std.debug.print;
+const memcpy = @cImport(@cInclude("string.h")).memcpy;
 
 pub const ValueType = enum(c_int) { VAL_BOOL = 0, VAL_NIL = 1, VAL_INT = 2, VAL_DOUBLE = 3, VAL_OBJ = 4, VAL_COMPLEX = 5 };
 
@@ -66,6 +68,15 @@ pub const Value = extern struct {
             .VAL_INT => return Value.init_int(-self.as.num_int),
             .VAL_DOUBLE => return Value.init_double(-self.as.num_double),
             .VAL_COMPLEX => return Value.init_complex(.{ .r = -self.as.complex.r, .i = -self.as.complex.i }),
+            .VAL_OBJ => {
+                if (self.is_fvec()) {
+                    const vec = self.as_fvec();
+                    const result = fvec.scaleFloatVector(vec, -1.0);
+                    return Value.init_obj(@ptrCast(@alignCast(result)));
+                } else {
+                    @panic("Cannot negate non-numeric value");
+                }
+            },
             else => @panic("Cannot negate non-numeric value"),
         }
     }
@@ -96,7 +107,33 @@ pub const Value = extern struct {
                     else => {},
                 }
             },
-
+            .VAL_OBJ => {
+                if (self.is_string() and other.is_string()) {
+                    const a = self.as_string();
+                    const b = other.as_string();
+                    const length: c_int = a.*.length + b.*.length;
+                    const chars: [*c]u8 = @as([*c]u8, @ptrCast(@alignCast(reallocate(null, 0, @intCast(@sizeOf(u8) *% length + 1)))));
+                    _ = memcpy(@ptrCast(chars), @ptrCast(a.*.chars), @intCast(a.*.length));
+                    _ = memcpy(@ptrCast(chars + @as(usize, @bitCast(@as(isize, @intCast(a.*.length))))), @ptrCast(b.*.chars), @intCast(b.*.length));
+                    chars[@intCast(length)] = '\x00';
+                    const result = obj_h.takeString(chars, length);
+                    return Value.init_obj(@ptrCast(@alignCast(result)));
+                } else if (self.is_fvec() and other.is_fvec()) {
+                    // Both are FloatVectors
+                    const a = self.as_fvec();
+                    const b = other.as_fvec();
+                    const result = fvec.addFloatVector(a, b);
+                    return Value.init_obj(@ptrCast(result));
+                } else if (self.is_fvec() and other.is_prim_num()) {
+                    // FloatVector + scalar
+                    const a = self.as_fvec();
+                    const scalar = other.as_num_double();
+                    const result = fvec.singleAddFloatVector(a, scalar);
+                    return Value.init_obj(@ptrCast(result));
+                } else {
+                    @panic("Cannot add non-string object values");
+                }
+            },
             else => {},
         }
         return Value.init_nil();
@@ -130,6 +167,23 @@ pub const Value = extern struct {
                     .VAL_DOUBLE => return Value.init_complex(.{ .r = self.as.complex.r * other.as.num_double, .i = self.as.complex.i * other.as.num_double }),
                     .VAL_COMPLEX => return Value.init_complex(.{ .r = self.as.complex.r * other.as.complex.r - self.as.complex.i * other.as.complex.i, .i = self.as.complex.r * other.as.complex.i + self.as.complex.i * other.as.complex.r }),
                     else => {},
+                }
+            },
+            .VAL_OBJ => {
+                if (self.is_fvec() and other.is_fvec()) {
+                    // Both are FloatVectors
+                    const a = self.as_fvec();
+                    const b = other.as_fvec();
+                    const result = fvec.mulFloatVector(a, b);
+                    return Value.init_obj(@ptrCast(result));
+                } else if (self.is_fvec() and other.is_prim_num()) {
+                    // FloatVector * scalar
+                    const a = self.as_fvec();
+                    const scalar = other.as_num_double();
+                    const result = fvec.scaleFloatVector(a, scalar);
+                    return Value.init_obj(@ptrCast(result));
+                } else {
+                    @panic("Cannot multiply these object types");
                 }
             },
             else => {},
@@ -176,6 +230,23 @@ pub const Value = extern struct {
                         return Value.init_complex(.{ .r = (self.as.complex.r * other.as.complex.r + self.as.complex.i * other.as.complex.i) / denominator, .i = (self.as.complex.i * other.as.complex.r - self.as.complex.r * other.as.complex.i) / denominator });
                     },
                     else => {},
+                }
+            },
+            .VAL_OBJ => {
+                if (self.is_fvec() and other.is_fvec()) {
+                    // Both are FloatVectors
+                    const a = self.as_fvec();
+                    const b = other.as_fvec();
+                    const result = fvec.divFloatVector(a, b);
+                    return Value.init_obj(@ptrCast(result));
+                } else if (self.is_fvec() and other.is_prim_num()) {
+                    // FloatVector / scalar
+                    const a = self.as_fvec();
+                    const scalar = other.as_num_double();
+                    const result = fvec.singleDivFloatVector(a, scalar);
+                    return Value.init_obj(@ptrCast(result));
+                } else {
+                    @panic("Cannot divide these object types");
                 }
             },
             else => {},
@@ -227,6 +298,10 @@ pub const Value = extern struct {
         return self.is_obj_type(.OBJ_INSTANCE);
     }
 
+    pub fn is_fvec(self: Self) bool {
+        return self.is_obj_type(.OBJ_FVECTOR);
+    }
+
     pub fn as_obj(self: Self) [*c]Obj {
         return self.as.obj;
     }
@@ -245,6 +320,10 @@ pub const Value = extern struct {
 
     pub fn as_complex(self: Self) Complex {
         return self.as.complex;
+    }
+
+    pub fn as_fvec(self: Self) [*c]FloatVector {
+        return @ptrCast(@alignCast(self.as.obj));
     }
 
     pub fn as_num_double(self: Self) f64 {

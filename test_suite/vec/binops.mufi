@@ -1,8 +1,11 @@
-var a = linspace(1.0, 10.0, 10);
-var b = linspace(2.0, 20.0, 10);
-var c = linspace(3.0, 30.0, 10);
+var a = {1, 2};
 
-//assert(a*2.0, b); // test single mul
-//assert(a + b, c); // test add vec
+assert(a + 1, {2, 3});
+assert(a - 1, {0, 1});
+assert(a * 2, {2, 4});
+assert(a / 2, {0.5, 1.0});
 
-// we dont support binary operations on vectors yet
+assert(a + a, {2, 4});
+assert(a-a, {0, 0});
+assert(a*a, {1, 4});
+assert(a/a, {1, 1});

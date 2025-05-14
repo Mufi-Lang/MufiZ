@@ -351,6 +351,7 @@ pub fn callValue(callee: Value, argCount: c_int) bool {
     runtimeError("Can only call functions and classes.", .{});
     return false;
 }
+
 pub fn invokeFromClass(klass: [*c]ObjClass, name: [*c]ObjString, argCount: c_int) bool {
     var method: Value = undefined;
     if (!tableGet(&klass.*.methods, name, &method)) {
@@ -358,8 +359,9 @@ pub fn invokeFromClass(klass: [*c]ObjClass, name: [*c]ObjString, argCount: c_int
         runtimeError("Undefined property '{s}'.", .{name.*.chars[0..len]});
         return false;
     }
-    return call(@as([*c]ObjClosure, @ptrCast(@alignCast(method.as.obj))), argCount);
+    return call(@ptrCast(@alignCast(method.as.obj)), argCount);
 }
+
 pub fn invoke(name: [*c]ObjString, argCount: c_int) bool {
     const receiver: Value = peek(argCount);
     if (!object_h.isObjType(receiver, .OBJ_INSTANCE)) {
@@ -379,6 +381,7 @@ pub fn invoke(name: [*c]ObjString, argCount: c_int) bool {
     }
     return invokeFromClass(instance.*.klass, name, argCount);
 }
+
 pub fn bindMethod(klass: [*c]ObjClass, name: [*c]ObjString) bool {
     var method: Value = undefined;
 
@@ -386,11 +389,12 @@ pub fn bindMethod(klass: [*c]ObjClass, name: [*c]ObjString) bool {
         runtimeError("Undefined property '{s}'.", .{@as([]u8, @ptrCast(@alignCast(name.*.chars[0..@intCast(name.*.length)])))});
         return false;
     }
-    const bound: [*c]ObjBoundMethod = object_h.newBoundMethod(peek(0), @as([*c]ObjClosure, @ptrCast(@alignCast(method.as.obj))));
+    const bound: [*c]ObjBoundMethod = object_h.newBoundMethod(peek(0), @ptrCast(@alignCast(method.as.obj)));
     _ = pop();
     push(Value.init_obj(@ptrCast(@alignCast(bound))));
     return true;
 }
+
 pub fn captureUpvalue(local: [*c]Value) [*c]ObjUpvalue {
     var prevUpvalue: [*c]ObjUpvalue = null;
 
@@ -403,8 +407,7 @@ pub fn captureUpvalue(local: [*c]Value) [*c]ObjUpvalue {
     while ((upvalue != null) and (upvalue.*.location == local)) {
         return upvalue;
     }
-    var createdUpvalue: [*c]ObjUpvalue = object_h.newUpvalue(local);
-    _ = &createdUpvalue;
+    const createdUpvalue: [*c]ObjUpvalue = object_h.newUpvalue(local);
     createdUpvalue.*.next = upvalue;
     if (prevUpvalue == null) {
         vm.openUpvalues = createdUpvalue;
@@ -413,6 +416,7 @@ pub fn captureUpvalue(local: [*c]Value) [*c]ObjUpvalue {
     }
     return createdUpvalue;
 }
+
 pub fn closeUpvalues(last: [*c]Value) void {
     while ((vm.openUpvalues != null) and (vm.openUpvalues.*.location >= last)) {
         var upvalue: [*c]ObjUpvalue = vm.openUpvalues;
@@ -422,6 +426,7 @@ pub fn closeUpvalues(last: [*c]Value) void {
         vm.openUpvalues = upvalue.*.next;
     }
 }
+
 pub fn defineMethod(name: [*c]ObjString) void {
     const method: Value = peek(0);
 
@@ -429,35 +434,27 @@ pub fn defineMethod(name: [*c]ObjString) void {
     _ = tableSet(&klass.*.methods, name, method);
     _ = pop();
 }
+
 pub fn isFalsey(value: Value) bool {
     return (value.type == .VAL_NIL) or ((value.type == .VAL_BOOL) and !value.as.boolean);
 }
 
 pub fn concatenate() void {
-    var b: [*c]ObjString = @ptrCast(@alignCast(peek(0).as.obj));
-    _ = &b;
-    var a: [*c]ObjString = @ptrCast(@alignCast(peek(1).as.obj));
-    _ = &a;
-    var length: c_int = a.*.length + b.*.length;
-    _ = &length;
-    var chars: [*c]u8 = @as([*c]u8, @ptrCast(@alignCast(reallocate(null, 0, @intCast(@sizeOf(u8) *% length + 1)))));
-    _ = &chars;
-    _ = memcpy(@as(?*anyopaque, @ptrCast(chars)), @as(?*const anyopaque, @ptrCast(a.*.chars)), @intCast(a.*.length));
-    _ = memcpy(@as(?*anyopaque, @ptrCast(chars + @as(usize, @bitCast(@as(isize, @intCast(a.*.length)))))), @as(?*const anyopaque, @ptrCast(b.*.chars)), @intCast(b.*.length));
-    (blk: {
-        const tmp = length;
-        if (tmp >= 0) break :blk chars + @as(usize, @intCast(tmp)) else break :blk chars - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    }).* = '\x00';
-    var result: [*c]ObjString = takeString(chars, length);
-    _ = &result;
+    const b: [*c]ObjString = @ptrCast(@alignCast(peek(0).as.obj));
+    const a: [*c]ObjString = @ptrCast(@alignCast(peek(1).as.obj));
+    const length: c_int = a.*.length + b.*.length;
+    const chars: [*c]u8 = @as([*c]u8, @ptrCast(@alignCast(reallocate(null, 0, @intCast(@sizeOf(u8) *% length + 1)))));
+    _ = memcpy(@ptrCast(chars), @ptrCast(a.*.chars), @intCast(a.*.length));
+    _ = memcpy(@ptrCast(chars + @as(usize, @bitCast(@as(isize, @intCast(a.*.length))))), @ptrCast(b.*.chars), @intCast(b.*.length));
+    // (blk: {
+    //     const tmp = length;
+    //     if (tmp >= 0) break :blk chars + @as(usize, @intCast(tmp)) else break :blk chars - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+    // }).* = '\x00';
+    chars[@intCast(length)] = '\x00';
+    const result: [*c]ObjString = takeString(chars, length);
     _ = pop();
     _ = pop();
-    push(Value{
-        .type = .VAL_OBJ,
-        .as = .{
-            .obj = @as([*c]Obj, @ptrCast(@alignCast(result))),
-        },
-    });
+    push(Value.init_obj(@ptrCast(@alignCast(result))));
 }
 
 // pub fn setArray(array: [*c]ObjArray, index_1: c_int, value: Value)  void {
@@ -470,15 +467,13 @@ pub fn concatenate() void {
 //         if (tmp >= 0) break :blk array.*.values + @as(usize, @intCast(tmp)) else break :blk array.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
 //     }).* = value;
 // }
-pub fn setFloatVector(f: [*c]FloatVector, index_1: c_int, value: f64) void {
-    if (index_1 >= f.*.count) {
+
+pub fn setFloatVector(f: [*c]FloatVector, index: c_int, value: f64) void {
+    if (index >= fvec._count(f)) {
         runtimeError("Index out of bounds.", .{});
         return;
     }
-    (blk: {
-        const tmp = index_1;
-        if (tmp >= 0) break :blk f.*.data + @as(usize, @intCast(tmp)) else break :blk f.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    }).* = value;
+    fvec._write(f, index, value);
 }
 
 inline fn get_slot(frame: [*c]CallFrame) u8 {
@@ -494,6 +489,34 @@ inline fn get_slot(frame: [*c]CallFrame) u8 {
     return tmp.*;
 }
 
+fn readOffset(frame: [*c]CallFrame) u16 {
+    const adjustment = @as(c_int, 2);
+    frame.*.ip += @as(usize, @bitCast(@as(isize, @intCast(adjustment))));
+
+    const high_byte = blk: {
+        const tmp = -@as(c_int, 2);
+        if (tmp >= 0) {
+            break :blk frame.*.ip + @as(usize, @intCast(tmp));
+        } else {
+            break :blk frame.*.ip - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+        }
+    };
+
+    const low_byte = blk: {
+        const tmp = -1;
+        if (tmp >= 0) {
+            break :blk frame.*.ip + @as(usize, @intCast(tmp));
+        } else {
+            break :blk frame.*.ip - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+        }
+    };
+
+    const offset = @as(u16, @bitCast(@as(c_short, @truncate((@as(c_int, high_byte.*) << 8) | @as(c_int, low_byte.*)))));
+    frame.*.ip -= @as(usize, @bitCast(@as(isize, @intCast(@as(c_int, @bitCast(@as(c_uint, offset)))))));
+    return offset;
+}
+
+// now work on this
 pub fn run() InterpretResult {
     var frame: [*c]CallFrame = &vm.frames[@intCast(vm.frameCount - 1)];
     if (debug_opts.trace_exec) {
@@ -542,12 +565,13 @@ pub fn run() InterpretResult {
                     break;
                 },
                 .OP_GET_LOCAL => {
-                    const slot: u8 = (blk: {
-                        const ref = &frame.*.ip;
-                        const tmp = ref.*;
-                        ref.* += 1;
-                        break :blk tmp;
-                    }).*;
+                    // const slot: u8 = (blk: {
+                    //     const ref = &frame.*.ip;
+                    //     const tmp = ref.*;
+                    //     ref.* += 1;
+                    //     break :blk tmp;
+                    // }).*;
+                    const slot = get_slot(frame);
                     push(frame.*.slots[slot]);
                     break;
                 },
@@ -582,12 +606,13 @@ pub fn run() InterpretResult {
                 },
                 .OP_DEFINE_GLOBAL => {
                     const name: [*c]ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
-                        (blk: {
-                            const ref = &frame.*.ip;
-                            const tmp = ref.*;
-                            ref.* += 1;
-                            break :blk tmp;
-                        }).*
+                        // (blk: {
+                        //     const ref = &frame.*.ip;
+                        //     const tmp = ref.*;
+                        //     ref.* += 1;
+                        //     break :blk tmp;
+                        // }).*
+                        get_slot(frame)
                     ].as.obj));
                     _ = tableSet(&vm.globals, name, peek(0));
                     _ = pop();
@@ -595,12 +620,7 @@ pub fn run() InterpretResult {
                 },
                 .OP_SET_GLOBAL => {
                     const name: [*c]ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
-                        (blk: {
-                            const ref = &frame.*.ip;
-                            const tmp = ref.*;
-                            ref.* += 1;
-                            break :blk tmp;
-                        }).*
+                        get_slot(frame)
                     ].as.obj));
                     if (tableSet(&vm.globals, name, peek(0))) {
                         _ = tableDelete(&vm.globals, name);
@@ -610,22 +630,12 @@ pub fn run() InterpretResult {
                     break;
                 },
                 .OP_GET_UPVALUE => {
-                    const slot: u8 = (blk: {
-                        const ref = &frame.*.ip;
-                        const tmp = ref.*;
-                        ref.* += 1;
-                        break :blk tmp;
-                    }).*;
+                    const slot = get_slot(frame);
                     push(frame.*.closure.*.upvalues[slot].*.location.*);
                     break;
                 },
                 .OP_SET_UPVALUE => {
-                    const slot: u8 = (blk: {
-                        const ref = &frame.*.ip;
-                        const tmp = ref.*;
-                        ref.* += 1;
-                        break :blk tmp;
-                    }).*;
+                    const slot = get_slot(frame);
                     frame.*.closure.*.upvalues[slot].*.location.* = peek(0);
                     break;
                 },
@@ -636,12 +646,7 @@ pub fn run() InterpretResult {
                     }
                     const instance: [*c]ObjInstance = @as([*c]ObjInstance, @ptrCast(@alignCast(peek(0).as.obj)));
                     const name: [*c]ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
-                        (blk: {
-                            const ref = &frame.*.ip;
-                            const tmp = ref.*;
-                            ref.* += 1;
-                            break :blk tmp;
-                        }).*
+                        get_slot(frame)
                     ].as.obj));
                     var value: Value = undefined;
                     if (tableGet(&instance.*.fields, name, &value)) {
@@ -661,12 +666,7 @@ pub fn run() InterpretResult {
                     }
                     const instance: [*c]ObjInstance = @as([*c]ObjInstance, @ptrCast(@alignCast(peek(1).as.obj)));
                     _ = tableSet(&instance.*.fields, @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
-                        (blk: {
-                            const ref = &frame.*.ip;
-                            const tmp = ref.*;
-                            ref.* += 1;
-                            break :blk tmp;
-                        }).*
+                        get_slot(frame)
                     ].as.obj)), peek(0));
                     const value: Value = pop();
                     _ = pop();
@@ -675,12 +675,7 @@ pub fn run() InterpretResult {
                 },
                 .OP_GET_SUPER => {
                     const name: [*c]ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
-                        (blk: {
-                            const ref = &frame.*.ip;
-                            const tmp = ref.*;
-                            ref.* += 1;
-                            break :blk tmp;
-                        }).*
+                        get_slot(frame)
                     ].as.obj));
                     const superclass: [*c]ObjClass = @ptrCast(@alignCast(pop().as.obj));
                     if (!bindMethod(superclass, name)) {
@@ -814,12 +809,7 @@ pub fn run() InterpretResult {
                 //     break;
                 // },
                 .OP_FVECTOR => {
-                    const count: c_int = @as(c_int, @bitCast(@as(c_uint, (blk: {
-                        const ref = &frame.*.ip;
-                        const tmp = ref.*;
-                        ref.* += 1;
-                        break :blk tmp;
-                    }).*)));
+                    const count: c_int = @as(c_int, @bitCast(@as(c_uint, get_slot(frame))));
                     const f = fvec.FloatVector.init(count);
                     for (0..@intCast(count)) |i| {
                         FloatVector.push(f, peek((count - @as(c_int, @intCast(i))) - 1).as_num_double());
@@ -851,145 +841,65 @@ pub fn run() InterpretResult {
                     break;
                 },
                 .OP_ADD => {
-                    if (isObjType(peek(0), .OBJ_STRING) and (isObjType(peek(1), .OBJ_STRING))) {
-                        concatenate();
-                    } else if ((isObjType(peek(0), .OBJ_FVECTOR)) and (isObjType(peek(1), .OBJ_FVECTOR))) {
-                        const b = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
-                        const a = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
-                        const result = addFloatVector(a, b);
-                        push(Value.init_obj(@ptrCast(result)));
-                    } else {
-                        const b = pop();
-                        const a = pop();
-                        if (a.type == .VAL_NIL) {
-                            runtimeError("Invalid Binary Operation.", .{});
-                            return .INTERPRET_RUNTIME_ERROR;
-                        }
-                        push(a.add(b));
+                    // if (isObjType(peek(0), .OBJ_STRING) and (isObjType(peek(1), .OBJ_STRING))) {
+                    //     concatenate();
+                    // } else if ((isObjType(peek(0), .OBJ_FVECTOR)) and (isObjType(peek(1), .OBJ_FVECTOR))) {
+                    //     const b = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
+                    //     const a = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
+                    //     const result = addFloatVector(a, b);
+                    //     push(Value.init_obj(@ptrCast(result)));
+                    // } else {
+                    //     const b = pop();
+                    //     const a = pop();
+                    //     if (a.type == .VAL_NIL) {
+                    //         runtimeError("Invalid Binary Operation.", .{});
+                    //         return .INTERPRET_RUNTIME_ERROR;
+                    //     }
+                    //     push(a.add(b));
+                    // }
+
+                    const b = pop();
+                    const a = pop();
+                    if (a.is_nil()) {
+                        runtimeError("Invalid Binary Operation.", .{});
+                        return .INTERPRET_RUNTIME_ERROR;
                     }
+                    push(a.add(b));
 
                     break;
                 },
                 .OP_SUBTRACT => {
-                    if ((isObjType(peek(0), .OBJ_FVECTOR)) and (isObjType(peek(1), .OBJ_FVECTOR))) {
-                        const b = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
-                        const a = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
-                        const result = subFloatVector(a, b);
-                        push(Value.init_obj(@ptrCast(result)));
+                    const b = pop();
+                    const a = pop();
+
+                    if (a.is_nil() or a.is_string()) {
+                        runtimeError("Invalid Binary Operation.", .{});
+                        return .INTERPRET_RUNTIME_ERROR;
                     }
-                    // else if ((isObjType(peek(1), .OBJ_FVECTOR)) and (peek(0).type == .VAL_DOUBLE)) {
-                    //     var b: f64 = pop().as.num_double;
-                    //     _ = &b;
-                    //     var a = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
-                    //     _ = &a;
-                    //     var result = singleSubFloatVector(a, b);
-                    //     _ = &result;
-                    //     push(Value{
-                    //         .type = .VAL_OBJ,
-                    //         .as = .{
-                    //             .obj = @as([*c]Obj, @ptrCast(@alignCast(result))),
-                    //         },
-                    //     });
-                    // }
-                    // else if ((peek(1).type == .VAL_DOUBLE) and (isObjType(peek(0), .OBJ_FVECTOR))) {
-                    //     var b = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
-                    //     _ = &b;
-                    //     var a: f64 = pop().as.num_double;
-                    //     _ = &a;
-                    //     var result = singleSubFloatVector(b, a);
-                    //     _ = &result;
-                    //     push(Value{
-                    //         .type = .VAL_OBJ,
-                    //         .as = .{
-                    //             .obj = @as([*c]Obj, @ptrCast(@alignCast(result))),
-                    //         },
-                    //     });
-                    // }
-                    else {
-                        const b = pop();
-                        const a = pop();
-                        push(a.sub(b));
-                    }
+
+                    push(a.sub(b));
                 },
                 .OP_MULTIPLY => {
-                    if ((isObjType(peek(0), .OBJ_FVECTOR)) and (isObjType(peek(1), .OBJ_FVECTOR))) {
-                        const b = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
-                        const a = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
-                        const result = mulFloatVector(a, b);
-                        push(Value.init_obj(@ptrCast(result)));
+                    const b = pop();
+                    const a = pop();
+
+                    if (a.is_nil() or a.is_string()) {
+                        runtimeError("Invalid Binary Operation.", .{});
+                        return .INTERPRET_RUNTIME_ERROR;
                     }
-                    // else if ((isObjType(peek(1), .OBJ_FVECTOR)) and (peek(0).type == .VAL_DOUBLE)) {
-                    //     var b: f64 = pop().as.num_double;
-                    //     _ = &b;
-                    //     var a = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
-                    //     _ = &a;
-                    //     var result = scaleFloatVector(a, b);
-                    //     _ = &result;
-                    //     push(Value{
-                    //         .type = .VAL_OBJ,
-                    //         .as = .{
-                    //             .obj = @as([*c]Obj, @ptrCast(@alignCast(result))),
-                    //         },
-                    //     });
-                    // } else if ((peek(1).type == .VAL_DOUBLE) and (isObjType(peek(0), .OBJ_FVECTOR))) {
-                    //     var b = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
-                    //     _ = &b;
-                    //     var a: f64 = pop().as.num_double;
-                    //     _ = &a;
-                    //     var result = scaleFloatVector(b, a);
-                    //     _ = &result;
-                    //     push(Value{
-                    //         .type = .VAL_OBJ,
-                    //         .as = .{
-                    //             .obj = @as([*c]Obj, @ptrCast(@alignCast(result))),
-                    //         },
-                    //     });
-                    // }
-                    else {
-                        const b = pop();
-                        const a = pop();
-                        push(a.mul(b));
-                    }
+
+                    push(a.mul(b));
                 },
                 .OP_DIVIDE => {
-                    if ((isObjType(peek(0), .OBJ_FVECTOR)) and (isObjType(peek(1), .OBJ_FVECTOR))) {
-                        const b = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
-                        const a = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
-                        const result = divFloatVector(a, b);
-                        push(Value.init_obj(@ptrCast(result)));
+                    const b = pop();
+                    const a = pop();
+
+                    if (a.is_nil() or a.is_string()) {
+                        runtimeError("Invalid Binary Operation.", .{});
+                        return .INTERPRET_RUNTIME_ERROR;
                     }
-                    //  else if ((isObjType(peek(1), .OBJ_FVECTOR)) and (peek(0).type == .VAL_DOUBLE)) {
-                    //     var b: f64 = pop().as.num_double;
-                    //     _ = &b;
-                    //     var a = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
-                    //     _ = &a;
-                    //     var result = singleDivFloatVector(a, b);
-                    //     _ = &result;
-                    //     push(Value{
-                    //         .type = .VAL_OBJ,
-                    //         .as = .{
-                    //             .obj = @as([*c]Obj, @ptrCast(@alignCast(result))),
-                    //         },
-                    //     });
-                    // } else if ((peek(1).type == .VAL_DOUBLE) and (isObjType(peek(0), .OBJ_FVECTOR))) {
-                    //     var b = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
-                    //     _ = &b;
-                    //     var a: f64 = pop().as.num_double;
-                    //     _ = &a;
-                    //     var result = singleDivFloatVector(b, a);
-                    //     _ = &result;
-                    //     push(Value{
-                    //         .type = .VAL_OBJ,
-                    //         .as = .{
-                    //             .obj = @as([*c]Obj, @ptrCast(@alignCast(result))),
-                    //         },
-                    //     });
-                    // }
-                    else {
-                        const b = pop();
-                        const a = pop();
-                        push(a.div(b));
-                    }
+
+                    push(a.div(b));
                 },
                 .OP_MODULO => {
                     {
@@ -1179,16 +1089,12 @@ pub fn run() InterpretResult {
                         }).*)))))));
                     };
                     _ = &offset;
+                    //const offset = readOffset(frame);
                     frame.*.ip -= @as(usize, @bitCast(@as(isize, @intCast(@as(c_int, @bitCast(@as(c_uint, offset)))))));
                     break;
                 },
                 .OP_CALL => {
-                    const argCount: c_int = @as(c_int, @bitCast(@as(c_uint, (blk: {
-                        const ref = &frame.*.ip;
-                        const tmp = ref.*;
-                        ref.* += 1;
-                        break :blk tmp;
-                    }).*)));
+                    const argCount: c_int = @as(c_int, @bitCast(@as(c_uint, get_slot(frame))));
 
                     if (!callValue(peek(argCount), argCount)) {
                         return .INTERPRET_RUNTIME_ERROR;
@@ -1199,22 +1105,12 @@ pub fn run() InterpretResult {
                 },
                 .OP_INVOKE => {
                     const method: [*c]ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
-                        (blk: {
-                            const ref = &frame.*.ip;
-                            const tmp = ref.*;
-                            ref.* += 1;
-                            break :blk tmp;
-                        }).*
+                        get_slot(frame)
                     ].as.obj));
 
-                    const argCount: c_int = @as(c_int, @bitCast(@as(c_uint, (blk: {
-                        const ref = &frame.*.ip;
-                        const tmp = ref.*;
-                        ref.* += 1;
-                        break :blk tmp;
-                    }).*)));
+                    const count: c_int = @as(c_int, @bitCast(@as(c_uint, get_slot(frame))));
 
-                    if (!invoke(method, argCount)) {
+                    if (!invoke(method, count)) {
                         return .INTERPRET_RUNTIME_ERROR;
                     }
                     frame = &vm.frames[@as(c_uint, @intCast(vm.frameCount - 1))];
@@ -1222,20 +1118,10 @@ pub fn run() InterpretResult {
                 },
                 .OP_SUPER_INVOKE => {
                     const method: [*c]ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
-                        (blk: {
-                            const ref = &frame.*.ip;
-                            const tmp = ref.*;
-                            ref.* += 1;
-                            break :blk tmp;
-                        }).*
+                        get_slot(frame)
                     ].as.obj));
 
-                    const argCount: c_int = @as(c_int, @bitCast(@as(c_uint, (blk: {
-                        const ref = &frame.*.ip;
-                        const tmp = ref.*;
-                        ref.* += 1;
-                        break :blk tmp;
-                    }).*)));
+                    const argCount: c_int = @as(c_int, @bitCast(@as(c_uint, get_slot(frame))));
 
                     var superclass: [*c]ObjClass = @ptrCast(@alignCast(pop().as.obj));
                     _ = &superclass;
@@ -1316,42 +1202,25 @@ pub fn run() InterpretResult {
                     break;
                 },
                 .OP_CLASS => {
-                    push(Value{
-                        .type = .VAL_OBJ,
-                        .as = .{
-                            .obj = @as([*c]Obj, @ptrCast(@alignCast(object_h.newClass(@ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
-                                (blk: {
-                                    const ref = &frame.*.ip;
-                                    const tmp = ref.*;
-                                    ref.* += 1;
-                                    break :blk tmp;
-                                }).*
-                            ].as.obj)))))),
-                        },
-                    });
+                    push(Value.init_obj(@ptrCast(@alignCast(object_h.newClass(@ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
+                        get_slot(frame)
+                    ].as.obj)))))));
                     break;
                 },
                 .OP_INHERIT => {
-                    var superclass: Value = peek(1);
-                    _ = &superclass;
+                    const superclass: Value = peek(1);
                     if (!isObjType(superclass, .OBJ_CLASS)) {
                         runtimeError("Superclass must be a class.", .{});
                         return .INTERPRET_RUNTIME_ERROR;
                     }
-                    var subclass: [*c]ObjClass = @ptrCast(@alignCast(peek(0).as.obj));
-                    _ = &subclass;
+                    const subclass: [*c]ObjClass = @ptrCast(@alignCast(peek(0).as.obj));
                     table_h.tableAddAll(&@as([*c]ObjClass, @ptrCast(@alignCast(superclass.as.obj))).*.methods, &subclass.*.methods);
                     _ = pop();
                     break;
                 },
                 .OP_METHOD => {
                     defineMethod(@ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
-                        (blk: {
-                            const ref = &frame.*.ip;
-                            const tmp = ref.*;
-                            ref.* += 1;
-                            break :blk tmp;
-                        }).*
+                        get_slot(frame)
                     ].as.obj)));
                     break;
                 },

@@ -20,7 +20,7 @@ fn _sorted(self: FloatVector.Self) bool {
     return self.*.sorted;
 }
 
-fn _count(self: [*c]FloatVector) FloatVector.Int {
+pub fn _count(self: [*c]FloatVector) FloatVector.Int {
     return self.*.count;
 }
 
@@ -32,7 +32,7 @@ fn _get(self: [*c]FloatVector, index: FloatVector.Int) f64 {
     return self.*.data[@intCast(index)];
 }
 
-fn _write(self: [*c]FloatVector, i: FloatVector.Int, val: f64) void {
+pub fn _write(self: [*c]FloatVector, i: FloatVector.Int, val: f64) void {
     FloatVector.write(self, i, val);
 }
 

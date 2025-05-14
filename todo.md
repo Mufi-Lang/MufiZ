@@ -1,0 +1,2 @@
+- [ ] Cleanup `vm.zig`
+- [ ] add class test suites, more with the types to ensure they are sound
