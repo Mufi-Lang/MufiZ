@@ -113,11 +113,11 @@ def build_package(arch, target, pkg):
             f"mufiz-{version}-1.{arch}.{pkg}",
             f"{pkg_path}mufiz-{version}-1.{arch}.{pkg}",
         )
-    elif pkg == "pacman":
-        shutil.move(
-            f"mufiz-{version}-1-{arch}.pkg.tar.zst",
-            f"{pkg_path}mufiz-{version}-1.{arch}.pkg.tar.zst",
-        )
+    # elif pkg == "pacman":
+    #     shutil.move(
+    #         f"mufiz-{version}-1-{arch}.pkg.tar.zst",
+    #         f"{pkg_path}mufiz-{version}-1.{arch}.pkg.tar.zst",
+    #     )
     print(f"Built {pkg} package for {target}")
 
 
@@ -131,4 +131,4 @@ if __name__ == "__main__":
             build_package(arch_deb, target, "deb")
             arch_rpm = arch_map_rpm[target]
             build_package(arch_rpm, target, "rpm")
-            build_package(arch_rpm, target, "pacman")
+            # build_package(arch_rpm, target, "pacman")
