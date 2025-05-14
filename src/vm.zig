@@ -18,7 +18,7 @@ const ObjNative = object_h.ObjNative;
 const fvec = @import("objects/fvec.zig");
 
 const FloatVector = fvec.FloatVector;
-const printf = @cImport(@cInclude("stdio.h")).printf;
+// printf replaced with print from std import
 const printValue = value_h.printValue;
 const tableGet = table_h.tableGet;
 const tableSet = table_h.tableSet;
@@ -80,9 +80,18 @@ pub const VM = struct {
 
 pub fn initVM() void {
     resetStack();
-    initTable(&vm.strings);  // Initialize strings table first
+    vm.objects = null;
+    vm.bytesAllocated = 0;
+    vm.nextGC = 1024 * 1024;
+
+    vm.grayCount = 0;
+    vm.grayCapacity = 0;
+    vm.grayStack = null;
+
     initTable(&vm.globals);
-    vm.initString = copyString(@ptrCast("init"), 4);  // Create initString after tables are ready
+    initTable(&vm.strings); // Initialize strings table first
+
+    vm.initString = copyString(@ptrCast("init"), 4); // Create initString after tables are ready
 }
 
 pub const InterpretResult = enum(c_int) {
@@ -152,16 +161,17 @@ pub fn freeVM() void {
     vm.initString = null;
     freeObjects();
 }
+
 pub fn importCollections() void {
     defineNative("assert", cstd_h.assert_nf);
-    defineNative("simd_stat", &cstd_h.simd_stat_nf);
+    defineNative("simd_stat", cstd_h.simd_stat_nf);
     // defineNative("array", &cstd_h.array_nf);
-    defineNative("linked_list", &cstd_h.linkedlist_nf);
-    defineNative("hash_table", &cstd_h.hashtable_nf);
+    defineNative("linked_list", cstd_h.linkedlist_nf);
+    defineNative("hash_table", cstd_h.hashtable_nf);
     // defineNative("matrix", &cstd_h.matrix_nf);
-    defineNative("fvec", &cstd_h.fvector_nf);
+    defineNative("fvec", cstd_h.fvector_nf);
     // defineNative("range", &cstd_h.range_nf);
-    defineNative("linspace", &cstd_h.linspace_nf);
+    defineNative("linspace", cstd_h.linspace_nf);
     defineNative("slice", &cstd_h.slice_nf);
     defineNative("splice", &cstd_h.splice_nf);
     defineNative("push", &cstd_h.push_nf);
@@ -238,11 +248,15 @@ pub fn pop() Value {
     return vm.stackTop.*;
 }
 pub fn defineNative(name: [*c]const u8, function: NativeFn) void {
-    push(
-        Value.init_obj(@ptrCast(@alignCast(copyString(name, @intCast(strlen(name)))))),
-    );
+    // Push the name string and the function object onto the stack
+    // This ensures GC doesn't collect them during allocation
+    push(Value.init_obj(@ptrCast(@alignCast(copyString(name, @intCast(strlen(name)))))));
     push(Value.init_obj(@ptrCast(@alignCast(object_h.newNative(function)))));
+
+    // Store them in the global table
     _ = table_h.tableSet(&vm.globals, @ptrCast(@alignCast(vm.stack[0].as.obj)), vm.stack[1]);
+
+    // Pop them now that they're stored safely
     _ = pop();
     _ = pop();
 }
@@ -274,10 +288,10 @@ pub fn call(closure: [*c]ObjClosure, argCount: c_int) bool {
     const frame: [*c]CallFrame = &vm.frames[@intCast(next_frame_count())];
     frame.*.closure = closure;
     frame.*.ip = closure.*.function.*.chunk.code;
-    
+
     // The slots pointer should point to the first argument, which is 'self' for methods
     frame.*.slots = vm.stackTop - @as(usize, @intCast(argCount + 1));
-    
+
     return true;
 }
 pub fn callValue(callee: Value, argCount: c_int) bool {
@@ -295,23 +309,23 @@ pub fn callValue(callee: Value, argCount: c_int) bool {
                     runtimeError("Cannot instantiate null class.", .{});
                     return false;
                 }
-                
+
                 // Create instance
                 const instance = object_h.newInstance(klass);
                 if (instance == null) {
                     runtimeError("Failed to create instance.", .{});
                     return false;
                 }
-                
+
                 // Create the instance value
                 const instanceValue = Value.init_obj(@ptrCast(@alignCast(instance)));
-                
+
                 // Calculate where 'self' should go on the stack (below the arguments)
                 const selfSlot = vm.stackTop - @as(usize, @intCast(argCount + 1));
-                
+
                 // Create the instance value and place it at the self slot
                 selfSlot.* = instanceValue;
-                
+
                 // Call initializer if it exists
                 if (vm.initString != null) {
                     var initializer: Value = undefined;
@@ -322,7 +336,7 @@ pub fn callValue(callee: Value, argCount: c_int) bool {
                         return false;
                     }
                 }
-                
+
                 return true;
             },
             .OBJ_CLOSURE => return call(@as([*c]ObjClosure, @ptrCast(@alignCast(callee.as.obj))), argCount),
@@ -334,6 +348,10 @@ pub fn callValue(callee: Value, argCount: c_int) bool {
             },
             .OBJ_NATIVE => {
                 const native: NativeFn = @as([*c]ObjNative, @ptrCast(@alignCast(callee.as.obj))).*.function;
+                if (native == null) {
+                    runtimeError("Native function is null.", .{});
+                    return false;
+                }
                 const result: Value = native.?(argCount, vm.stackTop - @as(usize, @intCast(argCount)));
                 vm.stackTop -= @as(usize, @intCast(argCount + 1));
                 push(result);
@@ -484,6 +502,7 @@ pub fn run() InterpretResult {
         const c_instruction_index = @as(c_int, @intCast(@as(u32, @truncate(instruction_index))));
         _ = debug_h.disassembleInstruction(chunk, c_instruction_index);
     }
+    while (true) {
         while (true) {
             const instruction = frame.*.ip[0];
             frame.*.ip += 1;
@@ -649,7 +668,6 @@ pub fn run() InterpretResult {
                         return .INTERPRET_RUNTIME_ERROR;
                     }
                     push(a.add(b));
-
                     continue;
                 },
                 .OP_SUBTRACT => {
@@ -662,6 +680,7 @@ pub fn run() InterpretResult {
                     }
 
                     push(a.sub(b));
+                    continue;
                 },
                 .OP_MULTIPLY => {
                     const b = pop();
@@ -673,6 +692,7 @@ pub fn run() InterpretResult {
                     }
 
                     push(a.mul(b));
+                    continue;
                 },
                 .OP_DIVIDE => {
                     const b = pop();
@@ -684,6 +704,7 @@ pub fn run() InterpretResult {
                     }
 
                     push(a.div(b));
+                    continue;
                 },
                 .OP_MODULO => {
                     if (peek(0).is_int() and peek(1).is_int()) {
@@ -731,7 +752,7 @@ pub fn run() InterpretResult {
                 },
                 .OP_PRINT => {
                     printValue(pop());
-                    _ = printf("\n");
+                    print("\n", .{});
                     continue;
                 },
                 .OP_JUMP => {
@@ -871,8 +892,7 @@ pub fn run() InterpretResult {
                 },
                 .OP_ITERATOR_HAS_NEXT => {},
             }
-            continue;
         }
-    
+    }
     return .INTERPRET_RUNTIME_ERROR;
 }

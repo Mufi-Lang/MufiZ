@@ -83,7 +83,7 @@ def main():
         return
 
     skipped_tests = []
-    subprocess.run(["zig", "build", "--release=safe"])
+    subprocess.run(["zig", "build", "--release=fast"])
     successful_tests, failed_tests = run_tests_in_directory(
         test_suite_directory, skipped_tests
     )

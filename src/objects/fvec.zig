@@ -4,9 +4,7 @@ const allocateObject = @import("../object.zig").allocateObject;
 const reallocate = @import("../memory.zig").reallocate;
 const std = @import("std");
 
-fn printf(s: []const u8) void {
-    std.debug.print("{s}", .{s});
-}
+// printf replaced with direct use of std.debug.print
 
 fn _data(self: [*c]FloatVector) FloatVector.Ptr {
     return self.*.data;
@@ -26,7 +24,7 @@ pub fn _count(self: [*c]FloatVector) FloatVector.Int {
 
 fn _get(self: [*c]FloatVector, index: FloatVector.Int) f64 {
     if (index < 0 or index >= self.*.count) {
-        printf("Index out of bounds\n");
+        std.debug.print("Index out of bounds\n", .{});
         return 0.0;
     }
     return self.*.data[@intCast(index)];
@@ -61,12 +59,12 @@ pub const FloatVector = extern struct {
     }
 
     pub fn print(self: Self) void {
-        printf("{");
+        std.debug.print("{{", .{});
         for (0..@intCast(_count(self))) |i| {
-            printf("%.2f ", _get(self, @intCast(i)));
+            std.debug.print("{d:.2} ", .{_get(self, @intCast(i))});
         }
-        printf("}");
-        printf("\n");
+        std.debug.print("}}", .{});
+        std.debug.print("\n", .{});
     }
 
     fn write(self: Self, i: Int, val: f64) void {
@@ -111,7 +109,7 @@ pub const FloatVector = extern struct {
 
     pub fn push(self: Self, val: f64) void {
         if (_count(self) + 1 > _size(self)) {
-            printf("Vector is full\n");
+            std.debug.print("Vector is full\n", .{});
             return;
         }
         _write(self, _count(self), val);
@@ -120,7 +118,7 @@ pub const FloatVector = extern struct {
 
     pub fn insert(self: Self, index: Int, val: f64) void {
         if ((index < 0) or (index >= _size(self))) {
-            printf("Index out of bounds\n");
+            std.debug.print("Index out of bounds\n", .{});
             return;
         }
         var i: usize = @intCast(_count(self));
@@ -143,7 +141,7 @@ pub const FloatVector = extern struct {
 
     pub fn pop(self: Self) f64 {
         if (_count(self) == 0) {
-            printf("Vector is empty\n");
+            std.debug.print("Vector is empty\n", .{});
             return 0;
         }
         const poppedValue: f64 = _get(self, _count(self) - 1);
@@ -156,7 +154,7 @@ pub const FloatVector = extern struct {
 
     pub fn remove(self: Self, index: Int) f64 {
         if ((index < 0) or (index >= _count(self))) {
-            printf("Index out of bounds\n");
+            std.debug.print("Index out of bounds\n", .{});
             return 0;
         }
         const removedValue: f64 = _get(self, @intCast(index));
@@ -183,7 +181,7 @@ pub const FloatVector = extern struct {
 
     pub fn slice(self: Self, start: Int, end: Int) Self {
         if ((((start < 0) or (start >= _count(self)) or (end < 0)) or (end >= _count(self)))) {
-            printf("Index out of bounds\n");
+            std.debug.print("Index out of bounds\n", .{});
             return null;
         }
         const result = FloatVector.init((end - start) + 1);
@@ -195,7 +193,7 @@ pub const FloatVector = extern struct {
 
     pub fn splice(self: Self, start: Int, end: Int) Self {
         if ((((start < 0) or (start >= _count(self)) or (end < 0)) or (end >= _count(self)))) {
-            printf("Index out of bounds\n");
+            std.debug.print("Index out of bounds\n", .{});
             return null;
         }
 
@@ -249,7 +247,6 @@ pub const FloatVector = extern struct {
     }
 
     pub fn variance(self: Self) f64 {
-
         const len = _count(self);
         const mean_value: f64 = FloatVector.mean(self);
 
@@ -459,7 +456,7 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 
 // pub fn FloatVector.push(vector: [*c]FloatVector, value: f64) void {
 //     if (vector.*.count + 1 > vector.*.size) {
-//         printf("Vector is full\n");
+//         std.debug.print("Vector is full\n", .{});
 //         return;
 //     }
 //     vector.*.data[@intCast(vector.*.count)] = value;
@@ -470,7 +467,7 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 
 // pub fn insertFloatVector(vector: [*c]FloatVector, index_1: c_int, value: f64) void {
 //     if ((index_1 < 0) or (index_1 >= vector.*.size)) {
-//         printf("Index out of bounds\n");
+//         std.debug.print("Index out of bounds\n", .{});
 //         return;
 //     }
 //     var i: usize = @intCast(vector.*.count);
@@ -490,7 +487,7 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 //     var index_1 = arg_index_1;
 //     _ = &index_1;
 //     if ((index_1 < 0) or (index_1 >= vector.*.count)) {
-//         printf("Index out of bounds\n");
+//         std.debug.print("Index out of bounds\n", .{});
 //         return 0;
 //     }
 //     return (blk: {
@@ -503,7 +500,7 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 //     var vector = arg_vector;
 //     _ = &vector;
 //     if (vector.*.count == 0) {
-//         printf("Vector is empty\n");
+//         std.debug.print("Vector is empty\n", .{});
 //         return 0;
 //     }
 //     var poppedValue: f64 = (blk: {
@@ -526,7 +523,7 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 //     var index_1 = arg_index_1;
 //     _ = &index_1;
 //     if ((index_1 < 0) or (index_1 >= vector.*.count)) {
-//         printf("Index out of bounds\n");
+//         std.debug.print("Index out of bounds\n", .{});
 //         return 0;
 //     }
 //     var removedValue: f64 = (blk: {
@@ -563,19 +560,19 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 // pub fn printFloatVector(arg_vector: [*c]FloatVector) void {
 //     var vector = arg_vector;
 //     _ = &vector;
-//     printf("[");
+//     std.debug.print("[", .{});
 //     {
 //         var i: c_int = 0;
 //         _ = &i;
 //         while (i < vector.*.count) : (i += 1) {
-//             printf("%.2f ", (blk: {
+//             std.debug.print("{d:.2} ", .{(blk: {
 //                 const tmp = i;
 //                 if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
 //             }).*);
 //         }
 //     }
-//     printf("]");
-//     printf("\n");
+//     std.debug.print("]", .{});
+//     std.debug.print("\n", .{});
 // }
 
 // pub fn mergeFloatVector(arg_a: [*c]FloatVector, arg_b: [*c]FloatVector) [*c]FloatVector {
@@ -616,7 +613,7 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 //     var end = arg_end;
 //     _ = &end;
 //     if ((((start < 0) or (start >= vector.*.count)) or (end < 0)) or (end >= vector.*.count)) {
-//         printf("Index out of bounds\n");
+//         std.debug.print("Index out of bounds\n", .{});
 //         return null;
 //     }
 //     var result: [*c]FloatVector = FloatVector.init((end - start) + 1);
@@ -641,7 +638,7 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 //     var end = arg_end;
 //     _ = &end;
 //     if ((((start < 0) or (start >= vector.*.count)) or (end < 0)) or (end >= vector.*.count)) {
-//         printf("Index out of bounds\n");
+//         std.debug.print("Index out of bounds\n", .{});
 //         return null;
 //     }
 //     var result: [*c]FloatVector = FloatVector.init(vector.*.size);
@@ -805,7 +802,7 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 
 pub fn addFloatVector(vector1: [*c]FloatVector, vector2: [*c]FloatVector) [*c]FloatVector {
     if (_size(vector1) != _size(vector2)) {
-        printf("Vectors are not of the same size\n");
+        std.debug.print("Vectors are not of the same size\n", .{});
         return null;
     }
 
@@ -857,7 +854,7 @@ pub fn addFloatVector(vector1: [*c]FloatVector, vector2: [*c]FloatVector) [*c]Fl
 }
 pub fn subFloatVector(vector1: [*c]FloatVector, vector2: [*c]FloatVector) [*c]FloatVector {
     if (_size(vector1) != _size(vector2)) {
-        printf("Vectors are not of the same size\n");
+        std.debug.print("Vectors are not of the same size\n", .{});
         return null;
     }
 
@@ -910,7 +907,7 @@ pub fn subFloatVector(vector1: [*c]FloatVector, vector2: [*c]FloatVector) [*c]Fl
 
 pub fn mulFloatVector(vector1: [*c]FloatVector, vector2: [*c]FloatVector) [*c]FloatVector {
     if (_size(vector1) != _size(vector2)) {
-        printf("Vectors are not of the same size\n");
+        std.debug.print("Vectors are not of the same size\n", .{});
         return null;
     }
 
@@ -963,7 +960,7 @@ pub fn mulFloatVector(vector1: [*c]FloatVector, vector2: [*c]FloatVector) [*c]Fl
 
 pub fn divFloatVector(vector1: [*c]FloatVector, vector2: [*c]FloatVector) [*c]FloatVector {
     if (_size(vector1) != _size(vector2)) {
-        printf("Vectors are not of the same size\n");
+        std.debug.print("Vectors are not of the same size\n", .{});
         return null;
     }
 
@@ -1077,7 +1074,7 @@ pub fn singleAddFloatVector(vector: [*c]FloatVector, scalar: f64) [*c]FloatVecto
     // Process remaining elements
     i = simdSize;
     while (i < vector.*.count) : (i += 1) {
-        result.*.data[i] = vector.*.data[i] * scalar;
+        result.*.data[i] = vector.*.data[i] + scalar;
     }
 
     result.*.count = vector.*.count;
@@ -1219,14 +1216,14 @@ pub fn interp1(arg_x: [*c]FloatVector, arg_y: [*c]FloatVector, arg_x0: f64) f64 
     var x0 = arg_x0;
     _ = &x0;
     if (x.*.count != y.*.count) {
-        printf("x and y must have the same length\n");
+        std.debug.print("x and y must have the same length\n", .{});
         return 0;
     }
     if ((x0 < x.*.data[0]) or (x0 > (blk: {
         const tmp = x.*.count - 1;
         if (tmp >= 0) break :blk x.*.data + @as(usize, @intCast(tmp)) else break :blk x.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
     }).*)) {
-        printf("x0 is out of bounds\n");
+        std.debug.print("x0 is out of bounds\n", .{});
         return 0;
     }
     var i: c_int = 0;
@@ -1274,7 +1271,7 @@ pub fn dotProduct(arg_a: [*c]FloatVector, arg_b: [*c]FloatVector) f64 {
     var b = arg_b;
     _ = &b;
     if ((a.*.size != @as(c_int, 3)) and (b.*.size != @as(c_int, 3))) {
-        printf("Vectors are not of size 3\n");
+        std.debug.print("Vectors are not of size 3\n", .{});
         return 0;
     }
     return ((a.*.data[0] * b.*.data[0]) + (a.*.data[1] * b.*.data[1])) + (a.*.data[2] * b.*.data[2]);
@@ -1285,7 +1282,7 @@ pub fn crossProduct(arg_a: [*c]FloatVector, arg_b: [*c]FloatVector) [*c]FloatVec
     var b = arg_b;
     _ = &b;
     if ((a.*.size != @as(c_int, 3)) and (b.*.size != @as(c_int, 3))) {
-        printf("Vectors are not of size 3\n");
+        std.debug.print("Vectors are not of size 3\n", .{});
         return null;
     }
     var result: [*c]FloatVector = FloatVector.init(@as(c_int, 3));
@@ -1309,7 +1306,7 @@ pub fn normalize(arg_vector: [*c]FloatVector) [*c]FloatVector {
     var mag: f64 = magnitude(vector);
     _ = &mag;
     if (mag == @as(f64, @floatFromInt(0))) {
-        printf("Cannot normalize a zero vector\n");
+        std.debug.print("Cannot normalize a zero vector\n", .{});
         return null;
     }
     return scaleFloatVector(vector, 1.0 / mag);
@@ -1355,7 +1352,7 @@ pub fn refraction(arg_a: [*c]FloatVector, arg_b: [*c]FloatVector, arg_n1: f64, a
     var sin_theta_r: f64 = (n1 / n2) * std.math.sin(theta);
     _ = &sin_theta_r;
     if (sin_theta_r > @as(f64, @floatFromInt(1))) {
-        printf("Total internal reflection\n");
+        std.debug.print("Total internal reflection\n", .{});
         return null;
     }
     var cos_theta_r: f64 = @sqrt(@as(f64, @floatFromInt(1)) - std.math.pow(f64, sin_theta_r, @as(f64, @floatFromInt(@as(c_int, 2)))));

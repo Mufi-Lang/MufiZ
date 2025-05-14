@@ -32,10 +32,8 @@ pub const GCData = struct {
 };
 
 pub var gcData: GCData = .{};
-const stdio = @cImport(@cInclude("stdio.h"));
 const stdlib = @cImport(@cInclude("stdlib.h"));
 const exit = std.process.exit;
-const fprintf = stdio.fprintf;
 // const realloc = stdlib.realloc;
 // const free = stdlib.free;
 

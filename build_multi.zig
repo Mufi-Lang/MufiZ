@@ -80,7 +80,7 @@ fn buildTarget(b: *std.Build, target: std.Target.Query, options: *std.Build.Step
         .name = "mufiz",
         .root_source_file = b.path("src/main.zig"),
         .target = b.resolveTargetQuery(target),
-        .optimize = .ReleaseSafe,
+        .optimize = .ReleaseFast,
         .link_libc = true,
     });
 

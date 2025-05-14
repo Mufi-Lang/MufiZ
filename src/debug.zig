@@ -1,5 +1,6 @@
 const Chunk = @import("chunk.zig").Chunk;
-const printf = @cImport(@cInclude("stdio.h")).printf;
+const std = @import("std");
+const print = std.debug.print;
 const printValue = @import("value.zig").printValue;
 const obj_h = @import("object.zig");
 const ObjFunction = obj_h.ObjFunction;
@@ -9,7 +10,7 @@ pub export fn disassembleChunk(arg_chunk: [*c]Chunk, arg_name: [*c]const u8) voi
     _ = &chunk;
     var name = arg_name;
     _ = &name;
-    _ = printf("== %s ==\n", name);
+    print("== {s} ==\n", .{name});
     {
         var offset: c_int = 0;
         _ = &offset;
@@ -23,7 +24,7 @@ pub export fn disassembleInstruction(arg_chunk: [*c]Chunk, arg_offset: c_int) c_
     _ = &chunk;
     var offset = arg_offset;
     _ = &offset;
-    _ = printf("%04d ", offset);
+    print("{d:0>4} ", .{offset});
     if ((offset > @as(c_int, 0)) and ((blk: {
         const tmp = offset;
         if (tmp >= 0) break :blk chunk.*.lines + @as(usize, @intCast(tmp)) else break :blk chunk.*.lines - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
@@ -31,12 +32,12 @@ pub export fn disassembleInstruction(arg_chunk: [*c]Chunk, arg_offset: c_int) c_
         const tmp = offset - @as(c_int, 1);
         if (tmp >= 0) break :blk chunk.*.lines + @as(usize, @intCast(tmp)) else break :blk chunk.*.lines - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
     }).*)) {
-        _ = printf("   | ");
+        print("   | ", .{});
     } else {
-        _ = printf("%4d ", (blk: {
+        print("{d:4} ", .{(blk: {
             const tmp = offset;
             if (tmp >= 0) break :blk chunk.*.lines + @as(usize, @intCast(tmp)) else break :blk chunk.*.lines - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-        }).*);
+        }).*});
     }
     var instruction: u8 = (blk: {
         const tmp = offset;
@@ -90,9 +91,9 @@ pub export fn disassembleInstruction(arg_chunk: [*c]Chunk, arg_offset: c_int) c_
                         if (tmp >= 0) break :blk chunk.*.code + @as(usize, @intCast(tmp)) else break :blk chunk.*.code - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
                     }).*;
                     _ = &constant;
-                    _ = printf("%-16s %4d", "OP_CLOSURE", @as(c_int, @bitCast(@as(c_uint, constant))));
+                    print("{s: <16} {d:4}", .{"OP_CLOSURE", @as(c_int, @bitCast(@as(c_uint, constant)))});
                     printValue(chunk.*.constants.values[constant]);
-                    _ = printf("\n");
+                    print("\n", .{});
                     var function: [*c]ObjFunction = @as([*c]ObjFunction, @ptrCast(@alignCast(chunk.*.constants.values[constant].as.obj)));
                     _ = &function;
                     {
@@ -135,7 +136,7 @@ pub export fn disassembleInstruction(arg_chunk: [*c]Chunk, arg_offset: c_int) c_
             @as(c_int, 45) => return simpleInstruction("OP_ITERATOR_NEXT", offset),
             @as(c_int, 44) => return simpleInstruction("OP_GET_ITERATOR", offset),
             else => {
-                _ = printf("Unknown opcode %d\n", @as(c_int, @bitCast(@as(c_uint, instruction))));
+                print("Unknown opcode {d}\n", .{@as(c_int, @bitCast(@as(c_uint, instruction)))});
                 return offset + @as(c_int, 1);
             },
         }
@@ -156,9 +157,9 @@ pub fn constantInstruction(arg_name: [*c]const u8, arg_chunk: [*c]Chunk, arg_off
         if (tmp >= 0) break :blk chunk.*.code + @as(usize, @intCast(tmp)) else break :blk chunk.*.code - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
     }).*;
     _ = &constant;
-    _ = printf("%-16s %4d '", name, @as(c_int, @bitCast(@as(c_uint, constant))));
+    print("{s: <16} {d:4} '", .{name, @as(c_int, @bitCast(@as(c_uint, constant)))});
     printValue(chunk.*.constants.values[constant]);
-    _ = printf("'\n");
+    print("'\n", .{});
     return offset + @as(c_int, 2);
 }
 pub fn invokeInstruction(arg_name: [*c]const u8, arg_chunk: [*c]Chunk, arg_offset: c_int) callconv(.C) c_int {
@@ -178,9 +179,9 @@ pub fn invokeInstruction(arg_name: [*c]const u8, arg_chunk: [*c]Chunk, arg_offse
         if (tmp >= 0) break :blk chunk.*.code + @as(usize, @intCast(tmp)) else break :blk chunk.*.code - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
     }).*;
     _ = &argCount;
-    _ = printf("%-16s (%d args) %4d '", name, @as(c_int, @bitCast(@as(c_uint, argCount))), @as(c_int, @bitCast(@as(c_uint, constant))));
+    print("{s: <16} ({d} args) {d:4} '", .{name, @as(c_int, @bitCast(@as(c_uint, argCount))), @as(c_int, @bitCast(@as(c_uint, constant)))});
     printValue(chunk.*.constants.values[constant]);
-    _ = printf("'\n");
+    print("'\n", .{});
     return offset + @as(c_int, 3);
 }
 pub fn simpleInstruction(arg_name: [*c]const u8, arg_offset: c_int) callconv(.C) c_int {
@@ -188,7 +189,7 @@ pub fn simpleInstruction(arg_name: [*c]const u8, arg_offset: c_int) callconv(.C)
     _ = &name;
     var offset = arg_offset;
     _ = &offset;
-    _ = printf("%s\n", name);
+    print("{s}\n", .{name});
     return offset + @as(c_int, 1);
 }
 pub fn byteInstruction(arg_name: [*c]const u8, arg_chunk: [*c]Chunk, arg_offset: c_int) callconv(.C) c_int {
@@ -203,7 +204,7 @@ pub fn byteInstruction(arg_name: [*c]const u8, arg_chunk: [*c]Chunk, arg_offset:
         if (tmp >= 0) break :blk chunk.*.code + @as(usize, @intCast(tmp)) else break :blk chunk.*.code - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
     }).*;
     _ = &slot;
-    _ = printf("%-16s %4d", name, @as(c_int, @bitCast(@as(c_uint, slot))));
+    print("{s: <16} {d:4}", .{name, @as(c_int, @bitCast(@as(c_uint, slot)))});
     return offset + @as(c_int, 2);
 }
 pub fn jumpInstruction(arg_name: [*c]const u8, arg_sign: c_int, arg_chunk: [*c]Chunk, arg_offset: c_int) callconv(.C) c_int {
@@ -224,6 +225,6 @@ pub fn jumpInstruction(arg_name: [*c]const u8, arg_sign: c_int, arg_chunk: [*c]C
         const tmp = offset + @as(c_int, 2);
         if (tmp >= 0) break :blk chunk.*.code + @as(usize, @intCast(tmp)) else break :blk chunk.*.code - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
     }).*)))))));
-    _ = printf("%-16s %4d -> %d\n", name, offset, (offset + @as(c_int, 3)) + (sign * @as(c_int, @bitCast(@as(c_uint, jump)))));
+    print("{s: <16} {d:4} -> {d}\n", .{name, offset, (offset + @as(c_int, 3)) + (sign * @as(c_int, @bitCast(@as(c_uint, jump))))});
     return offset + @as(c_int, 3);
 }

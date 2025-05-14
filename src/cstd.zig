@@ -18,7 +18,8 @@ const ObjHashTable = obj_h.ObjHashTable;
 const Obj = obj_h.Obj;
 const Node = obj_h.Node;
 const ObjTypeCheckParams = obj_h.ObjTypeCheckParams;
-const printf = @cImport(@cInclude("stdio.h")).printf;
+const std = @import("std");
+const print = std.debug.print;
 const fvec = @import("objects/fvec.zig");
 const pushFloatVector = fvec.FloatVector.push;
 
@@ -1663,7 +1664,7 @@ pub fn workspace_nf(argCount: c_int, args: [*c]Value) Value {
     }
     var e: [*c]Entry = entries_(&vm_h.vm.globals);
     _ = &e;
-    _ = printf("Workspace:\n");
+    print("Workspace:\n", .{});
     {
         var i: c_int = 0;
         _ = &i;
@@ -1675,15 +1676,15 @@ pub fn workspace_nf(argCount: c_int, args: [*c]Value) Value {
                 const tmp = i;
                 if (tmp >= 0) break :blk e + @as(usize, @intCast(tmp)) else break :blk e - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
             }).*.value, .OBJ_NATIVE)) {
-                _ = printf("%s: ", (blk: {
+                print("{s}: ", .{(blk: {
                     const tmp = i;
                     if (tmp >= 0) break :blk e + @as(usize, @intCast(tmp)) else break :blk e - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                }).*.key.*.chars);
+                }).*.key.*.chars});
                 value_h.printValue((blk: {
                     const tmp = i;
                     if (tmp >= 0) break :blk e + @as(usize, @intCast(tmp)) else break :blk e - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
                 }).*.value);
-                _ = printf("\n");
+                print("\n", .{});
             }
         }
     }
@@ -1750,6 +1751,6 @@ pub fn simd_stat_nf(argCount: c_int, args: [*c]Value) Value {
     if (argCount != 0) {
         runtimeError("simd_stat() takes 0 arguments.", .{});
     }
-    _ = printf("x86_64 SIMD AVX2 Enabled\n");
+    print("x86_64 SIMD AVX2 Enabled\n", .{});
     return Value.init_nil();
 }

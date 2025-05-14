@@ -1,4 +1,5 @@
 const std = @import("std");
+const print = std.debug.print;
 const debug_opts = @import("debug");
 const value_h = @import("value.zig");
 const table_h = @import("table.zig");
@@ -10,11 +11,11 @@ const Table = table_h.Table;
 const Value = value_h.Value;
 const Chunk = chunk_h.Chunk;
 const AS_OBJ = value_h.AS_OBJ;
-const printf = @cImport(@cInclude("stdio.h")).printf;
+// printf replaced with print from std import
 const push = vm_h.push;
 const pop = vm_h.pop;
 const scanner_h = @import("scanner.zig");
-const memcpy = @import("memcpy.zig").memcpyFast;
+const memcpy = @import("mem_utils.zig").memcpyFast;
 const valuesEqual = value_h.valuesEqual;
 
 // Objects
@@ -97,7 +98,7 @@ pub fn allocateObject(size: usize, type_: ObjType) [*c]Obj {
     object.*.isMarked = false;
     object.*.next = vm_h.vm.objects;
     vm_h.vm.objects = object;
-    // if (debug_opts.log_gc) _ = printf("%p allocate %zu for %d\n", @as([*c]ObjArray, @ptrCast(@alignCast(object))), size);
+    // if (debug_opts.log_gc) print("{*} allocate {d} for {d}\n", .{@as([*c]ObjArray, @ptrCast(@alignCast(object))), size, @intFromEnum(type_)});
     return object;
 }
 
@@ -418,10 +419,10 @@ pub fn printFunction(arg_function: [*c]ObjFunction) void {
     var function = arg_function;
     _ = &function;
     if (function.*.name == null) {
-        _ = printf("<script>");
+        print("<script>", .{});
         return;
     }
-    _ = printf("<fn %s>", function.*.name.*.chars);
+    print("<fn {s}>", .{function.*.name.*.chars});
 }
 
 pub fn newLinkedList() [*c]ObjLinkedList {
@@ -778,8 +779,6 @@ inline fn zstr(s: [*c]ObjString) []u8 {
     return @ptrCast(@alignCast(s.*.chars[0..len]));
 }
 
-const print = std.debug.print;
-
 pub fn printObject(value: Value) void {
     const obj: [*c]Obj = @ptrCast(@alignCast(value.as.obj));
     switch (obj.*.type) {
@@ -812,43 +811,43 @@ pub fn printObject(value: Value) void {
             {
                 var vector: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(value.as.obj)));
                 _ = &vector;
-                _ = printf("[");
+                print("[", .{});
                 {
                     var i: c_int = 0;
                     _ = &i;
                     while (i < vector.*.count) : (i += 1) {
-                        _ = printf("%.2f", (blk: {
+                        print("{d:.2}", .{(blk: {
                             const tmp = i;
                             if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                        }).*);
+                        }).* });
                         if (i != (vector.*.count - 1)) {
-                            _ = printf(", ");
+                            print(", ", .{});
                         }
                     }
                 }
-                _ = printf("]");
+                print("]", .{});
             }
         },
         .OBJ_LINKED_LIST => {
             {
-                _ = printf("[");
+                print("[", .{});
                 var current: [*c]Node = @as([*c]ObjLinkedList, @ptrCast(@alignCast(value.as.obj))).*.head;
                 _ = &current;
                 while (current != null) {
                     value_h.printValue(current.*.data);
                     if (current.*.next != null) {
-                        _ = printf(", ");
+                        print(", ", .{});
                     }
                     current = current.*.next;
                 }
-                _ = printf("]");
+                print("]", .{});
             }
         },
         .OBJ_HASH_TABLE => {
             {
                 var hashtable: [*c]ObjHashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(value.as.obj)));
                 _ = &hashtable;
-                _ = printf("{");
+                print("{{", .{});
                 var entries: [*c]table_h.Entry = hashtable.*.table.entries;
                 _ = &entries;
                 var count: c_int = 0;
@@ -862,7 +861,7 @@ pub fn printObject(value: Value) void {
                             if (tmp >= 0) break :blk entries + @as(usize, @intCast(tmp)) else break :blk entries - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
                         }).*.key != null) {
                             if (count > 0) {
-                                _ = printf(", ");
+                                print(", ", .{});
                             }
                             value_h.printValue(Value{
                                 .type = .VAL_OBJ,
@@ -873,7 +872,7 @@ pub fn printObject(value: Value) void {
                                     }).*.key))),
                                 },
                             });
-                            _ = printf(": ");
+                            print(": ", .{});
                             value_h.printValue((blk: {
                                 const tmp = i;
                                 if (tmp >= 0) break :blk entries + @as(usize, @intCast(tmp)) else break :blk entries - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
@@ -882,7 +881,7 @@ pub fn printObject(value: Value) void {
                         }
                     }
                 }
-                _ = printf("}");
+                print("}}", .{});
             }
         },
     }

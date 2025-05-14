@@ -1,0 +1,23 @@
+print("Testing native functions...");
+
+// Try to get the function references
+print("assert exists: " + (typeof assert == "closure"));
+print("linked_list exists: " + (typeof linked_list == "closure"));
+print("fvec exists: " + (typeof fvec == "closure"));
+print("linspace exists: " + (typeof linspace == "closure"));
+print("hash_table exists: " + (typeof hash_table == "closure"));
+
+// Try calling a simple function if it exists
+if (typeof assert == "closure") {
+    assert(1, 1);
+    print("Assert called successfully!");
+}
+
+// Try creating a linked list if the function exists
+if (typeof linked_list == "closure") {
+    var list = linked_list();
+    print("Linked list created successfully!");
+    print("List is: " + list);
+}
+
+print("Test complete!");

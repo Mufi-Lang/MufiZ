@@ -181,16 +181,16 @@ pub fn initCompiler(compiler: [*c]Compiler, type_: FunctionType) void {
     compiler.*.scopeDepth = 0;
     compiler.*.function = object_h.newFunction();
     current = compiler;
-    
+
     // Set function name if not a script
     if (type_ != .TYPE_SCRIPT) {
         current.*.function.*.name = object_h.copyString(parser.previous.start, parser.previous.length);
     }
-    
+
     // Create first local slot - used for 'self' in methods
     const local: [*c]Local = &current.*.locals[0];
     current.*.localCount = 1;
-    
+
     if (type_ == .TYPE_METHOD or type_ == .TYPE_INITIALIZER) {
         // For methods, initialize first local as 'self'
         local.*.name.start = @ptrCast(@constCast("self"));
@@ -205,6 +205,30 @@ pub fn initCompiler(compiler: [*c]Compiler, type_: FunctionType) void {
         local.*.isCaptured = false;
     }
 }
+// pub fn initCompiler(compiler: [*c]Compiler, type_: FunctionType) void {
+//     compiler.*.enclosing = current;
+//     compiler.*.function = null;
+//     compiler.*.type_ = type_;
+//     compiler.*.localCount = 0;
+//     compiler.*.scopeDepth = 0;
+//     compiler.*.function = object_h.newFunction();
+//     current = compiler;
+//     if (type_ != .TYPE_SCRIPT) {
+//         current.*.function.*.name = object_h.copyString(parser.previous.start, parser.previous.length);
+//     }
+//     current.*.localCount += 1;
+//     const local: [*c]Local = &current.*.locals[@intCast(current.*.localCount)];
+//     local.*.depth = 0;
+//     local.*.isCaptured = false;
+//     if (type_ != .TYPE_FUNCTION) {
+//         local.*.name.start = @ptrCast(@constCast("self"));
+//         local.*.name.length = 4;
+//     } else {
+//         local.*.name.start = @ptrCast(@constCast(""));
+//         local.*.name.length = 0;
+//     }
+// }
+
 pub fn endCompiler() [*c]ObjFunction {
     emitReturn();
     const function_1: [*c]ObjFunction = current.*.function;
