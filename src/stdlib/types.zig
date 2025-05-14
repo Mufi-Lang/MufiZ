@@ -7,7 +7,7 @@ const Value = value_h.Value;
 const GlobalAlloc = @import("../main.zig").GlobalAlloc;
 
 /// Convert a value to an integer.
-pub fn int(argc: c_int, args: [*c]Value) callconv(.C) Value {
+pub fn int(argc: c_int, args: [*c]Value) Value {
     if (argc != 1) return stdlib_error("int() expects one argument!", .{ .argn = argc });
 
     switch (args[0].type) {
@@ -30,7 +30,7 @@ pub fn int(argc: c_int, args: [*c]Value) callconv(.C) Value {
 }
 
 /// Convert a value to a double.
-pub fn double(argc: c_int, args: [*c]Value) callconv(.C) Value {
+pub fn double(argc: c_int, args: [*c]Value) Value {
     if (argc != 1) return stdlib_error("double() expects one argument!", .{ .argn = argc });
 
     switch (args[0].type) {
@@ -53,7 +53,7 @@ pub fn double(argc: c_int, args: [*c]Value) callconv(.C) Value {
 }
 
 /// Convert a value to a string.
-pub fn str(argc: c_int, args: [*c]Value) callconv(.C) Value {
+pub fn str(argc: c_int, args: [*c]Value) Value {
     if (argc != 1) return stdlib_error("str() expects one argument!", .{ .argn = argc });
     const value = args[0];
     var s: []u8 = undefined;

@@ -5,226 +5,157 @@ const printValue = @import("value.zig").printValue;
 const obj_h = @import("object.zig");
 const ObjFunction = obj_h.ObjFunction;
 
-pub export fn disassembleChunk(arg_chunk: [*c]Chunk, arg_name: [*c]const u8) void {
-    var chunk = arg_chunk;
-    _ = &chunk;
-    var name = arg_name;
-    _ = &name;
+pub fn disassembleChunk(chunk: [*c]Chunk, name: [*c]const u8) void {
     print("== {s} ==\n", .{name});
-    {
-        var offset: c_int = 0;
-        _ = &offset;
-        while (offset < chunk.*.count) {
-            offset = disassembleInstruction(chunk, offset);
-        }
+
+    var offset: i32 = 0;
+
+    while (offset < chunk.*.count) {
+        offset = disassembleInstruction(chunk, offset);
     }
-}
-pub export fn disassembleInstruction(arg_chunk: [*c]Chunk, arg_offset: c_int) c_int {
-    var chunk = arg_chunk;
-    _ = &chunk;
-    var offset = arg_offset;
-    _ = &offset;
-    print("{d:0>4} ", .{offset});
-    if ((offset > @as(c_int, 0)) and ((blk: {
-        const tmp = offset;
-        if (tmp >= 0) break :blk chunk.*.lines + @as(usize, @intCast(tmp)) else break :blk chunk.*.lines - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    }).* == (blk: {
-        const tmp = offset - @as(c_int, 1);
-        if (tmp >= 0) break :blk chunk.*.lines + @as(usize, @intCast(tmp)) else break :blk chunk.*.lines - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    }).*)) {
-        print("   | ", .{});
-    } else {
-        print("{d:4} ", .{(blk: {
-            const tmp = offset;
-            if (tmp >= 0) break :blk chunk.*.lines + @as(usize, @intCast(tmp)) else break :blk chunk.*.lines - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-        }).*});
-    }
-    var instruction: u8 = (blk: {
-        const tmp = offset;
-        if (tmp >= 0) break :blk chunk.*.code + @as(usize, @intCast(tmp)) else break :blk chunk.*.code - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    }).*;
-    _ = &instruction;
-    while (true) {
-        switch (@as(c_int, @bitCast(@as(c_uint, instruction)))) {
-            @as(c_int, 0) => return constantInstruction("OP_CONSTANT", chunk, offset),
-            @as(c_int, 1) => return simpleInstruction("OP_NIL", offset),
-            @as(c_int, 2) => return simpleInstruction("OP_TRUE", offset),
-            @as(c_int, 3) => return simpleInstruction("OP_FALSE", offset),
-            @as(c_int, 4) => return simpleInstruction("OP_POP", offset),
-            @as(c_int, 5) => return byteInstruction("OP_GET_LOCAL", chunk, offset),
-            @as(c_int, 6) => return byteInstruction("OP_SET_LOCAL", chunk, offset),
-            @as(c_int, 7) => return constantInstruction("OP_GET_GLOBAL", chunk, offset),
-            @as(c_int, 8) => return constantInstruction("OP_DEFINE_GLOBAL", chunk, offset),
-            @as(c_int, 9) => return constantInstruction("OP_SET_GLOBAL", chunk, offset),
-            @as(c_int, 10) => return byteInstruction("OP_GET_UPVALUE", chunk, offset),
-            @as(c_int, 11) => return byteInstruction("OP_SET_UPVALUE", chunk, offset),
-            @as(c_int, 12) => return constantInstruction("OP_GET_PROPERTY", chunk, offset),
-            @as(c_int, 13) => return constantInstruction("OP_SET_PROPERTY", chunk, offset),
-            @as(c_int, 14) => return constantInstruction("OP_GET_SUPER", chunk, offset),
-            @as(c_int, 17) => return simpleInstruction("OP_EQUAL", offset),
-            @as(c_int, 18) => return simpleInstruction("OP_GREATER", offset),
-            @as(c_int, 19) => return simpleInstruction("OP_LESS", offset),
-            @as(c_int, 20) => return simpleInstruction("OP_ADD", offset),
-            @as(c_int, 21) => return simpleInstruction("OP_SUBTRACT", offset),
-            @as(c_int, 22) => return simpleInstruction("OP_MULTIPLY", offset),
-            @as(c_int, 23) => return simpleInstruction("OP_DIVIDE", offset),
-            @as(c_int, 26) => return simpleInstruction("OP_NOT", offset),
-            @as(c_int, 27) => return simpleInstruction("OP_NEGATE", offset),
-            @as(c_int, 28) => return simpleInstruction("OP_PRINT", offset),
-            @as(c_int, 29) => return jumpInstruction("OP_JUMP", @as(c_int, 1), chunk, offset),
-            @as(c_int, 30) => return jumpInstruction("OP_JUMP_IF_FALSE", @as(c_int, 1), chunk, offset),
-            @as(c_int, 31) => return jumpInstruction("OP_JUMP_IF_DONE", @as(c_int, 1), chunk, offset),
-            @as(c_int, 32) => return jumpInstruction("OP_LOOP", -@as(c_int, 1), chunk, offset),
-            @as(c_int, 33) => return byteInstruction("OP_CALL", chunk, offset),
-            @as(c_int, 34) => return invokeInstruction("OP_INVOKE", chunk, offset),
-            @as(c_int, 35) => return invokeInstruction("OP_SUPER_INVOKE", chunk, offset),
-            @as(c_int, 36) => {
-                {
-                    offset += 1;
-                    var constant: u8 = (blk: {
-                        const tmp = blk_1: {
-                            const ref = &offset;
-                            const tmp_2 = ref.*;
-                            ref.* += 1;
-                            break :blk_1 tmp_2;
-                        };
-                        if (tmp >= 0) break :blk chunk.*.code + @as(usize, @intCast(tmp)) else break :blk chunk.*.code - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                    }).*;
-                    _ = &constant;
-                    print("{s: <16} {d:4}", .{"OP_CLOSURE", @as(c_int, @bitCast(@as(c_uint, constant)))});
-                    printValue(chunk.*.constants.values[constant]);
-                    print("\n", .{});
-                    var function: [*c]ObjFunction = @as([*c]ObjFunction, @ptrCast(@alignCast(chunk.*.constants.values[constant].as.obj)));
-                    _ = &function;
-                    {
-                        var j: c_int = 0;
-                        _ = &j;
-                        while (j < function.*.upvalueCount) : (j += 1) {
-                            var isLocal: c_int = @as(c_int, @bitCast(@as(c_uint, (blk: {
-                                const tmp = blk_1: {
-                                    const ref = &offset;
-                                    const tmp_2 = ref.*;
-                                    ref.* += 1;
-                                    break :blk_1 tmp_2;
-                                };
-                                if (tmp >= 0) break :blk chunk.*.code + @as(usize, @intCast(tmp)) else break :blk chunk.*.code - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                            }).*)));
-                            _ = &isLocal;
-                            var index_1: c_int = @as(c_int, @bitCast(@as(c_uint, (blk: {
-                                const tmp = blk_1: {
-                                    const ref = &offset;
-                                    const tmp_2 = ref.*;
-                                    ref.* += 1;
-                                    break :blk_1 tmp_2;
-                                };
-                                if (tmp >= 0) break :blk chunk.*.code + @as(usize, @intCast(tmp)) else break :blk chunk.*.code - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                            }).*)));
-                            _ = &index_1;
-                            @import("std").debug.print("{d:0>4}      |                  {s} {d:0>4}\n", .{ offset - @as(c_int, 2), if (isLocal != 0) "local" else "upvalue", index_1 });
-                        }
-                    }
-                    return offset;
-                }
-            },
-            @as(c_int, 37) => return simpleInstruction("OP_CLOSE_UPVALUE", offset),
-            @as(c_int, 38) => return simpleInstruction("OP_RETURN", offset),
-            @as(c_int, 39) => return constantInstruction("OP_CLASS", chunk, offset),
-            @as(c_int, 40) => return simpleInstruction("OP_INHERIT", offset),
-            @as(c_int, 41) => return constantInstruction("OP_METHOD", chunk, offset),
-            @as(c_int, 42) => return simpleInstruction("OP_ARRAY", offset),
-            @as(c_int, 43) => return simpleInstruction("OP_FVECTOR", offset),
-            @as(c_int, 45) => return simpleInstruction("OP_ITERATOR_NEXT", offset),
-            @as(c_int, 44) => return simpleInstruction("OP_GET_ITERATOR", offset),
-            else => {
-                print("Unknown opcode {d}\n", .{@as(c_int, @bitCast(@as(c_uint, instruction)))});
-                return offset + @as(c_int, 1);
-            },
-        }
-        break;
-    }
-    return 0;
 }
 
-pub fn constantInstruction(arg_name: [*c]const u8, arg_chunk: [*c]Chunk, arg_offset: c_int) callconv(.C) c_int {
-    var name = arg_name;
-    _ = &name;
-    var chunk = arg_chunk;
-    _ = &chunk;
-    var offset = arg_offset;
-    _ = &offset;
-    var constant: u8 = (blk: {
-        const tmp = offset + @as(c_int, 1);
-        if (tmp >= 0) break :blk chunk.*.code + @as(usize, @intCast(tmp)) else break :blk chunk.*.code - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    }).*;
-    _ = &constant;
-    print("{s: <16} {d:4} '", .{name, @as(c_int, @bitCast(@as(c_uint, constant)))});
+pub fn disassembleInstruction(chunk: [*c]Chunk, offset: i32) i32 {
+    print("{d:0>4} ", .{offset});
+    
+    // Helper function to get line at a specific offset
+    const getLine = struct {
+        fn get(c: [*c]Chunk, pos: i32) i32 {
+            const idx: usize = @intCast(if (pos >= 0) pos else unreachable);
+            return c.*.lines[idx];
+        }
+    }.get;
+    
+    // Helper function to get byte at a specific offset
+    const getByte = struct {
+        fn get(c: [*c]Chunk, pos: i32) u8 {
+            const idx: usize = @intCast(if (pos >= 0) pos else unreachable);
+            return c.*.code[idx];
+        }
+    }.get;
+    
+    // Check if we're on the same line as the previous instruction
+    if (offset > 0 and getLine(chunk, offset) == getLine(chunk, offset - 1)) {
+        print("   | ", .{});
+    } else {
+        print("{d:4} ", .{getLine(chunk, offset)});
+    }
+    
+    // Get the instruction
+    const instruction: u8 = getByte(chunk, offset);
+    
+    // Dispatch based on opcode
+    switch (instruction) {
+        0 => return constantInstruction("OP_CONSTANT", chunk, offset),
+        1 => return simpleInstruction("OP_NIL", offset),
+        2 => return simpleInstruction("OP_TRUE", offset),
+        3 => return simpleInstruction("OP_FALSE", offset),
+        4 => return simpleInstruction("OP_POP", offset),
+        5 => return byteInstruction("OP_GET_LOCAL", chunk, offset),
+        6 => return byteInstruction("OP_SET_LOCAL", chunk, offset),
+        7 => return constantInstruction("OP_GET_GLOBAL", chunk, offset),
+        8 => return constantInstruction("OP_DEFINE_GLOBAL", chunk, offset),
+        9 => return constantInstruction("OP_SET_GLOBAL", chunk, offset),
+        10 => return byteInstruction("OP_GET_UPVALUE", chunk, offset),
+        11 => return byteInstruction("OP_SET_UPVALUE", chunk, offset),
+        12 => return constantInstruction("OP_GET_PROPERTY", chunk, offset),
+        13 => return constantInstruction("OP_SET_PROPERTY", chunk, offset),
+        14 => return constantInstruction("OP_GET_SUPER", chunk, offset),
+        17 => return simpleInstruction("OP_EQUAL", offset),
+        18 => return simpleInstruction("OP_GREATER", offset),
+        19 => return simpleInstruction("OP_LESS", offset),
+        20 => return simpleInstruction("OP_ADD", offset),
+        21 => return simpleInstruction("OP_SUBTRACT", offset),
+        22 => return simpleInstruction("OP_MULTIPLY", offset),
+        23 => return simpleInstruction("OP_DIVIDE", offset),
+        26 => return simpleInstruction("OP_NOT", offset),
+        27 => return simpleInstruction("OP_NEGATE", offset),
+        28 => return simpleInstruction("OP_PRINT", offset),
+        29 => return jumpInstruction("OP_JUMP", 1, chunk, offset),
+        30 => return jumpInstruction("OP_JUMP_IF_FALSE", 1, chunk, offset),
+        31 => return jumpInstruction("OP_JUMP_IF_DONE", 1, chunk, offset),
+        32 => return jumpInstruction("OP_LOOP", -1, chunk, offset),
+        33 => return byteInstruction("OP_CALL", chunk, offset),
+        34 => return invokeInstruction("OP_INVOKE", chunk, offset),
+        35 => return invokeInstruction("OP_SUPER_INVOKE", chunk, offset),
+        36 => {
+            // Special handling for OP_CLOSURE instruction
+            var newOffset = offset + 1;
+            const constant = getByte(chunk, newOffset);
+            newOffset += 1;
+            
+            print("{s: <16} {d:4}", .{ "OP_CLOSURE", constant });
+            printValue(chunk.*.constants.values[constant]);
+            print("\n", .{});
+            
+            const function = @as([*c]ObjFunction, @ptrCast(@alignCast(chunk.*.constants.values[constant].as.obj)));
+            
+            // Process upvalues
+            var j: i32 = 0;
+            while (j < function.*.upvalueCount) : (j += 1) {
+                const isLocal = getByte(chunk, newOffset) != 0;
+                newOffset += 1;
+                const index = getByte(chunk, newOffset);
+                newOffset += 1;
+                
+                print("{d:0>4}      |                  {s} {d:0>4}\n", .{
+                    newOffset - 2, 
+                    if (isLocal) "local" else "upvalue", 
+                    index
+                });
+            }
+            
+            return newOffset;
+        },
+        37 => return simpleInstruction("OP_CLOSE_UPVALUE", offset),
+        38 => return simpleInstruction("OP_RETURN", offset),
+        39 => return constantInstruction("OP_CLASS", chunk, offset),
+        40 => return simpleInstruction("OP_INHERIT", offset),
+        41 => return constantInstruction("OP_METHOD", chunk, offset),
+        42 => return simpleInstruction("OP_ARRAY", offset),
+        43 => return simpleInstruction("OP_FVECTOR", offset),
+        44 => return simpleInstruction("OP_GET_ITERATOR", offset),
+        45 => return simpleInstruction("OP_ITERATOR_NEXT", offset),
+        else => {
+            print("Unknown opcode {d}\n", .{instruction});
+            return offset + 1;
+        },
+    }
+}
+
+pub fn constantInstruction(name: [*c]const u8, chunk: [*c]Chunk, offset: i32) i32 {
+    const constant: u8 = chunk.*.code[@intCast(offset + 1)];
+    print("{s: <16} {d:4} '", .{ name, constant });
     printValue(chunk.*.constants.values[constant]);
     print("'\n", .{});
-    return offset + @as(c_int, 2);
+    return offset + 2;
 }
-pub fn invokeInstruction(arg_name: [*c]const u8, arg_chunk: [*c]Chunk, arg_offset: c_int) callconv(.C) c_int {
-    var name = arg_name;
-    _ = &name;
-    var chunk = arg_chunk;
-    _ = &chunk;
-    var offset = arg_offset;
-    _ = &offset;
-    var constant: u8 = (blk: {
-        const tmp = offset + @as(c_int, 1);
-        if (tmp >= 0) break :blk chunk.*.code + @as(usize, @intCast(tmp)) else break :blk chunk.*.code - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    }).*;
-    _ = &constant;
-    var argCount: u8 = (blk: {
-        const tmp = offset + @as(c_int, 2);
-        if (tmp >= 0) break :blk chunk.*.code + @as(usize, @intCast(tmp)) else break :blk chunk.*.code - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    }).*;
-    _ = &argCount;
-    print("{s: <16} ({d} args) {d:4} '", .{name, @as(c_int, @bitCast(@as(c_uint, argCount))), @as(c_int, @bitCast(@as(c_uint, constant)))});
+
+pub fn invokeInstruction(name: [*c]const u8, chunk: [*c]Chunk, offset: i32) i32 {
+    const constant: u8 = chunk.*.code[@intCast(offset + 1)];
+    const argCount: u8 = chunk.*.code[@intCast(offset + 2)];
+    print("{s: <16} ({d} args) {d:4} '", .{ name, argCount, constant });
     printValue(chunk.*.constants.values[constant]);
     print("'\n", .{});
-    return offset + @as(c_int, 3);
+    return offset + 3;
 }
-pub fn simpleInstruction(arg_name: [*c]const u8, arg_offset: c_int) callconv(.C) c_int {
-    var name = arg_name;
-    _ = &name;
-    var offset = arg_offset;
-    _ = &offset;
+pub fn simpleInstruction(name: [*c]const u8, offset: i32) i32 {
     print("{s}\n", .{name});
-    return offset + @as(c_int, 1);
+    return offset + 1;
 }
-pub fn byteInstruction(arg_name: [*c]const u8, arg_chunk: [*c]Chunk, arg_offset: c_int) callconv(.C) c_int {
-    var name = arg_name;
-    _ = &name;
-    var chunk = arg_chunk;
-    _ = &chunk;
-    var offset = arg_offset;
-    _ = &offset;
-    var slot: u8 = (blk: {
-        const tmp = offset + @as(c_int, 1);
-        if (tmp >= 0) break :blk chunk.*.code + @as(usize, @intCast(tmp)) else break :blk chunk.*.code - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    }).*;
-    _ = &slot;
-    print("{s: <16} {d:4}", .{name, @as(c_int, @bitCast(@as(c_uint, slot)))});
-    return offset + @as(c_int, 2);
+
+pub fn byteInstruction(name: [*c]const u8, chunk: [*c]Chunk, offset: i32) i32 {
+    const slot: u8 = chunk.*.code[@intCast(offset + 1)];
+    print("{s: <16} {d:4}", .{ name, slot });
+    return offset + 2;
 }
-pub fn jumpInstruction(arg_name: [*c]const u8, arg_sign: c_int, arg_chunk: [*c]Chunk, arg_offset: c_int) callconv(.C) c_int {
-    var name = arg_name;
-    _ = &name;
-    var sign = arg_sign;
-    _ = &sign;
-    var chunk = arg_chunk;
-    _ = &chunk;
-    var offset = arg_offset;
-    _ = &offset;
-    var jump: u16 = @as(u16, @bitCast(@as(c_short, @truncate(@as(c_int, @bitCast(@as(c_uint, (blk: {
-        const tmp = offset + @as(c_int, 1);
-        if (tmp >= 0) break :blk chunk.*.code + @as(usize, @intCast(tmp)) else break :blk chunk.*.code - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    }).*))) << @intCast(8)))));
-    _ = &jump;
-    jump |= @as(u16, @bitCast(@as(c_short, @truncate(@as(c_int, @bitCast(@as(c_uint, (blk: {
-        const tmp = offset + @as(c_int, 2);
-        if (tmp >= 0) break :blk chunk.*.code + @as(usize, @intCast(tmp)) else break :blk chunk.*.code - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    }).*)))))));
-    print("{s: <16} {d:4} -> {d}\n", .{name, offset, (offset + @as(c_int, 3)) + (sign * @as(c_int, @bitCast(@as(c_uint, jump))))});
-    return offset + @as(c_int, 3);
+
+pub fn jumpInstruction(name: [*c]const u8, sign: i32, chunk: [*c]Chunk, offset: i32) i32 {
+    const byte1: u8 = chunk.*.code[@intCast(offset + 1)];
+    const byte2: u8 = chunk.*.code[@intCast(offset + 2)];
+    const jump: u16 = (@as(u16, byte1) << 8) | byte2;
+    
+    const jumpTarget = (offset + 3) + (sign * @as(i32, jump));
+    print("{s: <16} {d:4} -> {d}\n", .{ name, offset, jumpTarget });
+    return offset + 3;
 }

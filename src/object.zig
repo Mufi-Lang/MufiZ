@@ -819,7 +819,7 @@ pub fn printObject(value: Value) void {
                         print("{d:.2}", .{(blk: {
                             const tmp = i;
                             if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                        }).* });
+                        }).*});
                         if (i != (vector.*.count - 1)) {
                             print(", ", .{});
                         }

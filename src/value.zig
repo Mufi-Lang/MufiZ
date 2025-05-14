@@ -13,7 +13,6 @@ const reallocate = @import("memory.zig").reallocate;
 const print = std.debug.print;
 const memcpy = @import("mem_utils.zig").memcpyFast;
 
-
 pub const ValueType = enum(c_int) { VAL_BOOL = 0, VAL_NIL = 1, VAL_INT = 2, VAL_DOUBLE = 3, VAL_OBJ = 4, VAL_COMPLEX = 5 };
 
 pub const Complex = extern struct {

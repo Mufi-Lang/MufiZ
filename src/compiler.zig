@@ -195,7 +195,7 @@ pub fn initCompiler(compiler: [*c]Compiler, type_: FunctionType) void {
         // For methods, initialize first local as 'self'
         local.*.name.start = @ptrCast(@constCast("self"));
         local.*.name.length = 4;
-        local.*.depth = compiler.*.scopeDepth;  // Mark as initialized immediately
+        local.*.depth = compiler.*.scopeDepth; // Mark as initialized immediately
         local.*.isCaptured = false;
     } else {
         // For functions and scripts, leave first local slot empty

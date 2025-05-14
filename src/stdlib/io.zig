@@ -6,7 +6,7 @@ const type_check = conv.type_check;
 const GlobalAlloc = @import("../main.zig").GlobalAlloc;
 const io = std.io;
 
-pub fn input(argc: c_int, args: [*c]Value) callconv(.C) Value {
+pub fn input(argc: c_int, args: [*c]Value) Value {
     if (argc > 1) return stdlib_error("Expects at least 1 argument for input()!", .{ .argn = argc });
     if (argc == 1) {
         const message = args[0].as_zstring();

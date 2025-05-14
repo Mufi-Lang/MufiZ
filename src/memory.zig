@@ -66,7 +66,6 @@ pub fn reallocate(pointer: ?*anyopaque, oldSize: usize, newSize: usize) ?*anyopa
         return null;
     }
 
-
     var result = realloc(pointer, newSize);
     if (result == null and newSize > 0) {
         std.debug.print("Memory allocation failed. Attempted to allocate {} bytes.\n", .{newSize});
