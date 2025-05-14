@@ -29,19 +29,10 @@ const newBoundMethod = object_h.newBoundMethod;
 const ObjInstance = object_h.ObjInstance;
 const newInstance = object_h.newInstance;
 const takeString = object_h.takeString;
-// const newFloatVector = fvec.newFloatVector;
-const pushFloatVector = fvec.FloatVector.push;
 const ObjLinkedList = object_h.ObjLinkedList;
 const equalLinkedList = object_h.equalLinkedList;
 const valuesEqual = value_h.valuesEqual;
-const addFloatVector = fvec.addFloatVector;
-const singleAddFloatVector = fvec.singleAddFloatVector;
-const subFloatVector = fvec.subFloatVector;
-const singleSubFloatVector = fvec.singleSubFloatVector;
-const mulFloatVector = fvec.mulFloatVector;
-const scaleFloatVector = fvec.scaleFloatVector;
-const divFloatVector = fvec.divFloatVector;
-const singleDivFloatVector = fvec.singleDivFloatVector;
+
 const Obj = object_h.Obj;
 const Value = value_h.Value;
 const Chunk = chunk_h.Chunk;
@@ -439,35 +430,6 @@ pub fn isFalsey(value: Value) bool {
     return (value.type == .VAL_NIL) or ((value.type == .VAL_BOOL) and !value.as.boolean);
 }
 
-pub fn concatenate() void {
-    const b: [*c]ObjString = @ptrCast(@alignCast(peek(0).as.obj));
-    const a: [*c]ObjString = @ptrCast(@alignCast(peek(1).as.obj));
-    const length: c_int = a.*.length + b.*.length;
-    const chars: [*c]u8 = @as([*c]u8, @ptrCast(@alignCast(reallocate(null, 0, @intCast(@sizeOf(u8) *% length + 1)))));
-    _ = memcpy(@ptrCast(chars), @ptrCast(a.*.chars), @intCast(a.*.length));
-    _ = memcpy(@ptrCast(chars + @as(usize, @bitCast(@as(isize, @intCast(a.*.length))))), @ptrCast(b.*.chars), @intCast(b.*.length));
-    // (blk: {
-    //     const tmp = length;
-    //     if (tmp >= 0) break :blk chars + @as(usize, @intCast(tmp)) else break :blk chars - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    // }).* = '\x00';
-    chars[@intCast(length)] = '\x00';
-    const result: [*c]ObjString = takeString(chars, length);
-    _ = pop();
-    _ = pop();
-    push(Value.init_obj(@ptrCast(@alignCast(result))));
-}
-
-// pub fn setArray(array: [*c]ObjArray, index_1: c_int, value: Value)  void {
-//     if (index_1 >= array.*.count) {
-//         runtimeError("Index out of bounds.", .{});
-//         return;
-//     }
-//     (blk: {
-//         const tmp = index_1;
-//         if (tmp >= 0) break :blk array.*.values + @as(usize, @intCast(tmp)) else break :blk array.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-//     }).* = value;
-// }
-
 pub fn setFloatVector(f: [*c]FloatVector, index: c_int, value: f64) void {
     if (index >= fvec._count(f)) {
         runtimeError("Index out of bounds.", .{});
@@ -477,43 +439,26 @@ pub fn setFloatVector(f: [*c]FloatVector, index: c_int, value: f64) void {
 }
 
 inline fn get_slot(frame: [*c]CallFrame) u8 {
-    // const slot: u8 = (blk: {
-    //     const ref = &frame.*.ip;
-    //     const tmp = ref.*;
-    //     ref.* += 1;
-    //     break :blk tmp;
-    // }).*;
     const ref = &frame.*.ip;
     const tmp = ref.*;
     ref.* += 1;
     return tmp.*;
 }
 
+/// Reads a 16-bit big-endian value from bytecode at the current instruction pointer
+/// and advances the instruction pointer by 2 bytes.
+///
+/// Returns: The 16-bit value read from bytecode
 fn readOffset(frame: [*c]CallFrame) u16 {
-    const adjustment = @as(c_int, 2);
-    frame.*.ip += @as(usize, @bitCast(@as(isize, @intCast(adjustment))));
+    // Move instruction pointer forward by 2 bytes
+    frame.*.ip += 2;
 
-    const high_byte = blk: {
-        const tmp = -@as(c_int, 2);
-        if (tmp >= 0) {
-            break :blk frame.*.ip + @as(usize, @intCast(tmp));
-        } else {
-            break :blk frame.*.ip - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-        }
-    };
+    // Read the 2 bytes we just passed (at IP-2 and IP-1)
+    const high_byte = @as(*u8, @ptrCast(frame.*.ip - 2)).*;
+    const low_byte = @as(*u8, @ptrCast(frame.*.ip - 1)).*;
 
-    const low_byte = blk: {
-        const tmp = -1;
-        if (tmp >= 0) {
-            break :blk frame.*.ip + @as(usize, @intCast(tmp));
-        } else {
-            break :blk frame.*.ip - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-        }
-    };
-
-    const offset = @as(u16, @bitCast(@as(c_short, @truncate((@as(c_int, high_byte.*) << 8) | @as(c_int, low_byte.*)))));
-    frame.*.ip -= @as(usize, @bitCast(@as(isize, @intCast(@as(c_int, @bitCast(@as(c_uint, offset)))))));
-    return offset;
+    // Combine into a 16-bit value with explicit casts
+    return (@as(u16, high_byte) << @as(u4, 8)) | @as(u16, low_byte);
 }
 
 // now work on this
@@ -565,35 +510,20 @@ pub fn run() InterpretResult {
                     break;
                 },
                 .OP_GET_LOCAL => {
-                    // const slot: u8 = (blk: {
-                    //     const ref = &frame.*.ip;
-                    //     const tmp = ref.*;
-                    //     ref.* += 1;
-                    //     break :blk tmp;
-                    // }).*;
+  
                     const slot = get_slot(frame);
                     push(frame.*.slots[slot]);
                     break;
                 },
                 .OP_SET_LOCAL => {
-                    // const slot: u8 = (blk: {
-                    //     const ref = &frame.*.ip;
-                    //     const tmp = ref.*;
-                    //     ref.* += 1;
-                    //     break :blk tmp;
-                    // }).*;
+
                     const slot = get_slot(frame);
                     frame.*.slots[slot] = peek(0);
                     break;
                 },
                 .OP_GET_GLOBAL => {
                     const name: [*c]ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
-                        // (blk: {
-                        //     const ref = &frame.*.ip;
-                        //     const tmp = ref.*;
-                        //     ref.* += 1;
-                        //     break :blk tmp;
-                        // }).*
+   
                         get_slot(frame)
                     ].as.obj));
                     var value: Value = undefined;
@@ -606,12 +536,7 @@ pub fn run() InterpretResult {
                 },
                 .OP_DEFINE_GLOBAL => {
                     const name: [*c]ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
-                        // (blk: {
-                        //     const ref = &frame.*.ip;
-                        //     const tmp = ref.*;
-                        //     ref.* += 1;
-                        //     break :blk tmp;
-                        // }).*
+ 
                         get_slot(frame)
                     ].as.obj));
                     _ = tableSet(&vm.globals, name, peek(0));
@@ -684,130 +609,14 @@ pub fn run() InterpretResult {
                     break;
                 },
                 .OP_GET_ITERATOR => {
-                    // {
-                    //     _ = printf("Index get\n");
-                    //     var idx: c_int = @as(c_int, @bitCast(@as(c_uint, (blk: {
-                    //         const ref = &frame.*.ip;
-                    //         const tmp = ref.*;
-                    //         ref.* += 1;
-                    //         break :blk tmp;
-                    //     }).*)));
-                    //     _ = &idx;
-                    //     var array: Value = frame.*.closure.*.function.*.chunk.constants.values[
-                    //         (blk: {
-                    //             const ref = &frame.*.ip;
-                    //             const tmp = ref.*;
-                    //             ref.* += 1;
-                    //             break :blk tmp;
-                    //         }).*
-                    //     ];
-                    //     _ = &array;
-                    //     printValue(array);
-                    //     if (!isObjType(array, .OBJ_ARRAY)) {
-                    //         runtimeError("Only arrays support indexing.", .{});
-                    //         return .INTERPRET_RUNTIME_ERROR;
-                    //     }
-                    //     var arrObj = @as([*c]ObjArray, @ptrCast(@alignCast(array.as.obj)));
-                    //     _ = &arrObj;
-                    //     if ((idx < 0) or (idx >= arrObj.*.count)) {
-                    //         runtimeError("Index out of bounds.", .{});
-                    //         return .INTERPRET_RUNTIME_ERROR;
-                    //     }
-                    //     push((blk: {
-                    //         const tmp = idx;
-                    //         if (tmp >= 0) break :blk arrObj.*.values + @as(usize, @intCast(tmp)) else break :blk arrObj.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                    //     }).*);
-                    //     break;
-                    // }
                 },
                 .OP_INDEX_GET => {
-
-                    // _ = printf("Index get\n");
-                    // var idx: c_int = @as(c_int, @bitCast(@as(c_uint, (blk: {
-                    //     const ref = &frame.*.ip;
-                    //     const tmp = ref.*;
-                    //     ref.* += 1;
-                    //     break :blk tmp;
-                    // }).*)));
-                    // _ = &idx;
-                    // var array: Value = frame.*.closure.*.function.*.chunk.constants.values[
-                    //     (blk: {
-                    //         const ref = &frame.*.ip;
-                    //         const tmp = ref.*;
-                    //         ref.* += 1;
-                    //         break :blk tmp;
-                    //     }).*
-                    // ];
-                    // _ = &array;
-                    // printValue(array);
-                    // if (!isObjType(array, .OBJ_ARRAY)) {
-                    //     runtimeError("Only arrays support indexing.", .{});
-                    //     return .INTERPRET_RUNTIME_ERROR;
-                    // }
-                    // var arrObj = @as([*c]ObjArray, @ptrCast(@alignCast(array.as.obj)));
-                    // _ = &arrObj;
-                    // if ((idx < 0) or (idx >= arrObj.*.count)) {
-                    //     runtimeError("Index out of bounds.", .{});
-                    //     return .INTERPRET_RUNTIME_ERROR;
-                    // }
-                    // push((blk: {
-                    //     const tmp = idx;
-                    //     if (tmp >= 0) break :blk arrObj.*.values + @as(usize, @intCast(tmp)) else break :blk arrObj.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                    // }).*);
-                    // break;
 
                 },
                 .OP_INDEX_SET => {
 
-                    // var value: Value = pop();
-                    //
-                    // const index_1: Value = pop();
-                    //
-                    // var array: Value = peek(@as(c_int, 2));
-                    // _ = &array;
-                    // if (!isObjType(array, .OBJ_ARRAY)) {
-                    //     runtimeError("Only arrays support indexing.", .{});
-                    //     return .INTERPRET_RUNTIME_ERROR;
-                    // }
-                    // if (!(index_1.type == .VAL_INT)) {
-                    //     runtimeError("Array index must be an integer.", .{});
-                    //     return .INTERPRET_RUNTIME_ERROR;
-                    // }
-                    // var idx: c_int = index_1.as.num_int;
-                    // _ = &idx;
-                    // var arrObj = @as([*c]ObjArray, @ptrCast(@alignCast(array.as.obj)));
-                    // _ = &arrObj;
-                    // if ((idx < 0) or (idx >= arrObj.*.count)) {
-                    //     runtimeError("Index out of bounds.", .{});
-                    //     return .INTERPRET_RUNTIME_ERROR;
-                    // }
-                    // (blk: {
-                    //     const tmp = idx;
-                    //     if (tmp >= 0) break :blk arrObj.*.values + @as(usize, @intCast(tmp)) else break :blk arrObj.*.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                    // }).* = value;
-                    // break;
 
                 },
-                // .OP_ARRAY => {
-                //     const count: c_int = @intCast((blk: {
-                //         const ref = &frame.*.ip;
-                //         const tmp = ref.*;
-                //         ref.* += 1;
-                //         break :blk tmp;
-                //     }).*);
-                //     const array = object_h.newArrayWithCap(count, 1 != 0);
-
-                //     for (0..@intCast(count)) |i| {
-                //         pushArray(array, peek(count - @as(u8, @intCast(i)) - 1));
-                //     }
-
-                //     for (0..@intCast(count)) |_| {
-                //         _ = pop();
-                //     }
-
-                //     push(Value.init_obj(@ptrCast(@alignCast(array))));
-                //     break;
-                // },
                 .OP_FVECTOR => {
                     const count: c_int = @as(c_int, @bitCast(@as(c_uint, get_slot(frame))));
                     const f = fvec.FloatVector.init(count);
@@ -841,22 +650,7 @@ pub fn run() InterpretResult {
                     break;
                 },
                 .OP_ADD => {
-                    // if (isObjType(peek(0), .OBJ_STRING) and (isObjType(peek(1), .OBJ_STRING))) {
-                    //     concatenate();
-                    // } else if ((isObjType(peek(0), .OBJ_FVECTOR)) and (isObjType(peek(1), .OBJ_FVECTOR))) {
-                    //     const b = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
-                    //     const a = @as([*c]FloatVector, @ptrCast(@alignCast(pop().as.obj)));
-                    //     const result = addFloatVector(a, b);
-                    //     push(Value.init_obj(@ptrCast(result)));
-                    // } else {
-                    //     const b = pop();
-                    //     const a = pop();
-                    //     if (a.type == .VAL_NIL) {
-                    //         runtimeError("Invalid Binary Operation.", .{});
-                    //         return .INTERPRET_RUNTIME_ERROR;
-                    //     }
-                    //     push(a.add(b));
-                    // }
+   
 
                     const b = pop();
                     const a = pop();
@@ -902,82 +696,43 @@ pub fn run() InterpretResult {
                     push(a.div(b));
                 },
                 .OP_MODULO => {
-                    {
-                        if ((peek(0).type == .VAL_INT) and (peek(1).type == .VAL_INT)) {
-                            var b: c_int = pop().as.num_int;
-                            _ = &b;
-                            var a: c_int = pop().as.num_int;
-                            _ = &a;
-                            push(Value{
-                                .type = .VAL_INT,
-                                .as = .{
-                                    .num_int = @import("std").zig.c_translation.signedRemainder(a, b),
-                                },
-                            });
-                        } else {
-                            runtimeError("Operands must be integers.", .{});
-                            return .INTERPRET_RUNTIME_ERROR;
-                        }
-                        break;
+                    if (peek(0).is_int() and peek(1).is_int()) {
+                        const b = pop().as_int();
+                        const a = pop().as_int();
+                        push(Value.init_int(@rem(a, b)));
+                    } else {
+                        runtimeError("Operands must be integers.", .{});
+                        return .INTERPRET_RUNTIME_ERROR;
                     }
+                    break;
                 },
                 .OP_EXPONENT => {
-                    {
-                        if ((peek(0).type == .VAL_INT) and (peek(1).type == .VAL_INT)) {
-                            var b: c_int = pop().as.num_int;
-                            _ = &b;
-                            var a: c_int = pop().as.num_int;
-                            _ = &a;
-                            push(Value{
-                                .type = .VAL_INT,
-                                .as = .{
-                                    .num_int = @as(c_int, @intFromFloat(pow(@as(f64, @floatFromInt(a)), @as(f64, @floatFromInt(b))))),
-                                },
-                            });
-                        } else if ((peek(0).type == .VAL_DOUBLE) and (peek(1).type == .VAL_DOUBLE)) {
-                            var b: f64 = pop().as.num_double;
-                            _ = &b;
-                            var a: f64 = pop().as.num_double;
-                            _ = &a;
-                            push(Value{
-                                .type = .VAL_DOUBLE,
-                                .as = .{
-                                    .num_double = pow(a, b),
-                                },
-                            });
-                        } else if ((peek(0).type == .VAL_COMPLEX) and (peek(1).type == .VAL_DOUBLE)) {
-                            var b: f64 = pop().as.num_double;
-                            _ = &b;
-                            var a: Complex = pop().as.complex;
-                            _ = &a;
-                            var result: Complex = undefined;
-                            _ = &result;
-                            var r: f64 = sqrt((a.r * a.r) + (a.i * a.i));
-                            _ = &r;
-                            var theta: f64 = atan2(a.i, a.r);
-                            _ = &theta;
-                            result.r = pow(r, b) * cos(b * theta);
-                            result.i = pow(r, b) * sin(b * theta);
-                            push(Value{
-                                .type = .VAL_COMPLEX,
-                                .as = .{
-                                    .complex = result,
-                                },
-                            });
-                        } else {
-                            runtimeError("Operands must be numeric type.", .{});
-                            return .INTERPRET_RUNTIME_ERROR;
-                        }
-                        break;
+                    if (peek(0).is_prim_num() and peek(1).is_prim_num()) {
+                        const b = pop();
+                        const a = pop();
+                        push(Value.init_double(pow(a.as_num_double(), b.as_num_double())));
+                    } else if (peek(0).is_complex() and peek(1).is_double()) {
+                        // Complex number raised to real power
+                        const b = pop().as_num_double();
+                        const a = pop().as_complex();
+
+                        // Calculate using polar form: r^b * e^(i*b*theta)
+                        const r = sqrt((a.r * a.r) + (a.i * a.i));
+                        const theta = atan2(a.i, a.r);
+
+                        // Create result directly without temporary variable
+                        push(Value.init_complex(Complex{
+                            .r = pow(r, b) * cos(b * theta),
+                            .i = pow(r, b) * sin(b * theta),
+                        }));
+                    } else {
+                        runtimeError("Operands must be numeric type.", .{});
+                        return .INTERPRET_RUNTIME_ERROR;
                     }
+                    break;
                 },
                 .OP_NOT => {
-                    push(Value{
-                        .type = .VAL_BOOL,
-                        .as = .{
-                            .boolean = isFalsey(pop()),
-                        },
-                    });
+                    push(Value.init_bool(isFalsey(pop())));
                     break;
                 },
                 .OP_NEGATE => {
@@ -985,112 +740,49 @@ pub fn run() InterpretResult {
                     break;
                 },
                 .OP_PRINT => {
-                    {
-                        printValue(pop());
-                        _ = printf("\n");
-                        break;
-                    }
+                    printValue(pop());
+                    _ = printf("\n");
+                    break;
                 },
                 .OP_JUMP => {
-                    {
-                        var offset: u16 = blk: {
-                            frame.*.ip += @as(usize, @bitCast(@as(isize, @intCast(@as(c_int, 2)))));
-                            break :blk @as(u16, @bitCast(@as(c_short, @truncate((@as(c_int, @bitCast(@as(c_uint, (blk_1: {
-                                const tmp = -@as(c_int, 2);
-                                if (tmp >= 0) break :blk_1 frame.*.ip + @as(usize, @intCast(tmp)) else break :blk_1 frame.*.ip - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                            }).*))) << @intCast(8)) | @as(c_int, @bitCast(@as(c_uint, (blk_1: {
-                                const tmp = -1;
-                                if (tmp >= 0) break :blk_1 frame.*.ip + @as(usize, @intCast(tmp)) else break :blk_1 frame.*.ip - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                            }).*)))))));
-                        };
-                        _ = &offset;
-                        frame.*.ip += @as(usize, @bitCast(@as(isize, @intCast(@as(c_int, @bitCast(@as(c_uint, offset)))))));
-                        break;
-                    }
+
+
+                    const offset = readOffset(frame);
+                    frame.*.ip += @as(usize, @intCast(offset));
+                    break;
                 },
                 .OP_JUMP_IF_FALSE => {
-                    {
-                        var offset: u16 = blk: {
-                            frame.*.ip += @as(usize, @bitCast(@as(isize, @intCast(@as(c_int, 2)))));
-                            break :blk @as(u16, @bitCast(@as(c_short, @truncate((@as(c_int, @bitCast(@as(c_uint, (blk_1: {
-                                const tmp = -@as(c_int, 2);
-                                if (tmp >= 0) break :blk_1 frame.*.ip + @as(usize, @intCast(tmp)) else break :blk_1 frame.*.ip - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                            }).*))) << @intCast(8)) | @as(c_int, @bitCast(@as(c_uint, (blk_1: {
-                                const tmp = -1;
-                                if (tmp >= 0) break :blk_1 frame.*.ip + @as(usize, @intCast(tmp)) else break :blk_1 frame.*.ip - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                            }).*)))))));
-                        };
-                        _ = &offset;
-                        if (isFalsey(peek(0))) {
-                            frame.*.ip += @as(usize, @bitCast(@as(isize, @intCast(@as(c_int, @bitCast(@as(c_uint, offset)))))));
-                        }
-                        break;
+
+
+                    const offset = readOffset(frame);
+                    if (isFalsey(peek(0))) {
+                        frame.*.ip += @as(usize, @intCast(offset));
                     }
+                    break;
                 },
                 .OP_JUMP_IF_DONE => {
-                    {
-                        var offset: u16 = blk: {
-                            frame.*.ip += @as(usize, @bitCast(@as(isize, @intCast(@as(c_int, 2)))));
-                            break :blk @as(u16, @bitCast(@as(c_short, @truncate((@as(c_int, @bitCast(@as(c_uint, (blk_1: {
-                                const tmp = -@as(c_int, 2);
-                                if (tmp >= 0) break :blk_1 frame.*.ip + @as(usize, @intCast(tmp)) else break :blk_1 frame.*.ip - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                            }).*))) << @intCast(8)) | @as(c_int, @bitCast(@as(c_uint, (blk_1: {
-                                const tmp = -1;
-                                if (tmp >= 0) break :blk_1 frame.*.ip + @as(usize, @intCast(tmp)) else break :blk_1 frame.*.ip - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                            }).*)))))));
-                        };
-                        _ = &offset;
-                        var val: Value = peek(0);
-                        _ = &val;
-                        if (!isObjType(val, .OBJ_FVECTOR)) {
-                            runtimeError("Operand must be a vector.", .{});
-                            return .INTERPRET_RUNTIME_ERROR;
-                        } else {
-                            var fvector = @as([*c]FloatVector, @ptrCast(@alignCast(val.as.obj)));
-                            _ = &fvector;
-                            if (!fvec.hasNextFloatVector(fvector)) {
-                                frame.*.ip += @as(usize, @bitCast(@as(isize, @intCast(@as(c_int, @bitCast(@as(c_uint, offset)))))));
-                            } else {
-                                push(Value{
-                                    .type = .VAL_DOUBLE,
-                                    .as = .{
-                                        .num_double = fvec.nextFloatVector(fvector),
-                                    },
-                                });
-                            }
-                        }
-                        break;
-                    }
+
                 },
                 .OP_ITERATOR_NEXT => {
-                    // var offset: u16 = blk: {
-                    //     frame.*.ip += @as(usize, @bitCast(@as(isize, @intCast(@as(c_int, 2)))));
-                    //     break :blk @as(u16, @bitCast(@as(c_short, @truncate((@as(c_int, @bitCast(@as(c_uint, (blk_1: {
-                    //         const tmp = -@as(c_int, 2);
-                    //         if (tmp >= 0) break :blk_1 frame.*.ip + @as(usize, @intCast(tmp)) else break :blk_1 frame.*.ip - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                    //     }).*))) << @intCast(8)) | @as(c_int, @bitCast(@as(c_uint, (blk_1: {
-                    //         const tmp = -1;
-                    //         if (tmp >= 0) break :blk_1 frame.*.ip + @as(usize, @intCast(tmp)) else break :blk_1 frame.*.ip - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                    //     }).*)))))));
-                    // };
-                    // _ = &offset;
-                    // frame.*.ip -= @as(usize, @bitCast(@as(isize, @intCast(@as(c_int, @bitCast(@as(c_uint, offset)))))));
-                    // break;
+
                 },
                 .OP_LOOP => {
-                    var offset: u16 = blk: {
-                        frame.*.ip += @as(usize, @bitCast(@as(isize, @intCast(@as(c_int, 2)))));
-                        break :blk @as(u16, @bitCast(@as(c_short, @truncate((@as(c_int, @bitCast(@as(c_uint, (blk_1: {
-                            const tmp = -@as(c_int, 2);
-                            if (tmp >= 0) break :blk_1 frame.*.ip + @as(usize, @intCast(tmp)) else break :blk_1 frame.*.ip - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                        }).*))) << @intCast(8)) | @as(c_int, @bitCast(@as(c_uint, (blk_1: {
-                            const tmp = -1;
-                            if (tmp >= 0) break :blk_1 frame.*.ip + @as(usize, @intCast(tmp)) else break :blk_1 frame.*.ip - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                        }).*)))))));
+
+                    // Read a 16-bit offset from bytecode and jump backward
+                    const offset: u16 = blk: {
+                        // Move instruction pointer forward by 2 bytes
+                        frame.*.ip += 2;
+
+                        // Read the 2 bytes we just passed (at IP-2 and IP-1)
+                        const high_byte = @as(*u8, @ptrCast(frame.*.ip - 2)).*;
+                        const low_byte = @as(*u8, @ptrCast(frame.*.ip - 1)).*;
+
+                        // Combine into a 16-bit value with explicit casts
+                        break :blk (@as(u16, high_byte) << @as(u4, 8)) | @as(u16, low_byte);
                     };
-                    _ = &offset;
-                    //const offset = readOffset(frame);
-                    frame.*.ip -= @as(usize, @bitCast(@as(isize, @intCast(@as(c_int, @bitCast(@as(c_uint, offset)))))));
+
+                    // Jump backward by the offset amount
+                    frame.*.ip -= offset;
                     break;
                 },
                 .OP_CALL => {
@@ -1123,8 +815,7 @@ pub fn run() InterpretResult {
 
                     const argCount: c_int = @as(c_int, @bitCast(@as(c_uint, get_slot(frame))));
 
-                    var superclass: [*c]ObjClass = @ptrCast(@alignCast(pop().as.obj));
-                    _ = &superclass;
+                    const superclass: [*c]ObjClass = @ptrCast(@alignCast(pop().as.obj));
                     if (!invokeFromClass(superclass, method, argCount)) {
                         return .INTERPRET_RUNTIME_ERROR;
                     }
@@ -1133,53 +824,26 @@ pub fn run() InterpretResult {
                 },
                 .OP_CLOSURE => {
                     const function: [*c]ObjFunction = @as([*c]ObjFunction, @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
-                        (blk: {
-                            const ref = &frame.*.ip;
-                            const tmp = ref.*;
-                            ref.* += 1;
-                            break :blk tmp;
-                        }).*
+                        get_slot(frame)
                     ].as.obj)));
 
                     const closure: [*c]ObjClosure = object_h.newClosure(function);
 
-                    push(Value{
-                        .type = .VAL_OBJ,
-                        .as = .{
-                            .obj = @as([*c]Obj, @ptrCast(@alignCast(closure))),
-                        },
-                    });
-                    {
-                        var i: c_int = 0;
-                        _ = &i;
-                        while (i < closure.*.upvalueCount) : (i += 1) {
-                            var isLocal: u8 = (blk: {
-                                const ref = &frame.*.ip;
-                                const tmp = ref.*;
-                                ref.* += 1;
-                                break :blk tmp;
-                            }).*;
-                            _ = &isLocal;
-                            const index_1: u8 = (blk: {
-                                const ref = &frame.*.ip;
-                                const tmp = ref.*;
-                                ref.* += 1;
-                                break :blk tmp;
-                            }).*;
+                    push(Value.init_obj(@ptrCast(@alignCast(closure))));
 
-                            if (isLocal != 0) {
-                                (blk: {
-                                    const tmp = i;
-                                    if (tmp >= 0) break :blk closure.*.upvalues + @as(usize, @intCast(tmp)) else break :blk closure.*.upvalues - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                                }).* = captureUpvalue(frame.*.slots + @as(usize, @bitCast(@as(isize, @intCast(@as(c_int, @bitCast(@as(c_uint, index_1))))))));
-                            } else {
-                                (blk: {
-                                    const tmp = i;
-                                    if (tmp >= 0) break :blk closure.*.upvalues + @as(usize, @intCast(tmp)) else break :blk closure.*.upvalues - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                                }).* = frame.*.closure.*.upvalues[index_1];
-                            }
+                    for (0..@intCast(closure.*.upvalueCount)) |i| {
+                        const isLocal: u8 = get_slot(frame);
+                        const index: u8 = get_slot(frame);
+
+                        if (isLocal != 0) {
+                            // Local variable being captured
+                            closure.*.upvalues[i] = captureUpvalue(frame.*.slots + @as(usize, @intCast(index)));
+                        } else {
+                            // Upvalue from enclosing function
+                            closure.*.upvalues[i] = frame.*.closure.*.upvalues[index];
                         }
                     }
+
                     break;
                 },
                 .OP_CLOSE_UPVALUE => {
@@ -1188,8 +852,7 @@ pub fn run() InterpretResult {
                     break;
                 },
                 .OP_RETURN => {
-                    var result: Value = pop();
-                    _ = &result;
+                    const result: Value = pop();
                     closeUpvalues(frame.*.slots);
                     vm.frameCount -= 1;
                     if (vm.frameCount == 0) {
@@ -1229,5 +892,5 @@ pub fn run() InterpretResult {
             break;
         }
     }
-    return @import("std").mem.zeroes(InterpretResult);
+    return .INTERPRET_RUNTIME_ERROR;
 }
