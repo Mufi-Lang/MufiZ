@@ -164,7 +164,6 @@ pub fn freeVM() void {
 
 pub fn importCollections() void {
     defineNative("assert", cstd_h.assert_nf);
-    defineNative("simd_stat", cstd_h.simd_stat_nf);
     // defineNative("array", &cstd_h.array_nf);
     defineNative("linked_list", cstd_h.linkedlist_nf);
     defineNative("hash_table", cstd_h.hashtable_nf);

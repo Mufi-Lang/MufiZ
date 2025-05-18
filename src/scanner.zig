@@ -1,19 +1,6 @@
 const std = @import("std");
-pub const strlen = @cImport(@cInclude("string.h")).strlen;
-
-pub fn memcmp(s1: ?*const anyopaque, s2: ?*const anyopaque, n: usize) c_int {
-    const str1: [*c]const u8 = @ptrCast(s1.?);
-    const str2: [*c]const u8 = @ptrCast(s2.?);
-    const num: usize = @intCast(n);
-
-    for (0..num) |i| {
-        if (str1[i] != str2[i]) {
-            return @as(c_int, @intCast(@as(i32, str1[i]) - @as(i32, str2[i])));
-        }
-    }
-
-    return 0;
-}
+pub const memcmp = @import("mem_utils.zig").memcmp;
+pub const strlen = @import("mem_utils.zig").strlen;
 
 pub const TokenType = enum(c_int) {
     // Single character tokens
@@ -93,42 +80,42 @@ pub const Scanner = extern struct {
 
 var scanner: Scanner = undefined;
 
-pub export fn initScanner(source: [*c]u8) callconv(.C) void {
+pub fn initScanner(source: [*c]u8) void {
     scanner.start = source;
     scanner.current = source;
     scanner.line = 1;
 }
 
-pub export fn isAlpha(c: u8) callconv(.C) bool {
+pub fn isAlpha(c: u8) bool {
     return (c >= 'a' and c <= 'z') or
         (c >= 'A' and c <= 'Z') or
         c == '_';
 }
 
-pub export fn isDigit(c: u8) callconv(.C) bool {
+pub fn isDigit(c: u8) bool {
     return c >= '0' and c <= '9';
 }
 
-pub export fn isAtEnd() callconv(.C) bool {
+pub fn isAtEnd() bool {
     return scanner.current.* == '\x00';
 }
 
-pub export fn __scanner__advance() callconv(.C) u8 {
+pub fn __scanner__advance() u8 {
     const char = scanner.current[0];
     scanner.current += 1;
     return char;
 }
 
-pub export fn peek() callconv(.C) u8 {
+pub fn peek() u8 {
     return scanner.current.*;
 }
 
-pub export fn peekNext() callconv(.C) u8 {
+pub fn peekNext() u8 {
     if (isAtEnd()) return 0;
     return scanner.current[1];
 }
 /// TODO: need to simply without converting so much
-pub export fn makeToken(type_: TokenType) callconv(.C) Token {
+pub fn makeToken(type_: TokenType) Token {
     return .{
         .type = type_,
         .start = scanner.start,
@@ -136,8 +123,8 @@ pub export fn makeToken(type_: TokenType) callconv(.C) Token {
         .line = scanner.line,
     };
 }
-/// TODO: need to simply without converting so much
-pub export fn errorToken(message: [*c]u8) callconv(.C) Token {
+
+pub fn errorToken(message: [*c]u8) Token {
     return .{
         .type = TokenType.TOKEN_ERROR,
         .start = message,
@@ -146,7 +133,7 @@ pub export fn errorToken(message: [*c]u8) callconv(.C) Token {
     };
 }
 
-pub export fn skipWhitespace() callconv(.C) void {
+pub fn skipWhitespace() void {
     while (true) {
         const c = peek();
         switch (c) {
@@ -167,7 +154,7 @@ pub export fn skipWhitespace() callconv(.C) void {
     }
 }
 /// TODO: need to simply without converting so much
-pub export fn checkKeyword(arg_start: c_int, arg_length: c_int, arg_rest: [*c]const u8, arg_type: TokenType) callconv(.C) TokenType {
+pub fn checkKeyword(arg_start: c_int, arg_length: c_int, arg_rest: [*c]const u8, arg_type: TokenType) TokenType {
     const start = arg_start;
     const length = arg_length;
     const rest = arg_rest;
@@ -178,15 +165,15 @@ pub export fn checkKeyword(arg_start: c_int, arg_length: c_int, arg_rest: [*c]co
     return .TOKEN_IDENTIFIER;
 }
 /// TODO: need to simply without converting so much
-pub export fn __scanner__match(arg_expected: u8) callconv(.C) bool {
+pub fn __scanner__match(arg_expected: u8) bool {
     const expected = arg_expected;
-    if (isAtEnd()) return @as(c_int, 0) != 0;
-    if (@as(c_int, @bitCast(@as(c_uint, scanner.current.*))) != @as(c_int, @bitCast(@as(c_uint, expected)))) return @as(c_int, 0) != 0;
+    if (isAtEnd()) return false;
+    if ( scanner.current.* != expected) return false;
     scanner.current += 1;
-    return @as(c_int, 1) != 0;
+    return true;
 }
 
-pub export fn identifierType() callconv(.C) TokenType {
+pub fn identifierType() TokenType {
     switch (scanner.start[0]) {
         'a' => return checkKeyword(1, 2, @ptrCast("nd"), .TOKEN_AND),
         'c' => return checkKeyword(1, 4, @ptrCast("lass"), .TOKEN_CLASS),
@@ -238,14 +225,14 @@ pub export fn identifierType() callconv(.C) TokenType {
     }
     return .TOKEN_IDENTIFIER;
 }
-pub export fn identifier() callconv(.C) Token {
+pub fn identifier() Token {
     while (isAlpha(peek()) or isDigit(peek())) {
         _ = __scanner__advance();
     }
     return makeToken(identifierType());
 }
 
-pub export fn __scanner__number() callconv(.C) Token {
+pub fn __scanner__number() Token {
     while (isDigit(peek())) {
         _ = __scanner__advance();
     }
@@ -259,7 +246,7 @@ pub export fn __scanner__number() callconv(.C) Token {
     }
 }
 
-pub export fn __scanner__string() callconv(.C) Token {
+pub fn __scanner__string() Token {
     while (peek() != '"' and !isAtEnd()) {
         if (peek() == '\n') {
             scanner.line += 1;
@@ -271,7 +258,7 @@ pub export fn __scanner__string() callconv(.C) Token {
     return makeToken(.TOKEN_STRING);
 }
 
-pub export fn scanToken() Token {
+pub fn scanToken() Token {
     skipWhitespace();
     scanner.start = scanner.current;
     if (isAtEnd()) return makeToken(.TOKEN_EOF);

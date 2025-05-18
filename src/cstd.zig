@@ -23,18 +23,52 @@ const print = std.debug.print;
 const fvec = @import("objects/fvec.zig");
 const pushFloatVector = fvec.FloatVector.push;
 
+// Helper functions to make code more DRY
+fn validateArgCount(argCount: c_int, expected: c_int, funcName: []const u8) bool {
+    if (argCount != expected) {
+        runtimeError("{s}() takes {d} argument(s).", .{ funcName, expected });
+        return false;
+    }
+    return true;
+}
+
+fn validateMinArgCount(argCount: c_int, min: c_int, funcName: []const u8) bool {
+    if (argCount < min) {
+        runtimeError("{s}() takes at least {d} argument(s).", .{ funcName, min });
+        return false;
+    }
+    return true;
+}
+
+fn validateObjType(value: Value, objType: obj_h.ObjType, typeName: []const u8) bool {
+    if (!isObjType(value, objType)) {
+        runtimeError("Argument must be a {s}.", .{typeName});
+        return false;
+    }
+    return true;
+}
+
+fn validateNumber(value: Value) bool {
+    if (!(value.is_int() or value.is_double())) {
+        runtimeError("Argument must be a number.", .{});
+        return false;
+    }
+    return true;
+}
+
+// Helper functions removed - using Value.as_num_int() and Value.as_num_double() directly
+
 pub fn assert_nf(argCount: c_int, args: [*c]Value) Value {
-    if (argCount != @as(c_int, 2)) {
-        runtimeError("assert() takes 1 argument.", .{});
+    if (!validateArgCount(argCount, 2, "assert")) {
         return Value.init_nil();
     }
+
     if (valuesEqual(args[0], args[1])) {
         return Value.init_nil();
     } else {
         runtimeError("Assertion failed {s} != {s}", .{ valueToString(args[0]), valueToString(args[1]) });
         return Value.init_nil();
     }
-    return Value.init_nil();
 }
 
 pub fn iter_nf(argCount: c_int, args: [*c]Value) Value {
@@ -42,150 +76,88 @@ pub fn iter_nf(argCount: c_int, args: [*c]Value) Value {
     _ = args;
     return Value.init_nil();
 }
+
 pub fn next_nf(argCount: c_int, args: [*c]Value) Value {
-    if (argCount != 1) {
-        runtimeError("next() takes 1 argument.", .{});
+    if (!validateArgCount(argCount, 1, "next") or
+        !validateObjType(args[0], .OBJ_FVECTOR, "iterable"))
+    {
         return Value.init_nil();
     }
-    if (isObjType(args[0], .OBJ_FVECTOR)) {
-        runtimeError("Argument must be an iterable.", .{});
-        return Value.init_nil();
-    }
-    var next: Value = Value.init_nil();
-    _ = &next;
-    if (isObjType(args[0], .OBJ_FVECTOR)) {
-        next = Value{
-            .type = .VAL_DOUBLE,
-            .as = .{
-                .num_double = fvec.nextFloatVector(@as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)))),
-            },
-        };
-    }
-    return next;
+
+    const nextValue = fvec.nextFloatVector(@as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj))));
+    return Value.init_double(nextValue);
 }
+
 pub fn hasNext_nf(argCount: c_int, args: [*c]Value) Value {
-    if (argCount != 1) {
-        runtimeError("has_next() takes 1 argument.", .{});
+    if (!validateArgCount(argCount, 1, "has_next") or
+        !validateObjType(args[0], .OBJ_FVECTOR, "iterable"))
+    {
         return Value.init_nil();
     }
-    if (!isObjType(args[0], .OBJ_FVECTOR)) {
-        runtimeError("Argument must be an iterable.", .{});
-        return Value.init_nil();
-    }
-    var hasNext: bool = false;
-    if (isObjType(args[0], .OBJ_FVECTOR)) {
-        hasNext = fvec.hasNextFloatVector(@as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj))));
-    }
-    return Value{
-        .type = .VAL_BOOL,
-        .as = .{
-            .boolean = hasNext,
-        },
-    };
+
+    const hasNext = fvec.hasNextFloatVector(@as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj))));
+    return Value.init_bool(hasNext);
 }
 pub fn peek_nf(argCount: c_int, args: [*c]Value) Value {
-    if (argCount != @as(c_int, 2)) {
-        runtimeError("peek() takes 2 argument.", .{});
+    if (!validateArgCount(argCount, 2, "peek") or
+        !validateObjType(args[0], .OBJ_FVECTOR, "iterable") or
+        !validateNumber(args[1]))
+    {
         return Value.init_nil();
     }
-    if (!isObjType(args[0], .OBJ_FVECTOR)) {
-        runtimeError("Argument must be an iterable.", .{});
-        return Value.init_nil();
-    }
-    if (!((args[1].type == .VAL_INT) or (args[1].is_double()))) {
-        runtimeError("Second argument must be a number.", .{});
-        return Value.init_nil();
-    }
-    var pos: c_int = if (args[1].is_double()) @intFromFloat(args[1].as_num_double()) else args[1].as.num_int;
-    _ = &pos;
-    var peek: Value = Value.init_nil();
-    if (isObjType(args[0], .OBJ_FVECTOR)) {
-        peek = Value{
-            .type = .VAL_DOUBLE,
-            .as = .{
-                .num_double = fvec.peekFloatVector(@as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj))), pos),
-            },
-        };
-    }
-    return peek;
+
+    const pos = args[1].as_num_int();
+    const peekValue = fvec.peekFloatVector(@as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj))), pos);
+    return Value.init_double(peekValue);
 }
 pub fn reset_nf(argCount: c_int, args: [*c]Value) Value {
-    if (argCount != 1) {
-        runtimeError("reset() takes 1 argument.", .{});
+    if (!validateArgCount(argCount, 1, "reset") or
+        !validateObjType(args[0], .OBJ_FVECTOR, "iterable"))
+    {
         return Value.init_nil();
     }
-    if (!isObjType(args[0], .OBJ_FVECTOR)) {
-        runtimeError("Argument must be an iterable.", .{});
-        return Value.init_nil();
-    }
-    if (isObjType(args[0], .OBJ_FVECTOR)) {
-        fvec.resetFloatVector(@as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj))));
-    }
+
+    fvec.resetFloatVector(@as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj))));
     return Value.init_nil();
 }
 pub fn skip_nf(argCount: c_int, args: [*c]Value) Value {
-    if (argCount != @as(c_int, 2)) {
-        runtimeError("skip() takes 2 arguments.", .{});
+    if (!validateArgCount(argCount, 2, "skip") or
+        !validateObjType(args[0], .OBJ_FVECTOR, "iterable") or
+        !validateNumber(args[1]))
+    {
         return Value.init_nil();
     }
-    if (!isObjType(args[0], .OBJ_FVECTOR)) {
-        runtimeError("Argument must be an iterable.", .{});
-        return Value.init_nil();
-    }
-    if (!((args[1].type == .VAL_INT) or (args[1].is_double()))) {
-        runtimeError("Second argument must be a number.", .{});
-        return Value.init_nil();
-    }
-    var skip: c_int = if (args[1].is_double()) @intFromFloat(args[1].as_num_double()) else args[1].as.num_int;
-    _ = &skip;
-    if (isObjType(args[0], .OBJ_FVECTOR)) {
-        fvec.skipFloatVector(@as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj))), skip);
-    }
+
+    const skipAmount = args[1].as_num_int();
+    fvec.skipFloatVector(@as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj))), skipAmount);
     return Value.init_nil();
 }
 
 pub fn linkedlist_nf(argCount: c_int, args: [*c]Value) Value {
-    _ = &args;
-    if (argCount != 0) {
-        runtimeError("linked_list() takes no arguments.", .{});
+    _ = args;
+    if (!validateArgCount(argCount, 0, "linked_list")) {
         return Value.init_nil();
     }
-    var l: [*c]ObjLinkedList = obj_h.newLinkedList();
-    _ = &l;
-    return Value{
-        .type = .VAL_OBJ,
-        .as = .{
-            .obj = @as([*c]Obj, @ptrCast(@alignCast(l))),
-        },
-    };
+
+    const ll: [*c]ObjLinkedList = obj_h.newLinkedList();
+    return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(ll))));
 }
 pub fn hashtable_nf(argCount: c_int, args: [*c]Value) Value {
-    _ = &args;
-    if (argCount != 0) {
-        runtimeError("hash_table() takes no arguments.", .{});
+    _ = args;
+    if (!validateArgCount(argCount, 0, "hash_table")) {
         return Value.init_nil();
     }
-    var h: [*c]ObjHashTable = obj_h.newHashTable();
-    _ = &h;
-    return Value{
-        .type = .VAL_OBJ,
-        .as = .{
-            .obj = @as([*c]Obj, @ptrCast(@alignCast(h))),
-        },
-    };
+
+    const h: [*c]ObjHashTable = obj_h.newHashTable();
+    return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(h))));
 }
 
 pub fn fvector_nf(argCount: c_int, args: [*c]Value) Value {
-    if (argCount != 1) {
-        runtimeError("fvec() takes 1 argument.", .{});
-        return Value.init_nil();
-    }
-    if (!(args[0].is_int() or args[0].is_double())) {
-        runtimeError("First argument must be a number.", .{});
+    if (!validateArgCount(argCount, 1, "fvec") or !validateNumber(args[0])) {
         return Value.init_nil();
     }
 
-    const cap: i32 = if (args[0].is_double()) @intFromFloat(args[0].as_num_double()) else args[0].as.num_int;
+    const cap = args[0].as_num_int();
     const f: [*c]FloatVector = fvec.FloatVector.init(cap);
     return Value.init_obj(@ptrCast(@alignCast(f)));
 }
@@ -216,10 +188,13 @@ pub fn fvector_nf(argCount: c_int, args: [*c]Value) Value {
 //         },
 //     };
 // }
+
 pub fn slice_nf(argCount: c_int, args: [*c]Value) Value {
-    _ = &argCount;
+    // Validate argument count
+    if (!validateArgCount(argCount, 3, "slice"))
+        return Value.init_nil();
 
-    _ = &args;
+    // Check that first argument is a linked list or vector
     if ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_LINKED_LIST,
@@ -232,58 +207,43 @@ pub fn slice_nf(argCount: c_int, args: [*c]Value) Value {
         runtimeError("First argument must be an array, linked list or vector.", .{});
         return Value.init_nil();
     }
-    if (!((args[0].type == .VAL_INT) or (args[0].is_double())) and !((args[1].type == .VAL_INT) or (args[1].is_double()))) {
+
+    // Check that second and third arguments are numbers
+    if (!(args[1].is_int() or args[1].is_double()) or
+        !(args[2].is_int() or args[2].is_double()))
+    {
         runtimeError("Second and third arguments must be numbers.", .{});
         return Value.init_nil();
     }
-    while (true) {
-        switch (args[0].as.obj.*.type) {
-            .OBJ_FVECTOR => {
-                {
-                    var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &f;
-                    var start: c_int = if (args[1].is_double()) @intFromFloat(args[1].as_num_double()) else args[1].as.num_int;
-                    _ = &start;
-                    var end: c_int = if (args[2].type == .VAL_DOUBLE) @intFromFloat(args[2].as.num_double) else args[2].as.num_int;
-                    _ = &end;
-                    var s: [*c]FloatVector = fvec.sliceFloatVector(f, start, end);
-                    _ = &s;
-                    return Value{
-                        .type = .VAL_OBJ,
-                        .as = .{
-                            .obj = @as([*c]Obj, @ptrCast(@alignCast(s))),
-                        },
-                    };
-                }
-            },
-            .OBJ_LINKED_LIST => {
-                {
-                    var l: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &l;
-                    var start: c_int = if (args[1].is_double()) @intFromFloat(args[1].as_num_double()) else args[1].as.num_int;
-                    _ = &start;
-                    var end: c_int = if (args[2].type == .VAL_DOUBLE) @intFromFloat(args[2].as.num_double) else args[2].as.num_int;
-                    _ = &end;
-                    var s: [*c]ObjLinkedList = obj_h.sliceLinkedList(l, start, end);
-                    _ = &s;
-                    return Value{
-                        .type = .VAL_OBJ,
-                        .as = .{
-                            .obj = @as([*c]Obj, @ptrCast(@alignCast(s))),
-                        },
-                    };
-                }
-            },
-            else => break,
-        }
-        break;
+
+    // Convert start and end indices to integers
+    const start: c_int = if (args[1].is_double()) @intFromFloat(args[1].as_num_double()) else args[1].as.num_int;
+    const end: c_int = if (args[2].is_double()) @intFromFloat(args[2].as_num_double()) else args[2].as.num_int;
+
+    // Process based on object type
+    switch (args[0].as.obj.*.type) {
+        .OBJ_FVECTOR => {
+            const f = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
+            const s = fvec.sliceFloatVector(f, start, end);
+            return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(s))));
+        },
+        .OBJ_LINKED_LIST => {
+            const l = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
+            const s = obj_h.sliceLinkedList(l, start, end);
+            return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(s))));
+        },
+        else => {}, // Should never reach here due to type checking above
     }
+
     return Value.init_nil();
 }
+
 pub fn splice_nf(argCount: c_int, args: [*c]Value) Value {
-    _ = &argCount;
+    // Validate argument count
+    if (!validateArgCount(argCount, 3, "splice"))
+        return Value.init_nil();
 
-    _ = &args;
+    // Check first argument is list or vector
     if ((notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_LINKED_LIST,
@@ -296,54 +256,37 @@ pub fn splice_nf(argCount: c_int, args: [*c]Value) Value {
         runtimeError("First argument must be an array, linked list or vector.", .{});
         return Value.init_nil();
     }
-    if (!((args[1].type == .VAL_INT) or (args[1].is_double())) or !((args[2].type == .VAL_INT) or (args[2].type == .VAL_DOUBLE))) {
+
+    // Validate index arguments
+    if (!(args[1].is_int() or args[1].is_double()) or
+        !(args[2].is_int() or args[2].is_double()))
+    {
         runtimeError("Second and third arguments must be numbers.", .{});
         return Value.init_nil();
     }
-    while (true) {
-        switch (args[0].as.obj.*.type) {
-            .OBJ_FVECTOR => {
-                {
-                    var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &f;
-                    var start: c_int = if (args[1].is_double()) @intFromFloat(args[1].as_num_double()) else args[1].as.num_int;
-                    _ = &start;
-                    var end: c_int = if (args[2].type == .VAL_DOUBLE) @intFromFloat(args[2].as.num_double) else args[2].as.num_int;
-                    _ = &end;
-                    var s: [*c]FloatVector = fvec.spliceFloatVector(f, start, end);
-                    _ = &s;
-                    return Value{
-                        .type = .VAL_OBJ,
-                        .as = .{
-                            .obj = @as([*c]Obj, @ptrCast(@alignCast(s))),
-                        },
-                    };
-                }
-            },
-            .OBJ_LINKED_LIST => {
-                {
-                    var l: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &l;
-                    var start: c_int = if (args[1].is_double()) @intFromFloat(args[1].as_num_double()) else args[1].as.num_int;
-                    _ = &start;
-                    var end: c_int = if (args[2].type == .VAL_DOUBLE) @intFromFloat(args[2].as.num_double) else args[2].as.num_int;
-                    _ = &end;
-                    var s: [*c]ObjLinkedList = obj_h.spliceLinkedList(l, start, end);
-                    _ = &s;
-                    return Value{
-                        .type = .VAL_OBJ,
-                        .as = .{
-                            .obj = @as([*c]Obj, @ptrCast(@alignCast(s))),
-                        },
-                    };
-                }
-            },
-            else => break,
-        }
-        break;
+
+    // Extract start and end indices
+    const start: c_int = if (args[1].is_double()) @intFromFloat(args[1].as_num_double()) else args[1].as.num_int;
+    const end: c_int = if (args[2].is_double()) @intFromFloat(args[2].as_num_double()) else args[2].as.num_int;
+
+    // Process based on object type
+    switch (args[0].as.obj.*.type) {
+        .OBJ_FVECTOR => {
+            const f = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
+            const s = fvec.spliceFloatVector(f, start, end);
+            return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(s))));
+        },
+        .OBJ_LINKED_LIST => {
+            const l = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
+            const s = obj_h.spliceLinkedList(l, start, end);
+            return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(s))));
+        },
+        else => {},
     }
+
     return Value.init_nil();
 }
+
 pub fn push_nf(argCount: c_int, args: [*c]Value) Value {
     if (notObjTypes(ObjTypeCheckParams{
         .values = args,
@@ -361,14 +304,7 @@ pub fn push_nf(argCount: c_int, args: [*c]Value) Value {
         .OBJ_FVECTOR => {
             const f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
             for (1..@intCast(argCount)) |i| {
-                if (args[i].type == .VAL_DOUBLE) {
-                    pushFloatVector(f, args[i].as.num_double);
-                } else if (args[i].type == .VAL_INT) {
-                    pushFloatVector(f, @floatFromInt(args[i].as.num_int));
-                } else {
-                    runtimeError("All elements of the vector must be numbers.", .{});
-                    return Value.init_nil();
-                }
+                FloatVector.push(f, args[i].as_num_double());
             }
 
             return Value.init_nil();
@@ -376,276 +312,235 @@ pub fn push_nf(argCount: c_int, args: [*c]Value) Value {
         .OBJ_LINKED_LIST => {
             const l: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
 
-            var i: c_int = 1;
-            while (i < argCount) : (i += 1) {
-                obj_h.pushBack(l, (blk: {
-                    const tmp = i;
-                    if (tmp >= 0) break :blk args + @as(usize, @intCast(tmp)) else break :blk args - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                }).*);
+            for (1..@intCast(argCount)) |i| {
+                obj_h.pushBack(l, args[i]);
             }
 
             return Value.init_nil();
         },
         else => {
-            runtimeError("Argument must be a linked list, array or float vector.", .{});
-            return Value{
-                .type = .VAL_NIL,
-                .as = .{
-                    .num_int = 0,
-                },
-            };
+            // This should never be reached due to type checking above,
+            // but included for safety
+            runtimeError("Argument must be a linked list or float vector.", .{});
+            return Value.init_nil();
         },
     }
 }
+
 pub fn pop_nf(argCount: c_int, args: [*c]Value) Value {
-    if (argCount != 1) {
-        runtimeError("pop() takes 1 argument.", .{});
+    // Validate argument count
+    if (!validateArgCount(argCount, 1, "pop")) {
         return Value.init_nil();
     }
-    if ((notObjTypes(ObjTypeCheckParams{
-        .values = args,
-        .objType = .OBJ_LINKED_LIST,
-        .count = 1,
-    })) and (notObjTypes(ObjTypeCheckParams{
-        .values = args,
-        .objType = .OBJ_FVECTOR,
-        .count = 1,
-    }))) {
-        runtimeError("First argument must be a list type.", .{});
-        return Value.init_nil();
-    }
-    while (true) {
-        switch (args[0].as.obj.*.type) {
-            .OBJ_FVECTOR => {
-                {
-                    var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &f;
-                    return Value{
-                        .type = .VAL_DOUBLE,
-                        .as = .{
-                            .num_double = fvec.popFloatVector(f),
-                        },
-                    };
-                }
-            },
-            .OBJ_LINKED_LIST => {
-                {
-                    var l: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &l;
-                    return obj_h.popBack(l);
-                }
-            },
-            else => {
-                runtimeError("Argument must be a linked list, array or float vector.", .{});
-                return Value.init_nil();
-            },
-        }
-        break;
-    }
-    return Value.init_nil();
-}
-pub fn nth_nf(argCount: c_int, args: [*c]Value) Value {
-    _ = &argCount;
 
-    if ((notObjTypes(ObjTypeCheckParams{
-        .values = args,
-        .objType = .OBJ_HASH_TABLE,
-        .count = 1,
-    })) and ((notObjTypes(ObjTypeCheckParams{
-        .values = args,
-        .objType = .OBJ_LINKED_LIST,
-        .count = 1,
-    })) and (notObjTypes(ObjTypeCheckParams{
-        .values = args,
-        .objType = .OBJ_FVECTOR,
-        .count = 1,
-    }))) and (isObjType(args[0], .OBJ_HASH_TABLE))) {
-        runtimeError("First argument must be an array, matrix, linked list or Vector.", .{});
-        return Value.init_nil();
-    }
-    if (!((args[1].type == .VAL_INT) or (args[1].is_double()))) {
-        runtimeError("Second argument must be a number.", .{});
-        return Value.init_nil();
-    }
-    while (true) {
-        switch (args[0].as.obj.*.type) {
-            .OBJ_FVECTOR => {
-                {
-                    var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &f;
-                    var index_1: c_int = if (args[1].is_double()) @intFromFloat(args[1].as_num_double()) else args[1].as.num_int;
-                    _ = &index_1;
-                    var value: f64 = fvec.getFloatVector(f, index_1);
-                    _ = &value;
-                    return Value{
-                        .type = .VAL_DOUBLE,
-                        .as = .{
-                            .num_double = value,
-                        },
-                    };
-                }
-            },
-
-            .OBJ_LINKED_LIST => {
-                {
-                    var l: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &l;
-                    var index_1: c_int = if (args[1].is_double()) @intFromFloat(args[1].as_num_double()) else args[1].as.num_int;
-                    _ = &index_1;
-                    if ((index_1 >= 0) and (index_1 < l.*.count)) {
-                        var node: [*c]Node = l.*.head;
-                        _ = &node;
-                        {
-                            var i: c_int = 0;
-                            _ = &i;
-                            while (i < index_1) : (i += 1) {
-                                node = node.*.next;
-                            }
-                        }
-                        return node.*.data;
-                    }
-                    break;
-                }
-            },
-            else => {
-                {
-                    runtimeError("Invalid argument types or index out of bounds.", .{});
-                    return Value.init_nil();
-                }
-            },
-        }
-        break;
-    }
-    return Value.init_nil();
-}
-pub fn sort_nf(argCount: c_int, args: [*c]Value) Value {
-    _ = &argCount;
-
-    _ = &args;
+    // Check if first argument is a list or vector
     if (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_LINKED_LIST,
         .count = 1,
-    }) and (notObjTypes(ObjTypeCheckParams{
+    }) and notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_FVECTOR,
         .count = 1,
-    }))) {
+    })) {
         runtimeError("First argument must be a list type.", .{});
         return Value.init_nil();
     }
-    while (true) {
-        switch (args[0].as.obj.*.type) {
-            .OBJ_FVECTOR => {
-                {
-                    var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &f;
-                    fvec.FloatVector.sort(f);
-                    return Value.init_nil();
-                }
-            },
-            .OBJ_LINKED_LIST => {
-                {
-                    var l: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &l;
-                    obj_h.mergeSort(l);
-                    return Value.init_nil();
-                }
-            },
-            else => {
-                runtimeError("Argument must be a linked list, array or float vector.", .{});
-                return Value.init_nil();
-            },
-        }
-        break;
-    }
-    return Value.init_nil();
-}
-pub fn contains_nf(argCount: c_int, args: [*c]Value) Value {
-    _ = &argCount;
 
-    _ = &args;
-    if ((notObjTypes(ObjTypeCheckParams{
+    // Process based on object type
+    switch (args[0].as.obj.*.type) {
+        .OBJ_FVECTOR => {
+            const vector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
+            return Value.init_double(fvec.popFloatVector(vector));
+        },
+        .OBJ_LINKED_LIST => {
+            const list = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
+            return obj_h.popBack(list);
+        },
+        else => {
+            // This should never be reached due to type checking above,
+            // but included for safety
+            runtimeError("Argument must be a linked list or float vector.", .{});
+            return Value.init_nil();
+        },
+    }
+}
+pub fn nth_nf(argCount: c_int, args: [*c]Value) Value {
+    // Validate argument count
+    if (!validateArgCount(argCount, 2, "nth")) {
+        return Value.init_nil();
+    }
+
+    // Check if first argument is a supported collection type
+    if (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_LINKED_LIST,
         .count = 1,
-    })) and (notObjTypes(ObjTypeCheckParams{
+    }) and notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_FVECTOR,
         .count = 1,
-    })) and !isObjType(args[0], .OBJ_HASH_TABLE)) {
+    }) and notObjTypes(ObjTypeCheckParams{
+        .values = args,
+        .objType = .OBJ_HASH_TABLE,
+        .count = 1,
+    })) {
+        runtimeError("First argument must be an array, linked list or vector.", .{});
+        return Value.init_nil();
+    }
+
+    // Validate that second argument is a number
+    if (!(args[1].is_int() or args[1].is_double())) {
+        runtimeError("Second argument must be a number.", .{});
+        return Value.init_nil();
+    }
+
+    // Convert index to integer
+    const index = args[1].as_num_int();
+
+    // Process based on object type
+    switch (args[0].as.obj.*.type) {
+        .OBJ_FVECTOR => {
+            const f = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
+            const value = fvec.getFloatVector(f, index);
+            return Value.init_double(value);
+        },
+        .OBJ_LINKED_LIST => {
+            const l = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
+
+            if (index >= 0 and index < l.*.count) {
+                var node = l.*.head;
+                var i: c_int = 0;
+                while (i < index) : (i += 1) {
+                    node = node.*.next;
+                }
+                return node.*.data;
+            }
+
+            runtimeError("Index out of bounds.", .{});
+            return Value.init_nil();
+        },
+        .OBJ_HASH_TABLE => {
+            runtimeError("Hash tables do not support indexed access. Use get() instead.", .{});
+            return Value.init_nil();
+        },
+        else => {
+            runtimeError("Invalid argument type.", .{});
+            return Value.init_nil();
+        },
+    }
+}
+
+pub fn sort_nf(argCount: c_int, args: [*c]Value) Value {
+    // Validate argument count
+    if (!validateArgCount(argCount, 1, "sort")) {
+        return Value.init_nil();
+    }
+
+    // Check if first argument is a list or vector
+    if (notObjTypes(ObjTypeCheckParams{
+        .values = args,
+        .objType = .OBJ_LINKED_LIST,
+        .count = 1,
+    }) and notObjTypes(ObjTypeCheckParams{
+        .values = args,
+        .objType = .OBJ_FVECTOR,
+        .count = 1,
+    })) {
+        runtimeError("First argument must be a list type.", .{});
+        return Value.init_nil();
+    }
+
+    // Process based on object type
+    switch (args[0].as.obj.*.type) {
+        .OBJ_FVECTOR => {
+            const vector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
+            fvec.FloatVector.sort(vector);
+            return Value.init_nil();
+        },
+        .OBJ_LINKED_LIST => {
+            const list = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
+            obj_h.mergeSort(list);
+            return Value.init_nil();
+        },
+        else => {
+            // This should never be reached due to type checking above,
+            // but included for safety
+            runtimeError("Argument must be a linked list or float vector.", .{});
+            return Value.init_nil();
+        },
+    }
+}
+
+pub fn contains_nf(argCount: c_int, args: [*c]Value) Value {
+    // Validate argument count
+    if (!validateArgCount(argCount, 2, "contains")) {
+        return Value.init_nil();
+    }
+
+    // Check if first argument is a supported collection type
+    if (notObjTypes(ObjTypeCheckParams{
+        .values = args,
+        .objType = .OBJ_LINKED_LIST,
+        .count = 1,
+    }) and notObjTypes(ObjTypeCheckParams{
+        .values = args,
+        .objType = .OBJ_FVECTOR,
+        .count = 1,
+    }) and notObjTypes(ObjTypeCheckParams{
+        .values = args,
+        .objType = .OBJ_HASH_TABLE,
+        .count = 1,
+    })) {
         runtimeError("First argument must be a collection type.", .{});
         return Value.init_nil();
     }
-    while (true) {
-        switch (args[0].as.obj.*.type) {
-            .OBJ_FVECTOR => {
-                //TODO: Implement contains for float vector
-                return Value.init_bool(false);
-            },
-            .OBJ_HASH_TABLE => {
-                {
-                    var h: [*c]ObjHashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &h;
-                    if (!valuesEqual(obj_h.getHashTable(h, @as([*c]ObjString, @ptrCast(@alignCast(args[1].as.obj)))), Value.init_nil())) {
-                        return Value.init_bool(false);
-                    }
+
+    // Process based on object type
+    switch (args[0].as.obj.*.type) {
+        .OBJ_FVECTOR => {
+            //TODO: Implement contains for float vector
+            return Value.init_bool(false);
+        },
+        .OBJ_HASH_TABLE => {
+            const hashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
+
+            if (!isObjType(args[1], .OBJ_STRING)) {
+                runtimeError("Hash table key must be a string.", .{});
+                return Value.init_nil();
+            }
+
+            const key = @as([*c]ObjString, @ptrCast(@alignCast(args[1].as.obj)));
+            const value = obj_h.getHashTable(hashTable, key);
+            return Value.init_bool(!valuesEqual(value, Value.init_nil()));
+        },
+        .OBJ_LINKED_LIST => {
+            const list = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
+            var current = list.*.head;
+
+            // Traverse the list looking for a matching value
+            while (current != @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
+                if (valuesEqual(current.*.data, args[1])) {
+                    return Value.init_bool(true);
                 }
-                {
-                    var l: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &l;
-                    var current: [*c]Node = l.*.head;
-                    _ = &current;
-                    while (current != @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
-                        if (valuesEqual(current.*.data, args[1])) {
-                            return Value{
-                                .type = .VAL_BOOL,
-                                .as = .{
-                                    .boolean = true,
-                                },
-                            };
-                        }
-                        current = current.*.next;
-                    }
-                    return Value.init_bool(false);
-                }
-            },
-            .OBJ_LINKED_LIST => {
-                {
-                    var l: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &l;
-                    var current: [*c]Node = l.*.head;
-                    _ = &current;
-                    while (current != @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
-                        if (valuesEqual(current.*.data, args[1])) {
-                            return Value{
-                                .type = .VAL_BOOL,
-                                .as = .{
-                                    .boolean = true,
-                                },
-                            };
-                        }
-                        current = current.*.next;
-                    }
-                    return Value.init_bool(false);
-                }
-            },
-            else => {
-                {
-                    runtimeError("Invalid argument type.", .{});
-                    return Value.init_nil();
-                }
-            },
-        }
-        break;
+                current = current.*.next;
+            }
+            return Value.init_bool(false);
+        },
+        else => {
+            runtimeError("Invalid argument type.", .{});
+            return Value.init_nil();
+        },
     }
-    return Value.init_nil();
 }
+
 pub fn insert_nf(argCount: c_int, args: [*c]Value) Value {
-    if (argCount != @as(c_int, 3)) {
-        runtimeError("insert() takes 3 arguments.", .{});
+    // Validate argument count
+    if (!validateArgCount(argCount, 3, "insert")) {
         return Value.init_nil();
     }
+
+    // Check if first argument is a float vector
     if (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_FVECTOR,
@@ -654,1103 +549,935 @@ pub fn insert_nf(argCount: c_int, args: [*c]Value) Value {
         runtimeError("First argument must be an array or vector.", .{});
         return Value.init_nil();
     }
-    if (!((args[1].type == .VAL_INT) or (args[1].is_double()))) {
+
+    // Validate index argument
+    if (!(args[1].is_int() or args[1].is_double())) {
         runtimeError("Second argument must be a number.", .{});
         return Value.init_nil();
     }
-    while (true) {
-        switch (args[0].as.obj.*.type) {
-            .OBJ_FVECTOR => {
-                {
-                    var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &f;
-                    var index_1: c_int = if (args[1].is_double()) @intFromFloat(args[1].as_num_double()) else args[1].as.num_int;
-                    _ = &index_1;
-                    if (!((args[2].type == .VAL_INT) or (args[2].type == .VAL_DOUBLE))) {
-                        runtimeError("Third argument must be a number.", .{});
-                        return Value{
-                            .type = .VAL_NIL,
-                            .as = .{
-                                .num_int = 0,
-                            },
-                        };
-                    }
-                    fvec.insertFloatVector(f, index_1, if (args[2].type == .VAL_INT) @floatFromInt(args[2].as.num_int) else args[2].as.num_double);
-                    return Value.init_nil();
-                }
-            },
-            else => {
-                runtimeError("Invalid argument type.", .{});
-                return Value.init_nil();
-            },
-        }
-        break;
+
+    // Validate value argument
+    if (!(args[2].is_int() or args[2].is_double())) {
+        runtimeError("Third argument must be a number.", .{});
+        return Value.init_nil();
     }
+
+    // FloatVector is the only supported type for insert currently
+    const vector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
+
+    // Safely convert index to integer
+    const index = args[1].as_num_int();
+
+    // Safely convert value to double
+    const value = args[2].as_num_double();
+
+    FloatVector.insert(vector, index, value);
     return Value.init_nil();
 }
-pub fn len_nf(argCount: c_int, args: [*c]Value) Value {
-    _ = &argCount;
 
-    _ = &args;
-    if ((notObjTypes(ObjTypeCheckParams{
+pub fn len_nf(argCount: c_int, args: [*c]Value) Value {
+    // Validate argument count
+    if (!validateArgCount(argCount, 1, "len")) {
+        return Value.init_nil();
+    }
+
+    // Check if first argument is a supported collection type
+    if (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_HASH_TABLE,
         .count = 1,
-    })) and ((notObjTypes(ObjTypeCheckParams{
+    }) and notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_LINKED_LIST,
         .count = 1,
-    })) and (notObjTypes(ObjTypeCheckParams{
+    }) and notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_FVECTOR,
         .count = 1,
-    })))) {
+    })) {
         runtimeError("First argument must be a collection type.", .{});
         return Value.init_nil();
     }
-    while (true) {
-        switch (args[0].as.obj.*.type) {
-            .OBJ_HASH_TABLE => {
-                {
-                    var h: [*c]ObjHashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &h;
-                    return Value{
-                        .type = .VAL_INT,
-                        .as = .{
-                            .num_int = h.*.table.count,
-                        },
-                    };
-                }
-            },
-            .OBJ_FVECTOR => {
-                {
-                    var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &f;
-                    return Value{
-                        .type = .VAL_INT,
-                        .as = .{
-                            .num_int = f.*.count,
-                        },
-                    };
-                }
-            },
-            .OBJ_LINKED_LIST => {
-                {
-                    var l: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &l;
-                    return Value{
-                        .type = .VAL_INT,
-                        .as = .{
-                            .num_int = l.*.count,
-                        },
-                    };
-                }
-            },
-            else => break,
-        }
-        break;
+
+    // Process based on object type
+    switch (args[0].as.obj.*.type) {
+        .OBJ_HASH_TABLE => {
+            const hashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
+            return Value.init_int(hashTable.*.table.count);
+        },
+        .OBJ_FVECTOR => {
+            const vector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
+            return Value.init_int(vector.*.count);
+        },
+        .OBJ_LINKED_LIST => {
+            const list = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
+            return Value.init_int(list.*.count);
+        },
+        else => {
+            runtimeError("Invalid argument type.", .{});
+            return Value.init_nil();
+        },
     }
-    return Value.init_nil();
 }
 pub fn search_nf(argCount: c_int, args: [*c]Value) Value {
-    _ = &argCount;
+    // Validate argument count
+    if (!validateArgCount(argCount, 2, "search")) {
+        return Value.init_nil();
+    }
 
-    _ = &args;
-    if ((notObjTypes(ObjTypeCheckParams{
+    // Check if first argument is a supported collection type
+    if (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_LINKED_LIST,
         .count = 1,
-    }) and (notObjTypes(ObjTypeCheckParams{
+    }) and notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_FVECTOR,
         .count = 1,
-    })))) {
+    })) {
         runtimeError("First argument must be a list type.", .{});
         return Value.init_nil();
     }
-    while (true) {
-        switch (args[0].as.obj.*.type) {
-            .OBJ_FVECTOR => {
-                {
-                    var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &f;
-                    var result: c_int = fvec.searchFloatVector(f, if (args[1].type == .VAL_INT) @floatFromInt(args[1].as.num_int) else args[1].as_num_double());
-                    _ = &result;
-                    if (result == -1) return Value.init_nil();
-                    return Value{
-                        .type = .VAL_INT,
-                        .as = .{
-                            .num_int = result,
-                        },
-                    };
-                }
-            },
-            .OBJ_LINKED_LIST => {
-                {
-                    var l: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &l;
-                    var result: c_int = obj_h.searchLinkedList(l, args[1]);
-                    _ = &result;
-                    if (result == -1) return Value.init_nil();
-                    return Value{
-                        .type = .VAL_INT,
-                        .as = .{
-                            .num_int = result,
-                        },
-                    };
-                }
-            },
-            else => break,
-        }
-        break;
+
+    // Process based on object type
+    switch (args[0].as.obj.*.type) {
+        .OBJ_FVECTOR => {
+            const vector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
+
+            if (!(args[1].is_int() or args[1].is_double())) {
+                runtimeError("Search value must be a number for float vector.", .{});
+                return Value.init_nil();
+            }
+
+            const searchValue =
+                args[1].as_num_double();
+
+            const result = fvec.searchFloatVector(vector, searchValue);
+            return if (result == -1) Value.init_nil() else Value.init_int(result);
+        },
+        .OBJ_LINKED_LIST => {
+            const list = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
+            const result = obj_h.searchLinkedList(list, args[1]);
+            return if (result == -1) Value.init_nil() else Value.init_int(result);
+        },
+        else => {
+            runtimeError("Invalid argument type.", .{});
+            return Value.init_nil();
+        },
     }
-    return Value.init_nil();
 }
 pub fn is_empty_nf(argCount: c_int, args: [*c]Value) Value {
-    _ = &argCount;
+    // Validate argument count
+    if (!validateArgCount(argCount, 1, "is_empty")) {
+        return Value.init_nil();
+    }
 
-    _ = &args;
-    if ((notObjTypes(ObjTypeCheckParams{
+    // Check if first argument is a supported collection type
+    if (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_HASH_TABLE,
         .count = 1,
-    })) and ((notObjTypes(ObjTypeCheckParams{
+    }) and notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_LINKED_LIST,
         .count = 1,
-    })) and (notObjTypes(ObjTypeCheckParams{
+    }) and notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_FVECTOR,
         .count = 1,
-    })))) {
+    })) {
         runtimeError("First argument must be a collection type.", .{});
         return Value.init_nil();
     }
-    while (true) {
-        switch (args[0].as.obj.*.type) {
-            .OBJ_HASH_TABLE => {
-                {
-                    var h: [*c]ObjHashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &h;
-                    return Value{
-                        .type = .VAL_BOOL,
-                        .as = .{
-                            .boolean = h.*.table.count == 0,
-                        },
-                    };
-                }
-            },
-            .OBJ_FVECTOR => {
-                {
-                    var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &f;
-                    return Value{
-                        .type = .VAL_BOOL,
-                        .as = .{
-                            .boolean = f.*.count == 0,
-                        },
-                    };
-                }
-            },
-            .OBJ_LINKED_LIST => {
-                {
-                    var l: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &l;
-                    return Value{
-                        .type = .VAL_BOOL,
-                        .as = .{
-                            .boolean = l.*.count == 0,
-                        },
-                    };
-                }
-            },
-            else => {
-                {
-                    runtimeError("Unsupported type for is_empty().", .{});
-                    return Value.init_nil();
-                }
-            },
-        }
-        break;
+
+    // Process based on object type
+    switch (args[0].as.obj.*.type) {
+        .OBJ_HASH_TABLE => {
+            const hashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
+            return Value.init_bool(hashTable.*.table.count == 0);
+        },
+        .OBJ_FVECTOR => {
+            const vector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
+            return Value.init_bool(vector.*.count == 0);
+        },
+        .OBJ_LINKED_LIST => {
+            const list = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
+            return Value.init_bool(list.*.count == 0);
+        },
+        else => {
+            runtimeError("Unsupported type for is_empty().", .{});
+            return Value.init_nil();
+        },
     }
-    return Value.init_nil();
 }
 pub fn equal_list_nf(argCount: c_int, args: [*c]Value) Value {
-    _ = &argCount;
-    if (!isObjType(args[0], .OBJ_LINKED_LIST)) {
-        runtimeError("First argument must be an array, linked list or vector.", .{});
+    // Validate argument count
+    if (!validateArgCount(argCount, 2, "equal_list")) {
         return Value.init_nil();
     }
-    while (true) {
-        switch (args[0].as.obj.*.type) {
-            .OBJ_FVECTOR => {
-                {
-                    if (!isObjType(args[1], .OBJ_FVECTOR)) {
-                        runtimeError("Second argument must be a vector.", .{});
-                        return Value{
-                            .type = .VAL_NIL,
-                            .as = .{
-                                .num_int = 0,
-                            },
-                        };
-                    }
-                    var a: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &a;
-                    var b: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[1].as.obj)));
-                    _ = &b;
-                    return Value{
-                        .type = .VAL_BOOL,
-                        .as = .{
-                            .boolean = fvec.equalFloatVector(a, b),
-                        },
-                    };
-                }
-            },
-            .OBJ_LINKED_LIST => {
-                {
-                    if (!isObjType(args[1], .OBJ_LINKED_LIST)) {
-                        runtimeError("Second argument must be a linked list.", .{});
-                        return Value{
-                            .type = .VAL_NIL,
-                            .as = .{
-                                .num_int = 0,
-                            },
-                        };
-                    }
-                    var a: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &a;
-                    var b: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[1].as.obj)));
-                    _ = &b;
-                    return Value{
-                        .type = .VAL_BOOL,
-                        .as = .{
-                            .boolean = obj_h.equalLinkedList(a, b),
-                        },
-                    };
-                }
-            },
-            else => {
-                {
-                    runtimeError("Argument must be a linked list, array or float vector.", .{});
-                    return Value.init_nil();
-                }
-            },
-        }
-        break;
-    }
-    return Value.init_nil();
-}
-pub fn reverse_nf(argCount: c_int, args: [*c]Value) Value {
-    _ = &argCount;
 
-    _ = &args;
-    if ((notObjTypes(ObjTypeCheckParams{
+    // Check if first argument is a list or vector
+    if (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_LINKED_LIST,
         .count = 1,
-    })) and (notObjTypes(ObjTypeCheckParams{
+    }) and notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_FVECTOR,
         .count = 1,
-    }))) {
+    })) {
+        runtimeError("First argument must be a linked list or vector.", .{});
+        return Value.init_nil();
+    }
+
+    // Process based on object type
+    switch (args[0].as.obj.*.type) {
+        .OBJ_FVECTOR => {
+            // Check that second argument is also a vector
+            if (!isObjType(args[1], .OBJ_FVECTOR)) {
+                runtimeError("Second argument must also be a vector.", .{});
+                return Value.init_nil();
+            }
+
+            const vecA = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
+            const vecB = @as([*c]FloatVector, @ptrCast(@alignCast(args[1].as.obj)));
+
+            return Value.init_bool(fvec.equalFloatVector(vecA, vecB));
+        },
+        .OBJ_LINKED_LIST => {
+            // Check that second argument is also a linked list
+            if (!isObjType(args[1], .OBJ_LINKED_LIST)) {
+                runtimeError("Second argument must also be a linked list.", .{});
+                return Value.init_nil();
+            }
+
+            const listA = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
+            const listB = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[1].as.obj)));
+
+            return Value.init_bool(obj_h.equalLinkedList(listA, listB));
+        },
+        else => {
+            runtimeError("Argument must be a linked list or float vector.", .{});
+            return Value.init_nil();
+        },
+    }
+}
+pub fn reverse_nf(argCount: c_int, args: [*c]Value) Value {
+    // Validate argument count
+    if (!validateArgCount(argCount, 1, "reverse")) {
+        return Value.init_nil();
+    }
+
+    // Check if first argument is a list or vector
+    if (notObjTypes(ObjTypeCheckParams{
+        .values = args,
+        .objType = .OBJ_LINKED_LIST,
+        .count = 1,
+    }) and notObjTypes(ObjTypeCheckParams{
+        .values = args,
+        .objType = .OBJ_FVECTOR,
+        .count = 1,
+    })) {
         runtimeError("First argument must be a list type.", .{});
         return Value.init_nil();
     }
-    while (true) {
-        switch (args[0].as.obj.*.type) {
-            .OBJ_FVECTOR => {
-                {
-                    var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &f;
-                    fvec.reverseFloatVector(f);
-                    return Value.init_nil();
-                }
-            },
-            .OBJ_LINKED_LIST => {
-                {
-                    var l: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &l;
-                    obj_h.reverseLinkedList(l);
-                    return Value.init_nil();
-                }
-            },
-            else => break,
-        }
-        break;
+
+    // Process based on object type
+    switch (args[0].as.obj.*.type) {
+        .OBJ_FVECTOR => {
+            const vector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
+            fvec.reverseFloatVector(vector);
+            return Value.init_nil();
+        },
+        .OBJ_LINKED_LIST => {
+            const list = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
+            obj_h.reverseLinkedList(list);
+            return Value.init_nil();
+        },
+        else => {
+            runtimeError("Argument must be a linked list or float vector.", .{});
+            return Value.init_nil();
+        },
     }
-    return Value.init_nil();
 }
+
 pub fn merge_nf(argCount: c_int, args: [*c]Value) Value {
-    if (argCount != @as(c_int, 2)) {
-        runtimeError("merge() takes 2 arguments.", .{});
+    // Validate argument count
+    if (!validateArgCount(argCount, 2, "merge")) {
         return Value.init_nil();
     }
-    if ((notObjTypes(ObjTypeCheckParams{
+
+    // Check that both arguments are of the same list type
+    if (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_LINKED_LIST,
-        .count = @as(c_int, 2),
-    })) and (notObjTypes(ObjTypeCheckParams{
+        .count = 2,
+    }) and notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_FVECTOR,
-        .count = @as(c_int, 2),
-    }))) {
+        .count = 2,
+    })) {
         runtimeError("Both arguments must be the same list type.", .{});
         return Value.init_nil();
     }
-    while (true) {
-        switch (args[0].as.obj.*.type) {
-            .OBJ_LINKED_LIST => {
-                {
-                    var a: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &a;
-                    var b: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[1].as.obj)));
-                    _ = &b;
-                    var c: [*c]ObjLinkedList = obj_h.mergeLinkedList(a, b);
-                    _ = &c;
-                    return Value{
-                        .type = .VAL_OBJ,
-                        .as = .{
-                            .obj = @as([*c]Obj, @ptrCast(@alignCast(c))),
-                        },
-                    };
-                }
-            },
-            .OBJ_FVECTOR => {
-                {
-                    var a: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &a;
-                    var b: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[1].as.obj)));
-                    _ = &b;
-                    var c: [*c]FloatVector = fvec.mergeFloatVector(a, b);
-                    _ = &c;
-                    return Value{
-                        .type = .VAL_OBJ,
-                        .as = .{
-                            .obj = @as([*c]Obj, @ptrCast(@alignCast(c))),
-                        },
-                    };
-                }
-            },
-            else => return Value{
-                .type = .VAL_NIL,
-                .as = .{
-                    .num_int = 0,
-                },
-            },
-        }
-        break;
+
+    // Process based on object type
+    switch (args[0].as.obj.*.type) {
+        .OBJ_LINKED_LIST => {
+            const listA = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
+            const listB = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[1].as.obj)));
+            const result = obj_h.mergeLinkedList(listA, listB);
+            return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(result))));
+        },
+        .OBJ_FVECTOR => {
+            const vecA = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
+            const vecB = @as([*c]FloatVector, @ptrCast(@alignCast(args[1].as.obj)));
+            const result = fvec.mergeFloatVector(vecA, vecB);
+            return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(result))));
+        },
+        else => {
+            runtimeError("Invalid argument types.", .{});
+            return Value.init_nil();
+        },
     }
-    return Value.init_nil();
 }
+
 pub fn clone_nf(argCount: c_int, args: [*c]Value) Value {
-    _ = &argCount;
-
-    _ = &args;
-    if ((notObjTypes(ObjTypeCheckParams{
-        .values = args,
-        .objType = .OBJ_HASH_TABLE,
-        .count = 1,
-    })) and ((notObjTypes(ObjTypeCheckParams{
-        .values = args,
-        .objType = .OBJ_LINKED_LIST,
-        .count = 1,
-    })) and (notObjTypes(ObjTypeCheckParams{
-        .values = args,
-        .objType = .OBJ_FVECTOR,
-        .count = 1,
-    })))) {
-        runtimeError("First argument must be an array, linked list or vector.", .{});
-        return Value.init_nil();
-    }
-    while (true) {
-        switch (args[0].as.obj.*.type) {
-            .OBJ_FVECTOR => {
-                {
-                    var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &f;
-                    var c: [*c]FloatVector = fvec.cloneFloatVector(f);
-                    _ = &c;
-                    return Value{
-                        .type = .VAL_OBJ,
-                        .as = .{
-                            .obj = @as([*c]Obj, @ptrCast(@alignCast(c))),
-                        },
-                    };
-                }
-            },
-            .OBJ_LINKED_LIST => {
-                {
-                    var l: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &l;
-                    var c: [*c]ObjLinkedList = obj_h.cloneLinkedList(l);
-                    _ = &c;
-                    return Value{
-                        .type = .VAL_OBJ,
-                        .as = .{
-                            .obj = @as([*c]Obj, @ptrCast(@alignCast(c))),
-                        },
-                    };
-                }
-            },
-            .OBJ_HASH_TABLE => {
-                {
-                    var h: [*c]ObjHashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &h;
-                    var c: [*c]ObjHashTable = obj_h.cloneHashTable(h);
-                    _ = &c;
-                    return Value{
-                        .type = .VAL_OBJ,
-                        .as = .{
-                            .obj = @as([*c]Obj, @ptrCast(@alignCast(c))),
-                        },
-                    };
-                }
-            },
-            else => {
-                runtimeError("Unsupported type for clone().", .{});
-                return Value.init_nil();
-            },
-        }
-        break;
-    }
-    return Value.init_nil();
-}
-pub fn clear_nf(argCount: c_int, args: [*c]Value) Value {
-    _ = &argCount;
-    if ((notObjTypes(ObjTypeCheckParams{
-        .values = args,
-        .objType = .OBJ_HASH_TABLE,
-        .count = 1,
-    }) and (notObjTypes(ObjTypeCheckParams{
-        .values = args,
-        .objType = .OBJ_LINKED_LIST,
-        .count = 1,
-    })) and (notObjTypes(ObjTypeCheckParams{
-        .values = args,
-        .objType = .OBJ_FVECTOR,
-        .count = 1,
-    })))) {
-        runtimeError("First argument must be an array, linked list, hash table or vector.", .{});
+    // Validate argument count
+    if (!validateArgCount(argCount, 1, "clone")) {
         return Value.init_nil();
     }
 
+    // Check if first argument is a supported collection type
+    if (notObjTypes(ObjTypeCheckParams{
+        .values = args,
+        .objType = .OBJ_HASH_TABLE,
+        .count = 1,
+    }) and notObjTypes(ObjTypeCheckParams{
+        .values = args,
+        .objType = .OBJ_LINKED_LIST,
+        .count = 1,
+    }) and notObjTypes(ObjTypeCheckParams{
+        .values = args,
+        .objType = .OBJ_FVECTOR,
+        .count = 1,
+    })) {
+        runtimeError("First argument must be a hash table, linked list or vector.", .{});
+        return Value.init_nil();
+    }
+
+    // Process based on object type
     switch (args[0].as.obj.*.type) {
         .OBJ_FVECTOR => {
-            fvec.clearFloatVector(@as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj))));
+            const vector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
+            const clone = fvec.cloneFloatVector(vector);
+            return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(clone))));
         },
         .OBJ_LINKED_LIST => {
-            obj_h.clearLinkedList(@as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj))));
+            const list = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
+            const clone = obj_h.cloneLinkedList(list);
+            return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(clone))));
         },
         .OBJ_HASH_TABLE => {
-            obj_h.clearHashTable(@as([*c]ObjHashTable, @ptrCast(@alignCast(args[0].as.obj))));
+            const hashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
+            const clone = obj_h.cloneHashTable(hashTable);
+            return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(clone))));
+        },
+        else => {
+            runtimeError("Unsupported type for clone().", .{});
+            return Value.init_nil();
+        },
+    }
+}
+
+pub fn clear_nf(argCount: c_int, args: [*c]Value) Value {
+    // Validate argument count
+    if (!validateArgCount(argCount, 1, "clear")) {
+        return Value.init_nil();
+    }
+
+    // Check if first argument is a supported collection type
+    if (notObjTypes(ObjTypeCheckParams{
+        .values = args,
+        .objType = .OBJ_HASH_TABLE,
+        .count = 1,
+    }) and notObjTypes(ObjTypeCheckParams{
+        .values = args,
+        .objType = .OBJ_LINKED_LIST,
+        .count = 1,
+    }) and notObjTypes(ObjTypeCheckParams{
+        .values = args,
+        .objType = .OBJ_FVECTOR,
+        .count = 1,
+    })) {
+        runtimeError("First argument must be a hash table, linked list or vector.", .{});
+        return Value.init_nil();
+    }
+
+    // Process based on object type
+    switch (args[0].as.obj.*.type) {
+        .OBJ_FVECTOR => {
+            const vector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
+            fvec.clearFloatVector(vector);
+        },
+        .OBJ_LINKED_LIST => {
+            const list = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
+            obj_h.clearLinkedList(list);
+        },
+        .OBJ_HASH_TABLE => {
+            const hashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
+            obj_h.clearHashTable(hashTable);
         },
         else => {
             runtimeError("Unsupported type for clear().", .{});
-        },
-    }
-
-    return Value.init_nil();
-}
-pub fn sum_nf(argCount: c_int, args: [*c]Value) Value {
-    _ = &argCount;
-
-    _ = &args;
-    if ((notObjTypes(ObjTypeCheckParams{
-        .values = args,
-        .objType = .OBJ_FVECTOR,
-        .count = 1,
-    }))) {
-        runtimeError("First argument must be an array or vector.", .{});
-        return Value.init_nil();
-    }
-    while (true) {
-        switch (args[0].as.obj.*.type) {
-            .OBJ_FVECTOR => {
-                {
-                    var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &f;
-                    return Value{
-                        .type = .VAL_DOUBLE,
-                        .as = .{
-                            .num_double = fvec.sumFloatVector(f),
-                        },
-                    };
-                }
-            },
-            else => {
-                runtimeError("Unsupported type for clear().", .{});
-                return Value.init_nil();
-            },
-        }
-        break;
-    }
-    return Value.init_nil();
-}
-pub fn mean_nf(argCount: c_int, args: [*c]Value) Value {
-    _ = &argCount;
-
-    _ = &args;
-    if ((notObjTypes(ObjTypeCheckParams{
-        .values = args,
-        .objType = .OBJ_FVECTOR,
-        .count = 1,
-    }))) {
-        runtimeError("First argument must be an array or vector.", .{});
-        return Value.init_nil();
-    }
-
-    switch (args[0].as.obj.*.type) {
-        .OBJ_FVECTOR => return Value.init_double(fvec.meanFloatVector(@ptrCast(@alignCast(args[0].as.obj)))),
-        else => {
-            runtimeError("Unsupported type for mean().", .{});
             return Value.init_nil();
         },
     }
 
     return Value.init_nil();
 }
-pub fn std_nf(argCount: c_int, args: [*c]Value) Value {
-    _ = &argCount;
 
-    _ = &args;
-    if ((notObjTypes(ObjTypeCheckParams{
+pub fn sum_nf(argCount: c_int, args: [*c]Value) Value {
+    // Validate argument count
+    if (!validateArgCount(argCount, 1, "sum")) {
+        return Value.init_nil();
+    }
+
+    // Check if first argument is a float vector
+    if (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_FVECTOR,
         .count = 1,
-    }))) {
-        runtimeError("First argument must be an array or vector.", .{});
-        return Value.init_nil();
-    }
-    while (true) {
-        switch (args[0].as.obj.*.type) {
-            .OBJ_FVECTOR => return Value{
-                .type = .VAL_DOUBLE,
-                .as = .{
-                    .num_double = fvec.stdDevFloatVector(@as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)))),
-                },
-            },
-            else => {
-                runtimeError("Unsupported type for clear().", .{});
-                return Value.init_nil();
-            },
-        }
-        break;
-    }
-    return Value.init_nil();
-}
-pub fn var_nf(argCount: c_int, args: [*c]Value) Value {
-    _ = &argCount;
-
-    _ = &args;
-    if ((notObjTypes(ObjTypeCheckParams{
-        .values = args,
-        .objType = .OBJ_FVECTOR,
-        .count = 1,
-    }))) {
-        runtimeError("First argument must be an array or vector.", .{});
-        return Value.init_nil();
-    }
-    while (true) {
-        switch (args[0].as.obj.*.type) {
-            .OBJ_FVECTOR => {
-                {
-                    var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &f;
-                    return Value{
-                        .type = .VAL_DOUBLE,
-                        .as = .{
-                            .num_double = fvec.varianceFloatVector(f),
-                        },
-                    };
-                }
-            },
-            else => {
-                runtimeError("Unsupported type for clear().", .{});
-                return Value.init_nil();
-            },
-        }
-        break;
-    }
-    return Value.init_nil();
-}
-pub fn maxl_nf(argCount: c_int, args: [*c]Value) Value {
-    _ = &argCount;
-
-    _ = &args;
-    if ((notObjTypes(ObjTypeCheckParams{
-        .values = args,
-        .objType = .OBJ_FVECTOR,
-        .count = 1,
-    }))) {
-        runtimeError("First argument must be an array or vector.", .{});
-        return Value.init_nil();
-    }
-    while (true) {
-        switch (args[0].as.obj.*.type) {
-            .OBJ_FVECTOR => {
-                {
-                    var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &f;
-                    return Value{
-                        .type = .VAL_DOUBLE,
-                        .as = .{
-                            .num_double = fvec.maxFloatVector(f),
-                        },
-                    };
-                }
-            },
-            else => {
-                runtimeError("Unsupported type for clear().", .{});
-                return Value.init_nil();
-            },
-        }
-        break;
-    }
-    return Value.init_nil();
-}
-pub fn minl_nf(argCount: c_int, args: [*c]Value) Value {
-    _ = &argCount;
-
-    _ = &args;
-    if ((notObjTypes(ObjTypeCheckParams{
-        .values = args,
-        .objType = .OBJ_FVECTOR,
-        .count = 1,
-    }))) {
-        runtimeError("First argument must be an array or vector.", .{});
-        return Value.init_nil();
-    }
-    while (true) {
-        switch (args[0].as.obj.*.type) {
-            .OBJ_FVECTOR => {
-                {
-                    var f: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &f;
-                    return Value{
-                        .type = .VAL_DOUBLE,
-                        .as = .{
-                            .num_double = fvec.minFloatVector(f),
-                        },
-                    };
-                }
-            },
-            else => {
-                runtimeError("Unsupported type for clear().", .{});
-                return Value.init_nil();
-            },
-        }
-        break;
-    }
-    return Value.init_nil();
-}
-pub fn dot_nf(argCount: c_int, args: [*c]Value) Value {
-    _ = &argCount;
-
-    _ = &args;
-    if (!isObjType(args[0], .OBJ_FVECTOR) and !isObjType(args[1], .OBJ_FVECTOR)) {
-        runtimeError("Both arguments must be vectors.", .{});
-        return Value.init_nil();
-    }
-    var a: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-    _ = &a;
-    var b: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[1].as.obj)));
-    _ = &b;
-    var result: f64 = fvec.dotProduct(a, b);
-    _ = &result;
-    return Value{
-        .type = .VAL_DOUBLE,
-        .as = .{
-            .num_double = result,
-        },
-    };
-}
-pub fn cross_nf(argCount: c_int, args: [*c]Value) Value {
-    _ = &argCount;
-
-    _ = &args;
-    if (!isObjType(args[0], .OBJ_FVECTOR) and !isObjType(args[1], .OBJ_FVECTOR)) {
-        runtimeError("Both arguments must be vectors.", .{});
-        return Value.init_nil();
-    }
-    var a: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-    _ = &a;
-    var b: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[1].as.obj)));
-    _ = &b;
-    var result: [*c]FloatVector = fvec.crossProduct(a, b);
-    _ = &result;
-    return Value{
-        .type = .VAL_OBJ,
-        .as = .{
-            .obj = @as([*c]Obj, @ptrCast(@alignCast(result))),
-        },
-    };
-}
-pub fn norm_nf(argCount: c_int, args: [*c]Value) Value {
-    _ = &argCount;
-
-    _ = &args;
-    if (!isObjType(args[0], .OBJ_FVECTOR)) {
+    })) {
         runtimeError("First argument must be a vector.", .{});
         return Value.init_nil();
     }
-    var a: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-    _ = &a;
-    var result: [*c]FloatVector = fvec.normalize(a);
-    _ = &result;
-    return Value{
-        .type = .VAL_OBJ,
-        .as = .{
-            .obj = @as([*c]Obj, @ptrCast(@alignCast(result))),
-        },
-    };
-}
-pub fn proj_nf(argCount: c_int, args: [*c]Value) Value {
-    _ = &argCount;
 
-    _ = &args;
-    if (!isObjType(args[0], .OBJ_FVECTOR) and !isObjType(args[1], .OBJ_FVECTOR)) {
-        runtimeError("Both arguments must be vectors.", .{});
-        return Value.init_nil();
-    }
-    var a: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-    _ = &a;
-    var b: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[1].as.obj)));
-    _ = &b;
-    var result: [*c]FloatVector = fvec.projection(a, b);
-    _ = &result;
-    return Value{
-        .type = .VAL_OBJ,
-        .as = .{
-            .obj = @as([*c]Obj, @ptrCast(@alignCast(result))),
-        },
-    };
+    // Process the float vector
+    const vector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
+    return Value.init_double(FloatVector.sum(vector));
 }
-pub fn reject_nf(argCount: c_int, args: [*c]Value) Value {
-    _ = &argCount;
 
-    _ = &args;
-    if (!isObjType(args[0], .OBJ_FVECTOR) and !isObjType(args[1], .OBJ_FVECTOR)) {
-        runtimeError("Both arguments must be vectors.", .{});
+pub fn mean_nf(argCount: c_int, args: [*c]Value) Value {
+    // Validate argument count
+    if (!validateArgCount(argCount, 1, "mean")) {
         return Value.init_nil();
     }
-    var a: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-    _ = &a;
-    var b: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[1].as.obj)));
-    _ = &b;
-    var result: [*c]FloatVector = fvec.rejection(a, b);
-    _ = &result;
-    return Value{
-        .type = .VAL_OBJ,
-        .as = .{
-            .obj = @as([*c]Obj, @ptrCast(@alignCast(result))),
-        },
-    };
-}
-pub fn reflect_nf(argCount: c_int, args: [*c]Value) Value {
-    _ = &argCount;
 
-    _ = &args;
-    if (!isObjType(args[0], .OBJ_FVECTOR) and !isObjType(args[1], .OBJ_FVECTOR)) {
-        runtimeError("Both arguments must be vectors.", .{});
-        return Value.init_nil();
-    }
-    var a: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-    _ = &a;
-    var b: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[1].as.obj)));
-    _ = &b;
-    var result: [*c]FloatVector = fvec.reflection(a, b);
-    _ = &result;
-    return Value{
-        .type = .VAL_OBJ,
-        .as = .{
-            .obj = @as([*c]Obj, @ptrCast(@alignCast(result))),
-        },
-    };
-}
-pub fn refract_nf(argCount: c_int, args: [*c]Value) Value {
-    _ = &argCount;
-
-    _ = &args;
-    if (((!isObjType(args[0], .OBJ_FVECTOR) and !isObjType(args[1], .OBJ_FVECTOR)) and !((args[2].type == .VAL_INT) or (args[2].type == .VAL_DOUBLE))) and !((args[@as(c_uint, @intCast(@as(c_int, 3)))].type == .VAL_INT) or (args[@as(c_uint, @intCast(@as(c_int, 3)))].type == .VAL_DOUBLE))) {
-        runtimeError("First and second arguments must be vectors and the third and fourth arguments must be numbers.", .{});
-        return Value.init_nil();
-    }
-    var a: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-    _ = &a;
-    var b: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[1].as.obj)));
-    _ = &b;
-    var n1: f64 = if (args[2].type == .VAL_INT) @floatFromInt(args[2].as.num_int) else args[2].as.num_double;
-    _ = &n1;
-    var n2: f64 = if (args[@as(c_uint, @intCast(@as(c_int, 3)))].type == .VAL_INT) @floatFromInt(args[@as(c_uint, @intCast(@as(c_int, 3)))].as.num_int) else args[@as(c_uint, @intCast(@as(c_int, 3)))].as.num_double;
-    _ = &n2;
-    var result: [*c]FloatVector = fvec.refraction(a, b, n1, n2);
-    _ = &result;
-    return Value{
-        .type = .VAL_OBJ,
-        .as = .{
-            .obj = @as([*c]Obj, @ptrCast(@alignCast(result))),
-        },
-    };
-}
-pub fn angle_nf(argCount: c_int, args: [*c]Value) Value {
-    _ = &argCount;
-
-    _ = &args;
-    if (!isObjType(args[0], .OBJ_FVECTOR) or !isObjType(args[1], .OBJ_FVECTOR)) {
-        runtimeError("Both arguments must be vectors.", .{});
-        return Value.init_nil();
-    }
-    var a: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-    _ = &a;
-    var b: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[1].as.obj)));
-    _ = &b;
-    var result: f64 = fvec.angle(a, b);
-    _ = &result;
-    return Value{
-        .type = .VAL_DOUBLE,
-        .as = .{
-            .num_double = result,
-        },
-    };
-}
-pub fn put_nf(argCount: c_int, args: [*c]Value) Value {
-    _ = &argCount;
-
-    _ = &args;
-    if (argCount != @as(c_int, 3)) {
-        runtimeError("put() takes 3 arguments.", .{});
-        return Value.init_nil();
-    }
-    if (!isObjType(args[0], .OBJ_HASH_TABLE)) {
-        runtimeError("First argument must be a hash table.", .{});
-        return Value.init_nil();
-    }
-    if (!isObjType(args[1], .OBJ_STRING)) {
-        runtimeError("Second argument must be a string.", .{});
-        return Value.init_nil();
-    }
-    var h: [*c]ObjHashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
-    _ = &h;
-    var key: [*c]ObjString = @as([*c]ObjString, @ptrCast(@alignCast(args[1].as.obj)));
-    _ = &key;
-    return Value{
-        .type = .VAL_BOOL,
-        .as = .{
-            .boolean = obj_h.putHashTable(h, key, args[2]),
-        },
-    };
-}
-pub fn get_nf(argCount: c_int, args: [*c]Value) Value {
-    _ = &argCount;
-
-    _ = &args;
-    if (argCount != @as(c_int, 2)) {
-        runtimeError("get() takes 2 arguments.", .{});
-        return Value.init_nil();
-    }
-    if (!isObjType(args[0], .OBJ_HASH_TABLE)) {
-        runtimeError("First argument must be a hash table.", .{});
-        return Value.init_nil();
-    }
-    if (!isObjType(args[1], .OBJ_STRING)) {
-        runtimeError("Second argument must be a string.", .{});
-        return Value.init_nil();
-    }
-    var h: [*c]ObjHashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
-    _ = &h;
-    var key: [*c]ObjString = @as([*c]ObjString, @ptrCast(@alignCast(args[1].as.obj)));
-    _ = &key;
-    return obj_h.getHashTable(h, key);
-}
-pub fn remove_nf(argCount: c_int, args: [*c]Value) Value {
-    _ = &argCount;
-
-    _ = &args;
-    if (argCount != @as(c_int, 2)) {
-        runtimeError("remove() takes 2 arguments.", .{});
-        return Value.init_nil();
-    }
-    if (!isObjType(args[0], .OBJ_HASH_TABLE) and (notObjTypes(ObjTypeCheckParams{
+    // Check if first argument is a float vector
+    if (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_FVECTOR,
         .count = 1,
-    }))) {
-        runtimeError("First argument must be a hash table, array, or float vector.", .{});
+    })) {
+        runtimeError("First argument must be a vector.", .{});
         return Value.init_nil();
     }
-    if (!isObjType(args[1], .OBJ_STRING) and !((args[1].type == .VAL_INT) or (args[1].is_double()))) {
-        runtimeError("Second argument must be a string or number.", .{});
-        return Value.init_nil();
-    }
-    while (true) {
-        switch (args[0].as.obj.*.type) {
-            .OBJ_HASH_TABLE => {
-                {
-                    var h: [*c]ObjHashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
-                    _ = &h;
-                    var key: [*c]ObjString = @as([*c]ObjString, @ptrCast(@alignCast(args[1].as.obj)));
-                    _ = &key;
-                    return Value{
-                        .type = .VAL_BOOL,
-                        .as = .{
-                            .boolean = obj_h.removeHashTable(h, key),
-                        },
-                    };
-                }
-            },
-            .OBJ_FVECTOR => {
-                {
-                    return Value{
-                        .type = .VAL_DOUBLE,
-                        .as = .{
-                            .num_double = fvec.removeFloatVector(@as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj))), if (args[1].is_double()) @intFromFloat(args[1].as_num_double()) else args[1].as.num_int),
-                        },
-                    };
-                }
-            },
-            else => {
-                {
-                    runtimeError("Argument must be a hash table, array or float vector.", .{});
-                    return Value.init_nil();
-                }
-            },
-        }
-        break;
-    }
-    return Value.init_nil();
-}
-pub fn push_front_nf(argCount: c_int, args: [*c]Value) Value {
-    _ = &argCount;
 
-    _ = &args;
-    if (!isObjType(args[0], .OBJ_LINKED_LIST)) {
-        runtimeError("First argument must be a linked list.", .{});
+    // Process the float vector
+    const vector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
+    return Value.init_double(FloatVector.mean(vector));
+}
+
+pub fn std_nf(argCount: c_int, args: [*c]Value) Value {
+    // Validate argument count
+    if (!validateArgCount(argCount, 1, "std")) {
         return Value.init_nil();
     }
-    var l: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
-    _ = &l;
+
+    // Check if first argument is a float vector
+    if (notObjTypes(ObjTypeCheckParams{
+        .values = args,
+        .objType = .OBJ_FVECTOR,
+        .count = 1,
+    })) {
+        runtimeError("First argument must be a vector.", .{});
+        return Value.init_nil();
+    }
+
+    // Process the float vector
+    const vector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
+    return Value.init_double(FloatVector.stdDev(vector));
+}
+
+pub fn var_nf(argCount: c_int, args: [*c]Value) Value {
+    // Validate argument count
+    if (!validateArgCount(argCount, 1, "var")) {
+        return Value.init_nil();
+    }
+
+    // Check if first argument is a float vector
+    if (notObjTypes(ObjTypeCheckParams{
+        .values = args,
+        .objType = .OBJ_FVECTOR,
+        .count = 1,
+    })) {
+        runtimeError("First argument must be a vector.", .{});
+        return Value.init_nil();
+    }
+
+    // Process the float vector
+    const vector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
+    return Value.init_double(FloatVector.variance(vector));
+}
+
+pub fn maxl_nf(argCount: c_int, args: [*c]Value) Value {
+    // Validate argument count
+    if (!validateArgCount(argCount, 1, "maxl")) {
+        return Value.init_nil();
+    }
+
+    // Check if first argument is a float vector
+    if (notObjTypes(ObjTypeCheckParams{
+        .values = args,
+        .objType = .OBJ_FVECTOR,
+        .count = 1,
+    })) {
+        runtimeError("First argument must be a vector.", .{});
+        return Value.init_nil();
+    }
+
+    // Process the float vector
+    const vector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
+    return Value.init_double(fvec.maxFloatVector(vector));
+}
+
+pub fn minl_nf(argCount: c_int, args: [*c]Value) Value {
+    // Validate argument count
+    if (!validateArgCount(argCount, 1, "minl")) {
+        return Value.init_nil();
+    }
+
+    // Check if first argument is a float vector
+    if (notObjTypes(ObjTypeCheckParams{
+        .values = args,
+        .objType = .OBJ_FVECTOR,
+        .count = 1,
+    })) {
+        runtimeError("First argument must be a vector.", .{});
+        return Value.init_nil();
+    }
+
+    // Process the float vector
+    const vector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
+    return Value.init_double(fvec.minFloatVector(vector));
+}
+
+pub fn dot_nf(argCount: c_int, args: [*c]Value) Value {
+    // Validate argument count
+    if (!validateArgCount(argCount, 2, "dot")) {
+        return Value.init_nil();
+    }
+
+    // Check if both arguments are float vectors
+    if (notObjTypes(ObjTypeCheckParams{
+        .values = args,
+        .objType = .OBJ_FVECTOR,
+        .count = 2,
+    })) {
+        runtimeError("Both arguments must be vectors.", .{});
+        return Value.init_nil();
+    }
+
+    // Process the vectors
+    const vecA = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
+    const vecB = @as([*c]FloatVector, @ptrCast(@alignCast(args[1].as.obj)));
+
+    return Value.init_double(fvec.dotProduct(vecA, vecB));
+}
+
+pub fn cross_nf(argCount: c_int, args: [*c]Value) Value {
+    // Validate argument count
+    if (!validateArgCount(argCount, 2, "cross")) {
+        return Value.init_nil();
+    }
+
+    // Check if both arguments are float vectors
+    if (notObjTypes(ObjTypeCheckParams{
+        .values = args,
+        .objType = .OBJ_FVECTOR,
+        .count = 2,
+    })) {
+        runtimeError("Both arguments must be vectors.", .{});
+        return Value.init_nil();
+    }
+
+    // Process the vectors
+    const vecA = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
+    const vecB = @as([*c]FloatVector, @ptrCast(@alignCast(args[1].as.obj)));
+    const result = fvec.crossProduct(vecA, vecB);
+
+    return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(result))));
+}
+
+pub fn norm_nf(argCount: c_int, args: [*c]Value) Value {
+    // Validate argument count
+    if (!validateArgCount(argCount, 1, "norm")) {
+        return Value.init_nil();
+    }
+
+    // Check if argument is a float vector
+    if (notObjTypes(ObjTypeCheckParams{
+        .values = args,
+        .objType = .OBJ_FVECTOR,
+        .count = 1,
+    })) {
+        runtimeError("First argument must be a vector.", .{});
+        return Value.init_nil();
+    }
+
+    // Process the vector
+    const vector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
+    const result = fvec.normalize(vector);
+
+    return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(result))));
+}
+
+pub fn proj_nf(argCount: c_int, args: [*c]Value) Value {
+    // Validate argument count
+    if (!validateArgCount(argCount, 2, "proj")) {
+        return Value.init_nil();
+    }
+
+    // Check if both arguments are float vectors
+    if (notObjTypes(ObjTypeCheckParams{
+        .values = args,
+        .objType = .OBJ_FVECTOR,
+        .count = 2,
+    })) {
+        runtimeError("Both arguments must be vectors.", .{});
+        return Value.init_nil();
+    }
+
+    // Process the vectors
+    const vecA = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
+    const vecB = @as([*c]FloatVector, @ptrCast(@alignCast(args[1].as.obj)));
+    const result = fvec.projection(vecA, vecB);
+
+    return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(result))));
+}
+
+pub fn reject_nf(argCount: c_int, args: [*c]Value) Value {
+    // Validate argument count
+    if (!validateArgCount(argCount, 2, "reject")) {
+        return Value.init_nil();
+    }
+
+    // Check if both arguments are float vectors
+    if (notObjTypes(ObjTypeCheckParams{
+        .values = args,
+        .objType = .OBJ_FVECTOR,
+        .count = 2,
+    })) {
+        runtimeError("Both arguments must be vectors.", .{});
+        return Value.init_nil();
+    }
+
+    // Process the vectors
+    const vecA = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
+    const vecB = @as([*c]FloatVector, @ptrCast(@alignCast(args[1].as.obj)));
+    const result = fvec.rejection(vecA, vecB);
+
+    return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(result))));
+}
+
+pub fn reflect_nf(argCount: c_int, args: [*c]Value) Value {
+    // Validate argument count
+    if (!validateArgCount(argCount, 2, "reflect")) {
+        return Value.init_nil();
+    }
+
+    // Check if both arguments are float vectors
+    if (notObjTypes(ObjTypeCheckParams{
+        .values = args,
+        .objType = .OBJ_FVECTOR,
+        .count = 2,
+    })) {
+        runtimeError("Both arguments must be vectors.", .{});
+        return Value.init_nil();
+    }
+
+    // Process the vectors
+    const vecA = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
+    const vecB = @as([*c]FloatVector, @ptrCast(@alignCast(args[1].as.obj)));
+    const result = fvec.reflection(vecA, vecB);
+
+    return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(result))));
+}
+
+pub fn refract_nf(argCount: c_int, args: [*c]Value) Value {
+    // Validate argument count
+    if (!validateArgCount(argCount, 4, "refract")) {
+        return Value.init_nil();
+    }
+
+    // Check if first two arguments are float vectors
+    if (notObjTypes(ObjTypeCheckParams{
+        .values = args,
+        .objType = .OBJ_FVECTOR,
+        .count = 2,
+    })) {
+        runtimeError("First and second arguments must be vectors.", .{});
+        return Value.init_nil();
+    }
+
+    // Check if third and fourth arguments are numbers
+    if (!(args[2].is_int() or args[2].is_double()) or
+        !(args[3].is_int() or args[3].is_double()))
     {
-        var i: c_int = 1;
-        _ = &i;
-        while (i < argCount) : (i += 1) {
-            obj_h.pushFront(l, (blk: {
-                const tmp = i;
-                if (tmp >= 0) break :blk args + @as(usize, @intCast(tmp)) else break :blk args - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-            }).*);
-        }
+        runtimeError("Third and fourth arguments must be numbers.", .{});
+        return Value.init_nil();
     }
-    return Value.init_nil();
-}
-pub fn pop_front_nf(argCount: c_int, args: [*c]Value) Value {
-    _ = &argCount;
 
-    _ = &args;
+    // Process the inputs
+    const vecA = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
+    const vecB = @as([*c]FloatVector, @ptrCast(@alignCast(args[1].as.obj)));
+    const n1 = args[2].as_num_double();
+    const n2 = args[3].as_num_double();
+
+    const result = fvec.refraction(vecA, vecB, n1, n2);
+
+    return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(result))));
+}
+
+pub fn angle_nf(argCount: c_int, args: [*c]Value) Value {
+    // Validate argument count
+    if (!validateArgCount(argCount, 2, "angle")) {
+        return Value.init_nil();
+    }
+
+    // Check if both arguments are float vectors
+    if (notObjTypes(ObjTypeCheckParams{
+        .values = args,
+        .objType = .OBJ_FVECTOR,
+        .count = 2,
+    })) {
+        runtimeError("Both arguments must be vectors.", .{});
+        return Value.init_nil();
+    }
+
+    // Process the vectors
+    const vecA = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
+    const vecB = @as([*c]FloatVector, @ptrCast(@alignCast(args[1].as.obj)));
+    const result = fvec.angle(vecA, vecB);
+
+    return Value.init_double(result);
+}
+
+pub fn put_nf(argCount: c_int, args: [*c]Value) Value {
+    // Validate argument count
+    if (!validateArgCount(argCount, 3, "put")) {
+        return Value.init_nil();
+    }
+
+    // Check if first argument is a hash table
+    if (!isObjType(args[0], .OBJ_HASH_TABLE)) {
+        runtimeError("First argument must be a hash table.", .{});
+        return Value.init_nil();
+    }
+
+    // Check if second argument is a string
+    if (!isObjType(args[1], .OBJ_STRING)) {
+        runtimeError("Second argument must be a string.", .{});
+        return Value.init_nil();
+    }
+
+    // Process the hash table operation
+    const hashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
+    const key = @as([*c]ObjString, @ptrCast(@alignCast(args[1].as.obj)));
+
+    return Value.init_bool(obj_h.putHashTable(hashTable, key, args[2]));
+}
+
+pub fn get_nf(argCount: c_int, args: [*c]Value) Value {
+    // Validate argument count
+    if (!validateArgCount(argCount, 2, "get")) {
+        return Value.init_nil();
+    }
+
+    // Check if first argument is a hash table
+    if (!isObjType(args[0], .OBJ_HASH_TABLE)) {
+        runtimeError("First argument must be a hash table.", .{});
+        return Value.init_nil();
+    }
+
+    // Check if second argument is a string
+    if (!isObjType(args[1], .OBJ_STRING)) {
+        runtimeError("Second argument must be a string.", .{});
+        return Value.init_nil();
+    }
+
+    // Process the hash table operation
+    const hashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
+    const key = @as([*c]ObjString, @ptrCast(@alignCast(args[1].as.obj)));
+
+    return obj_h.getHashTable(hashTable, key);
+}
+
+pub fn remove_nf(argCount: c_int, args: [*c]Value) Value {
+    // Validate argument count
+    if (!validateArgCount(argCount, 2, "remove")) {
+        return Value.init_nil();
+    }
+
+    // Verify the first argument is a valid container type
+    const isHashTable = isObjType(args[0], .OBJ_HASH_TABLE);
+    const isVector = isObjType(args[0], .OBJ_FVECTOR);
+
+    if (!isHashTable and !isVector) {
+        runtimeError("First argument must be a hash table or float vector.", .{});
+        return Value.init_nil();
+    }
+
+    // Check second argument based on container type
+    if (isHashTable and !isObjType(args[1], .OBJ_STRING)) {
+        runtimeError("For hash tables, second argument must be a string.", .{});
+        return Value.init_nil();
+    } else if (isVector and !(args[1].is_int() or args[1].is_double())) {
+        runtimeError("For vectors, second argument must be a number.", .{});
+        return Value.init_nil();
+    }
+
+    // Process the removal based on container type
+    switch (args[0].as.obj.*.type) {
+        .OBJ_HASH_TABLE => {
+            const hashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
+            const key = @as([*c]ObjString, @ptrCast(@alignCast(args[1].as.obj)));
+            return Value.init_bool(obj_h.removeHashTable(hashTable, key));
+        },
+        .OBJ_FVECTOR => {
+            const vector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
+            const index = args[1].as_num_int();
+
+            return Value.init_double(fvec.removeFloatVector(vector, index));
+        },
+        else => {
+            // This should never be reached due to type checking above
+            runtimeError("Unsupported container type.", .{});
+            return Value.init_nil();
+        },
+    }
+}
+
+pub fn push_front_nf(argCount: c_int, args: [*c]Value) Value {
+    // Validate minimum argument count
+    if (!validateMinArgCount(argCount, 2, "push_front")) {
+        return Value.init_nil();
+    }
+
+    // Check if first argument is a linked list
     if (!isObjType(args[0], .OBJ_LINKED_LIST)) {
         runtimeError("First argument must be a linked list.", .{});
         return Value.init_nil();
     }
-    var l: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
-    _ = &l;
-    return obj_h.popFront(l);
+
+    // Process the linked list operation
+    const list = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
+
+    for (1..@intCast(argCount)) |i| {
+        obj_h.pushFront(list, args[i]);
+    }
+
+    return Value.init_nil();
+}
+
+pub fn pop_front_nf(argCount: c_int, args: [*c]Value) Value {
+    // Validate argument count
+    if (!validateArgCount(argCount, 1, "pop_front")) {
+        return Value.init_nil();
+    }
+
+    // Check if first argument is a linked list
+    if (!isObjType(args[0], .OBJ_LINKED_LIST)) {
+        runtimeError("First argument must be a linked list.", .{});
+        return Value.init_nil();
+    }
+
+    // Process the linked list operation
+    const list = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
+    return obj_h.popFront(list);
 }
 
 pub fn workspace_nf(argCount: c_int, args: [*c]Value) Value {
-    _ = &argCount;
-
     _ = &args;
-    if (argCount != 0) {
-        runtimeError("workspace() takes no arguments.", .{});
+    // Validate argument count
+    if (!validateArgCount(argCount, 0, "workspace")) {
         return Value.init_nil();
     }
-    var e: [*c]Entry = entries_(&vm_h.vm.globals);
-    _ = &e;
+
+    // Get the global variable entries
+    const entries = entries_(&vm_h.vm.globals);
+
+    // Print header
     print("Workspace:\n", .{});
-    {
-        var i: c_int = 0;
-        _ = &i;
-        while (i < vm_h.vm.globals.capacity) : (i += 1) {
-            if (((blk: {
-                const tmp = i;
-                if (tmp >= 0) break :blk e + @as(usize, @intCast(tmp)) else break :blk e - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-            }).*.key != @as([*c]ObjString, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) and !isObjType((blk: {
-                const tmp = i;
-                if (tmp >= 0) break :blk e + @as(usize, @intCast(tmp)) else break :blk e - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-            }).*.value, .OBJ_NATIVE)) {
-                print("{s}: ", .{(blk: {
-                    const tmp = i;
-                    if (tmp >= 0) break :blk e + @as(usize, @intCast(tmp)) else break :blk e - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                }).*.key.*.chars});
-                value_h.printValue((blk: {
-                    const tmp = i;
-                    if (tmp >= 0) break :blk e + @as(usize, @intCast(tmp)) else break :blk e - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                }).*.value);
-                print("\n", .{});
-            }
+
+    // Iterate through all entries
+    for (0..@intCast(vm_h.vm.globals.capacity)) |i| {
+        const entry = &entries[i];
+
+        // Check if entry is valid and not a native function
+        if (entry.*.key != null and !isObjType(entry.*.value, .OBJ_NATIVE)) {
+            // Print variable name and value
+            print("{s}: ", .{entry.*.key.*.chars});
+            value_h.printValue(entry.*.value);
+            print("\n", .{});
         }
     }
+
     return Value.init_nil();
 }
+
 pub fn linspace_nf(argCount: c_int, args: [*c]Value) Value {
-    _ = &argCount;
+    // Validate argument count
+    if (!validateArgCount(argCount, 3, "linspace")) {
+        return Value.init_nil();
+    }
 
-    _ = &args;
-    if (argCount != @as(c_int, 3)) {
-        runtimeError("linspace() takes 3 arguments.", .{});
+    // Validate numeric arguments
+    if (!(args[0].is_int() or args[0].is_double()) or
+        !(args[1].is_int() or args[1].is_double()) or
+        !(args[2].is_int() or args[2].is_double()))
+    {
+        runtimeError("All three arguments must be numbers.", .{});
         return Value.init_nil();
     }
-    if ((!((args[0].type == .VAL_INT) or (args[0].is_double())) and !((args[1].type == .VAL_INT) or (args[1].is_double()))) and !((args[2].type == .VAL_INT) or (args[2].type == .VAL_DOUBLE))) {
-        runtimeError("First and second arguments must be numbers and the third argument must be an numbers.", .{});
-        return Value.init_nil();
-    }
-    var start: f64 = if (args[0].type == .VAL_INT) @floatFromInt(args[0].as.num_int) else args[0].as_num_double();
-    _ = &start;
-    var end: f64 = if (args[1].type == .VAL_INT) @floatFromInt(args[1].as.num_int) else args[1].as_num_double();
-    _ = &end;
-    var n: c_int = if (args[2].type == .VAL_DOUBLE) @intFromFloat(args[2].as.num_double) else args[2].as.num_int;
-    _ = &n;
-    var a: [*c]FloatVector = fvec.linspace(start, end, n);
-    _ = &a;
-    return Value{
-        .type = .VAL_OBJ,
-        .as = .{
-            .obj = @as([*c]Obj, @ptrCast(@alignCast(a))),
-        },
-    };
+
+    // Extract parameters
+    const start = args[0].as_num_double();
+    const end = args[1].as_num_double();
+    const n = args[2].as_num_int();
+
+    // Create linearly spaced vector
+    const result = fvec.linspace(start, end, n);
+
+    return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(result))));
 }
+
 pub fn interp1_nf(argCount: c_int, args: [*c]Value) Value {
-    _ = &argCount;
-
-    _ = &args;
-    if (argCount != @as(c_int, 3)) {
-        runtimeError("interp1() takes 3 arguments.", .{});
+    // Validate argument count
+    if (!validateArgCount(argCount, 3, "interp1")) {
         return Value.init_nil();
     }
-    if ((!isObjType(args[0], .OBJ_FVECTOR) and !isObjType(args[1], .OBJ_FVECTOR)) and !((args[2].type == .VAL_INT) or (args[2].type == .VAL_DOUBLE))) {
-        runtimeError("First and second arguments must be vectors and the third argument must be a number.", .{});
+
+    // Check if first two arguments are vectors
+    if (!isObjType(args[0], .OBJ_FVECTOR) or !isObjType(args[1], .OBJ_FVECTOR)) {
+        runtimeError("First and second arguments must be vectors.", .{});
         return Value.init_nil();
     }
-    var x: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-    _ = &x;
-    var y: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(args[1].as.obj)));
-    _ = &y;
-    var x0: f64 = if (args[2].type == .VAL_INT) @floatFromInt(args[2].as.num_int) else args[2].as.num_double;
-    _ = &x0;
-    var result: f64 = fvec.interp1(x, y, x0);
-    _ = &result;
-    return Value{
-        .type = .VAL_DOUBLE,
-        .as = .{
-            .num_double = result,
-        },
-    };
-}
-pub fn simd_stat_nf(argCount: c_int, args: [*c]Value) Value {
-    _ = &argCount;
 
-    _ = &args;
-    if (argCount != 0) {
-        runtimeError("simd_stat() takes 0 arguments.", .{});
+    // Check if third argument is a number
+    if (!(args[2].is_int() or args[2].is_double())) {
+        runtimeError("Third argument must be a number.", .{});
+        return Value.init_nil();
     }
-    print("x86_64 SIMD AVX2 Enabled\n", .{});
-    return Value.init_nil();
+
+    // Extract parameters
+    const x = @as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
+    const y = @as([*c]FloatVector, @ptrCast(@alignCast(args[1].as.obj)));
+    const x0 = args[2].as_num_double();
+
+    // Perform interpolation
+    const result = fvec.interp1(x, y, x0);
+
+    return Value.init_double(result);
 }

@@ -2,7 +2,7 @@
 
 > This project uses the Zig `v0.13.0`
 
-🌐 [mufiz.mustafif.com](https://mufiz.mustafif.com)
+🌐 [mufi-lang.mokareads.org](https://mufi-lang.mokareads.org)
 
 This project aims to integrate the Mufi-Lang compiler with the Zig language by using the
 Zig Build system. We hope to integrate more features with this language and see how nicely

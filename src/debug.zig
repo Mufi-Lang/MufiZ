@@ -17,7 +17,7 @@ pub fn disassembleChunk(chunk: [*c]Chunk, name: [*c]const u8) void {
 
 pub fn disassembleInstruction(chunk: [*c]Chunk, offset: i32) i32 {
     print("{d:0>4} ", .{offset});
-    
+
     // Helper function to get line at a specific offset
     const getLine = struct {
         fn get(c: [*c]Chunk, pos: i32) i32 {
@@ -25,7 +25,7 @@ pub fn disassembleInstruction(chunk: [*c]Chunk, offset: i32) i32 {
             return c.*.lines[idx];
         }
     }.get;
-    
+
     // Helper function to get byte at a specific offset
     const getByte = struct {
         fn get(c: [*c]Chunk, pos: i32) u8 {
@@ -33,17 +33,17 @@ pub fn disassembleInstruction(chunk: [*c]Chunk, offset: i32) i32 {
             return c.*.code[idx];
         }
     }.get;
-    
+
     // Check if we're on the same line as the previous instruction
     if (offset > 0 and getLine(chunk, offset) == getLine(chunk, offset - 1)) {
         print("   | ", .{});
     } else {
         print("{d:4} ", .{getLine(chunk, offset)});
     }
-    
+
     // Get the instruction
     const instruction: u8 = getByte(chunk, offset);
-    
+
     // Dispatch based on opcode
     switch (instruction) {
         0 => return constantInstruction("OP_CONSTANT", chunk, offset),
@@ -83,13 +83,13 @@ pub fn disassembleInstruction(chunk: [*c]Chunk, offset: i32) i32 {
             var newOffset = offset + 1;
             const constant = getByte(chunk, newOffset);
             newOffset += 1;
-            
+
             print("{s: <16} {d:4}", .{ "OP_CLOSURE", constant });
             printValue(chunk.*.constants.values[constant]);
             print("\n", .{});
-            
+
             const function = @as([*c]ObjFunction, @ptrCast(@alignCast(chunk.*.constants.values[constant].as.obj)));
-            
+
             // Process upvalues
             var j: i32 = 0;
             while (j < function.*.upvalueCount) : (j += 1) {
@@ -97,14 +97,10 @@ pub fn disassembleInstruction(chunk: [*c]Chunk, offset: i32) i32 {
                 newOffset += 1;
                 const index = getByte(chunk, newOffset);
                 newOffset += 1;
-                
-                print("{d:0>4}      |                  {s} {d:0>4}\n", .{
-                    newOffset - 2, 
-                    if (isLocal) "local" else "upvalue", 
-                    index
-                });
+
+                print("{d:0>4}      |                  {s} {d:0>4}\n", .{ newOffset - 2, if (isLocal) "local" else "upvalue", index });
             }
-            
+
             return newOffset;
         },
         37 => return simpleInstruction("OP_CLOSE_UPVALUE", offset),
@@ -154,7 +150,7 @@ pub fn jumpInstruction(name: [*c]const u8, sign: i32, chunk: [*c]Chunk, offset: 
     const byte1: u8 = chunk.*.code[@intCast(offset + 1)];
     const byte2: u8 = chunk.*.code[@intCast(offset + 2)];
     const jump: u16 = (@as(u16, byte1) << 8) | byte2;
-    
+
     const jumpTarget = (offset + 3) + (sign * @as(i32, jump));
     print("{s: <16} {d:4} -> {d}\n", .{ name, offset, jumpTarget });
     return offset + 3;

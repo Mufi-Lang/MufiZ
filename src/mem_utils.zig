@@ -265,3 +265,194 @@ test "memcpyFast test" {
 
     try std.testing.expectEqualSlices(u8, &src, &dest);
 }
+
+///
+/// Computes the length of a null-terminated string.
+/// Uses a highly optimized approach with SIMD instructions for maximum performance.
+///
+/// @param s  Pointer to the null-terminated string
+///
+/// @return Length of the string, not including the null terminator
+///
+pub fn strlen(s: [*c]const u8) usize {
+    if (s == null) return 0;
+
+    const start_ptr = s;
+    var ptr = s;
+
+    // Fast path for short strings (avoid SIMD setup overhead)
+    // Check first 8 bytes directly
+    inline for (0..8) |i| {
+        if (ptr[i] == 0) {
+            return i;
+        }
+    }
+
+    // String is longer than 8 bytes
+    ptr = s + 8;
+
+    // If CPU supports AVX-2/SSE, use SIMD approach
+    if (@hasDecl(std.simd, "suggestVectorLength")) {
+        // Use SIMD vector operations
+        const Vec16 = @Vector(16, u8);
+        const zeros: Vec16 = @splat(0);
+
+        // Align to 16-byte boundary for optimal SIMD performance
+        const alignment_offset = @intFromPtr(ptr) & 0xF;
+        if (alignment_offset != 0) {
+            // Process bytes until aligned
+            const to_align = 16 - alignment_offset;
+            for (0..to_align) |_| {
+                if (ptr[0] == 0) {
+                    return @intFromPtr(ptr) - @intFromPtr(start_ptr);
+                }
+                ptr += 1;
+            }
+        }
+
+        // Main SIMD loop - process 16 bytes at a time
+        while (true) {
+            // Load 16 bytes and compare with zeros
+            const chunk = @as(*align(1) const Vec16, @ptrCast(ptr)).*;
+            const mask = chunk == zeros;
+
+            // Check if any byte is zero
+            if (@reduce(.Or, mask)) {
+                // Find which byte is zero
+                inline for (0..16) |i| {
+                    if (mask[i]) {
+                        return @intFromPtr(ptr) - @intFromPtr(start_ptr) + i;
+                    }
+                }
+            }
+
+            ptr += 16;
+        }
+    } else {
+        // Fallback to word-size optimized approach for platforms without SIMD
+        const uword = if (@sizeOf(usize) == 8) u64 else u32;
+        const word_size = @sizeOf(uword);
+
+        // Align to word boundary
+        while (@intFromPtr(ptr) & (word_size - 1) != 0) {
+            if (ptr[0] == 0) return @intFromPtr(ptr) - @intFromPtr(start_ptr);
+            ptr += 1;
+        }
+
+        // Process word at a time
+        const word_ptr = @as([*]const uword, @ptrCast(@alignCast(ptr)));
+        var idx: usize = 0;
+        while (true) {
+            // This magic detects null bytes in a word
+            const word = word_ptr[idx];
+            // (word - 0x01..) & ~word & 0x80.. detects null bytes
+            const has_zero = ((word -% comptime repeatedByte(0x01, word_size)) &
+                ~word & comptime repeatedByte(0x80, word_size)) != 0;
+
+            if (has_zero) {
+                // Found a null byte in this word
+                ptr = @ptrCast(word_ptr + idx);
+                // Find exact position
+                for (0..word_size) |i| {
+                    if (ptr[i] == 0) {
+                        return @intFromPtr(ptr) + i - @intFromPtr(start_ptr);
+                    }
+                }
+            }
+            idx += 1;
+        }
+    }
+}
+
+/// Helper function to create a word with repeated bytes
+fn repeatedByte(byte: u8, size: usize) usize {
+    var result: usize = 0;
+    var i: usize = 0;
+    while (i < size) : (i += 1) {
+        result = (result << 8) | byte;
+    }
+    return result;
+}
+
+test "strlen test" {
+    const str1 = "Hello";
+    const str2 = "Hello, World!";
+    const str3 = "";
+    const str4 = "This is a longer string that should exercise the SIMD path properly";
+    const str5 = "123";
+    const str6 = "12345678"; // Test exactly 8 bytes
+    const str7 = "123456789"; // Test just over 8 bytes
+    const str8 = "A string with exactly 36 characters."; // Test 36 bytes
+    const str9 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"; // 62 chars
+
+    try std.testing.expectEqual(@as(usize, 5), strlen(str1));
+    try std.testing.expectEqual(@as(usize, 13), strlen(str2));
+    try std.testing.expectEqual(@as(usize, 0), strlen(str3));
+    try std.testing.expectEqual(@as(usize, 67), strlen(str4));
+    try std.testing.expectEqual(@as(usize, 3), strlen(str5));
+    try std.testing.expectEqual(@as(usize, 8), strlen(str6));
+    try std.testing.expectEqual(@as(usize, 9), strlen(str7));
+    try std.testing.expectEqual(@as(usize, 36), strlen(str8));
+    try std.testing.expectEqual(@as(usize, 62), strlen(str9));
+
+    // Make sure null pointer is handled
+    try std.testing.expectEqual(@as(usize, 0), strlen(null));
+}
+
+pub fn memcmp(s1: ?*const anyopaque, s2: ?*const anyopaque, n: usize) c_int {
+    const str1: [*c]const u8 = @ptrCast(s1.?);
+    const str2: [*c]const u8 = @ptrCast(s2.?);
+    const num: usize = @intCast(n);
+
+    if (num == 0) return 0;
+
+    const ptr1 = @as([*]const u8, @ptrCast(str1));
+    const ptr2 = @as([*]const u8, @ptrCast(str2));
+    var offset: usize = 0;
+
+    // SIMD comparison using vector types (16 bytes at once)
+    const Vec16 = @Vector(16, u8);
+    while (offset + 16 <= num) {
+        const v1 = @as(*align(1) const Vec16, @ptrCast(ptr1 + offset)).*;
+        const v2 = @as(*align(1) const Vec16, @ptrCast(ptr2 + offset)).*;
+
+        // Compare 16 bytes at once
+        const mask = v1 != v2;
+        if (@reduce(.Or, mask)) {
+            // Find first differing byte in the SIMD vector
+            inline for (0..16) |i| {
+                if (mask[i]) {
+                    return @intCast(ptr1[offset + i] - ptr2[offset + i]);
+                }
+            }
+        }
+        offset += 16;
+    }
+
+    // Process 8 bytes at a time for the remainder
+    while (offset + 8 <= num) {
+        const v1 = @as(*align(1) const u64, @ptrCast(ptr1 + offset)).*;
+        const v2 = @as(*align(1) const u64, @ptrCast(ptr2 + offset)).*;
+        if (v1 != v2) {
+            // Find first differing byte
+            inline for (0..8) |i| {
+                const byte1 = @as(u8, @truncate(v1 >> @as(u6, @intCast(i * 8))));
+                const byte2 = @as(u8, @truncate(v2 >> @as(u6, @intCast(i * 8))));
+                if (byte1 != byte2) {
+                    return @intCast(byte1 - byte2);
+                }
+            }
+        }
+        offset += 8;
+    }
+
+    // Handle remaining bytes
+    while (offset < num) {
+        if (ptr1[offset] != ptr2[offset]) {
+            return @intCast(ptr1[offset] - ptr2[offset]);
+        }
+        offset += 1;
+    }
+
+    return 0;
+}

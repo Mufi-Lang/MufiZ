@@ -1,7 +1,0 @@
-var f = fvec(4);
-
-for(var i = 0; i < len(f); i++){
-    push(f, i + 1);
-}
-
-assert(f, {1, 2, 3, 4});

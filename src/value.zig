@@ -466,10 +466,12 @@ pub fn writeValueArray(array: [*c]ValueArray, value: Value) void {
     array.*.values[@intCast(array.*.count)] = value;
     array.*.count += 1;
 }
+
 pub fn freeValueArray(array: [*c]ValueArray) void {
     _ = reallocate(@ptrCast(array.*.values), @intCast(@sizeOf(Value) * array.*.capacity), 0);
     initValueArray(array);
 }
+
 pub fn printValue(value: Value) void {
     switch (value.type) {
         .VAL_BOOL => {
@@ -504,16 +506,16 @@ pub fn valueToString(value: Value) []const u8 {
         .VAL_BOOL => return if (value.as_bool()) "true" else "false",
         .VAL_NIL => return "nil",
         .VAL_INT => {
-            const s = std.fmt.allocPrint(std.heap.c_allocator, "{d}", .{value.as_int()}) catch unreachable;
+            const s = std.fmt.allocPrint(std.heap.page_allocator, "{d}", .{value.as_int()}) catch unreachable;
             return s;
         },
         .VAL_DOUBLE => {
-            const s = std.fmt.allocPrint(std.heap.c_allocator, "{d}", .{value.as_double()}) catch unreachable;
+            const s = std.fmt.allocPrint(std.heap.page_allocator, "{d}", .{value.as_double()}) catch unreachable;
             return s;
         },
         .VAL_COMPLEX => {
             const c = value.as_complex();
-            const s = std.fmt.allocPrint(std.heap.c_allocator, "{d} + {d}i", .{ c.r, c.i }) catch unreachable;
+            const s = std.fmt.allocPrint(std.heap.page_allocator, "{d} + {d}i", .{ c.r, c.i }) catch unreachable;
             return s;
         },
         .VAL_OBJ => {
