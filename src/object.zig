@@ -102,152 +102,148 @@ pub fn allocateObject(size: usize, type_: ObjType) [*c]Obj {
     return object;
 }
 
-pub inline fn OBJ_TYPE(value: anytype) @TypeOf(AS_OBJ(value).*.type) {
-    _ = &value;
+pub inline fn OBJ_TYPE(value: Value) ObjType {
     return AS_OBJ(value).*.type;
 }
-pub inline fn IS_BOUND_METHOD(value: anytype) @TypeOf(isObjType(value, .OBJ_BOUND_METHOD)) {
-    _ = &value;
-    return isObjType(value, .OBJ_BOUND_METHOD);
-}
-pub inline fn IS_CLASS(value: anytype) @TypeOf(isObjType(value, .OBJ_CLASS)) {
-    _ = &value;
-    return isObjType(value, .OBJ_CLASS);
-}
-pub inline fn IS_CLOSURE(value: anytype) @TypeOf(isObjType(value, .OBJ_CLOSURE)) {
-    _ = &value;
-    return isObjType(value, .OBJ_CLOSURE);
-}
-pub inline fn IS_FUNCTION(value: anytype) @TypeOf(isObjType(value, .OBJ_FUNCTION)) {
-    _ = &value;
-    return isObjType(value, .OBJ_FUNCTION);
-}
-pub inline fn IS_INSTANCE(value: anytype) @TypeOf(isObjType(value, .OBJ_INSTANCE)) {
-    _ = &value;
-    return isObjType(value, .OBJ_INSTANCE);
-}
-pub inline fn IS_NATIVE(value: anytype) @TypeOf(isObjType(value, .OBJ_NATIVE)) {
-    _ = &value;
-    return isObjType(value, .OBJ_NATIVE);
-}
-pub inline fn IS_STRING(value: anytype) @TypeOf(isObjType(value, .OBJ_STRING)) {
-    _ = &value;
-    return isObjType(value, .OBJ_STRING);
+
+// pub inline fn IS_BOUND_METHOD(value: Value) bool {
+//     return isObjType(value, .OBJ_BOUND_METHOD);
+// }
+
+// pub inline fn IS_CLASS(value: Value) bool {
+//     return isObjType(value, .OBJ_CLASS);
+// }
+// pub inline fn IS_CLOSURE(value: Value) bool {
+//     return isObjType(value, .OBJ_CLOSURE);
+// }
+
+// pub inline fn IS_FUNCTION(value: Value) bool {
+//     return isObjType(value, .OBJ_FUNCTION);
+// }
+
+// pub inline fn IS_INSTANCE(value: Value) bool {
+//     return isObjType(value, .OBJ_INSTANCE);
+// }
+
+// pub inline fn IS_NATIVE(value: Value) bool {
+//     return isObjType(value, .OBJ_NATIVE);
+// }
+
+// pub inline fn IS_STRING(value: Value) bool {
+//     return isObjType(value, .OBJ_STRING);
+// }
+
+// pub inline fn IS_LINKED_LIST(value: Value) bool {
+//     return isObjType(value, .OBJ_LINKED_LIST);
+// }
+
+// pub inline fn IS_HASH_TABLE(value: Value) bool {
+//     return isObjType(value, .OBJ_HASH_TABLE);
+// }
+
+// pub inline fn IS_FVECTOR(value: Value) bool {
+//     return isObjType(value, .OBJ_FVECTOR);
+// }
+
+pub inline fn NOT_LIST_TYPES(values: [*c]Value, n: c_int) bool {
+    return notObjTypes(ObjTypeCheckParams{
+        .values = values,
+        .objType = .OBJ_LINKED_LIST,
+        .count = n,
+    }) and notObjTypes(ObjTypeCheckParams{
+        .values = values,
+        .objType = .OBJ_FVECTOR,
+        .count = n,
+    });
 }
 
-pub inline fn IS_LINKED_LIST(value: anytype) @TypeOf(isObjType(value, .OBJ_LINKED_LIST)) {
-    _ = &value;
-    return isObjType(value, .OBJ_LINKED_LIST);
+pub inline fn NOT_COLLECTION_TYPES(values: [*c]Value, n: c_int) bool {
+    return notObjTypes(ObjTypeCheckParams{
+        .values = values,
+        .objType = .OBJ_HASH_TABLE,
+        .count = n,
+    }) and NOT_LIST_TYPES(values, n);
 }
-pub inline fn IS_HASH_TABLE(value: anytype) @TypeOf(isObjType(value, .OBJ_HASH_TABLE)) {
-    _ = &value;
-    return isObjType(value, .OBJ_HASH_TABLE);
-}
-
-pub inline fn IS_FVECTOR(value: anytype) @TypeOf(isObjType(value, .OBJ_FVECTOR)) {
-    _ = &value;
-    return isObjType(value, .OBJ_FVECTOR);
+pub inline fn AS_BOUND_METHOD(value: Value) *ObjBoundMethod {
+    return @ptrCast(AS_OBJ(value));
 }
 
-pub inline fn NOT_LIST_TYPES(values: anytype, n: anytype) bool {
-    return (notObjTypes(.{ values, .OBJ_LINKED_LIST, n }) and notObjTypes(.{ values, .OBJ_FVECTOR, n }));
-}
-pub inline fn NOT_COLLECTION_TYPES(values: anytype, n: anytype) bool {
-    return notObjTypes(.{ values, .OBJ_HASH_TABLE, n }) and NOT_LIST_TYPES(values, n);
-}
-pub inline fn AS_BOUND_METHOD(value: anytype) [*c]ObjBoundMethod {
-    _ = &value;
-    return @import("std").zig.c_translation.cast([*c]ObjBoundMethod, AS_OBJ(value));
-}
-pub inline fn AS_CLASS(value: anytype) [*c]ObjClass {
-    _ = &value;
-    return @import("std").zig.c_translation.cast([*c]ObjClass, AS_OBJ(value));
-}
-pub inline fn AS_CLOSURE(value: anytype) [*c]ObjClosure {
-    _ = &value;
-    return @import("std").zig.c_translation.cast([*c]ObjClosure, AS_OBJ(value));
-}
-pub inline fn AS_FUNCTION(value: anytype) [*c]ObjFunction {
-    _ = &value;
-    return @import("std").zig.c_translation.cast([*c]ObjFunction, AS_OBJ(value));
-}
-pub inline fn AS_INSTANCE(value: anytype) [*c]ObjInstance {
-    _ = &value;
-    return @import("std").zig.c_translation.cast([*c]ObjInstance, AS_OBJ(value));
-}
-pub inline fn AS_NATIVE(value: anytype) @TypeOf(@import("std").zig.c_translation.cast([*c]ObjNative, AS_OBJ(value)).*.function) {
-    _ = &value;
-    return @import("std").zig.c_translation.cast([*c]ObjNative, AS_OBJ(value)).*.function;
-}
-pub inline fn AS_STRING(value: anytype) [*c]ObjString {
-    _ = &value;
-    return @import("std").zig.c_translation.cast([*c]ObjString, AS_OBJ(value));
-}
-pub inline fn AS_CSTRING(value: anytype) @TypeOf(@import("std").zig.c_translation.cast([*c]ObjString, AS_OBJ(value)).*.chars) {
-    _ = &value;
-    return @import("std").zig.c_translation.cast([*c]ObjString, AS_OBJ(value)).*.chars;
+pub inline fn AS_CLASS(value: Value) *ObjClass {
+    return @ptrCast(AS_OBJ(value));
 }
 
-pub inline fn AS_LINKED_LIST(value: anytype) [*c]ObjLinkedList {
-    _ = &value;
-    return @import("std").zig.c_translation.cast([*c]ObjLinkedList, AS_OBJ(value));
-}
-pub inline fn AS_HASH_TABLE(value: anytype) [*c]ObjHashTable {
-    _ = &value;
-    return @import("std").zig.c_translation.cast([*c]ObjHashTable, AS_OBJ(value));
+pub inline fn AS_CLOSURE(value: Value) *ObjClosure {
+    return @ptrCast(AS_OBJ(value));
 }
 
-pub inline fn AS_FVECTOR(value: anytype) [*c]FloatVector {
-    _ = &value;
-    return @import("std").zig.c_translation.cast([*c]FloatVector, AS_OBJ(value));
+pub inline fn AS_FUNCTION(value: Value) *ObjFunction {
+    return @ptrCast(AS_OBJ(value));
 }
 
-pub fn newBoundMethod(arg_receiver: Value, arg_method: [*c]ObjClosure) [*c]ObjBoundMethod {
-    var receiver = arg_receiver;
-    _ = &receiver;
-    var method = arg_method;
-    _ = &method;
-    var bound: [*c]ObjBoundMethod = @as([*c]ObjBoundMethod, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjBoundMethod), .OBJ_BOUND_METHOD))));
-    _ = &bound;
+pub inline fn AS_INSTANCE(value: Value) *ObjInstance {
+    return @ptrCast(AS_OBJ(value));
+}
+
+pub inline fn AS_NATIVE(value: Value) *ObjNative {
+    return @ptrCast(AS_OBJ(value));
+}
+
+pub inline fn AS_STRING(value: Value) *ObjString {
+    return @ptrCast(AS_OBJ(value));
+}
+
+pub inline fn AS_CSTRING(value: Value) [*:0]const u8 {
+    return AS_STRING(value).chars;
+}
+
+pub inline fn AS_LINKED_LIST(value: Value) *ObjLinkedList {
+    return @ptrCast(AS_OBJ(value));
+}
+
+pub inline fn AS_HASH_TABLE(value: Value) *ObjHashTable {
+    return @ptrCast(AS_OBJ(value));
+}
+
+pub inline fn AS_FVECTOR(value: Value) *FloatVector {
+    return @ptrCast(AS_OBJ(value));
+}
+
+pub fn newBoundMethod(receiver: Value, method: [*c]ObjClosure) [*c]ObjBoundMethod {
+    const bound: [*c]ObjBoundMethod = @as([*c]ObjBoundMethod, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjBoundMethod), .OBJ_BOUND_METHOD))));
     bound.*.receiver = receiver;
     bound.*.method = method;
     return bound;
 }
-pub fn newClass(arg_name: [*c]ObjString) [*c]ObjClass {
-    var name = arg_name;
-    _ = &name;
-    var klass: [*c]ObjClass = @as([*c]ObjClass, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjClass), .OBJ_CLASS))));
-    _ = &klass;
+pub fn newClass(name: [*c]ObjString) [*c]ObjClass {
+    const klass: [*c]ObjClass = @as([*c]ObjClass, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjClass), .OBJ_CLASS))));
     klass.*.name = name;
     table_h.initTable(&klass.*.methods);
     return klass;
 }
-pub fn newClosure(arg_function: [*c]ObjFunction) [*c]ObjClosure {
-    var function = arg_function;
-    _ = &function;
-    var upvalues: [*c][*c]ObjUpvalue = @as([*c][*c]ObjUpvalue, @ptrCast(@alignCast(reallocate(null, 0, @intCast(@sizeOf([*c]ObjUpvalue) *% function.*.upvalueCount)))));
-    _ = &upvalues;
-    {
-        var i: c_int = 0;
-        _ = &i;
-        while (i < function.*.upvalueCount) : (i += 1) {
-            (blk: {
-                const tmp = i;
-                if (tmp >= 0) break :blk upvalues + @as(usize, @intCast(tmp)) else break :blk upvalues - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-            }).* = null;
-        }
+pub fn newClosure(function: [*c]ObjFunction) [*c]ObjClosure {
+    // Allocate memory for upvalues array
+    const upvalueCount = function.*.upvalueCount;
+    var upvalues = @as([*c][*c]ObjUpvalue, @ptrCast(@alignCast(reallocate(null, 0, @intCast(@sizeOf([*c]ObjUpvalue) *% upvalueCount)))));
+
+    // Initialize upvalues to null
+    var i: c_int = 0;
+    while (i < upvalueCount) : (i += 1) {
+        upvalues[@intCast(i)] = null;
     }
-    var closure: [*c]ObjClosure = @as([*c]ObjClosure, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjClosure), .OBJ_CLOSURE))));
-    _ = &closure;
+
+    // Create the closure object
+    const closure = @as([*c]ObjClosure, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjClosure), .OBJ_CLOSURE))));
+
+    // Set closure properties
     closure.*.function = function;
     closure.*.upvalues = upvalues;
-    closure.*.upvalueCount = function.*.upvalueCount;
+    closure.*.upvalueCount = upvalueCount;
+
     return closure;
 }
 
 pub fn newFunction() [*c]ObjFunction {
-    var function: [*c]ObjFunction = @as([*c]ObjFunction, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjFunction), .OBJ_FUNCTION))));
-    _ = &function;
+    const function: [*c]ObjFunction = @as([*c]ObjFunction, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjFunction), .OBJ_FUNCTION))));
     function.*.arity = 0;
     function.*.upvalueCount = 0;
     function.*.name = null;
@@ -255,39 +251,37 @@ pub fn newFunction() [*c]ObjFunction {
     return function;
 }
 
-pub fn newInstance(arg_klass: [*c]ObjClass) [*c]ObjInstance {
-    var klass = arg_klass;
-    _ = &klass;
-    var instance: [*c]ObjInstance = @as([*c]ObjInstance, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjInstance), .OBJ_INSTANCE))));
-    _ = &instance;
+pub fn newInstance(klass: [*c]ObjClass) [*c]ObjInstance {
+    const instance: [*c]ObjInstance = @as([*c]ObjInstance, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjInstance), .OBJ_INSTANCE))));
     instance.*.klass = klass;
     table_h.initTable(&instance.*.fields);
     return instance;
 }
 
-pub fn newNative(arg_function: NativeFn) [*c]ObjNative {
-    var function = arg_function;
-    _ = &function;
-    var native: [*c]ObjNative = @as([*c]ObjNative, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjNative), .OBJ_NATIVE))));
-    _ = &native;
+pub fn newNative(function: NativeFn) [*c]ObjNative {
+    const native: [*c]ObjNative = @as([*c]ObjNative, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjNative), .OBJ_NATIVE))));
     native.*.function = function;
     return native;
 }
 
 pub const AllocStringParams = extern struct {
-    chars: [*c]u8 = @import("std").mem.zeroes([*c]u8),
+    chars: [*c]u8,
     length: c_int,
-    hash: u64 = @import("std").mem.zeroes(u64),
+    hash: u64,
 };
 
-pub fn allocateString(arg_params: AllocStringParams) [*c]ObjString {
-    var params = arg_params;
-    _ = &params;
-    var string: [*c]ObjString = @as([*c]ObjString, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjString), .OBJ_STRING))));
-    _ = &string;
+pub fn allocateString(params: AllocStringParams) [*c]ObjString {
+    // Create a new ObjString
+    const string = @as([*c]ObjString, @ptrCast(@alignCast(
+        allocateObject(@sizeOf(ObjString), .OBJ_STRING)
+    )));
+    
+    // Initialize string properties
     string.*.length = params.length;
     string.*.chars = params.chars;
     string.*.hash = params.hash;
+    
+    // Add to VM string table to enable string interning
     push(Value{
         .type = .VAL_OBJ,
         .as = .{
@@ -296,6 +290,7 @@ pub fn allocateString(arg_params: AllocStringParams) [*c]ObjString {
     });
     _ = table_h.tableSet(&vm_h.vm.strings, string, Value.init_nil());
     _ = pop();
+    
     return string;
 }
 
@@ -311,19 +306,19 @@ pub fn hashString(key: [*c]const u8, length: c_int) u64 {
     return hash;
 }
 
-pub fn takeString(arg_chars: [*c]u8, arg_length: c_int) [*c]ObjString {
-    var chars = arg_chars;
-    _ = &chars;
-    var length = arg_length;
-    _ = &length;
-    var hash: u64 = hashString(chars, length);
-    _ = &hash;
-    var interned: [*c]ObjString = table_h.tableFindString(&vm_h.vm.strings, chars, length, hash);
-    _ = &interned;
+pub fn takeString(chars: [*c]u8, length: c_int) [*c]ObjString {
+    // Compute the hash of the string
+    const hash = hashString(chars, length);
+    
+    // Check if the string is already interned
+    const interned = table_h.tableFindString(&vm_h.vm.strings, chars, length, hash);
     if (interned != null) {
+        // Free the passed-in memory as we'll use the interned version
         _ = reallocate(@as(?*anyopaque, @ptrCast(chars)), @intCast(@sizeOf(u8) *% length + 1), 0);
         return interned;
     }
+    
+    // Create a new string object with the passed-in characters
     return allocateString(AllocStringParams{
         .chars = chars,
         .length = length,
@@ -331,23 +326,31 @@ pub fn takeString(arg_chars: [*c]u8, arg_length: c_int) [*c]ObjString {
     });
 }
 
-pub fn copyString(arg_chars: [*c]const u8, arg_length: c_int) [*c]ObjString {
-    var chars = arg_chars;
-    _ = &chars;
-    var length = arg_length;
-    _ = &length;
-    var hash: u64 = hashString(chars, length);
-    _ = &hash;
-    var interned: [*c]ObjString = table_h.tableFindString(&vm_h.vm.strings, chars, length, hash);
-    _ = &interned;
+pub fn copyString(chars: [*c]const u8, length: c_int) [*c]ObjString {
+    // Compute the hash of the string
+    const hash = hashString(chars, length);
+    
+    // Check if the string is already interned
+    const interned = table_h.tableFindString(&vm_h.vm.strings, chars, length, hash);
     if (interned != null) return interned;
-    var heapChars: [*c]u8 = @as([*c]u8, @ptrCast(@alignCast(reallocate(null, 0, @intCast(@sizeOf(u8) *% length + 1)))));
-    _ = &heapChars;
-    _ = memcpy(@as(?*anyopaque, @ptrCast(heapChars)), @as(?*const anyopaque, @ptrCast(chars)), @intCast(length));
+    
+    // Allocate space for the new string and copy the characters
+    const heapChars = @as([*c]u8, @ptrCast(@alignCast(
+        reallocate(null, 0, @intCast(@sizeOf(u8) *% length + 1))
+    )));
+    
+    // Copy the string contents
+    _ = memcpy(@as(?*anyopaque, @ptrCast(heapChars)), 
+              @as(?*const anyopaque, @ptrCast(chars)), 
+              @intCast(length));
+    
+    // Add null terminator
     (blk: {
         const tmp = length;
         if (tmp >= 0) break :blk heapChars + @as(usize, @intCast(tmp)) else break :blk heapChars - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
     }).* = '\x00';
+    
+    // Create a new string object
     return allocateString(AllocStringParams{
         .chars = heapChars,
         .length = length,
@@ -355,31 +358,26 @@ pub fn copyString(arg_chars: [*c]const u8, arg_length: c_int) [*c]ObjString {
     });
 }
 
-pub fn newUpvalue(arg_slot: [*c]Value) [*c]ObjUpvalue {
-    var slot = arg_slot;
-    _ = &slot;
-    var upvalue: [*c]ObjUpvalue = @as([*c]ObjUpvalue, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjUpvalue), .OBJ_UPVALUE))));
-    _ = &upvalue;
+pub fn newUpvalue(slot: [*c]Value) [*c]ObjUpvalue {
+    const upvalue: [*c]ObjUpvalue = @as([*c]ObjUpvalue, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjUpvalue), .OBJ_UPVALUE))));
     upvalue.*.location = slot;
     upvalue.*.closed = Value.init_nil();
     upvalue.*.next = null;
     return upvalue;
 }
 
-pub fn split(arg_list: [*c]ObjLinkedList, arg_left: [*c]ObjLinkedList, arg_right: [*c]ObjLinkedList) void {
-    var list = arg_list;
-    _ = &list;
-    var left = arg_left;
-    _ = &left;
-    var right = arg_right;
-    _ = &right;
+pub fn split(list: [*c]ObjLinkedList, left: [*c]ObjLinkedList, right: [*c]ObjLinkedList) void {
+    const leftArg = left;
+    _ = &leftArg;
+    const rightArg = right;
+    _ = &rightArg;
     var count: c_int = list.*.count;
     _ = &count;
     var middle: c_int = @divTrunc(count, @as(c_int, 2));
     _ = &middle;
-    left.*.head = list.*.head;
-    left.*.count = middle;
-    right.*.count = count - middle;
+    leftArg.*.head = list.*.head;
+    leftArg.*.count = middle;
+    rightArg.*.count = count - middle;
     var current: [*c]Node = list.*.head;
     _ = &current;
     {
@@ -389,35 +387,33 @@ pub fn split(arg_list: [*c]ObjLinkedList, arg_left: [*c]ObjLinkedList, arg_right
             current = current.*.next;
         }
     }
-    left.*.tail = current;
-    right.*.head = current.*.next;
+    leftArg.*.tail = current;
+    rightArg.*.head = current.*.next;
     current.*.next = null;
-    right.*.head.*.prev = null;
+    rightArg.*.head.*.prev = null;
 }
-pub fn merge(arg_left: [*c]Node, arg_right: [*c]Node) [*c]Node {
-    var left = arg_left;
-    _ = &left;
-    var right = arg_right;
-    _ = &right;
-    if (left == null) return right;
-    if (right == null) return left;
-    if (value_h.valueCompare(left.*.data, right.*.data) < 0) {
-        left.*.next = merge(left.*.next, right);
-        left.*.next.*.prev = left;
-        left.*.prev = null;
-        return left;
+pub fn merge(left: [*c]Node, right: [*c]Node) [*c]Node {
+    const leftArg = left;
+    _ = &leftArg;
+    const rightArg = right;
+    _ = &rightArg;
+    if (leftArg == null) return rightArg;
+    if (rightArg == null) return leftArg;
+    if (value_h.valueCompare(leftArg.*.data, rightArg.*.data) < 0) {
+        leftArg.*.next = merge(leftArg.*.next, rightArg);
+        leftArg.*.next.*.prev = leftArg;
+        leftArg.*.prev = null;
+        return leftArg;
     } else {
-        right.*.next = merge(left, right.*.next);
-        right.*.next.*.prev = right;
-        right.*.prev = null;
-        return right;
+        rightArg.*.next = merge(leftArg, rightArg.*.next);
+        rightArg.*.next.*.prev = rightArg;
+        rightArg.*.prev = null;
+        return rightArg;
     }
     return null;
 }
 
-pub fn printFunction(arg_function: [*c]ObjFunction) void {
-    var function = arg_function;
-    _ = &function;
+pub fn printFunction(function: [*c]ObjFunction) void {
     if (function.*.name == null) {
         print("<script>", .{});
         return;
@@ -426,16 +422,13 @@ pub fn printFunction(arg_function: [*c]ObjFunction) void {
 }
 
 pub fn newLinkedList() [*c]ObjLinkedList {
-    var list: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjLinkedList), .OBJ_LINKED_LIST))));
-    _ = &list;
+    const list: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjLinkedList), .OBJ_LINKED_LIST))));
     list.*.head = null;
     list.*.tail = null;
     list.*.count = 0;
     return list;
 }
-pub fn cloneLinkedList(arg_list: [*c]ObjLinkedList) [*c]ObjLinkedList {
-    var list = arg_list;
-    _ = &list;
+pub fn cloneLinkedList(list: [*c]ObjLinkedList) [*c]ObjLinkedList {
     var newList: [*c]ObjLinkedList = newLinkedList();
     _ = &newList;
     var current: [*c]Node = list.*.head;
@@ -446,9 +439,7 @@ pub fn cloneLinkedList(arg_list: [*c]ObjLinkedList) [*c]ObjLinkedList {
     }
     return newList;
 }
-pub fn clearLinkedList(arg_list: [*c]ObjLinkedList) void {
-    var list = arg_list;
-    _ = &list;
+pub fn clearLinkedList(list: [*c]ObjLinkedList) void {
     var current: [*c]Node = list.*.head;
     _ = &current;
     while (current != null) {
@@ -461,11 +452,7 @@ pub fn clearLinkedList(arg_list: [*c]ObjLinkedList) void {
     list.*.tail = null;
     list.*.count = 0;
 }
-pub fn pushFront(arg_list: [*c]ObjLinkedList, arg_value: Value) void {
-    var list = arg_list;
-    _ = &list;
-    var value = arg_value;
-    _ = &value;
+pub fn pushFront(list: [*c]ObjLinkedList, value: Value) void {
     var node: [*c]Node = @as([*c]Node, @ptrCast(@alignCast(reallocate(null, 0, @sizeOf(Node) *% 1))));
     _ = &node;
     node.*.data = value;
@@ -480,11 +467,7 @@ pub fn pushFront(arg_list: [*c]ObjLinkedList, arg_value: Value) void {
     }
     list.*.count += 1;
 }
-pub fn pushBack(arg_list: [*c]ObjLinkedList, arg_value: Value) void {
-    var list = arg_list;
-    _ = &list;
-    var value = arg_value;
-    _ = &value;
+pub fn pushBack(list: [*c]ObjLinkedList, value: Value) void {
     var node: [*c]Node = @as([*c]Node, @ptrCast(@alignCast(reallocate(null, 0, @sizeOf(Node) *% 1))));
     _ = &node;
     node.*.data = value;
@@ -499,15 +482,13 @@ pub fn pushBack(arg_list: [*c]ObjLinkedList, arg_value: Value) void {
     }
     list.*.count += 1;
 }
-pub fn popFront(arg_list: [*c]ObjLinkedList) Value {
-    var list = arg_list;
-    _ = &list;
+pub fn popFront(list: [*c]ObjLinkedList) Value {
     if (list.*.head == null) {
         return Value.init_nil();
     }
     var node: [*c]Node = list.*.head;
     _ = &node;
-    var data: Value = node.*.data;
+    const data: Value = node.*.data;
     _ = &data;
     list.*.head = node.*.next;
     if (list.*.head != null) {
@@ -520,15 +501,13 @@ pub fn popFront(arg_list: [*c]ObjLinkedList) Value {
     _ = reallocate(@as(?*anyopaque, @ptrCast(node)), @sizeOf(Node), 0);
     return data;
 }
-pub fn popBack(arg_list: [*c]ObjLinkedList) Value {
-    var list = arg_list;
-    _ = &list;
+pub fn popBack(list: [*c]ObjLinkedList) Value {
     if (list.*.tail == null) {
         return Value.init_nil();
     }
     var node: [*c]Node = list.*.tail;
     _ = &node;
-    var data: Value = node.*.data;
+    const data: Value = node.*.data;
     _ = &data;
     list.*.tail = node.*.prev;
     if (list.*.tail != null) {
@@ -541,17 +520,17 @@ pub fn popBack(arg_list: [*c]ObjLinkedList) Value {
     _ = reallocate(@as(?*anyopaque, @ptrCast(node)), @sizeOf(Node), 0);
     return data;
 }
-pub fn equalLinkedList(arg_a: [*c]ObjLinkedList, arg_b: [*c]ObjLinkedList) bool {
-    var a = arg_a;
-    _ = &a;
-    var b = arg_b;
-    _ = &b;
-    if (a.*.count != b.*.count) {
+pub fn equalLinkedList(a: [*c]ObjLinkedList, b: [*c]ObjLinkedList) bool {
+    const aArg = a;
+    _ = &aArg;
+    const bArg = b;
+    _ = &bArg;
+    if (aArg.*.count != bArg.*.count) {
         return false;
     }
-    var currentA: [*c]Node = a.*.head;
+    var currentA: [*c]Node = aArg.*.head;
     _ = &currentA;
-    var currentB: [*c]Node = b.*.head;
+    var currentB: [*c]Node = bArg.*.head;
     _ = &currentB;
     while (currentA != null) {
         if (!valuesEqual(currentA.*.data, currentB.*.data)) {
@@ -562,11 +541,9 @@ pub fn equalLinkedList(arg_a: [*c]ObjLinkedList, arg_b: [*c]ObjLinkedList) bool 
     }
     return false;
 }
-pub fn freeObjectLinkedList(arg_list: [*c]ObjLinkedList) void {
-    var list = arg_list;
-    _ = &list;
+pub fn freeObjectLinkedList(list: [*c]ObjLinkedList) void {
     var current: [*c]Node = list.*.head;
-    _ = &current;
+
     while (current != null) {
         var next: [*c]Node = current.*.next;
         _ = &next;
@@ -575,9 +552,7 @@ pub fn freeObjectLinkedList(arg_list: [*c]ObjLinkedList) void {
     }
     _ = reallocate(@as(?*anyopaque, @ptrCast(list)), @sizeOf(ObjLinkedList), 0);
 }
-pub fn mergeSort(arg_list: [*c]ObjLinkedList) void {
-    var list = arg_list;
-    _ = &list;
+pub fn mergeSort(list: [*c]ObjLinkedList) void {
     if (list.*.count < @as(c_int, 2)) {
         return;
     }
@@ -596,11 +571,7 @@ pub fn mergeSort(arg_list: [*c]ObjLinkedList) void {
     }
     list.*.tail = current;
 }
-pub fn searchLinkedList(arg_list: [*c]ObjLinkedList, arg_value: Value) c_int {
-    var list = arg_list;
-    _ = &list;
-    var value = arg_value;
-    _ = &value;
+pub fn searchLinkedList(list: [*c]ObjLinkedList, value: Value) c_int {
     var current: [*c]Node = list.*.head;
     _ = &current;
     var index_1: c_int = 0;
@@ -614,9 +585,7 @@ pub fn searchLinkedList(arg_list: [*c]ObjLinkedList, arg_value: Value) c_int {
     }
     return -1;
 }
-pub fn reverseLinkedList(arg_list: [*c]ObjLinkedList) void {
-    var list = arg_list;
-    _ = &list;
+pub fn reverseLinkedList(list: [*c]ObjLinkedList) void {
     var current: [*c]Node = list.*.head;
     _ = &current;
     while (current != null) {
@@ -631,16 +600,16 @@ pub fn reverseLinkedList(arg_list: [*c]ObjLinkedList) void {
     list.*.head = list.*.tail;
     list.*.tail = temp;
 }
-pub fn mergeLinkedList(arg_a: [*c]ObjLinkedList, arg_b: [*c]ObjLinkedList) [*c]ObjLinkedList {
-    var a = arg_a;
-    _ = &a;
-    var b = arg_b;
-    _ = &b;
+pub fn mergeLinkedList(a: [*c]ObjLinkedList, b: [*c]ObjLinkedList) [*c]ObjLinkedList {
+    const aArg = a;
+    _ = &aArg;
+    const bArg = b;
+    _ = &bArg;
     var result: [*c]ObjLinkedList = newLinkedList();
     _ = &result;
-    var currentA: [*c]Node = a.*.head;
+    var currentA: [*c]Node = aArg.*.head;
     _ = &currentA;
-    var currentB: [*c]Node = b.*.head;
+    var currentB: [*c]Node = bArg.*.head;
     _ = &currentB;
     while ((currentA != null) and (currentB != null)) {
         if (value_h.valueCompare(currentA.*.data, currentB.*.data) < 0) {
@@ -661,13 +630,11 @@ pub fn mergeLinkedList(arg_a: [*c]ObjLinkedList, arg_b: [*c]ObjLinkedList) [*c]O
     }
     return result;
 }
-pub fn sliceLinkedList(arg_list: [*c]ObjLinkedList, arg_start: c_int, arg_end: c_int) [*c]ObjLinkedList {
-    var list = arg_list;
-    _ = &list;
-    var start = arg_start;
-    _ = &start;
-    var end = arg_end;
-    _ = &end;
+pub fn sliceLinkedList(list: [*c]ObjLinkedList, start: c_int, end: c_int) [*c]ObjLinkedList {
+    const startArg = start;
+    _ = &startArg;
+    const endArg = end;
+    _ = &endArg;
     var sliced: [*c]ObjLinkedList = newLinkedList();
     _ = &sliced;
     var current: [*c]Node = list.*.head;
@@ -675,7 +642,7 @@ pub fn sliceLinkedList(arg_list: [*c]ObjLinkedList, arg_start: c_int, arg_end: c
     var index_1: c_int = 0;
     _ = &index_1;
     while (current != null) {
-        if ((index_1 >= start) and (index_1 < end)) {
+        if ((index_1 >= startArg) and (index_1 < endArg)) {
             pushBack(sliced, current.*.data);
         }
         current = current.*.next;
@@ -683,13 +650,11 @@ pub fn sliceLinkedList(arg_list: [*c]ObjLinkedList, arg_start: c_int, arg_end: c
     }
     return sliced;
 }
-pub fn spliceLinkedList(arg_list: [*c]ObjLinkedList, arg_start: c_int, arg_end: c_int) [*c]ObjLinkedList {
-    var list = arg_list;
-    _ = &list;
-    var start = arg_start;
-    _ = &start;
-    var end = arg_end;
-    _ = &end;
+pub fn spliceLinkedList(list: [*c]ObjLinkedList, start: c_int, end: c_int) [*c]ObjLinkedList {
+    const startArg = start;
+    _ = &startArg;
+    const endArg = end;
+    _ = &endArg;
     var spliced: [*c]ObjLinkedList = newLinkedList();
     _ = &spliced;
     var current: [*c]Node = list.*.head;
@@ -699,7 +664,7 @@ pub fn spliceLinkedList(arg_list: [*c]ObjLinkedList, arg_start: c_int, arg_end: 
     while (current != null) {
         var next: [*c]Node = current.*.next;
         _ = &next;
-        if ((index_1 >= start) and (index_1 < end)) {
+        if ((index_1 >= startArg) and (index_1 < endArg)) {
             pushBack(spliced, current.*.data);
             if (current.*.prev != null) {
                 current.*.prev.*.next = current.*.next;
@@ -715,41 +680,26 @@ pub fn spliceLinkedList(arg_list: [*c]ObjLinkedList, arg_start: c_int, arg_end: 
     return spliced;
 }
 pub fn newHashTable() [*c]ObjHashTable {
-    var htable: [*c]ObjHashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjHashTable), .OBJ_HASH_TABLE))));
-    _ = &htable;
+    const htable: [*c]ObjHashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjHashTable), .OBJ_HASH_TABLE))));
     table_h.initTable(&htable.*.table);
     return htable;
 }
-pub fn cloneHashTable(arg_table: [*c]ObjHashTable) [*c]ObjHashTable {
-    var table = arg_table;
-    _ = &table;
+pub fn cloneHashTable(table: [*c]ObjHashTable) [*c]ObjHashTable {
     var newTable: [*c]ObjHashTable = newHashTable();
     _ = &newTable;
     table_h.tableAddAll(&table.*.table, &newTable.*.table);
     return newTable;
 }
-pub fn clearHashTable(arg_table: [*c]ObjHashTable) void {
-    var table = arg_table;
-    _ = &table;
+pub fn clearHashTable(table: [*c]ObjHashTable) void {
     table_h.freeTable(&table.*.table);
     table_h.initTable(&table.*.table);
 }
-pub fn putHashTable(arg_table: [*c]ObjHashTable, arg_key: [*c]ObjString, arg_value: Value) bool {
-    var table = arg_table;
-    _ = &table;
-    var key = arg_key;
-    _ = &key;
-    var value = arg_value;
-    _ = &value;
+pub fn putHashTable(table: [*c]ObjHashTable, key: [*c]ObjString, value: Value) bool {
     return table_h.tableSet(&table.*.table, key, value);
 }
-pub fn getHashTable(arg_table: [*c]ObjHashTable, arg_key: [*c]ObjString) Value {
-    var table = arg_table;
-    _ = &table;
-    var key = arg_key;
-    _ = &key;
+pub fn getHashTable(table: [*c]ObjHashTable, key: [*c]ObjString) Value {
     var value: Value = undefined;
-    _ = &value;
+
     if (table_h.tableGet(&table.*.table, key, &value)) {
         return value;
     } else {
@@ -757,16 +707,10 @@ pub fn getHashTable(arg_table: [*c]ObjHashTable, arg_key: [*c]ObjString) Value {
     }
     return @import("std").mem.zeroes(Value);
 }
-pub fn removeHashTable(arg_table: [*c]ObjHashTable, arg_key: [*c]ObjString) bool {
-    var table = arg_table;
-    _ = &table;
-    var key = arg_key;
-    _ = &key;
+pub fn removeHashTable(table: [*c]ObjHashTable, key: [*c]ObjString) bool {
     return table_h.tableDelete(&table.*.table, key);
 }
-pub fn freeObjectHashTable(arg_table: [*c]ObjHashTable) void {
-    var table = arg_table;
-    _ = &table;
+pub fn freeObjectHashTable(table: [*c]ObjHashTable) void {
     table_h.freeTable(&table.*.table);
     _ = reallocate(@as(?*anyopaque, @ptrCast(table)), @sizeOf(ObjHashTable), 0);
 }
@@ -886,12 +830,8 @@ pub fn printObject(value: Value) void {
         },
     }
 }
-pub fn isObjType(arg_value: Value, arg_type: ObjType) bool {
-    var value = arg_value;
-    _ = &value;
-    var @"type" = arg_type;
-    _ = &@"type";
-    return (value.type == .VAL_OBJ) and (value.as.obj.*.type == @"type");
+pub fn isObjType(value: Value, type_: ObjType) bool {
+    return (value.type == .VAL_OBJ) and (value.as.obj.*.type == type_);
 }
 
 pub const ObjTypeCheckParams = extern struct {
@@ -899,9 +839,7 @@ pub const ObjTypeCheckParams = extern struct {
     objType: ObjType,
     count: c_int,
 };
-pub fn notObjTypes(arg_params: ObjTypeCheckParams) bool {
-    var params = arg_params;
-    _ = &params;
+pub fn notObjTypes(params: ObjTypeCheckParams) bool {
     {
         var i: c_int = 0;
         _ = &i;

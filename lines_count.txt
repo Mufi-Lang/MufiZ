@@ -6,14 +6,14 @@
   1268 src/compiler.zig
     64 src/conv.zig
    154 src/core.zig
-  1445 src/cstd.zig
+  1483 src/cstd.zig
    157 src/debug.zig
     74 src/main.zig
    326 src/memory.zig
    458 src/mem_utils.zig
    155 src/net_curl.zig
    173 src/net.zig
-   918 src/object.zig
+   871 src/object.zig
    323 src/scanner.zig
    217 src/stdlib.zig
     98 src/system.zig
@@ -25,4 +25,4 @@
    207 src/stdlib/math.zig
     28 src/stdlib/time.zig
     78 src/stdlib/types.zig
-  9536 total
+  9527 total

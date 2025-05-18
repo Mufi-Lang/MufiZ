@@ -1164,7 +1164,7 @@ pub fn skipFloatVector(arg_vector: [*c]FloatVector, arg_n: c_int) void {
 pub fn searchFloatVector(arg_vector: [*c]FloatVector, arg_value: f64) c_int {
     var vector = arg_vector;
     _ = &vector;
-    var value = arg_value;
+    const value = arg_value;
     _ = &value;
     if (vector.*.sorted) {
         return binarySearchFloatVector(vector, value);
@@ -1380,7 +1380,7 @@ pub fn compare_double(arg_a: ?*const anyopaque, arg_b: ?*const anyopaque) callco
 pub fn binarySearchFloatVector(arg_vector: [*c]FloatVector, arg_value: f64) callconv(.C) c_int {
     var vector = arg_vector;
     _ = &vector;
-    var value = arg_value;
+    const value = arg_value;
     _ = &value;
     var left: c_int = 0;
     _ = &left;
