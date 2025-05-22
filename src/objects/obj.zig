@@ -4,7 +4,7 @@ pub const Obj = extern struct {
     next: [*c]Obj = null,
 };
 
-pub const ObjType = enum(c_int) {
+pub const ObjType = enum(i32) {
     OBJ_CLOSURE = 0,
     OBJ_FUNCTION = 1,
     OBJ_INSTANCE = 2,

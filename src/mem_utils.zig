@@ -399,7 +399,7 @@ test "strlen test" {
     try std.testing.expectEqual(@as(usize, 0), strlen(null));
 }
 
-pub fn memcmp(s1: ?*const anyopaque, s2: ?*const anyopaque, n: usize) c_int {
+pub fn memcmp(s1: ?*const anyopaque, s2: ?*const anyopaque, n: usize) i32 {
     const str1: [*c]const u8 = @ptrCast(s1.?);
     const str2: [*c]const u8 = @ptrCast(s2.?);
     const num: usize = @intCast(n);
@@ -422,7 +422,7 @@ pub fn memcmp(s1: ?*const anyopaque, s2: ?*const anyopaque, n: usize) c_int {
             // Find first differing byte in the SIMD vector
             inline for (0..16) |i| {
                 if (mask[i]) {
-                    return @intCast(ptr1[offset + i] - ptr2[offset + i]);
+                    return @as(i32, @intCast(@as(i16, @intCast(ptr1[offset + i])) - @as(i16, @intCast(ptr2[offset + i]))));
                 }
             }
         }
@@ -439,7 +439,7 @@ pub fn memcmp(s1: ?*const anyopaque, s2: ?*const anyopaque, n: usize) c_int {
                 const byte1 = @as(u8, @truncate(v1 >> @as(u6, @intCast(i * 8))));
                 const byte2 = @as(u8, @truncate(v2 >> @as(u6, @intCast(i * 8))));
                 if (byte1 != byte2) {
-                    return @intCast(byte1 - byte2);
+                    return @as(i32, @intCast(@as(i16, @intCast(byte1)) - @as(i16, @intCast(byte2))));
                 }
             }
         }
@@ -449,7 +449,7 @@ pub fn memcmp(s1: ?*const anyopaque, s2: ?*const anyopaque, n: usize) c_int {
     // Handle remaining bytes
     while (offset < num) {
         if (ptr1[offset] != ptr2[offset]) {
-            return @intCast(ptr1[offset] - ptr2[offset]);
+            return @as(i32, @intCast(@as(i16, @intCast(ptr1[offset])) - @as(i16, @intCast(ptr2[offset])))); 
         }
         offset += 1;
     }

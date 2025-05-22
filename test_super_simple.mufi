@@ -5,12 +5,12 @@ class Base {
 }
 
 class Derived < Base {
-  foo() {
-    print "Derived.foo()";
-    Base().foo();
+  bar() {
+    print "Derived.bar()";
+    super.foo();
   }
 }
 
-Derived().foo();
-// expect: Derived.foo()
+Derived().bar();
+// expect: Derived.bar()
 // expect: Base.foo()

@@ -13,7 +13,7 @@ const reallocate = @import("memory.zig").reallocate;
 const print = std.debug.print;
 const memcpy = @import("mem_utils.zig").memcpyFast;
 
-pub const ValueType = enum(c_int) { VAL_BOOL = 0, VAL_NIL = 1, VAL_INT = 2, VAL_DOUBLE = 3, VAL_OBJ = 4, VAL_COMPLEX = 5 };
+pub const ValueType = enum(i32) { VAL_BOOL = 0, VAL_NIL = 1, VAL_INT = 2, VAL_DOUBLE = 3, VAL_OBJ = 4, VAL_COMPLEX = 5 };
 
 pub const Complex = extern struct {
     r: f64,
@@ -54,7 +54,7 @@ pub const Value = extern struct {
 
     pub fn init_string(s: []u8) Self {
         const chars: [*c]const u8 = @ptrCast(@alignCast(s.ptr));
-        const length: c_int = @intCast(s.len);
+        const length: i32 = @intCast(s.len);
         const obj_str = obj_h.copyString(chars, length);
         return Value.init_obj(@ptrCast(obj_str));
     }
@@ -111,7 +111,7 @@ pub const Value = extern struct {
                 if (self.is_string() and other.is_string()) {
                     const a = self.as_string();
                     const b = other.as_string();
-                    const length: c_int = a.*.length + b.*.length;
+                    const length: i32 = a.*.length + b.*.length;
                     const chars: [*c]u8 = @as([*c]u8, @ptrCast(@alignCast(reallocate(null, 0, @intCast(@sizeOf(u8) *% length + 1)))));
                     _ = memcpy(@ptrCast(chars), @ptrCast(a.*.chars), @intCast(a.*.length));
                     _ = memcpy(@ptrCast(chars + @as(usize, @bitCast(@as(isize, @intCast(a.*.length))))), @ptrCast(b.*.chars), @intCast(b.*.length));
@@ -358,8 +358,8 @@ pub const Value = extern struct {
 };
 
 pub const ValueArray = extern struct {
-    capacity: c_int,
-    count: c_int,
+    capacity: i32,
+    count: i32,
     values: [*c]Value,
 };
 
@@ -390,7 +390,7 @@ pub fn valuesEqual(a: Value, b: Value) bool {
                             if (list_a.*.count != list_b.*.count) return false;
                             var node_a: [*c]Node = list_a.*.head;
                             var node_b: [*c]Node = list_b.*.head;
-                            while (node_a != @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
+                            while (node_a != @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(i32, 0))))))) {
                                 if (!valuesEqual(node_a.*.data, node_b.*.data)) return false;
                                 node_a = node_a.*.next;
                                 node_b = node_b.*.next;
@@ -404,7 +404,7 @@ pub fn valuesEqual(a: Value, b: Value) bool {
                             const vec_b: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(b.as.obj)));
                             if (vec_a.*.count != vec_b.*.count) return false;
 
-                            var i: c_int = 0;
+                            var i: i32 = 0;
                             while (i < vec_a.*.count) : (i += 1) {
                                 if (vec_a.*.data[@intCast(i)] != vec_b.*.data[@intCast(i)]) return false;
                             }
@@ -424,15 +424,15 @@ pub fn valuesEqual(a: Value, b: Value) bool {
     }
 }
 
-pub fn valueCompare(a: Value, b: Value) c_int {
+pub fn valueCompare(a: Value, b: Value) i32 {
     if (a.type != b.type) return -1;
 
     switch (a.type) {
         .VAL_BOOL => return @intCast(@intFromBool(a.as_bool()) - @intFromBool(b.as_bool())),
         .VAL_NIL => return 0,
         .VAL_INT => {
-            const a1: c_int = a.as.num_int;
-            const b1: c_int = b.as.num_int;
+            const a1: i32 = a.as.num_int;
+            const b1: i32 = b.as.num_int;
 
             if (a1 > b1) return 1;
             if (a1 < b1) return -1;
@@ -459,7 +459,7 @@ pub fn initValueArray(array: [*c]ValueArray) void {
 
 pub fn writeValueArray(array: [*c]ValueArray, value: Value) void {
     if (array.*.capacity < (array.*.count + 1)) {
-        const oldCapacity: c_int = array.*.capacity;
+        const oldCapacity: i32 = array.*.capacity;
         array.*.capacity = if (oldCapacity < 8) 8 else oldCapacity * 2;
         array.*.values = @ptrCast(@alignCast(reallocate(@ptrCast(array.*.values), @intCast(@sizeOf(Value) * oldCapacity), @intCast(@sizeOf(Value) * array.*.capacity))));
     }

@@ -24,7 +24,7 @@ const fvec = @import("objects/fvec.zig");
 const pushFloatVector = fvec.FloatVector.push;
 
 // Helper functions to make code more DRY
-fn validateArgCount(argCount: c_int, expected: c_int, funcName: []const u8) bool {
+fn validateArgCount(argCount: i32, expected: i32, funcName: []const u8) bool {
     if (argCount != expected) {
         runtimeError("{s}() takes {d} argument(s).", .{ funcName, expected });
         return false;
@@ -32,7 +32,7 @@ fn validateArgCount(argCount: c_int, expected: c_int, funcName: []const u8) bool
     return true;
 }
 
-fn validateMinArgCount(argCount: c_int, min: c_int, funcName: []const u8) bool {
+fn validateMinArgCount(argCount: i32, min: i32, funcName: []const u8) bool {
     if (argCount < min) {
         runtimeError("{s}() takes at least {d} argument(s).", .{ funcName, min });
         return false;
@@ -58,7 +58,7 @@ fn validateNumber(value: Value) bool {
 
 // Helper functions removed - using Value.as_num_int() and Value.as_num_double() directly
 
-pub fn assert_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn assert_nf(argCount: i32, args: [*c]Value) Value {
     if (!validateArgCount(argCount, 2, "assert")) {
         return Value.init_nil();
     }
@@ -71,13 +71,13 @@ pub fn assert_nf(argCount: c_int, args: [*c]Value) Value {
     }
 }
 
-pub fn iter_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn iter_nf(argCount: i32, args: [*c]Value) Value {
     _ = argCount;
     _ = args;
     return Value.init_nil();
 }
 
-pub fn next_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn next_nf(argCount: i32, args: [*c]Value) Value {
     if (!validateArgCount(argCount, 1, "next") or
         !validateObjType(args[0], .OBJ_FVECTOR, "iterable"))
     {
@@ -88,7 +88,7 @@ pub fn next_nf(argCount: c_int, args: [*c]Value) Value {
     return Value.init_double(nextValue);
 }
 
-pub fn hasNext_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn hasNext_nf(argCount: i32, args: [*c]Value) Value {
     if (!validateArgCount(argCount, 1, "has_next") or
         !validateObjType(args[0], .OBJ_FVECTOR, "iterable"))
     {
@@ -98,7 +98,7 @@ pub fn hasNext_nf(argCount: c_int, args: [*c]Value) Value {
     const hasNext = fvec.hasNextFloatVector(@as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj))));
     return Value.init_bool(hasNext);
 }
-pub fn peek_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn peek_nf(argCount: i32, args: [*c]Value) Value {
     if (!validateArgCount(argCount, 2, "peek") or
         !validateObjType(args[0], .OBJ_FVECTOR, "iterable") or
         !validateNumber(args[1]))
@@ -110,7 +110,7 @@ pub fn peek_nf(argCount: c_int, args: [*c]Value) Value {
     const peekValue = fvec.peekFloatVector(@as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj))), pos);
     return Value.init_double(peekValue);
 }
-pub fn reset_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn reset_nf(argCount: i32, args: [*c]Value) Value {
     if (!validateArgCount(argCount, 1, "reset") or
         !validateObjType(args[0], .OBJ_FVECTOR, "iterable"))
     {
@@ -120,7 +120,7 @@ pub fn reset_nf(argCount: c_int, args: [*c]Value) Value {
     fvec.resetFloatVector(@as([*c]FloatVector, @ptrCast(@alignCast(args[0].as.obj))));
     return Value.init_nil();
 }
-pub fn skip_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn skip_nf(argCount: i32, args: [*c]Value) Value {
     if (!validateArgCount(argCount, 2, "skip") or
         !validateObjType(args[0], .OBJ_FVECTOR, "iterable") or
         !validateNumber(args[1]))
@@ -133,7 +133,7 @@ pub fn skip_nf(argCount: c_int, args: [*c]Value) Value {
     return Value.init_nil();
 }
 
-pub fn linkedlist_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn linkedlist_nf(argCount: i32, args: [*c]Value) Value {
     _ = args;
     if (!validateArgCount(argCount, 0, "linked_list")) {
         return Value.init_nil();
@@ -142,7 +142,7 @@ pub fn linkedlist_nf(argCount: c_int, args: [*c]Value) Value {
     const ll: [*c]ObjLinkedList = obj_h.newLinkedList();
     return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(ll))));
 }
-pub fn hashtable_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn hashtable_nf(argCount: i32, args: [*c]Value) Value {
     _ = args;
     if (!validateArgCount(argCount, 0, "hash_table")) {
         return Value.init_nil();
@@ -152,7 +152,7 @@ pub fn hashtable_nf(argCount: c_int, args: [*c]Value) Value {
     return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(h))));
 }
 
-pub fn fvector_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn fvector_nf(argCount: i32, args: [*c]Value) Value {
     if (!validateArgCount(argCount, 1, "fvec") or !validateNumber(args[0])) {
         return Value.init_nil();
     }
@@ -162,20 +162,20 @@ pub fn fvector_nf(argCount: c_int, args: [*c]Value) Value {
     return Value.init_obj(@ptrCast(@alignCast(f)));
 }
 
-// pub fn range_nf(argCount: c_int, args: [*c]Value) Value {
+// pub fn range_nf(argCount: i32, args: [*c]Value) Value {
 //     _ = &argCount;
 //     if (!((args[0].type == .VAL_INT) or (args[0].is_double())) and !((args[1].type == .VAL_INT) or (args[1].is_double()))) {
 //         runtimeError("Both arguments must be numbers.", .{});
 //         return Value.init_nil();
 //     }
-//     var start: c_int = if (args[0].is_double()) @intFromFloat(args[0].as_num_double()) else args[0].as.num_int;
+//     var start: i32 = if (args[0].is_double()) @intFromFloat(args[0].as_num_double()) else args[0].as.num_int;
 //     _ = &start;
-//     var end: c_int = if (args[1].is_double()) @intFromFloat(args[1].as_num_double()) else args[1].as.num_int;
+//     var end: i32 = if (args[1].is_double()) @intFromFloat(args[1].as_num_double()) else args[1].as.num_int;
 //     _ = &end;
 //     var a: [*c]ObjArray = obj_h.newArrayWithCap(end - start, true);
 //     _ = &a;
 //     {
-//         var i: c_int = start;
+//         var i: i32 = start;
 //         _ = &i;
 //         while (i < end) : (i += 1) {
 //             obj_h.pushArray(a, Value.init_int(i));
@@ -189,7 +189,7 @@ pub fn fvector_nf(argCount: c_int, args: [*c]Value) Value {
 //     };
 // }
 
-pub fn slice_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn slice_nf(argCount: i32, args: [*c]Value) Value {
     // Validate argument count
     if (!validateArgCount(argCount, 3, "slice"))
         return Value.init_nil();
@@ -217,8 +217,8 @@ pub fn slice_nf(argCount: c_int, args: [*c]Value) Value {
     }
 
     // Convert start and end indices to integers
-    const start: c_int = if (args[1].is_double()) @intFromFloat(args[1].as_num_double()) else args[1].as.num_int;
-    const end: c_int = if (args[2].is_double()) @intFromFloat(args[2].as_num_double()) else args[2].as.num_int;
+    const start: i32 = if (args[1].is_double()) @intFromFloat(args[1].as_num_double()) else args[1].as.num_int;
+    const end: i32 = if (args[2].is_double()) @intFromFloat(args[2].as_num_double()) else args[2].as.num_int;
 
     // Process based on object type
     switch (args[0].as.obj.*.type) {
@@ -238,7 +238,7 @@ pub fn slice_nf(argCount: c_int, args: [*c]Value) Value {
     return Value.init_nil();
 }
 
-pub fn splice_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn splice_nf(argCount: i32, args: [*c]Value) Value {
     // Validate argument count
     if (!validateArgCount(argCount, 3, "splice"))
         return Value.init_nil();
@@ -266,8 +266,8 @@ pub fn splice_nf(argCount: c_int, args: [*c]Value) Value {
     }
 
     // Extract start and end indices
-    const start: c_int = if (args[1].is_double()) @intFromFloat(args[1].as_num_double()) else args[1].as.num_int;
-    const end: c_int = if (args[2].is_double()) @intFromFloat(args[2].as_num_double()) else args[2].as.num_int;
+    const start: i32 = if (args[1].is_double()) @intFromFloat(args[1].as_num_double()) else args[1].as.num_int;
+    const end: i32 = if (args[2].is_double()) @intFromFloat(args[2].as_num_double()) else args[2].as.num_int;
 
     // Process based on object type
     switch (args[0].as.obj.*.type) {
@@ -287,7 +287,7 @@ pub fn splice_nf(argCount: c_int, args: [*c]Value) Value {
     return Value.init_nil();
 }
 
-pub fn push_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn push_nf(argCount: i32, args: [*c]Value) Value {
     if (notObjTypes(ObjTypeCheckParams{
         .values = args,
         .objType = .OBJ_LINKED_LIST,
@@ -327,7 +327,7 @@ pub fn push_nf(argCount: c_int, args: [*c]Value) Value {
     }
 }
 
-pub fn pop_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn pop_nf(argCount: i32, args: [*c]Value) Value {
     // Validate argument count
     if (!validateArgCount(argCount, 1, "pop")) {
         return Value.init_nil();
@@ -365,7 +365,7 @@ pub fn pop_nf(argCount: c_int, args: [*c]Value) Value {
         },
     }
 }
-pub fn nth_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn nth_nf(argCount: i32, args: [*c]Value) Value {
     // Validate argument count
     if (!validateArgCount(argCount, 2, "nth")) {
         return Value.init_nil();
@@ -410,7 +410,7 @@ pub fn nth_nf(argCount: c_int, args: [*c]Value) Value {
 
             if (index >= 0 and index < l.*.count) {
                 var node = l.*.head;
-                var i: c_int = 0;
+                var i: i32 = 0;
                 while (i < index) : (i += 1) {
                     node = node.*.next;
                 }
@@ -431,7 +431,7 @@ pub fn nth_nf(argCount: c_int, args: [*c]Value) Value {
     }
 }
 
-pub fn sort_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn sort_nf(argCount: i32, args: [*c]Value) Value {
     // Validate argument count
     if (!validateArgCount(argCount, 1, "sort")) {
         return Value.init_nil();
@@ -472,7 +472,7 @@ pub fn sort_nf(argCount: c_int, args: [*c]Value) Value {
     }
 }
 
-pub fn contains_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn contains_nf(argCount: i32, args: [*c]Value) Value {
     // Validate argument count
     if (!validateArgCount(argCount, 2, "contains")) {
         return Value.init_nil();
@@ -534,7 +534,7 @@ pub fn contains_nf(argCount: c_int, args: [*c]Value) Value {
     }
 }
 
-pub fn insert_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn insert_nf(argCount: i32, args: [*c]Value) Value {
     // Validate argument count
     if (!validateArgCount(argCount, 3, "insert")) {
         return Value.init_nil();
@@ -575,7 +575,7 @@ pub fn insert_nf(argCount: c_int, args: [*c]Value) Value {
     return Value.init_nil();
 }
 
-pub fn len_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn len_nf(argCount: i32, args: [*c]Value) Value {
     // Validate argument count
     if (!validateArgCount(argCount, 1, "len")) {
         return Value.init_nil();
@@ -619,7 +619,7 @@ pub fn len_nf(argCount: c_int, args: [*c]Value) Value {
         },
     }
 }
-pub fn search_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn search_nf(argCount: i32, args: [*c]Value) Value {
     // Validate argument count
     if (!validateArgCount(argCount, 2, "search")) {
         return Value.init_nil();
@@ -666,7 +666,7 @@ pub fn search_nf(argCount: c_int, args: [*c]Value) Value {
         },
     }
 }
-pub fn is_empty_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn is_empty_nf(argCount: i32, args: [*c]Value) Value {
     // Validate argument count
     if (!validateArgCount(argCount, 1, "is_empty")) {
         return Value.init_nil();
@@ -710,7 +710,7 @@ pub fn is_empty_nf(argCount: c_int, args: [*c]Value) Value {
         },
     }
 }
-pub fn equal_list_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn equal_list_nf(argCount: i32, args: [*c]Value) Value {
     // Validate argument count
     if (!validateArgCount(argCount, 2, "equal_list")) {
         return Value.init_nil();
@@ -762,7 +762,7 @@ pub fn equal_list_nf(argCount: c_int, args: [*c]Value) Value {
         },
     }
 }
-pub fn reverse_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn reverse_nf(argCount: i32, args: [*c]Value) Value {
     // Validate argument count
     if (!validateArgCount(argCount, 1, "reverse")) {
         return Value.init_nil();
@@ -801,7 +801,7 @@ pub fn reverse_nf(argCount: c_int, args: [*c]Value) Value {
     }
 }
 
-pub fn merge_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn merge_nf(argCount: i32, args: [*c]Value) Value {
     // Validate argument count
     if (!validateArgCount(argCount, 2, "merge")) {
         return Value.init_nil();
@@ -842,7 +842,7 @@ pub fn merge_nf(argCount: c_int, args: [*c]Value) Value {
     }
 }
 
-pub fn clone_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn clone_nf(argCount: i32, args: [*c]Value) Value {
     // Validate argument count
     if (!validateArgCount(argCount, 1, "clone")) {
         return Value.init_nil();
@@ -890,7 +890,7 @@ pub fn clone_nf(argCount: c_int, args: [*c]Value) Value {
     }
 }
 
-pub fn clear_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn clear_nf(argCount: i32, args: [*c]Value) Value {
     // Validate argument count
     if (!validateArgCount(argCount, 1, "clear")) {
         return Value.init_nil();
@@ -937,7 +937,7 @@ pub fn clear_nf(argCount: c_int, args: [*c]Value) Value {
     return Value.init_nil();
 }
 
-pub fn sum_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn sum_nf(argCount: i32, args: [*c]Value) Value {
     // Validate argument count
     if (!validateArgCount(argCount, 1, "sum")) {
         return Value.init_nil();
@@ -958,7 +958,7 @@ pub fn sum_nf(argCount: c_int, args: [*c]Value) Value {
     return Value.init_double(FloatVector.sum(vector));
 }
 
-pub fn mean_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn mean_nf(argCount: i32, args: [*c]Value) Value {
     // Validate argument count
     if (!validateArgCount(argCount, 1, "mean")) {
         return Value.init_nil();
@@ -979,7 +979,7 @@ pub fn mean_nf(argCount: c_int, args: [*c]Value) Value {
     return Value.init_double(FloatVector.mean(vector));
 }
 
-pub fn std_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn std_nf(argCount: i32, args: [*c]Value) Value {
     // Validate argument count
     if (!validateArgCount(argCount, 1, "std")) {
         return Value.init_nil();
@@ -1000,7 +1000,7 @@ pub fn std_nf(argCount: c_int, args: [*c]Value) Value {
     return Value.init_double(FloatVector.stdDev(vector));
 }
 
-pub fn var_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn var_nf(argCount: i32, args: [*c]Value) Value {
     // Validate argument count
     if (!validateArgCount(argCount, 1, "var")) {
         return Value.init_nil();
@@ -1021,7 +1021,7 @@ pub fn var_nf(argCount: c_int, args: [*c]Value) Value {
     return Value.init_double(FloatVector.variance(vector));
 }
 
-pub fn maxl_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn maxl_nf(argCount: i32, args: [*c]Value) Value {
     // Validate argument count
     if (!validateArgCount(argCount, 1, "maxl")) {
         return Value.init_nil();
@@ -1042,7 +1042,7 @@ pub fn maxl_nf(argCount: c_int, args: [*c]Value) Value {
     return Value.init_double(fvec.maxFloatVector(vector));
 }
 
-pub fn minl_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn minl_nf(argCount: i32, args: [*c]Value) Value {
     // Validate argument count
     if (!validateArgCount(argCount, 1, "minl")) {
         return Value.init_nil();
@@ -1063,7 +1063,7 @@ pub fn minl_nf(argCount: c_int, args: [*c]Value) Value {
     return Value.init_double(fvec.minFloatVector(vector));
 }
 
-pub fn dot_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn dot_nf(argCount: i32, args: [*c]Value) Value {
     // Validate argument count
     if (!validateArgCount(argCount, 2, "dot")) {
         return Value.init_nil();
@@ -1086,7 +1086,7 @@ pub fn dot_nf(argCount: c_int, args: [*c]Value) Value {
     return Value.init_double(fvec.dotProduct(vecA, vecB));
 }
 
-pub fn cross_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn cross_nf(argCount: i32, args: [*c]Value) Value {
     // Validate argument count
     if (!validateArgCount(argCount, 2, "cross")) {
         return Value.init_nil();
@@ -1110,7 +1110,7 @@ pub fn cross_nf(argCount: c_int, args: [*c]Value) Value {
     return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(result))));
 }
 
-pub fn norm_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn norm_nf(argCount: i32, args: [*c]Value) Value {
     // Validate argument count
     if (!validateArgCount(argCount, 1, "norm")) {
         return Value.init_nil();
@@ -1133,7 +1133,7 @@ pub fn norm_nf(argCount: c_int, args: [*c]Value) Value {
     return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(result))));
 }
 
-pub fn proj_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn proj_nf(argCount: i32, args: [*c]Value) Value {
     // Validate argument count
     if (!validateArgCount(argCount, 2, "proj")) {
         return Value.init_nil();
@@ -1157,7 +1157,7 @@ pub fn proj_nf(argCount: c_int, args: [*c]Value) Value {
     return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(result))));
 }
 
-pub fn reject_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn reject_nf(argCount: i32, args: [*c]Value) Value {
     // Validate argument count
     if (!validateArgCount(argCount, 2, "reject")) {
         return Value.init_nil();
@@ -1181,7 +1181,7 @@ pub fn reject_nf(argCount: c_int, args: [*c]Value) Value {
     return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(result))));
 }
 
-pub fn reflect_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn reflect_nf(argCount: i32, args: [*c]Value) Value {
     // Validate argument count
     if (!validateArgCount(argCount, 2, "reflect")) {
         return Value.init_nil();
@@ -1205,7 +1205,7 @@ pub fn reflect_nf(argCount: c_int, args: [*c]Value) Value {
     return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(result))));
 }
 
-pub fn refract_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn refract_nf(argCount: i32, args: [*c]Value) Value {
     // Validate argument count
     if (!validateArgCount(argCount, 4, "refract")) {
         return Value.init_nil();
@@ -1240,7 +1240,7 @@ pub fn refract_nf(argCount: c_int, args: [*c]Value) Value {
     return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(result))));
 }
 
-pub fn angle_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn angle_nf(argCount: i32, args: [*c]Value) Value {
     // Validate argument count
     if (!validateArgCount(argCount, 2, "angle")) {
         return Value.init_nil();
@@ -1264,7 +1264,7 @@ pub fn angle_nf(argCount: c_int, args: [*c]Value) Value {
     return Value.init_double(result);
 }
 
-pub fn put_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn put_nf(argCount: i32, args: [*c]Value) Value {
     // Validate argument count
     if (!validateArgCount(argCount, 3, "put")) {
         return Value.init_nil();
@@ -1289,7 +1289,7 @@ pub fn put_nf(argCount: c_int, args: [*c]Value) Value {
     return Value.init_bool(obj_h.putHashTable(hashTable, key, args[2]));
 }
 
-pub fn get_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn get_nf(argCount: i32, args: [*c]Value) Value {
     // Validate argument count
     if (!validateArgCount(argCount, 2, "get")) {
         return Value.init_nil();
@@ -1314,7 +1314,7 @@ pub fn get_nf(argCount: c_int, args: [*c]Value) Value {
     return obj_h.getHashTable(hashTable, key);
 }
 
-pub fn remove_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn remove_nf(argCount: i32, args: [*c]Value) Value {
     // Validate argument count
     if (!validateArgCount(argCount, 2, "remove")) {
         return Value.init_nil();
@@ -1359,7 +1359,7 @@ pub fn remove_nf(argCount: c_int, args: [*c]Value) Value {
     }
 }
 
-pub fn push_front_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn push_front_nf(argCount: i32, args: [*c]Value) Value {
     // Validate minimum argument count
     if (!validateMinArgCount(argCount, 2, "push_front")) {
         return Value.init_nil();
@@ -1381,7 +1381,7 @@ pub fn push_front_nf(argCount: c_int, args: [*c]Value) Value {
     return Value.init_nil();
 }
 
-pub fn pop_front_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn pop_front_nf(argCount: i32, args: [*c]Value) Value {
     // Validate argument count
     if (!validateArgCount(argCount, 1, "pop_front")) {
         return Value.init_nil();
@@ -1398,7 +1398,7 @@ pub fn pop_front_nf(argCount: c_int, args: [*c]Value) Value {
     return obj_h.popFront(list);
 }
 
-pub fn workspace_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn workspace_nf(argCount: i32, args: [*c]Value) Value {
     _ = &args;
     // Validate argument count
     if (!validateArgCount(argCount, 0, "workspace")) {
@@ -1427,7 +1427,7 @@ pub fn workspace_nf(argCount: c_int, args: [*c]Value) Value {
     return Value.init_nil();
 }
 
-pub fn linspace_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn linspace_nf(argCount: i32, args: [*c]Value) Value {
     // Validate argument count
     if (!validateArgCount(argCount, 3, "linspace")) {
         return Value.init_nil();
@@ -1453,7 +1453,7 @@ pub fn linspace_nf(argCount: c_int, args: [*c]Value) Value {
     return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(result))));
 }
 
-pub fn interp1_nf(argCount: c_int, args: [*c]Value) Value {
+pub fn interp1_nf(argCount: i32, args: [*c]Value) Value {
     // Validate argument count
     if (!validateArgCount(argCount, 3, "interp1")) {
         return Value.init_nil();

@@ -43,7 +43,7 @@ pub const FloatVector = extern struct {
     sorted: bool,
     const Ptr = [*c]f64;
     const Self = [*c]@This();
-    const Int = c_int;
+    const Int = i32;
 
     pub fn init(size: Int) Self {
         const vector: [*c]FloatVector = @ptrCast(@alignCast(allocateObject(@sizeOf(FloatVector), .OBJ_FVECTOR)));
@@ -413,7 +413,7 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 //     return .{ d, c, b, a };
 // }
 
-// pub fn newFloatVector(arg_size: c_int) [*c]FloatVector {
+// pub fn newFloatVector(arg_size: i32) [*c]FloatVector {
 //     var size = arg_size;
 //     _ = &size;
 //     var vector: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(allocateObject(@sizeOf(FloatVector), .OBJ_FVECTOR))));
@@ -430,7 +430,7 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 //     var newVector: [*c]FloatVector = FloatVector.init(vector.*.size);
 //     _ = &newVector;
 //     {
-//         var i: c_int = 0;
+//         var i: i32 = 0;
 //         _ = &i;
 //         while (i < vector.*.count) : (i += 1) {
 //             FloatVector.push(newVector, (blk: {
@@ -465,7 +465,7 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 //     if (vector.*.count > 1 and vector.*.data[@intCast(vector.*.count - 2)] > value) vector.*.sorted = false;
 // }
 
-// pub fn insertFloatVector(vector: [*c]FloatVector, index_1: c_int, value: f64) void {
+// pub fn insertFloatVector(vector: [*c]FloatVector, index_1: i32, value: f64) void {
 //     if ((index_1 < 0) or (index_1 >= vector.*.size)) {
 //         std.debug.print("Index out of bounds\n", .{});
 //         return;
@@ -481,7 +481,7 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 //     if (vector.*.count > 1 and (vector.*.data[@intCast(index_1)] < vector.*.data[@intCast(index_1 - 1)])) vector.*.sorted = false;
 // }
 
-// pub fn getFloatVector(arg_vector: [*c]FloatVector, arg_index_1: c_int) f64 {
+// pub fn getFloatVector(arg_vector: [*c]FloatVector, arg_index_1: i32) f64 {
 //     var vector = arg_vector;
 //     _ = &vector;
 //     var index_1 = arg_index_1;
@@ -517,7 +517,7 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 //     }
 //     return poppedValue;
 // }
-// pub fn removeFloatVector(arg_vector: [*c]FloatVector, arg_index_1: c_int) f64 {
+// pub fn removeFloatVector(arg_vector: [*c]FloatVector, arg_index_1: i32) f64 {
 //     var vector = arg_vector;
 //     _ = &vector;
 //     var index_1 = arg_index_1;
@@ -532,7 +532,7 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 //     }).*;
 //     _ = &removedValue;
 //     {
-//         var i: c_int = index_1;
+//         var i: i32 = index_1;
 //         _ = &i;
 //         while (i < (vector.*.count - 1)) : (i += 1) {
 //             (blk: {
@@ -545,7 +545,7 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 //         }
 //     }
 //     vector.*.count -= 1;
-//     if (((@as(c_int, @intFromBool(vector.*.sorted)) != 0) and (index_1 > 0)) and ((blk: {
+//     if (((@as(i32, @intFromBool(vector.*.sorted)) != 0) and (index_1 > 0)) and ((blk: {
 //         const tmp = index_1;
 //         if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
 //     }).* < (blk: {
@@ -562,7 +562,7 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 //     _ = &vector;
 //     std.debug.print("[", .{});
 //     {
-//         var i: c_int = 0;
+//         var i: i32 = 0;
 //         _ = &i;
 //         while (i < vector.*.count) : (i += 1) {
 //             std.debug.print("{d:.2} ", .{(blk: {
@@ -583,7 +583,7 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 //     var result: [*c]FloatVector = FloatVector.init(a.*.size + b.*.size);
 //     _ = &result;
 //     {
-//         var i: c_int = 0;
+//         var i: i32 = 0;
 //         _ = &i;
 //         while (i < a.*.count) : (i += 1) {
 //             FloatVector.push(result, (blk: {
@@ -593,7 +593,7 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 //         }
 //     }
 //     {
-//         var i: c_int = 0;
+//         var i: i32 = 0;
 //         _ = &i;
 //         while (i < b.*.count) : (i += 1) {
 //             FloatVector.push(result, (blk: {
@@ -605,7 +605,7 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 //     return result;
 // }
 
-// pub fn sliceFloatVector(arg_vector: [*c]FloatVector, arg_start: c_int, arg_end: c_int) [*c]FloatVector {
+// pub fn sliceFloatVector(arg_vector: [*c]FloatVector, arg_start: i32, arg_end: i32) [*c]FloatVector {
 //     var vector = arg_vector;
 //     _ = &vector;
 //     var start = arg_start;
@@ -619,7 +619,7 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 //     var result: [*c]FloatVector = FloatVector.init((end - start) + 1);
 //     _ = &result;
 //     {
-//         var i: c_int = start;
+//         var i: i32 = start;
 //         _ = &i;
 //         while (i <= end) : (i += 1) {
 //             FloatVector.push(result, (blk: {
@@ -630,7 +630,7 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 //     }
 //     return result;
 // }
-// pub fn spliceFloatVector(arg_vector: [*c]FloatVector, arg_start: c_int, arg_end: c_int) [*c]FloatVector {
+// pub fn spliceFloatVector(arg_vector: [*c]FloatVector, arg_start: i32, arg_end: i32) [*c]FloatVector {
 //     var vector = arg_vector;
 //     _ = &vector;
 //     var start = arg_start;
@@ -644,7 +644,7 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 //     var result: [*c]FloatVector = FloatVector.init(vector.*.size);
 //     _ = &result;
 //     {
-//         var i: c_int = 0;
+//         var i: i32 = 0;
 //         _ = &i;
 //         while (i < start) : (i += 1) {
 //             FloatVector.push(result, (blk: {
@@ -654,7 +654,7 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 //         }
 //     }
 //     {
-//         var i: c_int = end + 1;
+//         var i: i32 = end + 1;
 //         _ = &i;
 //         while (i < vector.*.count) : (i += 1) {
 //             FloatVector.push(result, (blk: {
@@ -695,9 +695,9 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 //     _ = &simd_sum_arr;
 //     _mm256_storeu_pd(@as([*c]f64, @ptrCast(@alignCast(&simd_sum_arr))), @as(__m256d, @bitCast(simd_sum)));
 //     {
-//         var i: c_int = 0;
+//         var i: i32 = 0;
 //         _ = &i;
-//         while (i < @as(c_int, 4)) : (i += 1) {
+//         while (i < @as(i32, 4)) : (i += 1) {
 //             sum += simd_sum_arr[@as(c_uint, @intCast(i))];
 //         }
 //     }
@@ -741,9 +741,9 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 //     _ = &simd_variance_arr;
 //     _mm256_storeu_pd(@as([*c]f64, @ptrCast(@alignCast(&simd_variance_arr))), @as(__m256d, @bitCast(simd_variance)));
 //     {
-//         var i: c_int = 0;
+//         var i: i32 = 0;
 //         _ = &i;
-//         while (i < @as(c_int, 4)) : (i += 1) {
+//         while (i < @as(i32, 4)) : (i += 1) {
 //             variance += simd_variance_arr[@as(c_uint, @intCast(i))];
 //         }
 //     }
@@ -760,7 +760,7 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 //     var _max: f64 = vector.*.data[0];
 //     _ = &_max;
 //     {
-//         var i: c_int = 1;
+//         var i: i32 = 1;
 //         _ = &i;
 //         while (i < vector.*.count) : (i += 1) {
 //             if ((blk: {
@@ -783,7 +783,7 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 //     var min: f64 = vector.*.data[0];
 //     _ = &min;
 //     {
-//         var i: c_int = 1;
+//         var i: i32 = 1;
 //         _ = &i;
 //         while (i < vector.*.count) : (i += 1) {
 //             if ((blk: {
@@ -1093,9 +1093,9 @@ pub fn reverseFloatVector(arg_vector: [*c]FloatVector) void {
     var vector = arg_vector;
     _ = &vector;
     {
-        var i: c_int = 0;
+        var i: i32 = 0;
         _ = &i;
-        while (i < @divTrunc(vector.*.count, @as(c_int, 2))) : (i += 1) {
+        while (i < @divTrunc(vector.*.count, @as(i32, 2))) : (i += 1) {
             var temp: f64 = (blk: {
                 const tmp = i;
                 if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
@@ -1136,7 +1136,7 @@ pub fn hasNextFloatVector(arg_vector: [*c]FloatVector) bool {
     _ = &vector;
     return vector.*.pos < vector.*.count;
 }
-pub fn peekFloatVector(arg_vector: [*c]FloatVector, arg_pos: c_int) f64 {
+pub fn peekFloatVector(arg_vector: [*c]FloatVector, arg_pos: i32) f64 {
     var vector = arg_vector;
     _ = &vector;
     var pos = arg_pos;
@@ -1154,14 +1154,14 @@ pub fn resetFloatVector(arg_vector: [*c]FloatVector) void {
     _ = &vector;
     vector.*.pos = 0;
 }
-pub fn skipFloatVector(arg_vector: [*c]FloatVector, arg_n: c_int) void {
+pub fn skipFloatVector(arg_vector: [*c]FloatVector, arg_n: i32) void {
     var vector = arg_vector;
     _ = &vector;
     var n = arg_n;
     _ = &n;
     vector.*.pos = if ((vector.*.pos + n) < vector.*.count) vector.*.pos + n else vector.*.count;
 }
-pub fn searchFloatVector(arg_vector: [*c]FloatVector, arg_value: f64) c_int {
+pub fn searchFloatVector(arg_vector: [*c]FloatVector, arg_value: f64) i32 {
     var vector = arg_vector;
     _ = &vector;
     const value = arg_value;
@@ -1170,7 +1170,7 @@ pub fn searchFloatVector(arg_vector: [*c]FloatVector, arg_value: f64) c_int {
         return binarySearchFloatVector(vector, value);
     } else {
         {
-            var i: c_int = 0;
+            var i: i32 = 0;
             _ = &i;
             while (i < vector.*.count) : (i += 1) {
                 if ((blk: {
@@ -1184,7 +1184,7 @@ pub fn searchFloatVector(arg_vector: [*c]FloatVector, arg_value: f64) c_int {
     }
     return -1;
 }
-pub fn linspace(arg_start: f64, arg_end: f64, arg_n: c_int) [*c]FloatVector {
+pub fn linspace(arg_start: f64, arg_end: f64, arg_n: i32) [*c]FloatVector {
     var start = arg_start;
     _ = &start;
     var end = arg_end;
@@ -1196,7 +1196,7 @@ pub fn linspace(arg_start: f64, arg_end: f64, arg_n: c_int) [*c]FloatVector {
     var step: f64 = (end - start) / @as(f64, @floatFromInt(n - 1));
     _ = &step;
     {
-        var i: c_int = 0;
+        var i: i32 = 0;
         _ = &i;
         while (i < n) : (i += 1) {
             (blk: {
@@ -1226,7 +1226,7 @@ pub fn interp1(arg_x: [*c]FloatVector, arg_y: [*c]FloatVector, arg_x0: f64) f64 
         std.debug.print("x0 is out of bounds\n", .{});
         return 0;
     }
-    var i: c_int = 0;
+    var i: i32 = 0;
     _ = &i;
     while (x0 > (blk: {
         const tmp = i;
@@ -1270,7 +1270,7 @@ pub fn dotProduct(arg_a: [*c]FloatVector, arg_b: [*c]FloatVector) f64 {
     _ = &a;
     var b = arg_b;
     _ = &b;
-    if ((a.*.size != @as(c_int, 3)) and (b.*.size != @as(c_int, 3))) {
+    if ((a.*.size != @as(i32, 3)) and (b.*.size != @as(i32, 3))) {
         std.debug.print("Vectors are not of size 3\n", .{});
         return 0;
     }
@@ -1281,11 +1281,11 @@ pub fn crossProduct(arg_a: [*c]FloatVector, arg_b: [*c]FloatVector) [*c]FloatVec
     _ = &a;
     var b = arg_b;
     _ = &b;
-    if ((a.*.size != @as(c_int, 3)) and (b.*.size != @as(c_int, 3))) {
+    if ((a.*.size != @as(i32, 3)) and (b.*.size != @as(i32, 3))) {
         std.debug.print("Vectors are not of size 3\n", .{});
         return null;
     }
-    var result: [*c]FloatVector = FloatVector.init(@as(c_int, 3));
+    var result: [*c]FloatVector = FloatVector.init(@as(i32, 3));
     _ = &result;
     result.*.data[0] = (a.*.data[1] * b.*.data[2]) - (a.*.data[2] * b.*.data[1]);
     result.*.data[1] = (a.*.data[2] * b.*.data[0]) - (a.*.data[0] * b.*.data[2]);
@@ -1296,7 +1296,7 @@ pub fn crossProduct(arg_a: [*c]FloatVector, arg_b: [*c]FloatVector) [*c]FloatVec
 pub fn magnitude(arg_vector: [*c]FloatVector) f64 {
     var vector = arg_vector;
     _ = &vector;
-    var sum: f64 = (std.math.pow(f64, vector.*.data[0], @as(f64, @floatFromInt(@as(c_int, 2)))) + std.math.pow(f64, vector.*.data[1], @as(f64, @floatFromInt(@as(c_int, 2))))) + std.math.pow(f64, vector.*.data[2], @as(f64, @floatFromInt(@as(c_int, 2))));
+    var sum: f64 = (std.math.pow(f64, vector.*.data[0], @as(f64, @floatFromInt(@as(i32, 2)))) + std.math.pow(f64, vector.*.data[1], @as(f64, @floatFromInt(@as(i32, 2))))) + std.math.pow(f64, vector.*.data[2], @as(f64, @floatFromInt(@as(i32, 2))));
     _ = &sum;
     return @sqrt(sum);
 }
@@ -1330,7 +1330,7 @@ pub fn reflection(arg_a: [*c]FloatVector, arg_b: [*c]FloatVector) [*c]FloatVecto
     _ = &a;
     var b = arg_b;
     _ = &b;
-    return subFloatVector(scaleFloatVector(projection(a, b), @as(f64, @floatFromInt(@as(c_int, 2)))), a);
+    return subFloatVector(scaleFloatVector(projection(a, b), @as(f64, @floatFromInt(@as(i32, 2)))), a);
 }
 pub fn refraction(arg_a: [*c]FloatVector, arg_b: [*c]FloatVector, arg_n1: f64, arg_n2: f64) [*c]FloatVector {
     var a = arg_a;
@@ -1355,11 +1355,11 @@ pub fn refraction(arg_a: [*c]FloatVector, arg_b: [*c]FloatVector, arg_n1: f64, a
         std.debug.print("Total internal reflection\n", .{});
         return null;
     }
-    var cos_theta_r: f64 = @sqrt(@as(f64, @floatFromInt(1)) - std.math.pow(f64, sin_theta_r, @as(f64, @floatFromInt(@as(c_int, 2)))));
+    var cos_theta_r: f64 = @sqrt(@as(f64, @floatFromInt(1)) - std.math.pow(f64, sin_theta_r, @as(f64, @floatFromInt(@as(i32, 2)))));
     _ = &cos_theta_r;
     var result: [*c]FloatVector = scaleFloatVector(a, n1 / n2);
     _ = &result;
-    var temp: [*c]FloatVector = scaleFloatVector(b, ((n1 / n2) * cos_theta_r) - @sqrt(@as(f64, @floatFromInt(1)) - std.math.pow(f64, sin_theta_r, @as(f64, @floatFromInt(@as(c_int, 2))))));
+    var temp: [*c]FloatVector = scaleFloatVector(b, ((n1 / n2) * cos_theta_r) - @sqrt(@as(f64, @floatFromInt(1)) - std.math.pow(f64, sin_theta_r, @as(f64, @floatFromInt(@as(i32, 2))))));
     _ = &temp;
     return addFloatVector(result, temp);
 }
@@ -1371,23 +1371,23 @@ pub fn angle(arg_a: [*c]FloatVector, arg_b: [*c]FloatVector) f64 {
     return std.math.acos(dotProduct(a, b) / (magnitude(a) * magnitude(b)));
 }
 
-pub fn compare_double(arg_a: ?*const anyopaque, arg_b: ?*const anyopaque) callconv(.C) c_int {
+pub fn compare_double(arg_a: ?*const anyopaque, arg_b: ?*const anyopaque) callconv(.C) i32 {
     const a: *f64 = @ptrCast(@constCast(@alignCast(arg_a)));
     const b: *f64 = @ptrCast(@constCast(@alignCast(arg_b)));
 
     return @intFromFloat(a.* - b.*);
 }
-pub fn binarySearchFloatVector(arg_vector: [*c]FloatVector, arg_value: f64) callconv(.C) c_int {
+pub fn binarySearchFloatVector(arg_vector: [*c]FloatVector, arg_value: f64) callconv(.C) i32 {
     var vector = arg_vector;
     _ = &vector;
     const value = arg_value;
     _ = &value;
-    var left: c_int = 0;
+    var left: i32 = 0;
     _ = &left;
-    var right: c_int = vector.*.count - 1;
+    var right: i32 = vector.*.count - 1;
     _ = &right;
     while (left <= right) {
-        var mid: c_int = left + @divTrunc(right - left, @as(c_int, 2));
+        var mid: i32 = left + @divTrunc(right - left, @as(i32, 2));
         _ = &mid;
         if ((blk: {
             const tmp = mid;

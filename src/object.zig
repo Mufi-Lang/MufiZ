@@ -26,7 +26,7 @@ pub const FloatVector = @import("objects/fvec.zig").FloatVector;
 
 pub const ObjString = extern struct {
     obj: Obj,
-    length: c_int,
+    length: i32,
     chars: [*c]u8,
     hash: u64,
 };
@@ -41,7 +41,7 @@ pub const ObjLinkedList = extern struct {
     obj: Obj,
     head: [*c]Node,
     tail: [*c]Node,
-    count: c_int,
+    count: i32,
 };
 
 pub const ObjHashTable = extern struct {
@@ -51,13 +51,13 @@ pub const ObjHashTable = extern struct {
 
 pub const ObjFunction = extern struct {
     obj: Obj,
-    arity: c_int,
-    upvalueCount: c_int,
+    arity: i32,
+    upvalueCount: i32,
     chunk: Chunk,
     name: [*c]ObjString,
 };
 
-pub const NativeFn = ?*const fn (c_int, [*c]Value) Value;
+pub const NativeFn = ?*const fn (i32, [*c]Value) Value;
 pub const ObjNative = extern struct {
     obj: Obj,
     function: NativeFn,
@@ -74,12 +74,13 @@ pub const ObjClosure = extern struct {
     obj: Obj,
     function: [*c]ObjFunction,
     upvalues: [*c][*c]ObjUpvalue,
-    upvalueCount: c_int,
+    upvalueCount: i32,
 };
 pub const ObjClass = extern struct {
     obj: Obj,
     name: [*c]ObjString,
     methods: Table,
+    superclass: [*c]ObjClass,
 };
 pub const ObjInstance = extern struct {
     obj: Obj,
@@ -145,7 +146,7 @@ pub inline fn OBJ_TYPE(value: Value) ObjType {
 //     return isObjType(value, .OBJ_FVECTOR);
 // }
 
-pub inline fn NOT_LIST_TYPES(values: [*c]Value, n: c_int) bool {
+pub inline fn NOT_LIST_TYPES(values: [*c]Value, n: i32) bool {
     return notObjTypes(ObjTypeCheckParams{
         .values = values,
         .objType = .OBJ_LINKED_LIST,
@@ -157,7 +158,7 @@ pub inline fn NOT_LIST_TYPES(values: [*c]Value, n: c_int) bool {
     });
 }
 
-pub inline fn NOT_COLLECTION_TYPES(values: [*c]Value, n: c_int) bool {
+pub inline fn NOT_COLLECTION_TYPES(values: [*c]Value, n: i32) bool {
     return notObjTypes(ObjTypeCheckParams{
         .values = values,
         .objType = .OBJ_HASH_TABLE,
@@ -217,6 +218,7 @@ pub fn newBoundMethod(receiver: Value, method: [*c]ObjClosure) [*c]ObjBoundMetho
 pub fn newClass(name: [*c]ObjString) [*c]ObjClass {
     const klass: [*c]ObjClass = @as([*c]ObjClass, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjClass), .OBJ_CLASS))));
     klass.*.name = name;
+    klass.*.superclass = @ptrFromInt(0);
     table_h.initTable(&klass.*.methods);
     return klass;
 }
@@ -226,7 +228,7 @@ pub fn newClosure(function: [*c]ObjFunction) [*c]ObjClosure {
     var upvalues = @as([*c][*c]ObjUpvalue, @ptrCast(@alignCast(reallocate(null, 0, @intCast(@sizeOf([*c]ObjUpvalue) *% upvalueCount)))));
 
     // Initialize upvalues to null
-    var i: c_int = 0;
+    var i: i32 = 0;
     while (i < upvalueCount) : (i += 1) {
         upvalues[@intCast(i)] = null;
     }
@@ -266,7 +268,7 @@ pub fn newNative(function: NativeFn) [*c]ObjNative {
 
 pub const AllocStringParams = extern struct {
     chars: [*c]u8,
-    length: c_int,
+    length: i32,
     hash: u64,
 };
 
@@ -294,19 +296,21 @@ pub fn allocateString(params: AllocStringParams) [*c]ObjString {
     return string;
 }
 
-pub fn hashString(key: [*c]const u8, length: c_int) u64 {
+pub fn hashString(key: [*c]const u8, length: i32) u64 {
     const FNV_OFFSET_BASIS: u64 = 0xcbf29ce484222325;
     const FNV_PRIME: u64 = 0x100000001b3;
 
     var hash = FNV_OFFSET_BASIS;
-    for (0..@intCast(length)) |i| {
-        hash ^= @intCast(key[i]);
-        hash = hash *% FNV_PRIME;
+    if (length > 0) {
+        for (0..@intCast(@as(u32, @intCast(length)))) |i| {
+            hash ^= @intCast(key[i]);
+            hash = hash *% FNV_PRIME;
+        }
     }
     return hash;
 }
 
-pub fn takeString(chars: [*c]u8, length: c_int) [*c]ObjString {
+pub fn takeString(chars: [*c]u8, length: i32) [*c]ObjString {
     // Compute the hash of the string
     const hash = hashString(chars, length);
     
@@ -326,7 +330,7 @@ pub fn takeString(chars: [*c]u8, length: c_int) [*c]ObjString {
     });
 }
 
-pub fn copyString(chars: [*c]const u8, length: c_int) [*c]ObjString {
+pub fn copyString(chars: [*c]const u8, length: i32) [*c]ObjString {
     // Compute the hash of the string
     const hash = hashString(chars, length);
     
@@ -371,9 +375,9 @@ pub fn split(list: [*c]ObjLinkedList, left: [*c]ObjLinkedList, right: [*c]ObjLin
     _ = &leftArg;
     const rightArg = right;
     _ = &rightArg;
-    var count: c_int = list.*.count;
+    var count: i32 = list.*.count;
     _ = &count;
-    var middle: c_int = @divTrunc(count, @as(c_int, 2));
+    var middle: i32 = @divTrunc(count, @as(i32, 2));
     _ = &middle;
     leftArg.*.head = list.*.head;
     leftArg.*.count = middle;
@@ -381,7 +385,7 @@ pub fn split(list: [*c]ObjLinkedList, left: [*c]ObjLinkedList, right: [*c]ObjLin
     var current: [*c]Node = list.*.head;
     _ = &current;
     {
-        var i: c_int = 0;
+        var i: i32 = 0;
         _ = &i;
         while (i < (middle - 1)) : (i += 1) {
             current = current.*.next;
@@ -553,7 +557,7 @@ pub fn freeObjectLinkedList(list: [*c]ObjLinkedList) void {
     _ = reallocate(@as(?*anyopaque, @ptrCast(list)), @sizeOf(ObjLinkedList), 0);
 }
 pub fn mergeSort(list: [*c]ObjLinkedList) void {
-    if (list.*.count < @as(c_int, 2)) {
+    if (list.*.count < @as(i32, 2)) {
         return;
     }
     var left: ObjLinkedList = undefined;
@@ -571,10 +575,10 @@ pub fn mergeSort(list: [*c]ObjLinkedList) void {
     }
     list.*.tail = current;
 }
-pub fn searchLinkedList(list: [*c]ObjLinkedList, value: Value) c_int {
+pub fn searchLinkedList(list: [*c]ObjLinkedList, value: Value) i32 {
     var current: [*c]Node = list.*.head;
     _ = &current;
-    var index_1: c_int = 0;
+    var index_1: i32 = 0;
     _ = &index_1;
     while (current != null) {
         if (valuesEqual(current.*.data, value)) {
@@ -630,7 +634,7 @@ pub fn mergeLinkedList(a: [*c]ObjLinkedList, b: [*c]ObjLinkedList) [*c]ObjLinked
     }
     return result;
 }
-pub fn sliceLinkedList(list: [*c]ObjLinkedList, start: c_int, end: c_int) [*c]ObjLinkedList {
+pub fn sliceLinkedList(list: [*c]ObjLinkedList, start: i32, end: i32) [*c]ObjLinkedList {
     const startArg = start;
     _ = &startArg;
     const endArg = end;
@@ -639,7 +643,7 @@ pub fn sliceLinkedList(list: [*c]ObjLinkedList, start: c_int, end: c_int) [*c]Ob
     _ = &sliced;
     var current: [*c]Node = list.*.head;
     _ = &current;
-    var index_1: c_int = 0;
+    var index_1: i32 = 0;
     _ = &index_1;
     while (current != null) {
         if ((index_1 >= startArg) and (index_1 < endArg)) {
@@ -650,7 +654,7 @@ pub fn sliceLinkedList(list: [*c]ObjLinkedList, start: c_int, end: c_int) [*c]Ob
     }
     return sliced;
 }
-pub fn spliceLinkedList(list: [*c]ObjLinkedList, start: c_int, end: c_int) [*c]ObjLinkedList {
+pub fn spliceLinkedList(list: [*c]ObjLinkedList, start: i32, end: i32) [*c]ObjLinkedList {
     const startArg = start;
     _ = &startArg;
     const endArg = end;
@@ -659,7 +663,7 @@ pub fn spliceLinkedList(list: [*c]ObjLinkedList, start: c_int, end: c_int) [*c]O
     _ = &spliced;
     var current: [*c]Node = list.*.head;
     _ = &current;
-    var index_1: c_int = 0;
+    var index_1: i32 = 0;
     _ = &index_1;
     while (current != null) {
         var next: [*c]Node = current.*.next;
@@ -757,7 +761,7 @@ pub fn printObject(value: Value) void {
                 _ = &vector;
                 print("[", .{});
                 {
-                    var i: c_int = 0;
+                    var i: i32 = 0;
                     _ = &i;
                     while (i < vector.*.count) : (i += 1) {
                         print("{d:.2}", .{(blk: {
@@ -794,10 +798,10 @@ pub fn printObject(value: Value) void {
                 print("{{", .{});
                 var entries: [*c]table_h.Entry = hashtable.*.table.entries;
                 _ = &entries;
-                var count: c_int = 0;
+                var count: i32 = 0;
                 _ = &count;
                 {
-                    var i: c_int = 0;
+                    var i: i32 = 0;
                     _ = &i;
                     while (i < hashtable.*.table.capacity) : (i += 1) {
                         if ((blk: {
@@ -837,11 +841,11 @@ pub fn isObjType(value: Value, type_: ObjType) bool {
 pub const ObjTypeCheckParams = extern struct {
     values: [*c]Value,
     objType: ObjType,
-    count: c_int,
+    count: i32,
 };
 pub fn notObjTypes(params: ObjTypeCheckParams) bool {
     {
-        var i: c_int = 0;
+        var i: i32 = 0;
         _ = &i;
         while (i < params.count) : (i += 1) {
             if (isObjType((blk: {

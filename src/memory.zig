@@ -18,7 +18,7 @@ const fvec = @import("objects/fvec.zig");
 
 pub const GC_HEAP_GROW_FACTOR = 2;
 
-pub const GCState = enum(c_int) {
+pub const GCState = enum(i32) {
     GC_IDLE = 0,
     GC_MARK_ROOTS = 1,
     GC_TRACING = 2,
@@ -246,9 +246,9 @@ pub fn markArray(array: [*c]value_h.ValueArray) void {
 }
 
 pub fn incrementalGC() void {
-    const INCREMENT_LIMIT: c_int = 500;
+    const INCREMENT_LIMIT: i32 = 500;
 
-    var workDone: c_int = 0;
+    var workDone: i32 = 0;
     while (workDone < INCREMENT_LIMIT) {
         switch (gcData.state) {
             .GC_IDLE => {

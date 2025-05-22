@@ -48,10 +48,10 @@ const atan2 = std.math.atan2;
 const cos = std.math.cos;
 const sin = std.math.sin;
 
-pub const FRAMES_MAX = @as(c_int, 64);
+pub const FRAMES_MAX = @as(i32, 64);
 pub const STACK_MAX = FRAMES_MAX * UINT8_COUNT;
 pub const UINT8_COUNT = UINT8_MAX + 1;
-pub const UINT8_MAX: c_int = @intCast(std.math.maxInt(u8));
+pub const UINT8_MAX: i32 = @intCast(std.math.maxInt(u8));
 
 pub const CallFrame = extern struct {
     closure: [*c]ObjClosure,
@@ -61,7 +61,7 @@ pub const CallFrame = extern struct {
 
 pub const VM = struct {
     frames: [64]CallFrame = std.mem.zeroes([64]CallFrame),
-    frameCount: c_int = 0,
+    frameCount: i32 = 0,
     chunk: [*c]Chunk = null,
     ip: [*c]u8 = null,
     stack: [16384]Value,
@@ -73,8 +73,8 @@ pub const VM = struct {
     bytesAllocated: u128 = 0,
     nextGC: u128 = 1024 * 1024,
     objects: [*c]Obj = null,
-    grayCount: c_int = 0,
-    grayCapacity: c_int = 0,
+    grayCount: i32 = 0,
+    grayCapacity: i32 = 0,
     grayStack: [*c][*c]Obj = null,
 };
 
@@ -94,7 +94,7 @@ pub fn initVM() void {
     vm.initString = copyString(@ptrCast("init"), 4); // Create initString after tables are ready
 }
 
-pub const InterpretResult = enum(c_int) {
+pub const InterpretResult = enum(i32) {
     INTERPRET_OK = 0,
     INTERPRET_COMPILE_ERROR = 1,
     INTERPRET_RUNTIME_ERROR = 2,
@@ -106,14 +106,14 @@ inline fn pow(a: f64, b: f64) f64 {
 
 pub var vm: VM = undefined;
 
-inline fn next_frame_count() c_int {
+inline fn next_frame_count() i32 {
     const ref = &vm.frameCount;
     const tmp = ref.*;
     ref.* += 1;
     return tmp;
 }
 
-inline fn set_stack_top(argc: c_int, value: Value) void {
+inline fn set_stack_top(argc: i32, value: Value) void {
     const tmp = -argc - 1;
     // if (tmp >= 0) break :blk vm.stackTop + @as(usize, @intCast(tmp)) else break :blk vm.stackTop - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
     var ref: [*c]Value = null;
@@ -266,7 +266,7 @@ pub fn resetStack() void {
     vm.openUpvalues = null;
 }
 
-pub fn peek(distance: c_int) Value {
+pub fn peek(distance: i32) Value {
     const tmp = -1 - distance;
     if (tmp >= 0) {
         return (vm.stackTop + @as(usize, @intCast(tmp))).*;
@@ -275,12 +275,12 @@ pub fn peek(distance: c_int) Value {
     }
 }
 
-pub fn call(closure: [*c]ObjClosure, argCount: c_int) bool {
+pub fn call(closure: [*c]ObjClosure, argCount: i32) bool {
     if (argCount != closure.*.function.*.arity) {
         runtimeError("Expected {d} arguments but got {d}.", .{ closure.*.function.*.arity, argCount });
         return false;
     }
-    if (vm.frameCount == @as(c_int, 64)) {
+    if (vm.frameCount == @as(i32, 64)) {
         runtimeError("Stack overflow.", .{});
         return false;
     }
@@ -293,7 +293,7 @@ pub fn call(closure: [*c]ObjClosure, argCount: c_int) bool {
 
     return true;
 }
-pub fn callValue(callee: Value, argCount: c_int) bool {
+pub fn callValue(callee: Value, argCount: i32) bool {
     if (callee.type == .VAL_OBJ) {
         switch (callee.as.obj.*.type) {
             .OBJ_BOUND_METHOD => {
@@ -322,13 +322,19 @@ pub fn callValue(callee: Value, argCount: c_int) bool {
                 // Calculate where 'self' should go on the stack (below the arguments)
                 const selfSlot = vm.stackTop - @as(usize, @intCast(argCount + 1));
 
-                // Create the instance value and place it at the self slot
+                // Set the selfSlot to the instance value - this ensures 'self' is available in methods
                 selfSlot.* = instanceValue;
 
                 // Call initializer if it exists
                 if (vm.initString != null) {
                     var initializer: Value = undefined;
                     if (tableGet(&klass.*.methods, vm.initString, &initializer)) {
+                        // Validate the initializer is a closure
+                        if (initializer.type != .VAL_OBJ or !isObjType(initializer, .OBJ_CLOSURE)) {
+                            runtimeError("Class initializer must be a function.", .{});
+                            return false;
+                        }
+
                         return call(@as([*c]ObjClosure, @ptrCast(@alignCast(initializer.as.obj))), argCount);
                     } else if (argCount != 0) {
                         runtimeError("Expected 0 arguments but got {d}.", .{argCount});
@@ -363,33 +369,58 @@ pub fn callValue(callee: Value, argCount: c_int) bool {
     return false;
 }
 
-pub fn invokeFromClass(klass: [*c]ObjClass, name: [*c]ObjString, argCount: c_int) bool {
+pub fn invokeFromClass(klass: [*c]ObjClass, name: [*c]ObjString, argCount: i32) bool {
+    // Validate input parameters
+    if (klass == null) {
+        runtimeError("Cannot invoke methods on null class.", .{});
+        return false;
+    }
+
+    if (name == null) {
+        runtimeError("Cannot invoke method with null name.", .{});
+        return false;
+    }
+
     var method: Value = undefined;
     if (!tableGet(&klass.*.methods, name, &method)) {
         const len: usize = @intCast(name.*.length);
         runtimeError("Undefined property '{s}'.", .{name.*.chars[0..len]});
         return false;
     }
+
+    // Make sure we're calling a method
+    if (method.type != .VAL_OBJ or !isObjType(method, .OBJ_CLOSURE)) {
+        runtimeError("Can only call functions and classes.", .{});
+        return false;
+    }
+
     return call(@ptrCast(@alignCast(method.as.obj)), argCount);
 }
 
-pub fn invoke(name: [*c]ObjString, argCount: c_int) bool {
+pub fn invoke(name: [*c]ObjString, argCount: i32) bool {
     const receiver: Value = peek(argCount);
+    // First check if we're dealing with an instance
     if (!object_h.isObjType(receiver, .OBJ_INSTANCE)) {
         runtimeError("Only instances have methods.", .{});
         return false;
     }
+
     const instance: [*c]ObjInstance = @as([*c]ObjInstance, @ptrCast(@alignCast(receiver.as.obj)));
+    // Ensure the instance has a valid class
+    if (instance.*.klass == null) {
+        runtimeError("Instance has no class.", .{});
+        return false;
+    }
+
     var value: Value = undefined;
 
+    // Check fields first
     if (tableGet(&instance.*.fields, name, &value)) {
-        // (blk: {
-        //     const tmp = -argCount - 1;
-        //     if (tmp >= 0) break :blk vm.stackTop + @as(usize, @intCast(tmp)) else break :blk vm.stackTop - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-        // }).* = value;
         set_stack_top(argCount, value);
         return callValue(value, argCount);
     }
+
+    // Then try methods from the class
     return invokeFromClass(instance.*.klass, name, argCount);
 }
 
@@ -450,7 +481,7 @@ pub fn isFalsey(value: Value) bool {
     return (value.type == .VAL_NIL) or ((value.type == .VAL_BOOL) and !value.as.boolean);
 }
 
-pub fn setFloatVector(f: [*c]FloatVector, index: c_int, value: f64) void {
+pub fn setFloatVector(f: [*c]FloatVector, index: i32, value: f64) void {
     if (index >= fvec._count(f)) {
         runtimeError("Index out of bounds.", .{});
         return;
@@ -498,7 +529,7 @@ pub fn run() InterpretResult {
         const chunk = &frame.*.closure.*.function.*.chunk;
         const offset = @intFromPtr(frame.*.ip) - @intFromPtr(frame.*.closure.*.function.*.chunk.code);
         const instruction_index = @divExact(offset, @sizeOf(u8));
-        const c_instruction_index = @as(c_int, @intCast(@as(u32, @truncate(instruction_index))));
+        const c_instruction_index = @as(i32, @intCast(@as(u32, @truncate(instruction_index))));
         _ = debug_h.disassembleInstruction(chunk, c_instruction_index);
     }
     while (true) {
@@ -618,20 +649,49 @@ pub fn run() InterpretResult {
                     const name: [*c]ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
                         get_slot(frame)
                     ].as.obj));
-                    const superclass: [*c]ObjClass = @ptrCast(@alignCast(pop().as.obj));
-                    if (!bindMethod(superclass, name)) {
+
+                    // Pop the superclass reference from stack (just removed, not used)
+                    _ = pop();
+
+                    // Get the instance (self) which should be on the stack
+                    const instance = peek(0);
+                    if (!isObjType(instance, .OBJ_INSTANCE)) {
+                        runtimeError("Only instances have superclasses.", .{});
                         return .INTERPRET_RUNTIME_ERROR;
                     }
+
+                    // Get the superclass from the instance's class
+                    const instance_obj: [*c]ObjInstance = @ptrCast(@alignCast(instance.as.obj));
+                    const superclass = instance_obj.*.klass.*.superclass;
+                    
+                    if (@intFromPtr(superclass) == 0) {
+                        runtimeError("Object has no superclass.", .{});
+                        return .INTERPRET_RUNTIME_ERROR;
+                    }
+                    
+                    print("OP_GET_SUPER: Using superclass: {s}\n", .{zstr(superclass.*.name)});
+                    
+                    // Look up the method in the superclass
+                    var method_value: Value = undefined;
+                    if (!tableGet(&superclass.*.methods, name, &method_value)) {
+                        runtimeError("Undefined property '{s}'.", .{zstr(name)});
+                        return .INTERPRET_RUNTIME_ERROR;
+                    }
+                    
+                    // Create a bound method using the instance and method
+                    const bound = newBoundMethod(instance, @ptrCast(@alignCast(method_value.as.obj)));
+                    _ = pop(); // Pop the instance
+                    push(Value.init_obj(@ptrCast(@alignCast(bound))));
+                    
+                    print("OP_GET_SUPER: Found and bound method '{s}' in superclass\n", .{zstr(name)});
                     continue;
                 },
-                .OP_GET_ITERATOR => {},
-                .OP_INDEX_GET => {},
-                .OP_INDEX_SET => {},
+
                 .OP_FVECTOR => {
-                    const count: c_int = @as(c_int, @bitCast(@as(c_uint, get_slot(frame))));
+                    const count: i32 = @as(i32, @bitCast(@as(c_uint, get_slot(frame))));
                     const f = fvec.FloatVector.init(count);
                     for (0..@intCast(count)) |i| {
-                        FloatVector.push(f, peek((count - @as(c_int, @intCast(i))) - 1).as_num_double());
+                        FloatVector.push(f, peek((count - @as(i32, @intCast(i))) - 1).as_num_double());
                     }
                     for (0..@intCast(count)) |_| {
                         _ = pop();
@@ -766,8 +826,7 @@ pub fn run() InterpretResult {
                     }
                     continue;
                 },
-                .OP_JUMP_IF_DONE => {},
-                .OP_ITERATOR_NEXT => {},
+
                 .OP_LOOP => {
 
                     // Read a 16-bit offset from bytecode and jump backward
@@ -788,7 +847,7 @@ pub fn run() InterpretResult {
                     continue;
                 },
                 .OP_CALL => {
-                    const argCount: c_int = @as(c_int, @bitCast(@as(c_uint, get_slot(frame))));
+                    const argCount: i32 = @as(i32, @bitCast(@as(c_uint, get_slot(frame))));
 
                     if (!callValue(peek(argCount), argCount)) {
                         return .INTERPRET_RUNTIME_ERROR;
@@ -802,7 +861,7 @@ pub fn run() InterpretResult {
                         get_slot(frame)
                     ].as.obj));
 
-                    const count: c_int = @as(c_int, @bitCast(@as(c_uint, get_slot(frame))));
+                    const count: i32 = @as(i32, @bitCast(@as(c_uint, get_slot(frame))));
 
                     if (!invoke(method, count)) {
                         return .INTERPRET_RUNTIME_ERROR;
@@ -815,12 +874,43 @@ pub fn run() InterpretResult {
                         get_slot(frame)
                     ].as.obj));
 
-                    const argCount: c_int = @as(c_int, @bitCast(@as(c_uint, get_slot(frame))));
+                    const argCount: i32 = @as(i32, @bitCast(@as(c_uint, get_slot(frame))));
 
-                    const superclass: [*c]ObjClass = @ptrCast(@alignCast(pop().as.obj));
+                    // Pop the superclass reference from stack
+                    _ = pop();
+
+                    // Get the instance (self)
+                    const instance = peek(argCount);
+                    if (!isObjType(instance, .OBJ_INSTANCE)) {
+                        runtimeError("Only instances have superclasses.", .{});
+                        return .INTERPRET_RUNTIME_ERROR;
+                    }
+                    
+                    // Get the superclass from the instance's class
+                    const instance_obj: [*c]ObjInstance = @ptrCast(@alignCast(instance.as.obj));
+                    const superclass = instance_obj.*.klass.*.superclass;
+                    
+                    if (@intFromPtr(superclass) == 0) {
+                        runtimeError("Object has no superclass.", .{});
+                        return .INTERPRET_RUNTIME_ERROR;
+                    }
+                    
+                    print("OP_SUPER_INVOKE: Using superclass: {s}\n", .{zstr(superclass.*.name)});
+
+                    // Get the method from the superclass
+                    var method_value: Value = undefined;
+                    if (!tableGet(&superclass.*.methods, method, &method_value)) {
+                        runtimeError("Undefined method '{s}'.", .{zstr(method)});
+                        return .INTERPRET_RUNTIME_ERROR;
+                    }
+                    
+                    print("OP_SUPER_INVOKE: Found method '{s}' in superclass\n", .{zstr(method)});
+                    
+                    // Call the method directly to avoid recursion
                     if (!invokeFromClass(superclass, method, argCount)) {
                         return .INTERPRET_RUNTIME_ERROR;
                     }
+
                     frame = &vm.frames[@as(c_uint, @intCast(vm.frameCount - 1))];
                     continue;
                 },
@@ -879,7 +969,15 @@ pub fn run() InterpretResult {
                         return .INTERPRET_RUNTIME_ERROR;
                     }
                     const subclass: [*c]ObjClass = @ptrCast(@alignCast(peek(0).as.obj));
-                    table_h.tableAddAll(&@as([*c]ObjClass, @ptrCast(@alignCast(superclass.as.obj))).*.methods, &subclass.*.methods);
+
+                    // Copy all methods from superclass to subclass
+                    const superclassPtr = @as([*c]ObjClass, @ptrCast(@alignCast(superclass.as.obj)));
+                    table_h.tableAddAll(&superclassPtr.*.methods, &subclass.*.methods);
+
+                    // Store the superclass reference directly in the subclass
+                    subclass.*.superclass = superclassPtr;
+
+                    // Pop the superclass after storing it in the subclass field
                     _ = pop();
                     continue;
                 },
@@ -889,7 +987,6 @@ pub fn run() InterpretResult {
                     ].as.obj)));
                     continue;
                 },
-                .OP_ITERATOR_HAS_NEXT => {},
             }
         }
     }

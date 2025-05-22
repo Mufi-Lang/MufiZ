@@ -1,0 +1,42 @@
+class Animal {
+  init() {
+    self.noise = "...";
+  }
+  
+  makeNoise() {
+    print self.noise;
+  }
+  
+  describe() {
+    print "I am an animal";
+  }
+}
+
+class Dog < Animal {
+  init() {
+    self.noise = "Woof!";
+  }
+  
+  describe() {
+    print "I am a dog";
+  }
+  
+  bark() {
+    this.makeNoise();
+  }
+}
+
+var pet = Dog();
+
+// Test super.init() worked correctly
+pet.makeNoise();
+// expect: Woof!
+
+// Test super.describe() works
+pet.describe();
+// expect: I am an animal
+// expect: I am a dog
+
+// Test normal inheritance
+pet.bark();
+// expect: Woof!

@@ -18,18 +18,18 @@ const debug_h = @import("debug.zig");
 
 pub const Parser = extern struct { current: Token, previous: Token, hadError: bool, panicMode: bool };
 
-pub const PREC_NONE: c_int = 0;
-pub const PREC_ASSIGNMENT: c_int = 1;
-pub const PREC_OR: c_int = 2;
-pub const PREC_AND: c_int = 3;
-pub const PREC_EQUALITY: c_int = 4;
-pub const PREC_COMPARISON: c_int = 5;
-pub const PREC_TERM: c_int = 6;
-pub const PREC_FACTOR: c_int = 7;
-pub const PREC_UNARY: c_int = 8;
-pub const PREC_CALL: c_int = 9;
-pub const PREC_INDEX: c_int = 10;
-pub const PREC_PRIMARY: c_int = 11;
+pub const PREC_NONE: i32 = 0;
+pub const PREC_ASSIGNMENT: i32 = 1;
+pub const PREC_OR: i32 = 2;
+pub const PREC_AND: i32 = 3;
+pub const PREC_EQUALITY: i32 = 4;
+pub const PREC_COMPARISON: i32 = 5;
+pub const PREC_TERM: i32 = 6;
+pub const PREC_FACTOR: i32 = 7;
+pub const PREC_UNARY: i32 = 8;
+pub const PREC_CALL: i32 = 9;
+pub const PREC_INDEX: i32 = 10;
+pub const PREC_PRIMARY: i32 = 11;
 pub const Precedence = c_uint;
 
 pub const ParseFn = ?*const fn (bool) void;
@@ -40,7 +40,7 @@ pub const ParseRule = extern struct {
 };
 pub const Local = extern struct {
     name: Token,
-    depth: c_int,
+    depth: i32,
     isCaptured: bool,
 };
 pub const Upvalue = extern struct {
@@ -48,7 +48,7 @@ pub const Upvalue = extern struct {
     isLocal: bool,
 };
 
-pub const FunctionType = enum(c_int) {
+pub const FunctionType = enum(i32) {
     TYPE_FUNCTION = 0,
     TYPE_METHOD = 1,
     TYPE_INITIALIZER = 2,
@@ -65,9 +65,9 @@ pub const Compiler = extern struct {
     function: [*c]ObjFunction,
     type_: FunctionType,
     locals: [256]Local,
-    localCount: c_int,
+    localCount: i32,
     upvalues: [256]Upvalue,
-    scopeDepth: c_int,
+    scopeDepth: i32,
 };
 
 pub export var parser: Parser = undefined;
@@ -127,9 +127,9 @@ pub fn emitBytes(byte1: u8, byte2: u8) void {
     emitByte(byte1);
     emitByte(byte2);
 }
-pub fn emitLoop(loopStart: c_int) void {
+pub fn emitLoop(loopStart: i32) void {
     emitByte(@intFromEnum(OpCode.OP_LOOP));
-    const offset: c_int = (currentChunk().*.count - loopStart) + 2;
+    const offset: i32 = (currentChunk().*.count - loopStart) + 2;
 
     if (offset > 65535) {
         @"error"("Loop body too large.");
@@ -138,7 +138,7 @@ pub fn emitLoop(loopStart: c_int) void {
     emitByte(@intCast(offset & 255));
 }
 
-pub fn emitJump(instruction: u8) c_int {
+pub fn emitJump(instruction: u8) i32 {
     emitByte(instruction);
     emitByte(255);
     emitByte(255);
@@ -153,7 +153,7 @@ pub fn emitReturn() void {
     emitByte(@intCast(@intFromEnum(OpCode.OP_RETURN)));
 }
 pub fn makeConstant(value: Value) u8 {
-    const constant: c_int = chunk_h.addConstant(currentChunk(), value);
+    const constant: i32 = chunk_h.addConstant(currentChunk(), value);
     if (constant > 255) {
         @"error"("Too many constants in one chunk.");
         return 0;
@@ -164,8 +164,8 @@ pub fn emitConstant(value: Value) void {
     emitBytes(@intFromEnum(OpCode.OP_CONSTANT), makeConstant(value));
 }
 
-pub fn patchJump(offset: c_int) void {
-    const jump: c_int = (currentChunk().*.count - offset) - 2;
+pub fn patchJump(offset: i32) void {
+    const jump: i32 = (currentChunk().*.count - offset) - 2;
     if (jump > 65535) {
         @"error"("Too much code to jump over.");
     }
@@ -270,10 +270,6 @@ pub fn statement() void {
             advance();
             forStatement();
         },
-        .TOKEN_EACH => {
-            advance();
-            eachStatement();
-        },
         .TOKEN_IF => {
             advance();
             ifStatement();
@@ -311,7 +307,69 @@ pub fn declaration() void {
 }
 pub fn getRule(type_: TokenType) [*c]ParseRule {
     const index: usize = @intCast(@intFromEnum(type_));
-    return &rules[index];
+    
+    // Special case for certain token types
+    if (type_ == .TOKEN_TRUE or type_ == .TOKEN_FALSE or type_ == .TOKEN_NIL) {
+        // Use a static rule for literal tokens
+        var static_literal_rule = ParseRule{
+            .prefix = &literal,
+            .infix = null,
+            .precedence = PREC_NONE,
+        };
+        return &static_literal_rule;
+    } else if (type_ == .TOKEN_INT or type_ == .TOKEN_DOUBLE) {
+        // Handle number tokens
+        var static_number_rule = ParseRule{
+            .prefix = &number,
+            .infix = null,
+            .precedence = PREC_NONE,
+        };
+        return &static_number_rule;
+    } else if (type_ == .TOKEN_IDENTIFIER) {
+        // Handle identifier tokens
+        var static_identifier_rule = ParseRule{
+            .prefix = &variable,
+            .infix = null,
+            .precedence = PREC_NONE,
+        };
+        return &static_identifier_rule;
+    } else if (type_ == .TOKEN_STRING) {
+        // Handle string literals
+        var static_string_rule = ParseRule{
+            .prefix = &string,
+            .infix = null,
+            .precedence = PREC_NONE,
+        };
+        return &static_string_rule;
+    } else if (type_ == .TOKEN_SELF) {
+        // Handle self keyword
+        var static_self_rule = ParseRule{
+            .prefix = &self_,
+            .infix = null,
+            .precedence = PREC_NONE,
+        };
+        return &static_self_rule;
+    } else if (type_ == .TOKEN_SUPER) {
+        // Handle super keyword
+        var static_super_rule = ParseRule{
+            .prefix = &super_,
+            .infix = null,
+            .precedence = PREC_NONE,
+        };
+        return &static_super_rule;
+    }
+    
+    if (index < rules.len) {
+        return &rules[index];
+    } else {
+        // Return a default rule for unexpected token types
+        var static_default_rule = ParseRule{
+            .prefix = null, 
+            .infix = null,
+            .precedence = PREC_NONE,
+        };
+        return &static_default_rule;
+    }
 }
 pub fn parsePrecedence(precedence: Precedence) void {
     advance();
@@ -345,8 +403,8 @@ pub fn identifiersEqual(a: [*c]Token, b: [*c]Token) bool {
     if (a.*.length != b.*.length) return false;
     return scanner_h.memcmp(@as(?*const anyopaque, @ptrCast(a.*.start)), @as(?*const anyopaque, @ptrCast(b.*.start)), @as(c_ulong, @bitCast(@as(c_long, a.*.length)))) == 0;
 }
-pub fn resolveLocal(compiler: [*c]Compiler, name: [*c]Token) c_int {
-    var i: c_int = compiler.*.localCount - 1;
+pub fn resolveLocal(compiler: [*c]Compiler, name: [*c]Token) i32 {
+    var i: i32 = compiler.*.localCount - 1;
     while (i >= 0) : (i -= 1) {
         const local: [*c]Local = &compiler.*.locals[@as(c_uint, @intCast(i))];
         if (identifiersEqual(name, &local.*.name)) {
@@ -360,8 +418,8 @@ pub fn resolveLocal(compiler: [*c]Compiler, name: [*c]Token) c_int {
     return -1;
 }
 
-pub fn addUpvalue(compiler: [*c]Compiler, index_1: u8, isLocal: bool) c_int {
-    const upvalueCount: c_int = compiler.*.function.*.upvalueCount;
+pub fn addUpvalue(compiler: [*c]Compiler, index_1: u8, isLocal: bool) i32 {
+    const upvalueCount: i32 = compiler.*.function.*.upvalueCount;
 
     for (0..@intCast(upvalueCount)) |i| {
         const upvalue: [*c]Upvalue = &compiler.*.upvalues[@as(c_uint, @intCast(i))];
@@ -384,14 +442,14 @@ pub fn addUpvalue(compiler: [*c]Compiler, index_1: u8, isLocal: bool) c_int {
         break :blk tmp;
     };
 }
-pub fn resolveUpvalue(compiler: [*c]Compiler, name: [*c]Token) c_int {
+pub fn resolveUpvalue(compiler: [*c]Compiler, name: [*c]Token) i32 {
     if (compiler.*.enclosing == @as([*c]Compiler, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) return -1;
-    const local: c_int = resolveLocal(compiler.*.enclosing, name);
+    const local: i32 = resolveLocal(compiler.*.enclosing, name);
     if (local != -1) {
         compiler.*.enclosing.*.locals[@as(c_uint, @intCast(local))].isCaptured = true;
         return addUpvalue(compiler, @as(u8, @bitCast(@as(i8, @truncate(local)))), true);
     }
-    const upvalue: c_int = resolveUpvalue(compiler.*.enclosing, name);
+    const upvalue: i32 = resolveUpvalue(compiler.*.enclosing, name);
     if (upvalue != -1) {
         return addUpvalue(compiler, @as(u8, @bitCast(@as(i8, @truncate(upvalue)))), false);
     }
@@ -418,7 +476,7 @@ pub fn declareVariable() void {
     if (current.*.scopeDepth == 0) return;
     const name: [*c]Token = &parser.previous;
     {
-        var i: c_int = current.*.localCount - 1;
+        var i: i32 = current.*.localCount - 1;
         _ = &i;
         while (i >= 0) : (i -= 1) {
             var local: [*c]Local = &current.*.locals[@as(c_uint, @intCast(i))];
@@ -456,7 +514,7 @@ pub fn argumentList() u8 {
     if (!check(.TOKEN_RIGHT_PAREN)) {
         while (true) {
             expression();
-            if (@as(c_int, @bitCast(@as(c_uint, argCount))) == 255) {
+            if (@as(i32, @bitCast(@as(c_uint, argCount))) == 255) {
                 @"error"("Can't have more than 255 arguments.");
             }
             argCount +%= 1;
@@ -468,7 +526,7 @@ pub fn argumentList() u8 {
 }
 pub fn and_(canAssign: bool) void {
     _ = canAssign;
-    var endJump: c_int = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
+    var endJump: i32 = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
     _ = &endJump;
     emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
     parsePrecedence(PREC_AND);
@@ -544,7 +602,7 @@ pub fn dot(canAssign: bool) void {
     consume(.TOKEN_IDENTIFIER, "Expect property name after '.'.");
     var name: u8 = identifierConstant(&parser.previous);
     _ = &name;
-    if ((@as(c_int, @intFromBool(canAssign)) != 0) and (@as(c_int, @intFromBool(match(.TOKEN_EQUAL))) != 0)) {
+    if ((@as(i32, @intFromBool(canAssign)) != 0) and (@as(i32, @intFromBool(match(.TOKEN_EQUAL))) != 0)) {
         expression();
         emitBytes(@intCast(@intFromEnum(OpCode.OP_SET_PROPERTY)), name);
     } else if (match(.TOKEN_LEFT_PAREN)) {
@@ -558,23 +616,17 @@ pub fn dot(canAssign: bool) void {
 }
 pub fn literal(canAssign: bool) void {
     _ = canAssign;
-    while (true) {
-        switch (parser.previous.type) {
-            .TOKEN_FALSE => {
-                emitByte(@intCast(@intFromEnum(OpCode.OP_FALSE)));
-                break;
-            },
-            .TOKEN_NIL => {
-                emitByte(@intCast(@intFromEnum(OpCode.OP_NIL)));
-                break;
-            },
-            .TOKEN_TRUE => {
-                emitByte(@intCast(@intFromEnum(OpCode.OP_TRUE)));
-                break;
-            },
-            else => return,
-        }
-        break;
+    switch (parser.previous.type) {
+        .TOKEN_FALSE => {
+            emitByte(@intCast(@intFromEnum(OpCode.OP_FALSE)));
+        },
+        .TOKEN_NIL => {
+            emitByte(@intCast(@intFromEnum(OpCode.OP_NIL)));
+        },
+        .TOKEN_TRUE => {
+            emitByte(@intCast(@intFromEnum(OpCode.OP_TRUE)));
+        },
+        else => {},
     }
 }
 pub fn grouping(canAssign: bool) void {
@@ -585,7 +637,7 @@ pub fn grouping(canAssign: bool) void {
 pub fn number(canAssign: bool) void {
     _ = &canAssign;
     if (parser.previous.type == .TOKEN_INT) {
-        var value: c_int = atoi(parser.previous.start);
+        var value: i32 = atoi(parser.previous.start);
         _ = &value;
         emitConstant(Value{
             .type = .VAL_INT,
@@ -606,9 +658,9 @@ pub fn number(canAssign: bool) void {
 }
 pub fn or_(canAssign: bool) void {
     _ = &canAssign;
-    var elseJump: c_int = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
+    var elseJump: i32 = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
     _ = &elseJump;
-    var endJump: c_int = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+    var endJump: i32 = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
     _ = &endJump;
     patchJump(elseJump);
     emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
@@ -617,10 +669,15 @@ pub fn or_(canAssign: bool) void {
 }
 pub fn string(canAssign: bool) void {
     _ = &canAssign;
+    // Get the content between the quotes, skipping the first character and excluding the last
+    // Create a safe offset calculation
+    const start = parser.previous.start + 1; // Safely skip the opening quote
+    const length = if (parser.previous.length >= 2) parser.previous.length - 2 else 0;
+    
     emitConstant(Value{
         .type = .VAL_OBJ,
         .as = .{
-            .obj = @as([*c]object_h.Obj, @ptrCast(@alignCast(object_h.copyString(parser.previous.start + @as(usize, @bitCast(@as(isize, @intCast(1)))), parser.previous.length - 2)))),
+            .obj = @as([*c]object_h.Obj, @ptrCast(@alignCast(object_h.copyString(start, length)))),
         },
     });
 }
@@ -632,7 +689,7 @@ pub fn string(canAssign: bool) void {
 //         while (true) {
 //             expression();
 //             argCount +%= 1;
-//             if (@as(c_int, @bitCast(@as(c_uint, argCount))) > 255) {
+//             if (@as(i32, @bitCast(@as(c_uint, argCount))) > 255) {
 //                 @"error"("Can't have more than 255 elements in an array.");
 //             }
 //             if (!match(.TOKEN_COMMA)) break;
@@ -649,7 +706,7 @@ pub fn fvector(canAssign: bool) void {
         while (true) {
             expression();
             argCount +%= 1;
-            if (@as(c_int, @bitCast(@as(c_uint, argCount))) > 255) {
+            if (@as(i32, @bitCast(@as(c_uint, argCount))) > 255) {
                 @"error"("Can't have more than 255 elements in a vector.");
             }
             if (!match(.TOKEN_COMMA)) break;
@@ -661,7 +718,7 @@ pub fn fvector(canAssign: bool) void {
 pub fn namedVariable(name: Token, canAssign: bool) void {
     var getOp: u8 = undefined;
     var setOp: u8 = undefined;
-    var arg: c_int = resolveLocal(current, @constCast(&name));
+    var arg: i32 = resolveLocal(current, @constCast(&name));
     if (arg != -1) {
         getOp = @intCast(@intFromEnum(OpCode.OP_GET_LOCAL));
         setOp = @intCast(@intFromEnum(OpCode.OP_SET_LOCAL));
@@ -677,10 +734,10 @@ pub fn namedVariable(name: Token, canAssign: bool) void {
         getOp = @intCast(@intFromEnum(OpCode.OP_GET_GLOBAL));
         setOp = @intCast(@intFromEnum(OpCode.OP_SET_GLOBAL));
     }
-    if ((@as(c_int, @intFromBool(canAssign)) != 0) and (@as(c_int, @intFromBool(match(.TOKEN_EQUAL))) != 0)) {
+    if ((@as(i32, @intFromBool(canAssign)) != 0) and (@as(i32, @intFromBool(match(.TOKEN_EQUAL))) != 0)) {
         expression();
         emitBytes(setOp, @as(u8, @bitCast(@as(i8, @truncate(arg)))));
-    } else if ((((@as(c_int, @intFromBool(match(.TOKEN_PLUS_EQUAL))) != 0) or (@as(c_int, @intFromBool(match(.TOKEN_MINUS_EQUAL))) != 0)) or (@as(c_int, @intFromBool(match(.TOKEN_STAR_EQUAL))) != 0)) or (@as(c_int, @intFromBool(match(.TOKEN_SLASH_EQUAL))) != 0)) {
+    } else if ((((@as(i32, @intFromBool(match(.TOKEN_PLUS_EQUAL))) != 0) or (@as(i32, @intFromBool(match(.TOKEN_MINUS_EQUAL))) != 0)) or (@as(i32, @intFromBool(match(.TOKEN_STAR_EQUAL))) != 0)) or (@as(i32, @intFromBool(match(.TOKEN_SLASH_EQUAL))) != 0)) {
         emitBytes(getOp, @as(u8, @bitCast(@as(i8, @truncate(arg)))));
         expression();
         while (true) {
@@ -732,30 +789,16 @@ pub fn namedVariable(name: Token, canAssign: bool) void {
         emitBytes(getOp, @as(u8, @bitCast(@as(i8, @truncate(arg)))));
     }
 }
-pub fn index_(canAssign: bool) void {
-    if (check(.TOKEN_LEFT_SQPAREN)) {
-        consume(.TOKEN_LEFT_SQPAREN, "Expect '[' after array.");
-        expression();
-        consume(.TOKEN_RIGHT_SQPAREN, "Expect ']' after index.");
-        if ((@as(c_int, @intFromBool(canAssign)) != 0) and (@as(c_int, @intFromBool(match(.TOKEN_EQUAL))) != 0)) {
-            expression();
-            emitByte(@intCast(@intFromEnum(OpCode.OP_INDEX_SET)));
-        } else {
-            emitByte(@intCast(@intFromEnum(OpCode.OP_INDEX_GET)));
-        }
-    } else {
-        vm_h.runtimeError("Only arrays support indexing.", .{});
-    }
-}
+
 pub fn variable(canAssign: bool) void {
     namedVariable(parser.previous, canAssign);
 }
 
 pub fn syntheticToken(text: [*c]const u8) Token {
     var token: Token = Token{
-        .type = @import("std").mem.zeroes(TokenType),
+        .type = .TOKEN_IDENTIFIER,
         .start = @constCast(text),
-        .length = @as(c_int, @bitCast(@as(c_uint, @truncate(scanner_h.strlen(text))))),
+        .length = @as(i32, @bitCast(@as(c_uint, @truncate(scanner_h.strlen(text))))),
         .line = 0,
     };
     _ = &token;
@@ -765,32 +808,43 @@ pub fn super_(canAssign: bool) void {
     _ = canAssign;
     if (currentClass == @as([*c]ClassCompiler, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
         @"error"("Can't use 'super' outside of a class.");
+        return;
     } else if (!currentClass.*.hasSuperClass) {
         @"error"("Can't use 'super' in a class with no superclass.");
+        return;
     }
     consume(.TOKEN_DOT, "Expect '.' after 'super'.");
     consume(.TOKEN_IDENTIFIER, "Expect superclass method name.");
     var name: u8 = identifierConstant(&parser.previous);
     _ = &name;
+    
+    // Push 'self' as the receiver (this)
     namedVariable(syntheticToken("self"), false);
+    
     if (match(.TOKEN_LEFT_PAREN)) {
         var argCount: u8 = argumentList();
         _ = &argCount;
+        
+        // Use the "super" local variable that stores the superclass
         namedVariable(syntheticToken("super"), false);
+        
         emitBytes(@intCast(@intFromEnum(OpCode.OP_SUPER_INVOKE)), name);
         emitByte(argCount);
     } else {
+        // Use the "super" local variable that stores the superclass
         namedVariable(syntheticToken("super"), false);
+        
         emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_SUPER)), name);
     }
 }
 pub fn self_(canAssign: bool) void {
-    _ = &canAssign;
+    _ = canAssign;
     if (currentClass == @as([*c]ClassCompiler, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
         @"error"("Can't use 'self' outside of a class.");
         return;
     }
-    variable(false);
+    // Look up "self" variable
+    namedVariable(syntheticToken("self"), false);
 }
 pub fn item_(canAssign: bool) void {
     _ = &canAssign;
@@ -816,7 +870,7 @@ pub fn unary(canAssign: bool) void {
         break;
     }
 }
-pub export var rules: [53]ParseRule = .{
+pub export var rules: [56]ParseRule = .{
     .{
         .prefix = &grouping,
         .infix = &call,
@@ -836,6 +890,7 @@ pub export var rules: [53]ParseRule = .{
         .precedence = PREC_NONE,
     },
     .{
+        .prefix = &item_,
         .infix = &dot,
         .precedence = PREC_CALL,
     },
@@ -895,11 +950,6 @@ pub export var rules: [53]ParseRule = .{
         .precedence = PREC_COMPARISON,
     },
     .{
-        .prefix = &variable,
-        .infix = &index_,
-        .precedence = PREC_NONE,
-    },
-    .{
         .prefix = &string,
         .precedence = PREC_NONE,
     },
@@ -919,6 +969,7 @@ pub export var rules: [53]ParseRule = .{
         .precedence = PREC_NONE,
     },
     .{
+        .prefix = &literal,
         .precedence = PREC_NONE,
     },
     .{
@@ -932,6 +983,7 @@ pub export var rules: [53]ParseRule = .{
         .precedence = PREC_NONE,
     },
     .{
+        .prefix = &literal,
         .precedence = PREC_NONE,
     },
     .{
@@ -970,10 +1022,16 @@ pub export var rules: [53]ParseRule = .{
         .precedence = PREC_NONE,
     },
     .{
+        .prefix = &literal,
         .precedence = PREC_NONE,
     },
     .{
-        .prefix = &item_,
+        .precedence = PREC_NONE,
+    },
+    .{
+        .precedence = PREC_NONE,
+    },
+    .{
         .precedence = PREC_NONE,
     },
     .{
@@ -1003,6 +1061,12 @@ pub export var rules: [53]ParseRule = .{
     .{
         .infix = &binary,
         .precedence = PREC_FACTOR,
+    },
+    .{
+        .precedence = PREC_NONE,
+    },
+    .{
+        .precedence = PREC_NONE,
     },
     .{
         .precedence = PREC_NONE,
@@ -1044,7 +1108,7 @@ pub fn function(type_: FunctionType) void {
         },
     }));
     {
-        var i: c_int = 0;
+        var i: i32 = 0;
         _ = &i;
         while (i < function_1.*.upvalueCount) : (i += 1) {
             emitByte(if (compiler.upvalues[@as(c_uint, @intCast(i))].isLocal) 1 else 0);
@@ -1058,7 +1122,7 @@ pub fn method() void {
     _ = &constant;
     var type_: FunctionType = .TYPE_METHOD;
     _ = &type_;
-    if ((parser.previous.length == @as(c_int, 4)) and (scanner_h.memcmp(@as(?*const anyopaque, @ptrCast(parser.previous.start)), @as(?*const anyopaque, @ptrCast("init")), @as(c_ulong, @bitCast(@as(c_long, @as(c_int, 4))))) == 0)) {
+    if ((parser.previous.length == @as(i32, 4)) and (scanner_h.memcmp(@as(?*const anyopaque, @ptrCast(parser.previous.start)), @as(?*const anyopaque, @ptrCast("init")), @as(c_ulong, @bitCast(@as(c_long, @as(i32, 4))))) == 0)) {
         type_ = .TYPE_INITIALIZER;
     }
     function(type_);
@@ -1079,19 +1143,28 @@ pub fn classDeclaration() void {
     classCompiler.enclosing = currentClass;
     classCompiler.hasSuperClass = false;
     currentClass = &classCompiler;
+    
+    // Begin scope for methods and self
+    beginScope();
+    addLocal(syntheticToken("self"));
+    
     if (match(.TOKEN_LESS)) {
         consume(.TOKEN_IDENTIFIER, "Expect superclass name.");
         variable(false);
         if (identifiersEqual(&className, &parser.previous)) {
             @"error"("A class can't inherit itself.");
         }
-        beginScope();
+        
+        // Store the superclass in a local variable named "super"
         addLocal(syntheticToken("super"));
-        defineVariable(@as(u8, @bitCast(@as(i8, @truncate(0)))));
+        namedVariable(parser.previous, false);
+        defineVariable(0);
+        
         namedVariable(className, false);
         emitByte(@intCast(@intFromEnum(OpCode.OP_INHERIT)));
         currentClass.*.hasSuperClass = true;
     }
+    
     namedVariable(className, false);
     consume(.TOKEN_LEFT_BRACE, "Expect '{' before class body.");
     while (!check(.TOKEN_RIGHT_BRACE) and !check(.TOKEN_EOF)) {
@@ -1099,9 +1172,10 @@ pub fn classDeclaration() void {
     }
     consume(.TOKEN_RIGHT_BRACE, "Expect '}' after class body.");
     emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
-    if (classCompiler.hasSuperClass) {
-        endScope();
-    }
+    
+    // End scope for methods, self, and super
+    endScope();
+    
     currentClass = currentClass.*.enclosing;
 }
 pub fn funDeclaration() void {
@@ -1135,9 +1209,9 @@ pub fn forStatement() void {
     } else {
         expressionStatement();
     }
-    var loopStart: c_int = currentChunk().*.count;
+    var loopStart: i32 = currentChunk().*.count;
     _ = &loopStart;
-    var exitJump: c_int = -1;
+    var exitJump: i32 = -1;
     _ = &exitJump;
     if (!match(.TOKEN_SEMICOLON)) {
         expression();
@@ -1146,9 +1220,9 @@ pub fn forStatement() void {
         emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
     }
     if (!match(.TOKEN_RIGHT_PAREN)) {
-        var bodyJump: c_int = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+        var bodyJump: i32 = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
         _ = &bodyJump;
-        var incrementStart: c_int = currentChunk().*.count;
+        var incrementStart: i32 = currentChunk().*.count;
         _ = &incrementStart;
         expression();
         emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
@@ -1165,36 +1239,16 @@ pub fn forStatement() void {
     }
     endScope();
 }
-pub fn eachStatement() void {
-    var loopStart: c_int = currentChunk().*.count;
-    _ = &loopStart;
-    consume(.TOKEN_LEFT_PAREN, "Expect '(' after 'while'.");
-    expression();
-    consume(.TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
-    var exitJump: c_int = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_DONE)));
-    _ = &exitJump;
-    var item: Token = Token{
-        .type = .TOKEN_ITEM,
-        .start = @ptrCast(@constCast("item")),
-        .length = @as(c_int, 4),
-        .line = 0,
-    };
-    _ = &item;
-    emitBytes(@intCast(@intFromEnum(OpCode.OP_SET_GLOBAL)), identifierConstant(&item));
-    statement();
-    emitLoop(loopStart);
-    patchJump(exitJump);
-    emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
-}
+// eachStatement function removed - it was using removed iterator opcodes
 pub fn ifStatement() void {
     consume(.TOKEN_LEFT_PAREN, "Expect '(' after 'if'.");
     expression();
     consume(.TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
-    var thenJump: c_int = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
+    var thenJump: i32 = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
     _ = &thenJump;
     emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
     statement();
-    var elseJump: c_int = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+    var elseJump: i32 = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
     _ = &elseJump;
     patchJump(thenJump);
     emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
@@ -1224,12 +1278,12 @@ pub fn returnStatement() void {
     }
 }
 pub fn whileStatement() void {
-    var loopStart: c_int = currentChunk().*.count;
+    var loopStart: i32 = currentChunk().*.count;
     _ = &loopStart;
     consume(.TOKEN_LEFT_PAREN, "Expect '(' after 'while'.");
     expression();
     consume(.TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
-    var exitJump: c_int = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
+    var exitJump: i32 = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
     _ = &exitJump;
     emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
     statement();
@@ -1264,5 +1318,5 @@ pub export fn compile(source: [*c]const u8) [*c]ObjFunction {
     }
     var function_1: [*c]ObjFunction = endCompiler();
     _ = &function_1;
-    return if (@as(c_int, @intFromBool(parser.hadError)) != 0) null else function_1;
+    return if (@as(i32, @intFromBool(parser.hadError)) != 0) null else function_1;
 }
