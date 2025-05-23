@@ -669,17 +669,14 @@ pub fn printObject(value: Value) void {
 
         .OBJ_FVECTOR => {
             {
-                var vector: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(value.as.obj)));
+                var vector: *FloatVector = @as(*FloatVector, @ptrCast(@alignCast(value.as.obj)));
                 _ = &vector;
                 print("[", .{});
                 {
                     var i: i32 = 0;
                     _ = &i;
                     while (i < vector.*.count) : (i += 1) {
-                        print("{d:.2}", .{(blk: {
-                            const tmp = i;
-                            if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                        }).*});
+                        print("{d:.2}", .{vector.*.data[@intCast(i)]});
                         if (i != (vector.*.count - 1)) {
                             print(", ", .{});
                         }

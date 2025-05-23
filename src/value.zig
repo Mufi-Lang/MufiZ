@@ -322,7 +322,7 @@ pub const Value = extern struct {
         return self.as.complex;
     }
 
-    pub fn as_fvec(self: Self) [*c]FloatVector {
+    pub fn as_fvec(self: Self) *FloatVector {
         return @ptrCast(@alignCast(self.as.obj));
     }
 
@@ -400,8 +400,8 @@ pub fn valuesEqual(a: Value, b: Value) bool {
                     },
                     .OBJ_FVECTOR => {
                         {
-                            const vec_a: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(a.as.obj)));
-                            const vec_b: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(b.as.obj)));
+                            const vec_a: *FloatVector = @as(*FloatVector, @ptrCast(@alignCast(a.as.obj)));
+                            const vec_b: *FloatVector = @as(*FloatVector, @ptrCast(@alignCast(b.as.obj)));
                             if (vec_a.*.count != vec_b.*.count) return false;
 
                             var i: i32 = 0;

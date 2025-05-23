@@ -34,22 +34,34 @@ pub fn _write(self: FloatVector.Self, i: FloatVector.Int, val: f64) void {
     FloatVector.write(self, i, val);
 }
 
-pub const FloatVector = extern struct {
+pub const FloatVector = struct {
     obj: Obj,
     size: Int,
     count: Int,
     pos: Int,
     data: Ptr,
     sorted: bool,
-    const Ptr = [*c]f64;
-    const Self = [*c]@This();
+    const Ptr = []f64;
+    const Self = *@This();
     const Int = i32;
 
     pub fn init(size: Int) Self {
         const vector: FloatVector.Self = @ptrCast(@alignCast(allocateObject(@sizeOf(FloatVector), .OBJ_FVECTOR)));
         vector.*.size = size;
         vector.*.count = 0;
-        vector.*.data = @as(Ptr, @ptrCast(@alignCast(reallocate(null, 0, @intCast(@sizeOf(f64) *% size)))));
+        
+        if (size == 0) {
+            // For zero-sized vectors, use an empty slice
+            vector.*.data = &[_]f64{};
+        } else {
+            const byte_size = @as(usize, @intCast(@sizeOf(f64) *% size));
+            const raw_ptr = reallocate(null, 0, byte_size);
+            if (raw_ptr == null) {
+                std.debug.print("Failed to allocate memory for FloatVector data\n", .{});
+                std.process.exit(1);
+            }
+            vector.*.data = @as([*]f64, @ptrCast(@alignCast(raw_ptr.?)))[0..@intCast(size)];
+        }
         return vector;
     }
 
@@ -182,7 +194,7 @@ pub const FloatVector = extern struct {
     pub fn slice(self: Self, start: Int, end: Int) Self {
         if ((((start < 0) or (start >= _count(self)) or (end < 0)) or (end >= _count(self)))) {
             std.debug.print("Index out of bounds\n", .{});
-            return null;
+            return @ptrCast(@alignCast(allocateObject(@sizeOf(FloatVector), .OBJ_FVECTOR)));
         }
         const result = FloatVector.init((end - start) + 1);
         for (@as(usize, @intCast(start))..@as(usize, @intCast(end + 1))) |i| {
@@ -194,7 +206,7 @@ pub const FloatVector = extern struct {
     pub fn splice(self: Self, start: Int, end: Int) Self {
         if ((((start < 0) or (start >= _count(self)) or (end < 0)) or (end >= _count(self)))) {
             std.debug.print("Index out of bounds\n", .{});
-            return null;
+            return @ptrCast(@alignCast(allocateObject(@sizeOf(FloatVector), .OBJ_FVECTOR)));
         }
 
         const result = FloatVector.init(_size(self));
@@ -435,7 +447,7 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 //         while (i < vector.*.count) : (i += 1) {
 //             FloatVector.push(newVector, (blk: {
 //                 const tmp = i;
-//                 if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+//                 if (tmp >= 0) break :blk vector.*.data.ptr + @as(usize, @intCast(tmp)) else break :blk vector.*.data.ptr + (~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1)));
 //             }).*);
 //         }
 //     }
@@ -492,7 +504,7 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 //     }
 //     return (blk: {
 //         const tmp = index_1;
-//         if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+//         if (tmp >= 0) break :blk vector.*.data.ptr + @as(usize, @intCast(tmp)) else break :blk vector.*.data.ptr + (~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1)));
 //     }).*;
 // }
 
@@ -537,10 +549,10 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 //         while (i < (vector.*.count - 1)) : (i += 1) {
 //             (blk: {
 //                 const tmp = i;
-//                 if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+//                 if (tmp >= 0) break :blk vector.*.data.ptr + @as(usize, @intCast(tmp)) else break :blk vector.*.data.ptr + (~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1)));
 //             }).* = (blk: {
 //                 const tmp = i + 1;
-//                 if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+//                 if (tmp >= 0) break :blk vector.*.data.ptr + @as(usize, @intCast(tmp)) else break :blk vector.*.data.ptr + (~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1)));
 //             }).*;
 //         }
 //     }
@@ -567,7 +579,7 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 //         while (i < vector.*.count) : (i += 1) {
 //             std.debug.print("{d:.2} ", .{(blk: {
 //                 const tmp = i;
-//                 if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+//                 if (tmp >= 0) break :blk vector.*.data.ptr + @as(usize, @intCast(tmp)) else break :blk vector.*.data.ptr + (~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1)));
 //             }).*);
 //         }
 //     }
@@ -614,7 +626,7 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 //     _ = &end;
 //     if ((((start < 0) or (start >= vector.*.count)) or (end < 0)) or (end >= vector.*.count)) {
 //         std.debug.print("Index out of bounds\n", .{});
-//         return null;
+//         return @ptrCast(@alignCast(allocateObject(@sizeOf(FloatVector), .OBJ_FVECTOR)));
 //     }
 //     var result: FloatVector.Self = FloatVector.init((end - start) + 1);
 //     _ = &result;
@@ -624,7 +636,7 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 //         while (i <= end) : (i += 1) {
 //             FloatVector.push(result, (blk: {
 //                 const tmp = i;
-//                 if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+//                 if (tmp >= 0) break :blk vector.*.data.ptr + @as(usize, @intCast(tmp)) else break :blk vector.*.data.ptr + (~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1)));
 //             }).*);
 //         }
 //     }
@@ -639,7 +651,7 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 //     _ = &end;
 //     if ((((start < 0) or (start >= vector.*.count)) or (end < 0)) or (end >= vector.*.count)) {
 //         std.debug.print("Index out of bounds\n", .{});
-//         return null;
+//         return @ptrCast(@alignCast(allocateObject(@sizeOf(FloatVector), .OBJ_FVECTOR)));
 //     }
 //     var result: FloatVector.Self = FloatVector.init(vector.*.size);
 //     _ = &result;
@@ -649,7 +661,7 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 //         while (i < start) : (i += 1) {
 //             FloatVector.push(result, (blk: {
 //                 const tmp = i;
-//                 if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+//                 if (tmp >= 0) break :blk vector.*.data.ptr + @as(usize, @intCast(tmp)) else break :blk vector.*.data.ptr + (~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1)));
 //             }).*);
 //         }
 //     }
@@ -659,7 +671,7 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 //         while (i < vector.*.count) : (i += 1) {
 //             FloatVector.push(result, (blk: {
 //                 const tmp = i;
-//                 if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+//                 if (tmp >= 0) break :blk vector.*.data.ptr + @as(usize, @intCast(tmp)) else break :blk vector.*.data.ptr + (~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1)));
 //             }).*);
 //         }
 //     }
@@ -765,11 +777,11 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 //         while (i < vector.*.count) : (i += 1) {
 //             if ((blk: {
 //                 const tmp = i;
-//                 if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+//                 if (tmp >= 0) break :blk vector.*.data.ptr + @as(usize, @intCast(tmp)) else break :blk vector.*.data.ptr + (~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1)));
 //             }).* > _max) {
 //                 _max = (blk: {
 //                     const tmp = i;
-//                     if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+//                     if (tmp >= 0) break :blk vector.*.data.ptr + @as(usize, @intCast(tmp)) else break :blk vector.*.data.ptr + (~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1)));
 //                 }).*;
 //             }
 //         }
@@ -788,11 +800,11 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 //         while (i < vector.*.count) : (i += 1) {
 //             if ((blk: {
 //                 const tmp = i;
-//                 if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+//                 if (tmp >= 0) break :blk vector.*.data.ptr + @as(usize, @intCast(tmp)) else break :blk vector.*.data.ptr + (~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1)));
 //             }).* < min) {
 //                 min = (blk: {
 //                     const tmp = i;
-//                     if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+//                     if (tmp >= 0) break :blk vector.*.data.ptr + @as(usize, @intCast(tmp)) else break :blk vector.*.data.ptr + (~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1)));
 //                 }).*;
 //             }
 //         }
@@ -803,7 +815,7 @@ fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
 pub fn addFloatVector(vector1: FloatVector.Self, vector2: FloatVector.Self) FloatVector.Self {
     if (_size(vector1) != _size(vector2)) {
         std.debug.print("Vectors are not of the same size\n", .{});
-        return null;
+        return @ptrCast(@alignCast(allocateObject(@sizeOf(FloatVector), .OBJ_FVECTOR)));
     }
 
     const result = FloatVector.init(_size(vector1));
@@ -855,7 +867,7 @@ pub fn addFloatVector(vector1: FloatVector.Self, vector2: FloatVector.Self) Floa
 pub fn subFloatVector(vector1: FloatVector.Self, vector2: FloatVector.Self) FloatVector.Self {
     if (_size(vector1) != _size(vector2)) {
         std.debug.print("Vectors are not of the same size\n", .{});
-        return null;
+        return @ptrCast(@alignCast(allocateObject(@sizeOf(FloatVector), .OBJ_FVECTOR)));
     }
 
     const result = FloatVector.init(_size(vector1));
@@ -908,7 +920,7 @@ pub fn subFloatVector(vector1: FloatVector.Self, vector2: FloatVector.Self) Floa
 pub fn mulFloatVector(vector1: FloatVector.Self, vector2: FloatVector.Self) FloatVector.Self {
     if (_size(vector1) != _size(vector2)) {
         std.debug.print("Vectors are not of the same size\n", .{});
-        return null;
+        return @ptrCast(@alignCast(allocateObject(@sizeOf(FloatVector), .OBJ_FVECTOR)));
     }
 
     const result = FloatVector.init(_size(vector1));
@@ -961,7 +973,7 @@ pub fn mulFloatVector(vector1: FloatVector.Self, vector2: FloatVector.Self) Floa
 pub fn divFloatVector(vector1: FloatVector.Self, vector2: FloatVector.Self) FloatVector.Self {
     if (_size(vector1) != _size(vector2)) {
         std.debug.print("Vectors are not of the same size\n", .{});
-        return null;
+        return @ptrCast(@alignCast(allocateObject(@sizeOf(FloatVector), .OBJ_FVECTOR)));
     }
 
     const result = FloatVector.init(_size(vector1));
@@ -1096,22 +1108,10 @@ pub fn reverseFloatVector(arg_vector: FloatVector.Self) void {
         var i: i32 = 0;
         _ = &i;
         while (i < @divTrunc(vector.*.count, @as(i32, 2))) : (i += 1) {
-            var temp: f64 = (blk: {
-                const tmp = i;
-                if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-            }).*;
+            var temp: f64 = vector.*.data[@intCast(i)];
             _ = &temp;
-            (blk: {
-                const tmp = i;
-                if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-            }).* = (blk: {
-                const tmp = (vector.*.count - i) - 1;
-                if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-            }).*;
-            (blk: {
-                const tmp = (vector.*.count - i) - 1;
-                if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-            }).* = temp;
+            vector.*.data[@intCast(i)] = vector.*.data[@intCast((vector.*.count - i) - 1)];
+            vector.*.data[@intCast((vector.*.count - i) - 1)] = temp;
         }
     }
 }
@@ -1119,15 +1119,9 @@ pub fn nextFloatVector(arg_vector: FloatVector.Self) f64 {
     var vector = arg_vector;
     _ = &vector;
     if (hasNextFloatVector(vector)) {
-        return (blk: {
-            const tmp = blk_1: {
-                const ref = &vector.*.pos;
-                const tmp_2 = ref.*;
-                ref.* += 1;
-                break :blk_1 tmp_2;
-            };
-            if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-        }).*;
+        const value = vector.*.data[@intCast(vector.*.pos)];
+        vector.*.pos += 1;
+        return value;
     }
     return 0.0;
 }
@@ -1173,10 +1167,7 @@ pub fn searchFloatVector(arg_vector: FloatVector.Self, arg_value: f64) i32 {
             var i: i32 = 0;
             _ = &i;
             while (i < vector.*.count) : (i += 1) {
-                if ((blk: {
-                    const tmp = i;
-                    if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-                }).* == value) {
+                if (vector.*.data[@intCast(i)] == value) {
                     return i;
                 }
             }
@@ -1199,10 +1190,7 @@ pub fn linspace(arg_start: f64, arg_end: f64, arg_n: i32) FloatVector.Self {
         var i: i32 = 0;
         _ = &i;
         while (i < n) : (i += 1) {
-            (blk: {
-                const tmp = i;
-                if (tmp >= 0) break :blk result.*.data + @as(usize, @intCast(tmp)) else break :blk result.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-            }).* = start + (@as(f64, @floatFromInt(i)) * step);
+            result.*.data[@intCast(i)] = start + (@as(f64, @floatFromInt(i)) * step);
         }
     }
     result.*.count = n;
@@ -1219,51 +1207,21 @@ pub fn interp1(arg_x: FloatVector.Self, arg_y: FloatVector.Self, arg_x0: f64) f6
         std.debug.print("x and y must have the same length\n", .{});
         return 0;
     }
-    if ((x0 < x.*.data[0]) or (x0 > (blk: {
-        const tmp = x.*.count - 1;
-        if (tmp >= 0) break :blk x.*.data + @as(usize, @intCast(tmp)) else break :blk x.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    }).*)) {
+    if ((x0 < x.*.data[0]) or (x0 > x.*.data[@intCast(x.*.count - 1)])) {
         std.debug.print("x0 is out of bounds\n", .{});
         return 0;
     }
     var i: i32 = 0;
     _ = &i;
-    while (x0 > (blk: {
-        const tmp = i;
-        if (tmp >= 0) break :blk x.*.data + @as(usize, @intCast(tmp)) else break :blk x.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    }).*) {
+    while (x0 > x.*.data[@intCast(i)]) {
         i += 1;
     }
-    if (x0 == (blk: {
-        const tmp = i;
-        if (tmp >= 0) break :blk x.*.data + @as(usize, @intCast(tmp)) else break :blk x.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    }).*) {
-        return (blk: {
-            const tmp = i;
-            if (tmp >= 0) break :blk y.*.data + @as(usize, @intCast(tmp)) else break :blk y.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-        }).*;
+    if (x0 == x.*.data[@intCast(i)]) {
+        return y.*.data[@intCast(i)];
     }
-    var slope: f64 = ((blk: {
-        const tmp = i;
-        if (tmp >= 0) break :blk y.*.data + @as(usize, @intCast(tmp)) else break :blk y.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    }).* - (blk: {
-        const tmp = i - 1;
-        if (tmp >= 0) break :blk y.*.data + @as(usize, @intCast(tmp)) else break :blk y.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    }).*) / ((blk: {
-        const tmp = i;
-        if (tmp >= 0) break :blk x.*.data + @as(usize, @intCast(tmp)) else break :blk x.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    }).* - (blk: {
-        const tmp = i - 1;
-        if (tmp >= 0) break :blk x.*.data + @as(usize, @intCast(tmp)) else break :blk x.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    }).*);
+    var slope: f64 = (y.*.data[@intCast(i)] - y.*.data[@intCast(i - 1)]) / (x.*.data[@intCast(i)] - x.*.data[@intCast(i - 1)]);
     _ = &slope;
-    return (blk: {
-        const tmp = i - 1;
-        if (tmp >= 0) break :blk y.*.data + @as(usize, @intCast(tmp)) else break :blk y.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    }).* + (slope * (x0 - (blk: {
-        const tmp = i - 1;
-        if (tmp >= 0) break :blk x.*.data + @as(usize, @intCast(tmp)) else break :blk x.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    }).*));
+    return y.*.data[@intCast(i - 1)] + (slope * (x0 - x.*.data[@intCast(i - 1)]));
 }
 pub fn dotProduct(arg_a: FloatVector.Self, arg_b: FloatVector.Self) f64 {
     var a = arg_a;
@@ -1281,9 +1239,9 @@ pub fn crossProduct(arg_a: FloatVector.Self, arg_b: FloatVector.Self) FloatVecto
     _ = &a;
     var b = arg_b;
     _ = &b;
-    if ((a.*.size != @as(i32, 3)) and (b.*.size != @as(i32, 3))) {
+    if ((a.*.size != @as(i32, 3)) or (b.*.size != @as(i32, 3))) {
         std.debug.print("Vectors are not of size 3\n", .{});
-        return null;
+        return @ptrCast(@alignCast(allocateObject(@sizeOf(FloatVector), .OBJ_FVECTOR)));
     }
     var result: FloatVector.Self = FloatVector.init(@as(i32, 3));
     _ = &result;
@@ -1307,7 +1265,7 @@ pub fn normalize(arg_vector: FloatVector.Self) FloatVector.Self {
     _ = &mag;
     if (mag == @as(f64, @floatFromInt(0))) {
         std.debug.print("Cannot normalize a zero vector\n", .{});
-        return null;
+        return @ptrCast(@alignCast(allocateObject(@sizeOf(FloatVector), .OBJ_FVECTOR)));
     }
     return scaleFloatVector(vector, 1.0 / mag);
 }
@@ -1353,7 +1311,7 @@ pub fn refraction(arg_a: FloatVector.Self, arg_b: FloatVector.Self, arg_n1: f64,
     _ = &sin_theta_r;
     if (sin_theta_r > @as(f64, @floatFromInt(1))) {
         std.debug.print("Total internal reflection\n", .{});
-        return null;
+        return @ptrCast(@alignCast(allocateObject(@sizeOf(FloatVector), .OBJ_FVECTOR)));
     }
     var cos_theta_r: f64 = @sqrt(@as(f64, @floatFromInt(1)) - std.math.pow(f64, sin_theta_r, @as(f64, @floatFromInt(@as(i32, 2)))));
     _ = &cos_theta_r;
@@ -1389,16 +1347,10 @@ pub fn binarySearchFloatVector(arg_vector: FloatVector.Self, arg_value: f64) cal
     while (left <= right) {
         var mid: i32 = left + @divTrunc(right - left, @as(i32, 2));
         _ = &mid;
-        if ((blk: {
-            const tmp = mid;
-            if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-        }).* == value) {
+        if (vector.*.data[@intCast(mid)] == value) {
             return mid;
         }
-        if ((blk: {
-            const tmp = mid;
-            if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-        }).* < value) {
+        if (vector.*.data[@intCast(mid)] < value) {
             left = mid + 1;
         } else {
             right = mid - 1;

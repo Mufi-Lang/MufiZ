@@ -171,7 +171,7 @@ pub fn freeObject(object: [*c]Obj) void {
             obj_h.freeObjectHashTable(hashTable);
         },
         .OBJ_FVECTOR => {
-            const fvector: [*c]obj_h.FloatVector = @ptrCast(@alignCast(object));
+            const fvector: *obj_h.FloatVector = @ptrCast(@alignCast(object));
             fvec.FloatVector.deinit(fvector);
         },
     }
