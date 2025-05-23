@@ -1,7 +1,7 @@
 pub const Obj = extern struct {
     type: ObjType,
     isMarked: bool = false,
-    next: [*c]Obj = null,
+    next: ?*Obj = null,
 };
 
 pub const ObjType = enum(i32) {

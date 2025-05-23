@@ -103,111 +103,29 @@ pub fn allocateObject(size: usize, type_: ObjType) [*c]Obj {
     return object;
 }
 
-pub inline fn OBJ_TYPE(value: Value) ObjType {
-    return AS_OBJ(value).*.type;
-}
-
-// pub inline fn IS_BOUND_METHOD(value: Value) bool {
-//     return isObjType(value, .OBJ_BOUND_METHOD);
+// pub inline fn OBJ_TYPE(value: Value) ObjType {
+//     return AS_OBJ(value).*.type;
 // }
 
-// pub inline fn IS_CLASS(value: Value) bool {
-//     return isObjType(value, .OBJ_CLASS);
-// }
-// pub inline fn IS_CLOSURE(value: Value) bool {
-//     return isObjType(value, .OBJ_CLOSURE);
-// }
-
-// pub inline fn IS_FUNCTION(value: Value) bool {
-//     return isObjType(value, .OBJ_FUNCTION);
-// }
-
-// pub inline fn IS_INSTANCE(value: Value) bool {
-//     return isObjType(value, .OBJ_INSTANCE);
+// pub inline fn NOT_LIST_TYPES(values: [*c]Value, n: i32) bool {
+//     return notObjTypes(ObjTypeCheckParams{
+//         .values = values,
+//         .objType = .OBJ_LINKED_LIST,
+//         .count = n,
+//     }) and notObjTypes(ObjTypeCheckParams{
+//         .values = values,
+//         .objType = .OBJ_FVECTOR,
+//         .count = n,
+//     });
 // }
 
-// pub inline fn IS_NATIVE(value: Value) bool {
-//     return isObjType(value, .OBJ_NATIVE);
+// pub inline fn NOT_COLLECTION_TYPES(values: [*c]Value, n: i32) bool {
+//     return notObjTypes(ObjTypeCheckParams{
+//         .values = values,
+//         .objType = .OBJ_HASH_TABLE,
+//         .count = n,
+//     }) and NOT_LIST_TYPES(values, n);
 // }
-
-// pub inline fn IS_STRING(value: Value) bool {
-//     return isObjType(value, .OBJ_STRING);
-// }
-
-// pub inline fn IS_LINKED_LIST(value: Value) bool {
-//     return isObjType(value, .OBJ_LINKED_LIST);
-// }
-
-// pub inline fn IS_HASH_TABLE(value: Value) bool {
-//     return isObjType(value, .OBJ_HASH_TABLE);
-// }
-
-// pub inline fn IS_FVECTOR(value: Value) bool {
-//     return isObjType(value, .OBJ_FVECTOR);
-// }
-
-pub inline fn NOT_LIST_TYPES(values: [*c]Value, n: i32) bool {
-    return notObjTypes(ObjTypeCheckParams{
-        .values = values,
-        .objType = .OBJ_LINKED_LIST,
-        .count = n,
-    }) and notObjTypes(ObjTypeCheckParams{
-        .values = values,
-        .objType = .OBJ_FVECTOR,
-        .count = n,
-    });
-}
-
-pub inline fn NOT_COLLECTION_TYPES(values: [*c]Value, n: i32) bool {
-    return notObjTypes(ObjTypeCheckParams{
-        .values = values,
-        .objType = .OBJ_HASH_TABLE,
-        .count = n,
-    }) and NOT_LIST_TYPES(values, n);
-}
-pub inline fn AS_BOUND_METHOD(value: Value) *ObjBoundMethod {
-    return @ptrCast(AS_OBJ(value));
-}
-
-pub inline fn AS_CLASS(value: Value) *ObjClass {
-    return @ptrCast(AS_OBJ(value));
-}
-
-pub inline fn AS_CLOSURE(value: Value) *ObjClosure {
-    return @ptrCast(AS_OBJ(value));
-}
-
-pub inline fn AS_FUNCTION(value: Value) *ObjFunction {
-    return @ptrCast(AS_OBJ(value));
-}
-
-pub inline fn AS_INSTANCE(value: Value) *ObjInstance {
-    return @ptrCast(AS_OBJ(value));
-}
-
-pub inline fn AS_NATIVE(value: Value) *ObjNative {
-    return @ptrCast(AS_OBJ(value));
-}
-
-pub inline fn AS_STRING(value: Value) *ObjString {
-    return @ptrCast(AS_OBJ(value));
-}
-
-pub inline fn AS_CSTRING(value: Value) [*:0]const u8 {
-    return AS_STRING(value).chars;
-}
-
-pub inline fn AS_LINKED_LIST(value: Value) *ObjLinkedList {
-    return @ptrCast(AS_OBJ(value));
-}
-
-pub inline fn AS_HASH_TABLE(value: Value) *ObjHashTable {
-    return @ptrCast(AS_OBJ(value));
-}
-
-pub inline fn AS_FVECTOR(value: Value) *FloatVector {
-    return @ptrCast(AS_OBJ(value));
-}
 
 pub fn newBoundMethod(receiver: Value, method: [*c]ObjClosure) [*c]ObjBoundMethod {
     const bound: [*c]ObjBoundMethod = @as([*c]ObjBoundMethod, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjBoundMethod), .OBJ_BOUND_METHOD))));
@@ -274,15 +192,13 @@ pub const AllocStringParams = extern struct {
 
 pub fn allocateString(params: AllocStringParams) [*c]ObjString {
     // Create a new ObjString
-    const string = @as([*c]ObjString, @ptrCast(@alignCast(
-        allocateObject(@sizeOf(ObjString), .OBJ_STRING)
-    )));
-    
+    const string = @as([*c]ObjString, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjString), .OBJ_STRING))));
+
     // Initialize string properties
     string.*.length = params.length;
     string.*.chars = params.chars;
     string.*.hash = params.hash;
-    
+
     // Add to VM string table to enable string interning
     push(Value{
         .type = .VAL_OBJ,
@@ -292,7 +208,7 @@ pub fn allocateString(params: AllocStringParams) [*c]ObjString {
     });
     _ = table_h.tableSet(&vm_h.vm.strings, string, Value.init_nil());
     _ = pop();
-    
+
     return string;
 }
 
@@ -313,7 +229,7 @@ pub fn hashString(key: [*c]const u8, length: i32) u64 {
 pub fn takeString(chars: [*c]u8, length: i32) [*c]ObjString {
     // Compute the hash of the string
     const hash = hashString(chars, length);
-    
+
     // Check if the string is already interned
     const interned = table_h.tableFindString(&vm_h.vm.strings, chars, length, hash);
     if (interned != null) {
@@ -321,7 +237,7 @@ pub fn takeString(chars: [*c]u8, length: i32) [*c]ObjString {
         _ = reallocate(@as(?*anyopaque, @ptrCast(chars)), @intCast(@sizeOf(u8) *% length + 1), 0);
         return interned;
     }
-    
+
     // Create a new string object with the passed-in characters
     return allocateString(AllocStringParams{
         .chars = chars,
@@ -333,27 +249,23 @@ pub fn takeString(chars: [*c]u8, length: i32) [*c]ObjString {
 pub fn copyString(chars: [*c]const u8, length: i32) [*c]ObjString {
     // Compute the hash of the string
     const hash = hashString(chars, length);
-    
+
     // Check if the string is already interned
     const interned = table_h.tableFindString(&vm_h.vm.strings, chars, length, hash);
     if (interned != null) return interned;
-    
+
     // Allocate space for the new string and copy the characters
-    const heapChars = @as([*c]u8, @ptrCast(@alignCast(
-        reallocate(null, 0, @intCast(@sizeOf(u8) *% length + 1))
-    )));
-    
+    const heapChars = @as([*c]u8, @ptrCast(@alignCast(reallocate(null, 0, @intCast(@sizeOf(u8) *% length + 1)))));
+
     // Copy the string contents
-    _ = memcpy(@as(?*anyopaque, @ptrCast(heapChars)), 
-              @as(?*const anyopaque, @ptrCast(chars)), 
-              @intCast(length));
-    
+    _ = memcpy(@as(?*anyopaque, @ptrCast(heapChars)), @as(?*const anyopaque, @ptrCast(chars)), @intCast(length));
+
     // Add null terminator
     (blk: {
         const tmp = length;
         if (tmp >= 0) break :blk heapChars + @as(usize, @intCast(tmp)) else break :blk heapChars - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
     }).* = '\x00';
-    
+
     // Create a new string object
     return allocateString(AllocStringParams{
         .chars = heapChars,
@@ -844,17 +756,8 @@ pub const ObjTypeCheckParams = extern struct {
     count: i32,
 };
 pub fn notObjTypes(params: ObjTypeCheckParams) bool {
-    {
-        var i: i32 = 0;
-        _ = &i;
-        while (i < params.count) : (i += 1) {
-            if (isObjType((blk: {
-                const tmp = i;
-                if (tmp >= 0) break :blk params.values + @as(usize, @intCast(tmp)) else break :blk params.values - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-            }).*, params.objType)) {
-                return false;
-            }
-        }
+    for (0..@intCast(params.count)) |i| {
+        if (isObjType(params.values[i], params.objType)) return false;
     }
-    return false;
+    return true;
 }
