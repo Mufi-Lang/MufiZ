@@ -689,7 +689,7 @@ pub fn run() InterpretResult {
 
                 .OP_FVECTOR => {
                     const count: i32 = @as(i32, @bitCast(@as(c_uint, get_slot(frame))));
-                    const f = fvec.FloatVector.init(count);
+                    const f = fvec.FloatVector.init(@intCast(count));
                     for (0..@intCast(count)) |i| {
                         FloatVector.push(f, peek((count - @as(i32, @intCast(i))) - 1).as_num_double());
                     }

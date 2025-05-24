@@ -84,7 +84,7 @@ pub fn next_nf(argCount: i32, args: [*c]Value) Value {
         return Value.init_nil();
     }
 
-    const nextValue = fvec.nextFloatVector(@as(*FloatVector, @ptrCast(@alignCast(args[0].as.obj))));
+    const nextValue = @as(*FloatVector, @ptrCast(@alignCast(args[0].as.obj))).next();
     return Value.init_double(nextValue);
 }
 
@@ -95,7 +95,7 @@ pub fn hasNext_nf(argCount: i32, args: [*c]Value) Value {
         return Value.init_nil();
     }
 
-    const hasNext = fvec.hasNextFloatVector(@as(*FloatVector, @ptrCast(@alignCast(args[0].as.obj))));
+    const hasNext = @as(*FloatVector, @ptrCast(@alignCast(args[0].as.obj))).has_next();
     return Value.init_bool(hasNext);
 }
 pub fn peek_nf(argCount: i32, args: [*c]Value) Value {
@@ -117,7 +117,7 @@ pub fn reset_nf(argCount: i32, args: [*c]Value) Value {
         return Value.init_nil();
     }
 
-    fvec.resetFloatVector(@as(*FloatVector, @ptrCast(@alignCast(args[0].as.obj))));
+    @as(*FloatVector, @ptrCast(@alignCast(args[0].as.obj))).reset();
     return Value.init_nil();
 }
 pub fn skip_nf(argCount: i32, args: [*c]Value) Value {
@@ -128,8 +128,7 @@ pub fn skip_nf(argCount: i32, args: [*c]Value) Value {
         return Value.init_nil();
     }
 
-    const skipAmount = args[1].as_num_int();
-    fvec.skipFloatVector(@as(*FloatVector, @ptrCast(@alignCast(args[0].as.obj))), skipAmount);
+    @as(*FloatVector, @ptrCast(@alignCast(args[0].as.obj))).skip(@intCast(args[1].as_num_int()));
     return Value.init_nil();
 }
 
@@ -158,7 +157,7 @@ pub fn fvector_nf(argCount: i32, args: [*c]Value) Value {
     }
 
     const cap = args[0].as_num_int();
-    const f: *FloatVector = fvec.FloatVector.init(cap);
+    const f: *FloatVector = fvec.FloatVector.init(@intCast(cap));
     return Value.init_obj(@ptrCast(@alignCast(f)));
 }
 
@@ -224,7 +223,7 @@ pub fn slice_nf(argCount: i32, args: [*c]Value) Value {
     switch (args[0].as.obj.*.type) {
         .OBJ_FVECTOR => {
             const f = @as(*FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-            const s = fvec.sliceFloatVector(f, start, end);
+            const s = f.slice(@intCast(start), @intCast(end));
             return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(s))));
         },
         .OBJ_LINKED_LIST => {
@@ -273,7 +272,7 @@ pub fn splice_nf(argCount: i32, args: [*c]Value) Value {
     switch (args[0].as.obj.*.type) {
         .OBJ_FVECTOR => {
             const f = @as(*FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-            const s = fvec.spliceFloatVector(f, start, end);
+            const s = f.splice(@intCast(start), @intCast(end));
             return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(s))));
         },
         .OBJ_LINKED_LIST => {
@@ -351,7 +350,7 @@ pub fn pop_nf(argCount: i32, args: [*c]Value) Value {
     switch (args[0].as.obj.*.type) {
         .OBJ_FVECTOR => {
             const vector = @as(*FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-            return Value.init_double(fvec.popFloatVector(vector));
+            return Value.init_double(vector.pop());
         },
         .OBJ_LINKED_LIST => {
             const list = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
@@ -402,7 +401,7 @@ pub fn nth_nf(argCount: i32, args: [*c]Value) Value {
     switch (args[0].as.obj.*.type) {
         .OBJ_FVECTOR => {
             const f = @as(*FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-            const value = fvec.getFloatVector(f, index);
+            const value = f.get(@intCast(index));
             return Value.init_double(value);
         },
         .OBJ_LINKED_LIST => {
@@ -571,7 +570,7 @@ pub fn insert_nf(argCount: i32, args: [*c]Value) Value {
     // Safely convert value to double
     const value = args[2].as_num_double();
 
-    FloatVector.insert(vector, index, value);
+    FloatVector.insert(vector, @intCast(index), value);
     return Value.init_nil();
 }
 
@@ -607,7 +606,7 @@ pub fn len_nf(argCount: i32, args: [*c]Value) Value {
         },
         .OBJ_FVECTOR => {
             const vector = @as(*FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-            return Value.init_int(vector.*.count);
+            return Value.init_int(@intCast(vector.count));
         },
         .OBJ_LINKED_LIST => {
             const list = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
@@ -652,7 +651,7 @@ pub fn search_nf(argCount: i32, args: [*c]Value) Value {
             const searchValue =
                 args[1].as_num_double();
 
-            const result = fvec.searchFloatVector(vector, searchValue);
+            const result = vector.search(searchValue);
             return if (result == -1) Value.init_nil() else Value.init_int(result);
         },
         .OBJ_LINKED_LIST => {
@@ -742,7 +741,7 @@ pub fn equal_list_nf(argCount: i32, args: [*c]Value) Value {
             const vecA = @as(*FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
             const vecB = @as(*FloatVector, @ptrCast(@alignCast(args[1].as.obj)));
 
-            return Value.init_bool(fvec.equalFloatVector(vecA, vecB));
+            return Value.init_bool(vecA.equal(vecB));
         },
         .OBJ_LINKED_LIST => {
             // Check that second argument is also a linked list
@@ -786,7 +785,7 @@ pub fn reverse_nf(argCount: i32, args: [*c]Value) Value {
     switch (args[0].as.obj.*.type) {
         .OBJ_FVECTOR => {
             const vector = @as(*FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-            fvec.reverseFloatVector(vector);
+            vector.reverse();
             return Value.init_nil();
         },
         .OBJ_LINKED_LIST => {
@@ -832,7 +831,7 @@ pub fn merge_nf(argCount: i32, args: [*c]Value) Value {
         .OBJ_FVECTOR => {
             const vecA = @as(*FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
             const vecB = @as(*FloatVector, @ptrCast(@alignCast(args[1].as.obj)));
-            const result = fvec.mergeFloatVector(vecA, vecB);
+            const result = vecA.merge(vecB);
             return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(result))));
         },
         else => {
@@ -870,7 +869,7 @@ pub fn clone_nf(argCount: i32, args: [*c]Value) Value {
     switch (args[0].as.obj.*.type) {
         .OBJ_FVECTOR => {
             const vector = @as(*FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-            const clone = fvec.cloneFloatVector(vector);
+            const clone = vector.clone();
             return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(clone))));
         },
         .OBJ_LINKED_LIST => {
@@ -918,7 +917,7 @@ pub fn clear_nf(argCount: i32, args: [*c]Value) Value {
     switch (args[0].as.obj.*.type) {
         .OBJ_FVECTOR => {
             const vector = @as(*FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-            fvec.clearFloatVector(vector);
+            vector.clear();
         },
         .OBJ_LINKED_LIST => {
             const list = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
@@ -997,7 +996,7 @@ pub fn std_nf(argCount: i32, args: [*c]Value) Value {
 
     // Process the float vector
     const vector = @as(*FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-    return Value.init_double(FloatVector.stdDev(vector));
+    return Value.init_double(FloatVector.std_dev(vector));
 }
 
 pub fn var_nf(argCount: i32, args: [*c]Value) Value {
@@ -1039,7 +1038,7 @@ pub fn maxl_nf(argCount: i32, args: [*c]Value) Value {
 
     // Process the float vector
     const vector = @as(*FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-    return Value.init_double(fvec.maxFloatVector(vector));
+    return Value.init_double(vector.max());
 }
 
 pub fn minl_nf(argCount: i32, args: [*c]Value) Value {
@@ -1060,7 +1059,7 @@ pub fn minl_nf(argCount: i32, args: [*c]Value) Value {
 
     // Process the float vector
     const vector = @as(*FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-    return Value.init_double(fvec.minFloatVector(vector));
+    return Value.init_double(vector.min());
 }
 
 pub fn dot_nf(argCount: i32, args: [*c]Value) Value {
@@ -1083,7 +1082,7 @@ pub fn dot_nf(argCount: i32, args: [*c]Value) Value {
     const vecA = @as(*FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
     const vecB = @as(*FloatVector, @ptrCast(@alignCast(args[1].as.obj)));
 
-    return Value.init_double(fvec.dotProduct(vecA, vecB));
+    return Value.init_double(vecA.dot(vecB));
 }
 
 pub fn cross_nf(argCount: i32, args: [*c]Value) Value {
@@ -1105,7 +1104,7 @@ pub fn cross_nf(argCount: i32, args: [*c]Value) Value {
     // Process the vectors
     const vecA = @as(*FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
     const vecB = @as(*FloatVector, @ptrCast(@alignCast(args[1].as.obj)));
-    const result = fvec.crossProduct(vecA, vecB);
+    const result = vecA.cross(vecB);
 
     return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(result))));
 }
@@ -1128,7 +1127,7 @@ pub fn norm_nf(argCount: i32, args: [*c]Value) Value {
 
     // Process the vector
     const vector = @as(*FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
-    const result = fvec.normalize(vector);
+    const result = vector.normalize();
 
     return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(result))));
 }
@@ -1152,7 +1151,7 @@ pub fn proj_nf(argCount: i32, args: [*c]Value) Value {
     // Process the vectors
     const vecA = @as(*FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
     const vecB = @as(*FloatVector, @ptrCast(@alignCast(args[1].as.obj)));
-    const result = fvec.projection(vecA, vecB);
+    const result = vecA.projection(vecB);
 
     return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(result))));
 }
@@ -1176,7 +1175,7 @@ pub fn reject_nf(argCount: i32, args: [*c]Value) Value {
     // Process the vectors
     const vecA = @as(*FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
     const vecB = @as(*FloatVector, @ptrCast(@alignCast(args[1].as.obj)));
-    const result = fvec.rejection(vecA, vecB);
+    const result = vecA.rejection(vecB);
 
     return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(result))));
 }
@@ -1200,7 +1199,7 @@ pub fn reflect_nf(argCount: i32, args: [*c]Value) Value {
     // Process the vectors
     const vecA = @as(*FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
     const vecB = @as(*FloatVector, @ptrCast(@alignCast(args[1].as.obj)));
-    const result = fvec.reflection(vecA, vecB);
+    const result = vecA.reflection(vecB);
 
     return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(result))));
 }
@@ -1233,9 +1232,8 @@ pub fn refract_nf(argCount: i32, args: [*c]Value) Value {
     const vecA = @as(*FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
     const vecB = @as(*FloatVector, @ptrCast(@alignCast(args[1].as.obj)));
     const n1 = args[2].as_num_double();
-    const n2 = args[3].as_num_double();
 
-    const result = fvec.refraction(vecA, vecB, n1, n2);
+    const result = vecA.refraction(vecB, n1);
 
     return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(result))));
 }
@@ -1259,7 +1257,7 @@ pub fn angle_nf(argCount: i32, args: [*c]Value) Value {
     // Process the vectors
     const vecA = @as(*FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
     const vecB = @as(*FloatVector, @ptrCast(@alignCast(args[1].as.obj)));
-    const result = fvec.angle(vecA, vecB);
+    const result = vecA.angle(vecB);
 
     return Value.init_double(result);
 }
@@ -1349,7 +1347,7 @@ pub fn remove_nf(argCount: i32, args: [*c]Value) Value {
             const vector = @as(*FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
             const index = args[1].as_num_int();
 
-            return Value.init_double(fvec.removeFloatVector(vector, index));
+            return Value.init_double(vector.remove(@intCast(index)));
         },
         else => {
             // This should never be reached due to type checking above
@@ -1448,7 +1446,7 @@ pub fn linspace_nf(argCount: i32, args: [*c]Value) Value {
     const n = args[2].as_num_int();
 
     // Create linearly spaced vector
-    const result = fvec.linspace(start, end, n);
+    const result = fvec.FloatVector.linspace(start, end, n);
 
     return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(result))));
 }
@@ -1477,7 +1475,7 @@ pub fn interp1_nf(argCount: i32, args: [*c]Value) Value {
     const x0 = args[2].as_num_double();
 
     // Perform interpolation
-    const result = fvec.interp1(x, y, x0);
+    const result = x.interp1(y, x0);
 
     return Value.init_double(result);
 }

@@ -4,223 +4,203 @@ const allocateObject = @import("../object.zig").allocateObject;
 const reallocate = @import("../memory.zig").reallocate;
 const std = @import("std");
 
-// printf replaced with direct use of std.debug.print
-
-fn _data(self: FloatVector.Self) FloatVector.Ptr {
-    return self.*.data;
-}
-
-fn _size(self: FloatVector.Self) FloatVector.Int {
-    return self.*.size;
-}
-
-fn _sorted(self: FloatVector.Self) bool {
-    return self.*.sorted;
-}
-
-pub fn _count(self: FloatVector.Self) FloatVector.Int {
-    return self.*.count;
-}
-
-fn _get(self: FloatVector.Self, index: FloatVector.Int) f64 {
-    if (index < 0 or index >= self.*.count) {
-        std.debug.print("Index out of bounds\n", .{});
-        return 0.0;
-    }
-    return self.*.data[@intCast(index)];
-}
-
-pub fn _write(self: FloatVector.Self, i: FloatVector.Int, val: f64) void {
-    FloatVector.write(self, i, val);
-}
-
 pub const FloatVector = struct {
     obj: Obj,
-    size: Int,
-    count: Int,
-    pos: Int,
-    data: Ptr,
+    size: usize,
+    count: usize,
+    pos: usize,
+    data: []f64,
     sorted: bool,
-    const Ptr = []f64;
+    
     const Self = *@This();
-    const Int = i32;
 
-    pub fn init(size: Int) Self {
-        const vector: FloatVector.Self = @ptrCast(@alignCast(allocateObject(@sizeOf(FloatVector), .OBJ_FVECTOR)));
-        vector.*.size = size;
-        vector.*.count = 0;
-        
+    pub fn init(size: usize) Self {
+        const vector: Self = @ptrCast(@alignCast(allocateObject(@sizeOf(FloatVector), .OBJ_FVECTOR)));
+        vector.size = size;
+        vector.count = 0;
+        vector.pos = 0;
+        vector.sorted = false;
         if (size == 0) {
-            // For zero-sized vectors, use an empty slice
-            vector.*.data = &[_]f64{};
+            vector.data = &[_]f64{};
         } else {
-            const byte_size = @as(usize, @intCast(@sizeOf(f64) *% size));
+            const byte_size = @sizeOf(f64) * size;
             const raw_ptr = reallocate(null, 0, byte_size);
             if (raw_ptr == null) {
                 std.debug.print("Failed to allocate memory for FloatVector data\n", .{});
                 std.process.exit(1);
             }
-            vector.*.data = @as([*]f64, @ptrCast(@alignCast(raw_ptr.?)))[0..@intCast(size)];
+            vector.data = @as([*]f64, @ptrCast(@alignCast(raw_ptr.?)))[0..size];
         }
         return vector;
     }
 
     pub fn deinit(self: Self) void {
-        _ = reallocate(@as(?*anyopaque, @ptrCast(_data(self))), @intCast(@sizeOf(f32) *% _size(self)), 0);
+        if (self.data.len > 0) {
+            _ = reallocate(@as(?*anyopaque, @ptrCast(self.data.ptr)), @sizeOf(f64) * self.data.len, 0);
+        }
         _ = reallocate(@as(?*anyopaque, @ptrCast(self)), @sizeOf(FloatVector), 0);
     }
 
     pub fn print(self: Self) void {
-        std.debug.print("{{", .{});
-        for (0..@intCast(_count(self))) |i| {
-            std.debug.print("{d:.2} ", .{_get(self, @intCast(i))});
+        std.debug.print("[", .{});
+        for (0..self.count) |i| {
+            std.debug.print("{d:.2}", .{self.data[i]});
+            if (i < self.count - 1) std.debug.print(", ", .{});
         }
-        std.debug.print("}}", .{});
-        std.debug.print("\n", .{});
+        std.debug.print("]\n", .{});
     }
 
-    fn write(self: Self, i: Int, val: f64) void {
-        self.*.data[@intCast(i)] = val;
+    fn write(self: Self, i: usize, val: f64) void {
+        if (i >= self.size) return;
+        self.data[i] = val;
     }
 
     fn true_sorted(self: Self) void {
-        self.*.sorted = true;
+        self.sorted = true;
     }
 
     fn false_sorted(self: Self) void {
-        self.*.sorted = false;
+        self.sorted = false;
     }
 
-    fn count_increase(self: Self, i: Int) void {
-        self.*.count += i;
+    fn count_increase(self: Self) void {
+        self.count += 1;
     }
 
     pub fn sort(self: Self) void {
-        if (_sorted(self)) return;
-        if (_count(self) <= 1) {
-            FloatVector.true_sorted(self);
-            return;
-        }
-
-        quickSort(_data(self), 0, _count(self) - 1);
-        FloatVector.true_sorted(self);
+        if (self.count <= 1) return;
+        quickSort(self.data, 0, @intCast(self.count - 1));
+        self.sorted = true;
     }
 
     pub fn clone(self: Self) Self {
-        const newVector = FloatVector.init(_size(self));
-        for (0..@intCast(_count(self))) |i| {
-            FloatVector.push(newVector, _get(self, @intCast(i)));
+        const result = FloatVector.init(self.size);
+        for (0..self.count) |i| {
+            result.data[i] = self.data[i];
         }
-        return newVector;
+        result.count = self.count;
+        result.sorted = self.sorted;
+        return result;
     }
 
     pub fn clear(self: Self) void {
-        self.*.count = 0;
-        FloatVector.false_sorted(self);
+        self.count = 0;
+        self.pos = 0;
+        self.sorted = false;
     }
 
-    pub fn push(self: Self, val: f64) void {
-        if (_count(self) + 1 > _size(self)) {
-            std.debug.print("Vector is full\n", .{});
-            return;
+    pub fn push(self: Self, value: f64) void {
+        if (self.count >= self.size) {
+            const new_size = if (self.size == 0) 1 else self.size * 2;
+            const new_byte_size = @sizeOf(f64) * new_size;
+            const old_byte_size = @sizeOf(f64) * self.size;
+            const raw_ptr = reallocate(@as(?*anyopaque, @ptrCast(self.data.ptr)), old_byte_size, new_byte_size);
+            if (raw_ptr == null) {
+                std.debug.print("Failed to reallocate memory for FloatVector data\n", .{});
+                std.process.exit(1);
+            }
+            self.data = @as([*]f64, @ptrCast(@alignCast(raw_ptr.?)))[0..new_size];
+            self.size = new_size;
         }
-        _write(self, _count(self), val);
-        FloatVector.count_increase(self, 1);
+        self.data[self.count] = value;
+        self.count += 1;
+        self.sorted = false;
     }
 
-    pub fn insert(self: Self, index: Int, val: f64) void {
-        if ((index < 0) or (index >= _size(self))) {
-            std.debug.print("Index out of bounds\n", .{});
-            return;
+    pub fn insert(self: Self, index: usize, value: f64) void {
+        if (index > self.count) return;
+        
+        if (self.count >= self.size) {
+            const new_size = if (self.size == 0) 1 else self.size * 2;
+            const new_byte_size = @sizeOf(f64) * new_size;
+            const old_byte_size = @sizeOf(f64) * self.size;
+            const raw_ptr = reallocate(@as(?*anyopaque, @ptrCast(self.data.ptr)), old_byte_size, new_byte_size);
+            if (raw_ptr == null) {
+                std.debug.print("Failed to reallocate memory for FloatVector data\n", .{});
+                std.process.exit(1);
+            }
+            self.data = @as([*]f64, @ptrCast(@alignCast(raw_ptr.?)))[0..new_size];
+            self.size = new_size;
         }
-        var i: usize = @intCast(_count(self));
-        while (i > @as(usize, @intCast(index))) {
-            _write(self, @intCast(i), _get(self, @intCast(i - 1)));
+
+        var i = self.count;
+        while (i > index) {
+            self.data[i] = self.data[i - 1];
             i -= 1;
         }
-
-        _write(self, @intCast(index), val);
-        FloatVector.count_increase(self, 1);
-
-        if ((_count(self) > 1) and (_get(self, @intCast(index)) < _get(self, @intCast(index - 1)))) {
-            FloatVector.false_sorted(self);
-        }
+        self.data[index] = value;
+        self.count += 1;
+        self.sorted = false;
     }
 
-    pub fn get(self: Self, index: Int) f64 {
-        return _get(self, @intCast(index));
+    pub fn get(self: Self, index: usize) f64 {
+        if (index >= self.count) return 0.0;
+        return self.data[index];
     }
 
     pub fn pop(self: Self) f64 {
-        if (_count(self) == 0) {
-            std.debug.print("Vector is empty\n", .{});
-            return 0;
-        }
-        const poppedValue: f64 = _get(self, _count(self) - 1);
-        FloatVector.count_increase(self, -1);
-        if (_count(self) == 0) {
-            FloatVector.false_sorted(self);
-        }
-        return poppedValue;
+        if (self.count == 0) return 0.0;
+        self.count -= 1;
+        return self.data[self.count];
     }
 
-    pub fn remove(self: Self, index: Int) f64 {
-        if ((index < 0) or (index >= _count(self))) {
-            std.debug.print("Index out of bounds\n", .{});
-            return 0;
+    pub fn remove(self: Self, index: usize) f64 {
+        if (index >= self.count) return 0.0;
+        
+        const removedValue = self.data[index];
+        
+        for (index..self.count - 1) |i| {
+            self.data[i] = self.data[i + 1];
         }
-        const removedValue: f64 = _get(self, @intCast(index));
-        for (@as(usize, @intCast(index))..@as(usize, @intCast(_count(self) - 1))) |i| {
-            _write(self, @as(Int, @intCast(i)), _get(self, @as(Int, @intCast(i + 1))));
-        }
-        FloatVector.count_increase(self, -1);
-        if (((@intFromBool(_sorted(self)) != 0) and (index > 0)) and (_get(self, @intCast(index)) < _get(self, @intCast(index - 1)))) {
-            FloatVector.false_sorted(self);
-        }
+        
+        self.count -= 1;
         return removedValue;
     }
 
     pub fn merge(self: Self, other: Self) Self {
-        const result = FloatVector.init(_size(self) + _size(other));
-        for (0..@as(usize, @intCast(_count(self)))) |i| {
-            FloatVector.push(result, _get(self, @as(Int, @intCast(i))));
+        const total_count = self.count + other.count;
+        const result = FloatVector.init(total_count);
+        
+        for (0..self.count) |i| {
+            FloatVector.push(result, self.data[i]);
         }
-        for (0..@intCast(_count(other))) |i| {
-            FloatVector.push(result, _get(other, @as(Int, @intCast(i))));
-        }
-        return result;
-    }
-
-    pub fn slice(self: Self, start: Int, end: Int) Self {
-        if ((((start < 0) or (start >= _count(self)) or (end < 0)) or (end >= _count(self)))) {
-            std.debug.print("Index out of bounds\n", .{});
-            return @ptrCast(@alignCast(allocateObject(@sizeOf(FloatVector), .OBJ_FVECTOR)));
-        }
-        const result = FloatVector.init((end - start) + 1);
-        for (@as(usize, @intCast(start))..@as(usize, @intCast(end + 1))) |i| {
-            FloatVector.push(result, _get(self, @intCast(i)));
+        for (0..other.count) |i| {
+            FloatVector.push(result, other.data[i]);
         }
         return result;
     }
 
-    pub fn splice(self: Self, start: Int, end: Int) Self {
-        if ((((start < 0) or (start >= _count(self)) or (end < 0)) or (end >= _count(self)))) {
+    pub fn slice(self: Self, start: usize, end: usize) Self {
+        if (start >= self.count or end >= self.count or start > end) {
             std.debug.print("Index out of bounds\n", .{});
-            return @ptrCast(@alignCast(allocateObject(@sizeOf(FloatVector), .OBJ_FVECTOR)));
+            return FloatVector.init(0);
+        }
+        
+        const result = FloatVector.init(end - start + 1);
+        for (start..end + 1) |i| {
+            FloatVector.push(result, self.data[i]);
+        }
+        return result;
+    }
+
+    pub fn splice(self: Self, start: usize, end: usize) Self {
+        if (start >= self.count or end >= self.count or start > end) {
+            std.debug.print("Index out of bounds\n", .{});
+            return FloatVector.init(0);
         }
 
-        const result = FloatVector.init(_size(self));
-        for (0..@as(usize, @intCast(start))) |i| {
-            FloatVector.push(result, _get(self, @intCast(i)));
+        const result = FloatVector.init(self.size);
+        for (0..start) |i| {
+            FloatVector.push(result, self.data[i]);
         }
-        for (@as(usize, @intCast(end + 1))..@intCast(_count(self))) |i| {
-            FloatVector.push(result, _get(self, @intCast(i)));
+        for (end + 1..self.count) |i| {
+            FloatVector.push(result, self.data[i]);
         }
         return result;
     }
 
     pub fn sum(self: Self) f64 {
-        const len = _count(self);
+        const len = self.count;
         const Vec4 = @Vector(4, f64);
         var sum_vec: Vec4 = @splat(@as(f64, 0.0));
 
@@ -231,10 +211,10 @@ pub const FloatVector = struct {
             const offset = i * 4;
             // Load 4 elements into a vector
             const data_vec = Vec4{
-                _get(self, @as(Int, @intCast(offset))),
-                _get(self, @as(Int, @intCast(offset + 1))),
-                _get(self, @as(Int, @intCast(offset + 2))),
-                _get(self, @as(Int, @intCast(offset + 3))),
+                self.data[offset],
+                self.data[offset + 1],
+                self.data[offset + 2],
+                self.data[offset + 3],
             };
             sum_vec += data_vec;
         }
@@ -246,8 +226,8 @@ pub const FloatVector = struct {
         const remaining = @mod(len, 4);
         if (remaining > 0) {
             const start = len - remaining;
-            for (@intCast(start)..@intCast(len)) |j| {
-                sum_value += _get(self, @as(Int, @intCast(j)));
+            for (start..len) |j| {
+                sum_value += self.data[j];
             }
         }
 
@@ -255,664 +235,559 @@ pub const FloatVector = struct {
     }
 
     pub fn mean(self: Self) f64 {
-        return FloatVector.sum(self) / @as(f64, @floatFromInt(_count(self)));
+        return FloatVector.sum(self) / @as(f64, @floatFromInt(self.count));
     }
 
     pub fn variance(self: Self) f64 {
-        const len = _count(self);
-        const mean_value: f64 = FloatVector.mean(self);
-
+        if (self.count == 0) return 0.0;
+        const mean_val = FloatVector.mean(self);
+        
+        const len = self.count;
         const Vec4 = @Vector(4, f64);
-        const mean_vec: Vec4 = @splat(mean_value);
-        var variance_vec: Vec4 = @splat(@as(f64, 0.0));
+        var sum_vec: Vec4 = @splat(@as(f64, 0.0));
 
         // Process elements in chunks of 4
         const vec_iterations = @divTrunc(len, 4);
         var i: usize = 0;
         while (i < vec_iterations) : (i += 1) {
             const offset = i * 4;
-            // Load 4 elements manually into a vector
-            const data_vec = Vec4{
-                _get(self, @as(Int, @intCast(offset))),
-                _get(self, @as(Int, @intCast(offset + 1))),
-                _get(self, @as(Int, @intCast(offset + 2))),
-                _get(self, @as(Int, @intCast(offset + 3))),
+            // Load 4 elements into a vector
+            const diff_vec = Vec4{
+                self.data[offset] - mean_val,
+                self.data[offset + 1] - mean_val,
+                self.data[offset + 2] - mean_val,
+                self.data[offset + 3] - mean_val,
             };
-            const diff_vec = data_vec - mean_vec;
-            variance_vec += diff_vec * diff_vec;
+            sum_vec += diff_vec * diff_vec;
         }
 
-        // Sum up the variance vector
-        var variance_value: f64 = @reduce(.Add, variance_vec);
+        // Sum up the vector elements
+        var sum_value: f64 = @reduce(.Add, sum_vec);
 
         // Handle remaining elements
         const remaining = @mod(len, 4);
         if (remaining > 0) {
-            const start: usize = @intCast(len - remaining);
-            for (start..@intCast(len)) |j| {
-                const diff = _get(self, @as(Int, @intCast(j))) - mean_value;
-                variance_value += diff * diff;
+            const start = len - remaining;
+            for (start..len) |j| {
+                const diff = self.data[j] - mean_val;
+                sum_value += diff * diff;
             }
         }
 
-        return variance_value / @as(f64, @floatFromInt(len - 1));
+        return sum_value / @as(f64, @floatFromInt(self.count - 1));
     }
 
-    pub fn stdDev(self: Self) f64 {
+    pub fn std_dev(self: Self) f64 {
         return @sqrt(FloatVector.variance(self));
     }
 
     pub fn max(self: Self) f64 {
-        var max_value: f64 = _get(self, 0);
-        for (1..@as(usize, @intCast(_count(self)))) |i| {
-            max_value = @max(_get(self, @as(Int, @intCast(i))), max_value);
+        if (self.count == 0) return 0.0;
+        var max_val = self.data[0];
+        for (1..self.count) |i| {
+            if (self.data[i] > max_val) max_val = self.data[i];
         }
-        return max_value;
+        return max_val;
     }
 
     pub fn min(self: Self) f64 {
-        var min_value: f64 = _get(self, 0);
-        for (1..@as(usize, @intCast(_count(self)))) |i| {
-            min_value = @min(_get(self, @as(Int, @intCast(i))), min_value);
+        if (self.count == 0) return 0.0;
+        var min_val = self.data[0];
+        for (1..self.count) |i| {
+            if (self.data[i] < min_val) min_val = self.data[i];
         }
-        return min_value;
+        return min_val;
+    }
+
+    pub fn add(a: Self, b: Self) Self {
+        const min_count = @min(a.count, b.count);
+        const result = FloatVector.init(min_count);
+        
+        // Process elements in chunks of 4 using SIMD
+        const Vec4 = @Vector(4, f64);
+        const vec_iterations = @divTrunc(min_count, 4);
+        
+        var i: usize = 0;
+        while (i < vec_iterations) : (i += 1) {
+            const offset = i * 4;
+            
+            // Load 4 elements from each vector
+            const vec1 = Vec4{
+                a.data[offset],
+                a.data[offset + 1],
+                a.data[offset + 2],
+                a.data[offset + 3],
+            };
+            
+            const vec2 = Vec4{
+                b.data[offset],
+                b.data[offset + 1],
+                b.data[offset + 2],
+                b.data[offset + 3],
+            };
+            
+            // Add vectors and store result
+            const sum_result = vec1 + vec2;
+            result.data[offset] = sum_result[0];
+            result.data[offset + 1] = sum_result[1];
+            result.data[offset + 2] = sum_result[2];
+            result.data[offset + 3] = sum_result[3];
+        }
+        
+        // Handle remaining elements
+        const remaining = @mod(min_count, 4);
+        if (remaining > 0) {
+            const start = min_count - remaining;
+            for (start..min_count) |j| {
+                result.data[j] = a.data[j] + b.data[j];
+            }
+        }
+        
+        result.count = min_count;
+        return result;
+    }
+
+    pub fn sub(a: Self, b: Self) Self {
+        const min_count = @min(a.count, b.count);
+        const result = FloatVector.init(min_count);
+        
+        // Process elements in chunks of 4 using SIMD
+        const Vec4 = @Vector(4, f64);
+        const vec_iterations = @divTrunc(min_count, 4);
+        
+        var i: usize = 0;
+        while (i < vec_iterations) : (i += 1) {
+            const offset = i * 4;
+            
+            // Load 4 elements from each vector
+            const vec1 = Vec4{
+                a.data[offset],
+                a.data[offset + 1],
+                a.data[offset + 2],
+                a.data[offset + 3],
+            };
+            
+            const vec2 = Vec4{
+                b.data[offset],
+                b.data[offset + 1],
+                b.data[offset + 2],
+                b.data[offset + 3],
+            };
+            
+            // Subtract vectors and store result
+            const diff = vec1 - vec2;
+            result.data[offset] = diff[0];
+            result.data[offset + 1] = diff[1];
+            result.data[offset + 2] = diff[2];
+            result.data[offset + 3] = diff[3];
+        }
+        
+        // Handle remaining elements
+        const remaining = @mod(min_count, 4);
+        if (remaining > 0) {
+            const start = min_count - remaining;
+            for (start..min_count) |j| {
+                result.data[j] = a.data[j] - b.data[j];
+            }
+        }
+        
+        result.count = min_count;
+        return result;
+    }
+
+    pub fn mul(a: Self, b: Self) Self {
+        const min_count = @min(a.count, b.count);
+        const result = FloatVector.init(min_count);
+        
+        // Process elements in chunks of 4 using SIMD
+        const Vec4 = @Vector(4, f64);
+        const vec_iterations = @divTrunc(min_count, 4);
+        
+        var i: usize = 0;
+        while (i < vec_iterations) : (i += 1) {
+            const offset = i * 4;
+            
+            // Load 4 elements from each vector
+            const vec1 = Vec4{
+                a.data[offset],
+                a.data[offset + 1],
+                a.data[offset + 2],
+                a.data[offset + 3],
+            };
+            
+            const vec2 = Vec4{
+                b.data[offset],
+                b.data[offset + 1],
+                b.data[offset + 2],
+                b.data[offset + 3],
+            };
+            
+            // Multiply vectors and store result
+            const prod = vec1 * vec2;
+            result.data[offset] = prod[0];
+            result.data[offset + 1] = prod[1];
+            result.data[offset + 2] = prod[2];
+            result.data[offset + 3] = prod[3];
+        }
+        
+        // Handle remaining elements
+        const remaining = @mod(min_count, 4);
+        if (remaining > 0) {
+            const start = min_count - remaining;
+            for (start..min_count) |j| {
+                result.data[j] = a.data[j] * b.data[j];
+            }
+        }
+        
+        result.count = min_count;
+        return result;
+    }
+
+    pub fn div(a: Self, b: Self) Self {
+        const min_count = @min(a.count, b.count);
+        const result = FloatVector.init(min_count);
+        
+        // Process elements in chunks of 4 using SIMD
+        const Vec4 = @Vector(4, f64);
+        const vec_iterations = @divTrunc(min_count, 4);
+        
+        var i: usize = 0;
+        while (i < vec_iterations) : (i += 1) {
+            const offset = i * 4;
+            
+            // Load 4 elements from each vector
+            const vec1 = Vec4{
+                a.data[offset],
+                a.data[offset + 1],
+                a.data[offset + 2],
+                a.data[offset + 3],
+            };
+            
+            const vec2 = Vec4{
+                b.data[offset],
+                b.data[offset + 1],
+                b.data[offset + 2],
+                b.data[offset + 3],
+            };
+            
+            // Divide vectors and store result
+            const quotient = vec1 / vec2;
+            result.data[offset] = quotient[0];
+            result.data[offset + 1] = quotient[1];
+            result.data[offset + 2] = quotient[2];
+            result.data[offset + 3] = quotient[3];
+        }
+        
+        // Handle remaining elements
+        const remaining = @mod(min_count, 4);
+        if (remaining > 0) {
+            const start = min_count - remaining;
+            for (start..min_count) |j| {
+                if (b.data[j] != 0.0) {
+                    result.data[j] = a.data[j] / b.data[j];
+                } else {
+                    result.data[j] = 0.0;
+                }
+            }
+        }
+        
+        result.count = min_count;
+        return result;
+    }
+
+    pub fn equal(a: Self, b: Self) bool {
+        if (a.count != b.count) return false;
+
+        for (0..a.count) |i| {
+            if (a.data[i] != b.data[i]) return false;
+        }
+        return true;
+    }
+
+    pub fn scale(self: Self, scalar: f64) Self {
+        const result = FloatVector.init(self.count);
+        const simdSize = self.count - @mod(self.count, 4);
+        
+        // Process 4 elements at a time using Zig SIMD
+        var i: usize = 0;
+        while (i < simdSize) : (i += 4) {
+            const vec4 = @Vector(4, f64){
+                self.data[i],
+                self.data[i + 1],
+                self.data[i + 2],
+                self.data[i + 3],
+            };
+            const scaled = vec4 * @as(@Vector(4, f64), @splat(scalar));
+            
+            result.data[i] = scaled[0];
+            result.data[i + 1] = scaled[1];
+            result.data[i + 2] = scaled[2];
+            result.data[i + 3] = scaled[3];
+        }
+        
+        // Process remaining elements
+        i = simdSize;
+        while (i < self.count) : (i += 1) {
+            result.data[i] = self.data[i] * scalar;
+        }
+        
+        result.count = self.count;
+        return result;
+    }
+
+    pub fn single_add(self: Self, scalar: f64) Self {
+        const result = FloatVector.init(self.count);
+        const simdSize = self.count - @mod(self.count, 4);
+        
+        // Process 4 elements at a time using Zig SIMD
+        var i: usize = 0;
+        while (i < simdSize) : (i += 4) {
+            const vec4 = @Vector(4, f64){
+                self.data[i],
+                self.data[i + 1],
+                self.data[i + 2],
+                self.data[i + 3],
+            };
+            const added = vec4 + @as(@Vector(4, f64), @splat(scalar));
+            
+            result.data[i] = added[0];
+            result.data[i + 1] = added[1];
+            result.data[i + 2] = added[2];
+            result.data[i + 3] = added[3];
+        }
+        
+        // Process remaining elements
+        i = simdSize;
+        while (i < self.count) : (i += 1) {
+            result.data[i] = self.data[i] + scalar;
+        }
+        
+        result.count = self.count;
+        return result;
+    }
+
+    pub fn single_sub(self: Self, scalar: f64) Self {
+        return self.single_add(-scalar);
+    }
+
+    pub fn single_div(self: Self, scalar: f64) Self {
+        return self.scale(1.0 / scalar);
+    }
+
+    pub fn reverse(self: Self) void {
+        if (self.count <= 1) return;
+        
+        var i: usize = 0;
+        var j: usize = self.count - 1;
+        while (i < j) {
+            const temp = self.data[i];
+            self.data[i] = self.data[j];
+            self.data[j] = temp;
+            i += 1;
+            j -= 1;
+        }
+    }
+
+    pub fn next(self: Self) f64 {
+        if (self.pos >= self.count) return 0.0;
+        const value = self.data[self.pos];
+        self.pos += 1;
+        return value;
+    }
+
+    pub fn has_next(self: Self) bool {
+        return self.pos < self.count;
+    }
+
+    pub fn peek(self: Self) f64 {
+        if (self.pos >= self.count) return 0.0;
+        return self.data[self.pos];
+    }
+
+    pub fn reset(self: Self) void {
+        self.pos = 0;
+    }
+
+    pub fn skip(self: Self, amt: usize) void {
+        if (self.pos < self.count) self.pos += amt;
+    }
+
+    pub fn search(v: Self, value: f64) i32 {
+        if (v.sorted) {
+            return binarySearchFloatVector(v, value);
+        } else {
+            for (0..v.count) |i| {
+                if (v.data[i] == value) {
+                    return @intCast(i);
+                }
+            }
+        }
+        return -1;
+    }
+
+    pub fn linspace(start: f64, end: f64, n: i32) Self {
+        const count: usize = @intCast(@max(n, 0));
+        const result: Self = FloatVector.init(count);
+        if (count == 0) return result;
+        
+        if (count == 1) {
+            FloatVector.push(result, start);
+            return result;
+        }
+        
+        const step: f64 = (end - start) / @as(f64, @floatFromInt(count - 1));
+        for (0..count) |i| {
+            const value = start + (@as(f64, @floatFromInt(i)) * step);
+            FloatVector.push(result, value);
+        }
+        return result;
+    }
+
+    pub fn interp1(x: Self, y: Self, x0: f64) f64 {
+        if (x.count != y.count or x.count == 0) return 0.0;
+        if (x.count == 1) return y.data[0];
+
+        // Find the interpolation interval
+        for (0..x.count - 1) |i| {
+            if (x0 >= x.data[i] and x0 <= x.data[i + 1]) {
+                const t = (x0 - x.data[i]) / (x.data[i + 1] - x.data[i]);
+                return y.data[i] + t * (y.data[i + 1] - y.data[i]);
+            }
+        }
+
+        // Extrapolation
+        if (x0 < x.data[0]) {
+            return y.data[0];
+        } else {
+            return y.data[x.count - 1];
+        }
+    }
+
+    pub fn dot(a: Self, b: Self) f64 {
+        const min_count = @min(a.count, b.count);
+        var result: f64 = 0.0;
+        for (0..min_count) |i| {
+            result += a.data[i] * b.data[i];
+        }
+        return result;
+    }
+
+    pub fn cross(a: Self, b: Self) Self {
+        if (a.count != 3 or b.count != 3) {
+            return FloatVector.init(0);
+        }
+        
+        const result = FloatVector.init(3);
+        FloatVector.push(result, a.data[1] * b.data[2] - a.data[2] * b.data[1]);
+        FloatVector.push(result, a.data[2] * b.data[0] - a.data[0] * b.data[2]);
+        FloatVector.push(result, a.data[0] * b.data[1] - a.data[1] * b.data[0]);
+        return result;
+    }
+
+    pub fn magnitude(self: Self) f64 {
+        return @sqrt(FloatVector.dot(self, self));
+    }
+
+    pub fn normalize(self: Self) Self {
+        const mag = FloatVector.magnitude(self);
+        if (mag == 0.0) return FloatVector.clone(self);
+        return FloatVector.single_div(self, mag);
+    }
+
+    pub fn projection(a: Self, b: Self) Self {
+        const dot_ab = FloatVector.dot(a, b);
+        const dot_bb = FloatVector.dot(b, b);
+        if (dot_bb == 0.0) return FloatVector.init(0);
+        return FloatVector.scale(b, dot_ab / dot_bb);
+    }
+
+    pub fn rejection(a: Self, b: Self) Self {
+        const proj = FloatVector.projection(a, b);
+        return FloatVector.sub(a, proj);
+    }
+
+    pub fn reflection(incident: Self, normal: Self) Self {
+        const dot_product = FloatVector.dot(incident, normal);
+        const scaled_normal = FloatVector.scale(normal, 2.0 * dot_product);
+        return FloatVector.sub(incident, scaled_normal);
+    }
+
+    pub fn refraction(incident: Self, normal: Self, eta: f64) Self {
+        const dot_product = FloatVector.dot(incident, normal);
+        const k = 1.0 - eta * eta * (1.0 - dot_product * dot_product);
+        
+        if (k < 0.0) {
+            return FloatVector.init(0); // Total internal reflection
+        }
+        
+        const eta_incident = FloatVector.scale(incident, eta);
+        const term = eta * dot_product + @sqrt(k);
+        const eta_normal = FloatVector.scale(normal, term);
+        
+        return FloatVector.sub(eta_incident, eta_normal);
+    }
+
+    pub fn angle(a: Self, b: Self) f64 {
+        const dot_product = FloatVector.dot(a, b);
+        const mag_a = FloatVector.magnitude(a);
+        const mag_b = FloatVector.magnitude(b);
+        
+        if (mag_a == 0.0 or mag_b == 0.0) return 0.0;
+        
+        const cos_theta = dot_product / (mag_a * mag_b);
+        return std.math.acos(@max(-1.0, @min(1.0, cos_theta)));
+    }
+
+    pub fn binarySearchFloatVector(vector: Self, value: f64) i32 {
+        var left: i32 = 0;
+        var right: i32 = @intCast(vector.count - 1);
+        
+        while (left <= right) {
+            const mid = left + @divTrunc((right - left), 2);
+            const mid_value = vector.data[@intCast(mid)];
+            
+            if (compare_double(mid_value, value) == 0) {
+                return mid;
+            } else if (compare_double(mid_value, value) < 0) {
+                left = mid + 1;
+            } else {
+                right = mid - 1;
+            }
+        }
+        return -1;
     }
 };
 
-pub const sliceFloatVector = FloatVector.slice;
-pub const spliceFloatVector = FloatVector.splice;
-pub const popFloatVector = FloatVector.pop;
-pub const getFloatVector = _get;
-pub const insertFloatVector = FloatVector.insert;
-pub const mergeFloatVector = FloatVector.merge;
-pub const cloneFloatVector = FloatVector.clone;
-pub const clearFloatVector = FloatVector.clear;
-pub const removeFloatVector = FloatVector.remove;
-pub const sumFloatVector = FloatVector.sum;
-pub const meanFloatVector = FloatVector.mean;
-pub const stdDevFloatVector = FloatVector.stdDev;
-pub const varianceFloatVector = FloatVector.variance;
-pub const maxFloatVector = FloatVector.max;
-pub const minFloatVector = FloatVector.min;
-
-fn quickSort(arr: FloatVector.Ptr, low: FloatVector.Int, high: FloatVector.Int) void {
+fn quickSort(arr: []f64, low: i32, high: i32) void {
     if (low < high) {
-        // Select pivot and partition array
         const pi = partition(arr, low, high);
-
-        // Sort the sub-arrays
-        if (pi > 0) {
-            quickSort(arr, low, pi - 1);
-        }
+        quickSort(arr, low, pi - 1);
         quickSort(arr, pi + 1, high);
     }
 }
 
-fn partition(arr: FloatVector.Ptr, low: FloatVector.Int, high: FloatVector.Int) FloatVector.Int {
+fn partition(arr: []f64, low: i32, high: i32) i32 {
     const pivot = arr[@intCast(high)];
     var i = low - 1;
-
-    var j = low;
-    while (j < high) : (j += 1) {
-        if (arr[@intCast(j)] <= pivot) {
+    
+    for (@intCast(low)..@intCast(high)) |j| {
+        if (arr[j] <= pivot) {
             i += 1;
-            swap(arr, i, j);
+            swap(arr, @intCast(i), @intCast(j));
         }
     }
-
-    swap(arr, i + 1, high);
+    swap(arr, @intCast(i + 1), @intCast(high));
     return i + 1;
 }
 
-fn swap(arr: FloatVector.Ptr, i: FloatVector.Int, j: FloatVector.Int) void {
-    const temp = arr[@intCast(i)];
-    arr[@intCast(i)] = arr[@intCast(j)];
-    arr[@intCast(j)] = temp;
+fn swap(arr: []f64, i: usize, j: usize) void {
+    const temp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = temp;
 }
 
-pub fn addFloatVector(vector1: FloatVector.Self, vector2: FloatVector.Self) FloatVector.Self {
-    if (_size(vector1) != _size(vector2)) {
-        std.debug.print("Vectors are not of the same size\n", .{});
-        return @ptrCast(@alignCast(allocateObject(@sizeOf(FloatVector), .OBJ_FVECTOR)));
-    }
-
-    const result = FloatVector.init(_size(vector1));
-    const len = vector1.*.count;
-
-    // Process elements in chunks of 4
-    const Vec4 = @Vector(4, f64);
-    const vec_iterations = @divTrunc(len, 4);
-
-    var i: usize = 0;
-    while (i < vec_iterations) : (i += 1) {
-        const offset = i * 4;
-
-        // Load 4 elements from each vector
-        const vec1 = Vec4{
-            vector1.*.data[offset],
-            vector1.*.data[offset + 1],
-            vector1.*.data[offset + 2],
-            vector1.*.data[offset + 3],
-        };
-
-        const vec2 = Vec4{
-            vector2.*.data[offset],
-            vector2.*.data[offset + 1],
-            vector2.*.data[offset + 2],
-            vector2.*.data[offset + 3],
-        };
-
-        // Add vectors and store result
-        const sum = vec1 + vec2;
-        result.*.data[offset] = sum[0];
-        result.*.data[offset + 1] = sum[1];
-        result.*.data[offset + 2] = sum[2];
-        result.*.data[offset + 3] = sum[3];
-    }
-
-    // Handle remaining elements
-    const remaining = @mod(len, 4);
-    if (remaining > 0) {
-        const start: usize = @intCast(len - remaining);
-        for (start..@intCast(len)) |j| {
-            result.*.data[j] = vector1.*.data[j] + vector2.*.data[j];
-        }
-    }
-
-    result.*.count = len;
-    return result;
-}
-pub fn subFloatVector(vector1: FloatVector.Self, vector2: FloatVector.Self) FloatVector.Self {
-    if (_size(vector1) != _size(vector2)) {
-        std.debug.print("Vectors are not of the same size\n", .{});
-        return @ptrCast(@alignCast(allocateObject(@sizeOf(FloatVector), .OBJ_FVECTOR)));
-    }
-
-    const result = FloatVector.init(_size(vector1));
-    const len = vector1.*.count;
-
-    // Process elements in chunks of 4
-    const Vec4 = @Vector(4, f64);
-    const vec_iterations = @divTrunc(len, 4);
-
-    var i: usize = 0;
-    while (i < vec_iterations) : (i += 1) {
-        const offset = i * 4;
-
-        // Load 4 elements from each vector
-        const vec1 = Vec4{
-            vector1.*.data[offset],
-            vector1.*.data[offset + 1],
-            vector1.*.data[offset + 2],
-            vector1.*.data[offset + 3],
-        };
-
-        const vec2 = Vec4{
-            vector2.*.data[offset],
-            vector2.*.data[offset + 1],
-            vector2.*.data[offset + 2],
-            vector2.*.data[offset + 3],
-        };
-
-        // Add vectors and store result
-        const diff = vec1 - vec2;
-        result.*.data[offset] = diff[0];
-        result.*.data[offset + 1] = diff[1];
-        result.*.data[offset + 2] = diff[2];
-        result.*.data[offset + 3] = diff[3];
-    }
-
-    // Handle remaining elements
-    const remaining = @mod(len, 4);
-    if (remaining > 0) {
-        const start: usize = @intCast(len - remaining);
-        for (start..@intCast(len)) |j| {
-            result.*.data[j] = vector1.*.data[j] - vector2.*.data[j];
-        }
-    }
-
-    result.*.count = len;
-    return result;
-}
-
-pub fn mulFloatVector(vector1: FloatVector.Self, vector2: FloatVector.Self) FloatVector.Self {
-    if (_size(vector1) != _size(vector2)) {
-        std.debug.print("Vectors are not of the same size\n", .{});
-        return @ptrCast(@alignCast(allocateObject(@sizeOf(FloatVector), .OBJ_FVECTOR)));
-    }
-
-    const result = FloatVector.init(_size(vector1));
-    const len = vector1.*.count;
-
-    // Process elements in chunks of 4
-    const Vec4 = @Vector(4, f64);
-    const vec_iterations = @divTrunc(len, 4);
-
-    var i: usize = 0;
-    while (i < vec_iterations) : (i += 1) {
-        const offset = i * 4;
-
-        // Load 4 elements from each vector
-        const vec1 = Vec4{
-            vector1.*.data[offset],
-            vector1.*.data[offset + 1],
-            vector1.*.data[offset + 2],
-            vector1.*.data[offset + 3],
-        };
-
-        const vec2 = Vec4{
-            vector2.*.data[offset],
-            vector2.*.data[offset + 1],
-            vector2.*.data[offset + 2],
-            vector2.*.data[offset + 3],
-        };
-
-        // Add vectors and store result
-        const prod = vec1 * vec2;
-        result.*.data[offset] = prod[0];
-        result.*.data[offset + 1] = prod[1];
-        result.*.data[offset + 2] = prod[2];
-        result.*.data[offset + 3] = prod[3];
-    }
-
-    // Handle remaining elements
-    const remaining = @mod(len, 4);
-    if (remaining > 0) {
-        const start: usize = @intCast(len - remaining);
-        for (start..@intCast(len)) |j| {
-            result.*.data[j] = vector1.*.data[j] * vector2.*.data[j];
-        }
-    }
-
-    result.*.count = len;
-    return result;
-}
-
-pub fn divFloatVector(vector1: FloatVector.Self, vector2: FloatVector.Self) FloatVector.Self {
-    if (_size(vector1) != _size(vector2)) {
-        std.debug.print("Vectors are not of the same size\n", .{});
-        return @ptrCast(@alignCast(allocateObject(@sizeOf(FloatVector), .OBJ_FVECTOR)));
-    }
-
-    const result = FloatVector.init(_size(vector1));
-    const len = vector1.*.count;
-
-    // Process elements in chunks of 4
-    const Vec4 = @Vector(4, f64);
-    const vec_iterations = @divTrunc(len, 4);
-
-    var i: usize = 0;
-    while (i < vec_iterations) : (i += 1) {
-        const offset = i * 4;
-
-        // Load 4 elements from each vector
-        const vec1 = Vec4{
-            vector1.*.data[offset],
-            vector1.*.data[offset + 1],
-            vector1.*.data[offset + 2],
-            vector1.*.data[offset + 3],
-        };
-
-        const vec2 = Vec4{
-            vector2.*.data[offset],
-            vector2.*.data[offset + 1],
-            vector2.*.data[offset + 2],
-            vector2.*.data[offset + 3],
-        };
-
-        // Add vectors and store result
-        const quotient = vec1 / vec2;
-        result.*.data[offset] = quotient[0];
-        result.*.data[offset + 1] = quotient[1];
-        result.*.data[offset + 2] = quotient[2];
-        result.*.data[offset + 3] = quotient[3];
-    }
-
-    // Handle remaining elements
-    const remaining = @mod(len, 4);
-    if (remaining > 0) {
-        const start: usize = @intCast(len - remaining);
-        for (start..@intCast(len)) |j| {
-            result.*.data[j] = vector1.*.data[j] / vector2.*.data[j];
-        }
-    }
-
-    result.*.count = len;
-    return result;
-}
-
-pub fn equalFloatVector(a: FloatVector.Self, b: FloatVector.Self) bool {
-    if (_count(a) != _count(b)) return false;
-
-    for (0..@intCast(_count(a))) |i| {
-        if (_get(a, @intCast(i)) != _get(b, @intCast(i))) return false;
-    }
-    return true;
-}
-
-pub fn scaleFloatVector(vector: FloatVector.Self, scalar: f64) FloatVector.Self {
-    const result = FloatVector.init(vector.*.size);
-    const simdSize: usize = @intCast(vector.*.count - @mod(vector.*.count, 4));
-
-    // Process 4 elements at a time using Zig SIMD
-    var i: usize = 0;
-    while (i < simdSize) : (i += 4) {
-        const vec4 = @Vector(4, f64){
-            vector.*.data[i],
-            vector.*.data[i + 1],
-            vector.*.data[i + 2],
-            vector.*.data[i + 3],
-        };
-        const scaled = vec4 * @as(@Vector(4, f64), @splat(scalar));
-
-        result.*.data[i] = scaled[0];
-        result.*.data[i + 1] = scaled[1];
-        result.*.data[i + 2] = scaled[2];
-        result.*.data[i + 3] = scaled[3];
-    }
-
-    // Process remaining elements
-    i = simdSize;
-    while (i < vector.*.count) : (i += 1) {
-        result.*.data[i] = vector.*.data[i] * scalar;
-    }
-
-    result.*.count = vector.*.count;
-    return result;
-}
-pub fn singleAddFloatVector(vector: FloatVector.Self, scalar: f64) FloatVector.Self {
-    const result = FloatVector.init(vector.*.size);
-    const simdSize: usize = @intCast(vector.*.count - @mod(vector.*.count, 4));
-
-    // Process 4 elements at a time using Zig SIMD
-    var i: usize = 0;
-    while (i < simdSize) : (i += 4) {
-        const vec4 = @Vector(4, f64){
-            vector.*.data[i],
-            vector.*.data[i + 1],
-            vector.*.data[i + 2],
-            vector.*.data[i + 3],
-        };
-        const sum = vec4 + @as(@Vector(4, f64), @splat(scalar));
-
-        result.*.data[i] = sum[0];
-        result.*.data[i + 1] = sum[1];
-        result.*.data[i + 2] = sum[2];
-        result.*.data[i + 3] = sum[3];
-    }
-
-    // Process remaining elements
-    i = simdSize;
-    while (i < vector.*.count) : (i += 1) {
-        result.*.data[i] = vector.*.data[i] + scalar;
-    }
-
-    result.*.count = vector.*.count;
-    return result;
-}
-
-pub fn singleSubFloatVector(vector: FloatVector.Self, b: f64) FloatVector.Self {
-    return singleAddFloatVector(vector, b * -1.0);
-}
-
-pub fn singleDivFloatVector(a: FloatVector.Self, b: f64) FloatVector.Self {
-    return scaleFloatVector(a, 1.0 / b);
-}
-
-pub fn reverseFloatVector(arg_vector: FloatVector.Self) void {
-    var vector = arg_vector;
-    _ = &vector;
-    {
-        var i: i32 = 0;
-        _ = &i;
-        while (i < @divTrunc(vector.*.count, @as(i32, 2))) : (i += 1) {
-            var temp: f64 = vector.*.data[@intCast(i)];
-            _ = &temp;
-            vector.*.data[@intCast(i)] = vector.*.data[@intCast((vector.*.count - i) - 1)];
-            vector.*.data[@intCast((vector.*.count - i) - 1)] = temp;
-        }
-    }
-}
-pub fn nextFloatVector(arg_vector: FloatVector.Self) f64 {
-    var vector = arg_vector;
-    _ = &vector;
-    if (hasNextFloatVector(vector)) {
-        const value = vector.*.data[@intCast(vector.*.pos)];
-        vector.*.pos += 1;
-        return value;
-    }
-    return 0.0;
-}
-pub fn hasNextFloatVector(arg_vector: FloatVector.Self) bool {
-    var vector = arg_vector;
-    _ = &vector;
-    return vector.*.pos < vector.*.count;
-}
-pub fn peekFloatVector(arg_vector: FloatVector.Self, arg_pos: i32) f64 {
-    var vector = arg_vector;
-    _ = &vector;
-    var pos = arg_pos;
-    _ = &pos;
-    if (pos < vector.*.count) {
-        return (blk: {
-            const tmp = pos;
-            if (tmp >= 0) break :blk vector.*.data + @as(usize, @intCast(tmp)) else break :blk vector.*.data - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-        }).*;
-    }
-    return 0.0;
-}
-pub fn resetFloatVector(arg_vector: FloatVector.Self) void {
-    var vector = arg_vector;
-    _ = &vector;
-    vector.*.pos = 0;
-}
-pub fn skipFloatVector(arg_vector: FloatVector.Self, arg_n: i32) void {
-    var vector = arg_vector;
-    _ = &vector;
-    var n = arg_n;
-    _ = &n;
-    vector.*.pos = if ((vector.*.pos + n) < vector.*.count) vector.*.pos + n else vector.*.count;
-}
-pub fn searchFloatVector(arg_vector: FloatVector.Self, arg_value: f64) i32 {
-    var vector = arg_vector;
-    _ = &vector;
-    const value = arg_value;
-    _ = &value;
-    if (vector.*.sorted) {
-        return binarySearchFloatVector(vector, value);
-    } else {
-        {
-            var i: i32 = 0;
-            _ = &i;
-            while (i < vector.*.count) : (i += 1) {
-                if (vector.*.data[@intCast(i)] == value) {
-                    return i;
-                }
-            }
-        }
-    }
-    return -1;
-}
-pub fn linspace(arg_start: f64, arg_end: f64, arg_n: i32) FloatVector.Self {
-    var start = arg_start;
-    _ = &start;
-    var end = arg_end;
-    _ = &end;
-    var n = arg_n;
-    _ = &n;
-    var result: FloatVector.Self = FloatVector.init(n);
-    _ = &result;
-    var step: f64 = (end - start) / @as(f64, @floatFromInt(n - 1));
-    _ = &step;
-    {
-        var i: i32 = 0;
-        _ = &i;
-        while (i < n) : (i += 1) {
-            result.*.data[@intCast(i)] = start + (@as(f64, @floatFromInt(i)) * step);
-        }
-    }
-    result.*.count = n;
-    return result;
-}
-pub fn interp1(arg_x: FloatVector.Self, arg_y: FloatVector.Self, arg_x0: f64) f64 {
-    var x = arg_x;
-    _ = &x;
-    var y = arg_y;
-    _ = &y;
-    var x0 = arg_x0;
-    _ = &x0;
-    if (x.*.count != y.*.count) {
-        std.debug.print("x and y must have the same length\n", .{});
-        return 0;
-    }
-    if ((x0 < x.*.data[0]) or (x0 > x.*.data[@intCast(x.*.count - 1)])) {
-        std.debug.print("x0 is out of bounds\n", .{});
-        return 0;
-    }
-    var i: i32 = 0;
-    _ = &i;
-    while (x0 > x.*.data[@intCast(i)]) {
-        i += 1;
-    }
-    if (x0 == x.*.data[@intCast(i)]) {
-        return y.*.data[@intCast(i)];
-    }
-    var slope: f64 = (y.*.data[@intCast(i)] - y.*.data[@intCast(i - 1)]) / (x.*.data[@intCast(i)] - x.*.data[@intCast(i - 1)]);
-    _ = &slope;
-    return y.*.data[@intCast(i - 1)] + (slope * (x0 - x.*.data[@intCast(i - 1)]));
-}
-pub fn dotProduct(arg_a: FloatVector.Self, arg_b: FloatVector.Self) f64 {
-    var a = arg_a;
-    _ = &a;
-    var b = arg_b;
-    _ = &b;
-    if ((a.*.size != @as(i32, 3)) and (b.*.size != @as(i32, 3))) {
-        std.debug.print("Vectors are not of size 3\n", .{});
-        return 0;
-    }
-    return ((a.*.data[0] * b.*.data[0]) + (a.*.data[1] * b.*.data[1])) + (a.*.data[2] * b.*.data[2]);
-}
-pub fn crossProduct(arg_a: FloatVector.Self, arg_b: FloatVector.Self) FloatVector.Self {
-    var a = arg_a;
-    _ = &a;
-    var b = arg_b;
-    _ = &b;
-    if ((a.*.size != @as(i32, 3)) or (b.*.size != @as(i32, 3))) {
-        std.debug.print("Vectors are not of size 3\n", .{});
-        return @ptrCast(@alignCast(allocateObject(@sizeOf(FloatVector), .OBJ_FVECTOR)));
-    }
-    var result: FloatVector.Self = FloatVector.init(@as(i32, 3));
-    _ = &result;
-    result.*.data[0] = (a.*.data[1] * b.*.data[2]) - (a.*.data[2] * b.*.data[1]);
-    result.*.data[1] = (a.*.data[2] * b.*.data[0]) - (a.*.data[0] * b.*.data[2]);
-    result.*.data[2] = (a.*.data[0] * b.*.data[1]) - (a.*.data[1] * b.*.data[0]);
-    result.*.count = 3;
-    return result;
-}
-pub fn magnitude(arg_vector: FloatVector.Self) f64 {
-    var vector = arg_vector;
-    _ = &vector;
-    var sum: f64 = (std.math.pow(f64, vector.*.data[0], @as(f64, @floatFromInt(@as(i32, 2)))) + std.math.pow(f64, vector.*.data[1], @as(f64, @floatFromInt(@as(i32, 2))))) + std.math.pow(f64, vector.*.data[2], @as(f64, @floatFromInt(@as(i32, 2))));
-    _ = &sum;
-    return @sqrt(sum);
-}
-pub fn normalize(arg_vector: FloatVector.Self) FloatVector.Self {
-    var vector = arg_vector;
-    _ = &vector;
-    var mag: f64 = magnitude(vector);
-    _ = &mag;
-    if (mag == @as(f64, @floatFromInt(0))) {
-        std.debug.print("Cannot normalize a zero vector\n", .{});
-        return @ptrCast(@alignCast(allocateObject(@sizeOf(FloatVector), .OBJ_FVECTOR)));
-    }
-    return scaleFloatVector(vector, 1.0 / mag);
-}
-pub fn projection(arg_a: FloatVector.Self, arg_b: FloatVector.Self) FloatVector.Self {
-    var a = arg_a;
-    _ = &a;
-    var b = arg_b;
-    _ = &b;
-    return scaleFloatVector(b, dotProduct(a, b) / dotProduct(b, b));
-}
-pub fn rejection(arg_a: FloatVector.Self, arg_b: FloatVector.Self) FloatVector.Self {
-    var a = arg_a;
-    _ = &a;
-    var b = arg_b;
-    _ = &b;
-    return subFloatVector(a, projection(a, b));
-}
-pub fn reflection(arg_a: FloatVector.Self, arg_b: FloatVector.Self) FloatVector.Self {
-    var a = arg_a;
-    _ = &a;
-    var b = arg_b;
-    _ = &b;
-    return subFloatVector(scaleFloatVector(projection(a, b), @as(f64, @floatFromInt(@as(i32, 2)))), a);
-}
-pub fn refraction(arg_a: FloatVector.Self, arg_b: FloatVector.Self, arg_n1: f64, arg_n2: f64) FloatVector.Self {
-    var a = arg_a;
-    _ = &a;
-    var b = arg_b;
-    _ = &b;
-    var n1 = arg_n1;
-    _ = &n1;
-    var n2 = arg_n2;
-    _ = &n2;
-    var dot: f64 = dotProduct(a, b);
-    _ = &dot;
-    var mag_a: f64 = magnitude(a);
-    _ = &mag_a;
-    var mag_b: f64 = magnitude(b);
-    _ = &mag_b;
-    var theta: f64 = std.math.acos(dot / (mag_a * mag_b));
-    _ = &theta;
-    var sin_theta_r: f64 = (n1 / n2) * std.math.sin(theta);
-    _ = &sin_theta_r;
-    if (sin_theta_r > @as(f64, @floatFromInt(1))) {
-        std.debug.print("Total internal reflection\n", .{});
-        return @ptrCast(@alignCast(allocateObject(@sizeOf(FloatVector), .OBJ_FVECTOR)));
-    }
-    var cos_theta_r: f64 = @sqrt(@as(f64, @floatFromInt(1)) - std.math.pow(f64, sin_theta_r, @as(f64, @floatFromInt(@as(i32, 2)))));
-    _ = &cos_theta_r;
-    var result: FloatVector.Self = scaleFloatVector(a, n1 / n2);
-    _ = &result;
-    var temp: FloatVector.Self = scaleFloatVector(b, ((n1 / n2) * cos_theta_r) - @sqrt(@as(f64, @floatFromInt(1)) - std.math.pow(f64, sin_theta_r, @as(f64, @floatFromInt(@as(i32, 2))))));
-    _ = &temp;
-    return addFloatVector(result, temp);
-}
-pub fn angle(arg_a: FloatVector.Self, arg_b: FloatVector.Self) f64 {
-    var a = arg_a;
-    _ = &a;
-    var b = arg_b;
-    _ = &b;
-    return std.math.acos(dotProduct(a, b) / (magnitude(a) * magnitude(b)));
-}
-
-pub fn compare_double(arg_a: ?*const anyopaque, arg_b: ?*const anyopaque) callconv(.C) i32 {
-    const a: *f64 = @ptrCast(@constCast(@alignCast(arg_a)));
-    const b: *f64 = @ptrCast(@constCast(@alignCast(arg_b)));
-
-    return @intFromFloat(a.* - b.*);
-}
-pub fn binarySearchFloatVector(arg_vector: FloatVector.Self, arg_value: f64) callconv(.C) i32 {
-    var vector = arg_vector;
-    _ = &vector;
-    const value = arg_value;
-    _ = &value;
-    var left: i32 = 0;
-    _ = &left;
-    var right: i32 = vector.*.count - 1;
-    _ = &right;
-    while (left <= right) {
-        var mid: i32 = left + @divTrunc(right - left, @as(i32, 2));
-        _ = &mid;
-        if (vector.*.data[@intCast(mid)] == value) {
-            return mid;
-        }
-        if (vector.*.data[@intCast(mid)] < value) {
-            left = mid + 1;
-        } else {
-            right = mid - 1;
-        }
-    }
-    return -1;
+pub inline fn compare_double(a: f64, b: f64) i32 {
+    if (a < b) return -1;
+    if (a > b) return 1;
+    return 0;
 }

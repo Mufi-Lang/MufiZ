@@ -71,7 +71,7 @@ pub const Value = extern struct {
             .VAL_OBJ => {
                 if (self.is_fvec()) {
                     const vec = self.as_fvec();
-                    const result = fvec.scaleFloatVector(vec, -1.0);
+                    const result = vec.scale(-1.0);
                     return Value.init_obj(@ptrCast(@alignCast(result)));
                 } else {
                     @panic("Cannot negate non-numeric value");
@@ -122,13 +122,13 @@ pub const Value = extern struct {
                     // Both are FloatVectors
                     const a = self.as_fvec();
                     const b = other.as_fvec();
-                    const result = fvec.addFloatVector(a, b);
+                    const result = a.add(b);
                     return Value.init_obj(@ptrCast(result));
                 } else if (self.is_fvec() and other.is_prim_num()) {
                     // FloatVector + scalar
                     const a = self.as_fvec();
                     const scalar = other.as_num_double();
-                    const result = fvec.singleAddFloatVector(a, scalar);
+                    const result = a.single_add(scalar);
                     return Value.init_obj(@ptrCast(result));
                 } else {
                     @panic("Cannot add non-string object values");
@@ -174,13 +174,13 @@ pub const Value = extern struct {
                     // Both are FloatVectors
                     const a = self.as_fvec();
                     const b = other.as_fvec();
-                    const result = fvec.mulFloatVector(a, b);
+                    const result = a.mul(b);
                     return Value.init_obj(@ptrCast(result));
                 } else if (self.is_fvec() and other.is_prim_num()) {
                     // FloatVector * scalar
                     const a = self.as_fvec();
                     const scalar = other.as_num_double();
-                    const result = fvec.scaleFloatVector(a, scalar);
+                    const result = a.scale(scalar);
                     return Value.init_obj(@ptrCast(result));
                 } else {
                     @panic("Cannot multiply these object types");
@@ -237,13 +237,13 @@ pub const Value = extern struct {
                     // Both are FloatVectors
                     const a = self.as_fvec();
                     const b = other.as_fvec();
-                    const result = fvec.divFloatVector(a, b);
+                    const result = a.div(b);
                     return Value.init_obj(@ptrCast(result));
                 } else if (self.is_fvec() and other.is_prim_num()) {
                     // FloatVector / scalar
                     const a = self.as_fvec();
                     const scalar = other.as_num_double();
-                    const result = fvec.singleDivFloatVector(a, scalar);
+                    const result = a.single_div(scalar);
                     return Value.init_obj(@ptrCast(result));
                 } else {
                     @panic("Cannot divide these object types");
