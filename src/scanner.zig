@@ -2,6 +2,40 @@ const std = @import("std");
 pub const memcmp = @import("mem_utils.zig").memcmp;
 pub const strlen = @import("mem_utils.zig").strlen;
 
+// HashMap for keyword lookup
+const KeywordMap = std.HashMap([]const u8, TokenType, std.hash_map.StringContext, std.hash_map.default_max_load_percentage);
+
+var keyword_map: KeywordMap = undefined;
+var keyword_map_initialized: bool = false;
+
+fn initKeywordMap() void {
+    if (keyword_map_initialized) return;
+
+    keyword_map = KeywordMap.init(std.heap.page_allocator);
+
+    keyword_map.put("and", .TOKEN_AND) catch unreachable;
+    keyword_map.put("class", .TOKEN_CLASS) catch unreachable;
+    keyword_map.put("else", .TOKEN_ELSE) catch unreachable;
+    keyword_map.put("each", .TOKEN_EACH) catch unreachable;
+    keyword_map.put("false", .TOKEN_FALSE) catch unreachable;
+    keyword_map.put("for", .TOKEN_FOR) catch unreachable;
+    keyword_map.put("fun", .TOKEN_FUN) catch unreachable;
+    keyword_map.put("if", .TOKEN_IF) catch unreachable;
+    keyword_map.put("item", .TOKEN_ITEM) catch unreachable;
+    keyword_map.put("let", .TOKEN_LET) catch unreachable;
+    keyword_map.put("nil", .TOKEN_NIL) catch unreachable;
+    keyword_map.put("or", .TOKEN_OR) catch unreachable;
+    keyword_map.put("print", .TOKEN_PRINT) catch unreachable;
+    keyword_map.put("return", .TOKEN_RETURN) catch unreachable;
+    keyword_map.put("self", .TOKEN_SELF) catch unreachable;
+    keyword_map.put("super", .TOKEN_SUPER) catch unreachable;
+    keyword_map.put("true", .TOKEN_TRUE) catch unreachable;
+    keyword_map.put("var", .TOKEN_VAR) catch unreachable;
+    keyword_map.put("while", .TOKEN_WHILE) catch unreachable;
+
+    keyword_map_initialized = true;
+}
+
 pub const TokenType = enum(c_int) {
     // Single character tokens
     TOKEN_LEFT_PAREN = 0,
@@ -65,25 +99,26 @@ pub const TokenType = enum(c_int) {
     TOKEN_COLON = 54,
 };
 
-pub const Token = extern struct {
+pub const Token = struct {
     type: TokenType,
-    start: [*c]u8,
+    start: [*]u8,
     length: i32,
     line: i32,
 };
 
-pub const Scanner = extern struct {
-    start: [*c]u8,
-    current: [*c]u8,
+pub const Scanner = struct {
+    start: [*]u8,
+    current: [*]u8,
     line: i32,
 };
 
 var scanner: Scanner = undefined;
 
 pub fn initScanner(source: [*c]u8) void {
-    scanner.start = source;
-    scanner.current = source;
+    scanner.start = @ptrCast(source);
+    scanner.current = @ptrCast(source);
     scanner.line = 1;
+    initKeywordMap();
 }
 
 pub fn isAlpha(c: u8) bool {
@@ -97,7 +132,7 @@ pub fn isDigit(c: u8) bool {
 }
 
 pub fn isAtEnd() bool {
-    return scanner.current.* == '\x00';
+    return scanner.current[0] == '\x00';
 }
 
 pub fn __scanner__advance() u8 {
@@ -107,7 +142,7 @@ pub fn __scanner__advance() u8 {
 }
 
 pub fn peek() u8 {
-    return scanner.current.*;
+    return scanner.current[0];
 }
 
 pub fn peekNext() u8 {
@@ -127,7 +162,7 @@ pub fn makeToken(type_: TokenType) Token {
 pub fn errorToken(message: [*c]u8) Token {
     return .{
         .type = TokenType.TOKEN_ERROR,
-        .start = message,
+        .start = @ptrCast(message),
         .length = @intCast(strlen(message)),
         .line = scanner.line,
     };
@@ -153,76 +188,24 @@ pub fn skipWhitespace() void {
         }
     }
 }
-/// TODO: need to simply without converting so much
-pub fn checkKeyword(arg_start: c_int, arg_length: c_int, arg_rest: [*c]const u8, arg_type: TokenType) TokenType {
-    const start = arg_start;
-    const length = arg_length;
-    const rest = arg_rest;
-    const @"type" = arg_type;
-    if (@intFromPtr(scanner.current) - @intFromPtr(scanner.start) == start + length and memcmp(@ptrCast(@as([*c]u8, @ptrFromInt(@intFromPtr(scanner.start) + @as(usize, @intCast(start))))), @ptrCast(rest), @intCast(length)) == 0) {
-        return @"type";
-    }
-    return .TOKEN_IDENTIFIER;
-}
+
 /// TODO: need to simply without converting so much
 pub fn __scanner__match(arg_expected: u8) bool {
     const expected = arg_expected;
     if (isAtEnd()) return false;
-    if ( scanner.current.* != expected) return false;
+    if (scanner.current[0] != expected) return false;
     scanner.current += 1;
     return true;
 }
 
 pub fn identifierType() TokenType {
-    switch (scanner.start[0]) {
-        'a' => return checkKeyword(1, 2, @ptrCast("nd"), .TOKEN_AND),
-        'c' => return checkKeyword(1, 4, @ptrCast("lass"), .TOKEN_CLASS),
-        'e' => {
-            if (@intFromPtr(scanner.current) - @intFromPtr(scanner.start) > 1) {
-                switch (scanner.start[1]) {
-                    'l' => return checkKeyword(2, 2, @ptrCast("se"), .TOKEN_ELSE),
-                    'a' => return checkKeyword(2, 2, @ptrCast("ch"), .TOKEN_EACH),
-                    else => {},
-                }
-            }
-        },
-        'f' => {
-            if (@intFromPtr(scanner.current) - @intFromPtr(scanner.start) > 1) {
-                switch (scanner.start[1]) {
-                    'a' => return checkKeyword(2, 3, @ptrCast("lse"), .TOKEN_FALSE),
-                    'o' => return checkKeyword(2, 1, @ptrCast("r"), .TOKEN_FOR),
-                    'u' => return checkKeyword(2, 1, @ptrCast("n"), .TOKEN_FUN),
-                    else => {},
-                }
-            }
-        },
-        'i' => {
-            if (@intFromPtr(scanner.current) - @intFromPtr(scanner.start) > 1) {
-                switch (scanner.start[1]) {
-                    'f' => return checkKeyword(2, 0, @ptrCast(""), .TOKEN_IF),
-                    't' => return checkKeyword(2, 2, @ptrCast("em"), .TOKEN_ITEM),
-                    else => {},
-                }
-            }
-        },
-        'l' => return checkKeyword(1, 2, @ptrCast("et"), .TOKEN_LET),
-        'n' => return checkKeyword(1, 2, @ptrCast("il"), .TOKEN_NIL),
-        'p' => return checkKeyword(1, 4, @ptrCast("rint"), .TOKEN_PRINT),
-        'r' => return checkKeyword(1, 5, @ptrCast("eturn"), .TOKEN_RETURN),
-        's' => {
-            if (@intFromPtr(scanner.current) - @intFromPtr(scanner.start) > 1) {
-                switch (scanner.start[1]) {
-                    'e' => return checkKeyword(2, 2, @ptrCast("lf"), .TOKEN_SELF),
-                    'u' => return checkKeyword(2, 3, @ptrCast("per"), .TOKEN_SUPER),
-                    else => {},
-                }
-            }
-        },
-        't' => return checkKeyword(1, 3, @ptrCast("rue"), .TOKEN_TRUE),
-        'v' => return checkKeyword(1, 2, @ptrCast("ar"), .TOKEN_VAR),
-        'w' => return checkKeyword(1, 4, @ptrCast("hile"), .TOKEN_WHILE),
-        else => {},
+    const length = @intFromPtr(scanner.current) - @intFromPtr(scanner.start);
+    const identifier_slice = scanner.start[0..@intCast(length)];
+
+    if (keyword_map.get(identifier_slice)) |token_type| {
+        return token_type;
     }
+
     return .TOKEN_IDENTIFIER;
 }
 pub fn identifier() Token {

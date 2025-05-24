@@ -16,7 +16,7 @@ const strtod = stdlib_h.strtod;
 const OpCode = chunk_h.OpCode;
 const debug_h = @import("debug.zig");
 
-pub const Parser = extern struct { current: Token, previous: Token, hadError: bool, panicMode: bool };
+pub const Parser = struct { current: Token, previous: Token, hadError: bool, panicMode: bool };
 
 pub const PREC_NONE: i32 = 0;
 pub const PREC_ASSIGNMENT: i32 = 1;
@@ -33,17 +33,17 @@ pub const PREC_PRIMARY: i32 = 11;
 pub const Precedence = c_uint;
 
 pub const ParseFn = ?*const fn (bool) void;
-pub const ParseRule = extern struct {
+pub const ParseRule = struct {
     prefix: ParseFn = null,
     infix: ParseFn = null,
     precedence: Precedence,
 };
-pub const Local = extern struct {
+pub const Local = struct {
     name: Token,
     depth: i32,
     isCaptured: bool,
 };
-pub const Upvalue = extern struct {
+pub const Upvalue = struct {
     index: u8,
     isLocal: bool,
 };
@@ -55,13 +55,13 @@ pub const FunctionType = enum(i32) {
     TYPE_SCRIPT = 3,
 };
 
-pub const ClassCompiler = extern struct {
-    enclosing: [*c]ClassCompiler,
-    hasSuperClass: bool,
+pub const ClassCompiler = struct {
+    enclosing: ?*ClassCompiler,
+    hasSuperclass: bool,
 };
 
-pub const Compiler = extern struct {
-    enclosing: [*c]Compiler,
+pub const Compiler = struct {
+    enclosing: ?*Compiler,
     function: [*c]ObjFunction,
     type_: FunctionType,
     locals: [256]Local,
@@ -70,14 +70,14 @@ pub const Compiler = extern struct {
     scopeDepth: i32,
 };
 
-pub export var parser: Parser = undefined;
-pub export var current: [*c]Compiler = null;
-pub export var currentClass: [*c]ClassCompiler = null;
+pub var parser: Parser = undefined;
+pub var current: ?*Compiler = null;
+pub var currentClass: ?*ClassCompiler = null;
 
 pub fn currentChunk() [*c]Chunk {
-    return &current.*.function.*.chunk;
+    return &current.?.function.*.chunk;
 }
-pub fn errorAt(token: [*c]Token, message: [*c]const u8) void {
+pub fn errorAt(token: *Token, message: [*c]const u8) void {
     if (parser.panicMode) return;
     parser.panicMode = true;
     print("[line {d}] Error", .{token.*.line});
@@ -145,7 +145,7 @@ pub fn emitJump(instruction: u8) i32 {
     return currentChunk().*.count - 2;
 }
 pub fn emitReturn() void {
-    if (current.*.type_ == .TYPE_INITIALIZER) {
+    if (current.?.type_ == .TYPE_INITIALIZER) {
         emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), 0);
     } else {
         emitByte(@intCast(@intFromEnum(OpCode.OP_NIL)));
@@ -173,7 +173,7 @@ pub fn patchJump(offset: i32) void {
     currentChunk().*.code[@intCast(offset)] = @intCast((jump >> 8) & 255);
     currentChunk().*.code[@intCast(offset + 1)] = @intCast(jump & 255);
 }
-pub fn initCompiler(compiler: [*c]Compiler, type_: FunctionType) void {
+pub fn initCompiler(compiler: *Compiler, type_: FunctionType) void {
     compiler.*.enclosing = current;
     compiler.*.function = null;
     compiler.*.type_ = type_;
@@ -184,12 +184,12 @@ pub fn initCompiler(compiler: [*c]Compiler, type_: FunctionType) void {
 
     // Set function name if not a script
     if (type_ != .TYPE_SCRIPT) {
-        current.*.function.*.name = object_h.copyString(parser.previous.start, parser.previous.length);
+        current.?.function.*.name = object_h.copyString(parser.previous.start, parser.previous.length);
     }
 
     // Create first local slot - used for 'self' in methods
-    const local: [*c]Local = &current.*.locals[0];
-    current.*.localCount = 1;
+    const local: *Local = &current.?.locals[0];
+    current.?.localCount = 1;
 
     if (type_ == .TYPE_METHOD or type_ == .TYPE_INITIALIZER) {
         // For methods, initialize first local as 'self'
@@ -229,9 +229,9 @@ pub fn initCompiler(compiler: [*c]Compiler, type_: FunctionType) void {
 //     }
 // }
 
-pub fn endCompiler() [*c]ObjFunction {
+pub fn endCompiler() *ObjFunction {
     emitReturn();
-    const function_1: [*c]ObjFunction = current.*.function;
+    const function_1: *ObjFunction = current.?.function;
 
     if (debug_opts.print_code) {
         if (!parser.hadError) {
@@ -240,21 +240,21 @@ pub fn endCompiler() [*c]ObjFunction {
         }
     }
 
-    current = current.*.enclosing;
+    current = current.?.enclosing;
     return function_1;
 }
 pub fn beginScope() void {
-    current.*.scopeDepth += 1;
+    current.?.scopeDepth += 1;
 }
 pub fn endScope() void {
-    current.*.scopeDepth -= 1;
-    while ((current.*.localCount > 0) and (current.*.locals[@intCast(current.*.localCount - 1)].depth > current.*.scopeDepth)) {
-        if (current.*.locals[@as(c_uint, @intCast(current.*.localCount - 1))].isCaptured) {
-            emitByte(@intFromEnum(OpCode.OP_CLOSE_UPVALUE));
+    current.?.scopeDepth -= 1;
+    while ((current.?.localCount > 0) and (current.?.locals[@as(c_uint, @intCast(current.?.localCount - 1))].depth > current.?.scopeDepth)) {
+        if (current.?.locals[@as(c_uint, @intCast(current.?.localCount - 1))].isCaptured) {
+            emitByte(@intCast(@intFromEnum(OpCode.OP_CLOSE_UPVALUE)));
         } else {
-            emitByte(@intFromEnum(OpCode.OP_POP));
+            emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
         }
-        current.*.localCount -= 1;
+        current.?.localCount -= 1;
     }
 }
 pub fn expression() void {
@@ -305,7 +305,7 @@ pub fn declaration() void {
         synchronize();
     }
 }
-pub fn getRule(type_: TokenType) [*c]ParseRule {
+pub fn getRule(type_: TokenType) *ParseRule {
     const index: usize = @intCast(@intFromEnum(type_));
     
     // Special case for certain token types
@@ -391,7 +391,7 @@ pub fn parsePrecedence(precedence: Precedence) void {
     }
 }
 
-pub fn identifierConstant(name: [*c]Token) u8 {
+pub fn identifierConstant(name: *Token) u8 {
     return makeConstant(Value{
         .type = .VAL_OBJ,
         .as = .{
@@ -399,14 +399,14 @@ pub fn identifierConstant(name: [*c]Token) u8 {
         },
     });
 }
-pub fn identifiersEqual(a: [*c]Token, b: [*c]Token) bool {
+pub fn identifiersEqual(a: *Token, b: *Token) bool {
     if (a.*.length != b.*.length) return false;
     return scanner_h.memcmp(@as(?*const anyopaque, @ptrCast(a.*.start)), @as(?*const anyopaque, @ptrCast(b.*.start)), @as(c_ulong, @bitCast(@as(c_long, a.*.length)))) == 0;
 }
-pub fn resolveLocal(compiler: [*c]Compiler, name: [*c]Token) i32 {
+pub fn resolveLocal(compiler: *Compiler, name: *Token) i32 {
     var i: i32 = compiler.*.localCount - 1;
     while (i >= 0) : (i -= 1) {
-        const local: [*c]Local = &compiler.*.locals[@as(c_uint, @intCast(i))];
+        const local: *Local = &compiler.*.locals[@as(c_uint, @intCast(i))];
         if (identifiersEqual(name, &local.*.name)) {
             if (local.*.depth == -1) {
                 @"error"("Can't read local variable in its own initializer.");
@@ -418,11 +418,11 @@ pub fn resolveLocal(compiler: [*c]Compiler, name: [*c]Token) i32 {
     return -1;
 }
 
-pub fn addUpvalue(compiler: [*c]Compiler, index_1: u8, isLocal: bool) i32 {
+pub fn addUpvalue(compiler: *Compiler, index_1: u8, isLocal: bool) i32 {
     const upvalueCount: i32 = compiler.*.function.*.upvalueCount;
 
     for (0..@intCast(upvalueCount)) |i| {
-        const upvalue: [*c]Upvalue = &compiler.*.upvalues[@as(c_uint, @intCast(i))];
+        const upvalue: *Upvalue = &compiler.*.upvalues[@as(c_uint, @intCast(i))];
 
         if ((upvalue.*.index == index_1) and upvalue.*.isLocal) {
             return @intCast(i);
@@ -442,27 +442,27 @@ pub fn addUpvalue(compiler: [*c]Compiler, index_1: u8, isLocal: bool) i32 {
         break :blk tmp;
     };
 }
-pub fn resolveUpvalue(compiler: [*c]Compiler, name: [*c]Token) i32 {
-    if (compiler.*.enclosing == @as([*c]Compiler, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) return -1;
-    const local: i32 = resolveLocal(compiler.*.enclosing, name);
+pub fn resolveUpvalue(compiler: *Compiler, name: *Token) i32 {
+    if (compiler.*.enclosing == null) return -1;
+    const local: i32 = resolveLocal(compiler.*.enclosing.?, name);
     if (local != -1) {
-        compiler.*.enclosing.*.locals[@as(c_uint, @intCast(local))].isCaptured = true;
+        compiler.*.enclosing.?.locals[@as(c_uint, @intCast(local))].isCaptured = true;
         return addUpvalue(compiler, @as(u8, @bitCast(@as(i8, @truncate(local)))), true);
     }
-    const upvalue: i32 = resolveUpvalue(compiler.*.enclosing, name);
+    const upvalue: i32 = resolveUpvalue(compiler.*.enclosing.?, name);
     if (upvalue != -1) {
         return addUpvalue(compiler, @as(u8, @bitCast(@as(i8, @truncate(upvalue)))), false);
     }
     return -1;
 }
 pub fn addLocal(name: Token) void {
-    if (current.*.localCount == (255 + 1)) {
+    if (current.?.localCount == (255 + 1)) {
         @"error"("Too many local variables in function.");
         return;
     }
-    const local: [*c]Local = &current.*.locals[
+    const local: *Local = &current.?.locals[
         @as(c_uint, @intCast(blk: {
-            const ref = &current.*.localCount;
+            const ref = &current.?.localCount;
             const tmp = ref.*;
             ref.* += 1;
             break :blk tmp;
@@ -473,15 +473,15 @@ pub fn addLocal(name: Token) void {
     local.*.isCaptured = false;
 }
 pub fn declareVariable() void {
-    if (current.*.scopeDepth == 0) return;
-    const name: [*c]Token = &parser.previous;
+    if (current.?.scopeDepth == 0) return;
+    const name: *Token = &parser.previous;
     {
-        var i: i32 = current.*.localCount - 1;
+        var i: i32 = current.?.localCount - 1;
         _ = &i;
         while (i >= 0) : (i -= 1) {
-            var local: [*c]Local = &current.*.locals[@as(c_uint, @intCast(i))];
+            var local: *Local = &current.?.locals[@as(c_uint, @intCast(i))];
             _ = &local;
-            if ((local.*.depth != -1) and (local.*.depth < current.*.scopeDepth)) {
+            if ((local.*.depth != -1) and (local.*.depth < current.?.scopeDepth)) {
                 break;
             }
             if (identifiersEqual(name, &local.*.name)) {
@@ -495,15 +495,15 @@ pub fn declareVariable() void {
 pub fn parseVariable(errorMessage: [*c]const u8) u8 {
     consume(.TOKEN_IDENTIFIER, errorMessage);
     declareVariable();
-    if (current.*.scopeDepth > 0) return 0;
+    if (current.?.scopeDepth > 0) return 0;
     return identifierConstant(&parser.previous);
 }
 pub fn markInitialized() void {
-    if (current.*.scopeDepth == 0) return;
-    current.*.locals[@as(c_uint, @intCast(current.*.localCount - 1))].depth = current.*.scopeDepth;
+    if (current.?.scopeDepth == 0) return;
+    current.?.locals[@as(c_uint, @intCast(current.?.localCount - 1))].depth = current.?.scopeDepth;
 }
 pub fn defineVariable(global: u8) void {
-    if (current.*.scopeDepth > 0) {
+    if (current.?.scopeDepth > 0) {
         markInitialized();
         return;
     }
@@ -535,7 +535,7 @@ pub fn and_(canAssign: bool) void {
 pub fn binary(canAssign: bool) void {
     _ = canAssign;
     const operatorType: TokenType = parser.previous.type;
-    const rule: [*c]ParseRule = getRule(operatorType);
+    const rule: *ParseRule = getRule(operatorType);
     parsePrecedence(rule.*.precedence +% 1);
     while (true) {
         switch (operatorType) {
@@ -718,14 +718,13 @@ pub fn fvector(canAssign: bool) void {
 pub fn namedVariable(name: Token, canAssign: bool) void {
     var getOp: u8 = undefined;
     var setOp: u8 = undefined;
-    var arg: i32 = resolveLocal(current, @constCast(&name));
+    var arg: i32 = resolveLocal(current.?, @constCast(&name));
     if (arg != -1) {
         getOp = @intCast(@intFromEnum(OpCode.OP_GET_LOCAL));
         setOp = @intCast(@intFromEnum(OpCode.OP_SET_LOCAL));
     } else if ((blk: {
-        const tmp = resolveUpvalue(current, @constCast(&name));
-        arg = tmp;
-        break :blk tmp;
+        arg = resolveUpvalue(current.?, @constCast(&name));
+        break :blk arg;
     }) != -1) {
         getOp = @intCast(@intFromEnum(OpCode.OP_GET_UPVALUE));
         setOp = @intCast(@intFromEnum(OpCode.OP_SET_UPVALUE));
@@ -797,7 +796,7 @@ pub fn variable(canAssign: bool) void {
 pub fn syntheticToken(text: [*c]const u8) Token {
     var token: Token = Token{
         .type = .TOKEN_IDENTIFIER,
-        .start = @constCast(text),
+        .start = @ptrCast(@constCast(text)),
         .length = @as(i32, @bitCast(@as(c_uint, @truncate(scanner_h.strlen(text))))),
         .line = 0,
     };
@@ -806,10 +805,10 @@ pub fn syntheticToken(text: [*c]const u8) Token {
 }
 pub fn super_(canAssign: bool) void {
     _ = canAssign;
-    if (currentClass == @as([*c]ClassCompiler, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
+    if (currentClass == null) {
         @"error"("Can't use 'super' outside of a class.");
         return;
-    } else if (!currentClass.*.hasSuperClass) {
+    } else if (!currentClass.?.*.hasSuperclass) {
         @"error"("Can't use 'super' in a class with no superclass.");
         return;
     }
@@ -839,7 +838,7 @@ pub fn super_(canAssign: bool) void {
 }
 pub fn self_(canAssign: bool) void {
     _ = canAssign;
-    if (currentClass == @as([*c]ClassCompiler, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
+    if (currentClass == null) {
         @"error"("Can't use 'self' outside of a class.");
         return;
     }
@@ -870,7 +869,7 @@ pub fn unary(canAssign: bool) void {
         break;
     }
 }
-pub export var rules: [56]ParseRule = .{
+pub var rules: [56]ParseRule = .{
     .{
         .prefix = &grouping,
         .infix = &call,
@@ -1086,8 +1085,8 @@ pub fn function(type_: FunctionType) void {
     consume(.TOKEN_LEFT_PAREN, "Expect '(' after function name.");
     if (!check(.TOKEN_RIGHT_PAREN)) {
         while (true) {
-            current.*.function.*.arity += 1;
-            if (current.*.function.*.arity > 255) {
+            current.?.function.*.arity += 1;
+            if (current.?.function.*.arity > 255) {
                 errorAtCurrent("Can't have more than 255 parameters.");
             }
             var constant: u8 = parseVariable("Expect parameter name.");
@@ -1099,7 +1098,7 @@ pub fn function(type_: FunctionType) void {
     consume(.TOKEN_RIGHT_PAREN, "Expect ')' after parameters.");
     consume(.TOKEN_LEFT_BRACE, "Expect '{' before function body.");
     block();
-    var function_1: [*c]ObjFunction = endCompiler();
+    var function_1: *ObjFunction = endCompiler();
     _ = &function_1;
     emitBytes(@intCast(@intFromEnum(OpCode.OP_CLOSURE)), makeConstant(Value{
         .type = .VAL_OBJ,
@@ -1141,7 +1140,7 @@ pub fn classDeclaration() void {
     var classCompiler: ClassCompiler = undefined;
     _ = &classCompiler;
     classCompiler.enclosing = currentClass;
-    classCompiler.hasSuperClass = false;
+    classCompiler.hasSuperclass = false;
     currentClass = &classCompiler;
     
     // Begin scope for methods and self
@@ -1162,7 +1161,7 @@ pub fn classDeclaration() void {
         
         namedVariable(className, false);
         emitByte(@intCast(@intFromEnum(OpCode.OP_INHERIT)));
-        currentClass.*.hasSuperClass = true;
+        currentClass.?.hasSuperclass = true;
     }
     
     namedVariable(className, false);
@@ -1176,7 +1175,7 @@ pub fn classDeclaration() void {
     // End scope for methods, self, and super
     endScope();
     
-    currentClass = currentClass.*.enclosing;
+    currentClass = currentClass.?.enclosing;
 }
 pub fn funDeclaration() void {
     var global: u8 = parseVariable("Expect function name.");
@@ -1263,13 +1262,13 @@ pub fn printStatement() void {
     emitByte(@intCast(@intFromEnum(OpCode.OP_PRINT)));
 }
 pub fn returnStatement() void {
-    if (current.*.type_ == .TYPE_SCRIPT) {
+    if (current.?.type_ == .TYPE_SCRIPT) {
         @"error"("Can't return from top-level code.");
     }
     if (match(.TOKEN_SEMICOLON)) {
         emitReturn();
     } else {
-        if (current.*.type_ == .TYPE_INITIALIZER) {
+        if (current.?.type_ == .TYPE_INITIALIZER) {
             @"error"("Can't return a value from an initializer.");
         }
         expression();
@@ -1305,7 +1304,7 @@ pub fn synchronize() void {
     }
 }
 
-pub export fn compile(source: [*c]const u8) [*c]ObjFunction {
+pub fn compile(source: [*c]const u8) ?*ObjFunction {
     scanner_h.initScanner(@constCast(source));
     var compiler: Compiler = undefined;
     _ = &compiler;
@@ -1316,7 +1315,7 @@ pub export fn compile(source: [*c]const u8) [*c]ObjFunction {
     while (!match(.TOKEN_EOF)) {
         declaration();
     }
-    var function_1: [*c]ObjFunction = endCompiler();
+    var function_1: *ObjFunction = endCompiler();
     _ = &function_1;
     return if (@as(i32, @intFromBool(parser.hadError)) != 0) null else function_1;
 }

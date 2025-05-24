@@ -614,7 +614,7 @@ pub const FloatVector = struct {
 
     pub fn search(v: Self, value: f64) i32 {
         if (v.sorted) {
-            return binarySearchFloatVector(v, value);
+            return binary_search(v, value);
         } else {
             for (0..v.count) |i| {
                 if (v.data[i] == value) {
@@ -738,7 +738,7 @@ pub const FloatVector = struct {
         return std.math.acos(@max(-1.0, @min(1.0, cos_theta)));
     }
 
-    pub fn binarySearchFloatVector(vector: Self, value: f64) i32 {
+    pub fn binary_search(vector: Self, value: f64) i32 {
         var left: i32 = 0;
         var right: i32 = @intCast(vector.count - 1);
         

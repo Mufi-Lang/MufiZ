@@ -229,10 +229,10 @@ inline fn zstr(s: [*c]ObjString) []u8 {
 }
 
 pub fn interpret(source: [*c]const u8) InterpretResult {
-    const function: [*c]ObjFunction = compiler_h.compile(source);
+    const function: ?*ObjFunction = compiler_h.compile(source);
     if (function == null) return .INTERPRET_COMPILE_ERROR;
     push(Value.init_obj(@ptrCast(@alignCast(function))));
-    const closure: [*c]ObjClosure = object_h.newClosure(function);
+    const closure: [*c]ObjClosure = object_h.newClosure(@ptrCast(function));
     _ = pop();
     push(Value.init_obj(@ptrCast(@alignCast(closure))));
     _ = call(closure, 0);
