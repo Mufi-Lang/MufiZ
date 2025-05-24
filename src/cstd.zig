@@ -602,7 +602,7 @@ pub fn len_nf(argCount: i32, args: [*c]Value) Value {
     switch (args[0].as.obj.*.type) {
         .OBJ_HASH_TABLE => {
             const hashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
-            return Value.init_int(hashTable.*.table.count);
+            return Value.init_int(@intCast(hashTable.*.table.count));
         },
         .OBJ_FVECTOR => {
             const vector = @as(*FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
@@ -1409,16 +1409,19 @@ pub fn workspace_nf(argCount: i32, args: [*c]Value) Value {
     // Print header
     print("Workspace:\n", .{});
 
-    // Iterate through all entries
-    for (0..@intCast(vm_h.vm.globals.capacity)) |i| {
-        const entry = &entries[i];
+    // Check if entries exist
+    if (entries != null) {
+        // Iterate through all entries
+        for (0..@intCast(vm_h.vm.globals.capacity)) |i| {
+            const entry = &entries[i];
 
-        // Check if entry is valid and not a native function
-        if (entry.*.key != null and !isObjType(entry.*.value, .OBJ_NATIVE)) {
-            // Print variable name and value
-            print("{s}: ", .{entry.*.key.*.chars});
-            value_h.printValue(entry.*.value);
-            print("\n", .{});
+            // Check if entry is valid and not a native function
+            if (entry.*.key != null and !isObjType(entry.*.value, .OBJ_NATIVE)) {
+                // Print variable name and value
+                print("{s}: ", .{entry.*.key.?.chars});
+                value_h.printValue(entry.*.value);
+                print("\n", .{});
+            }
         }
     }
 

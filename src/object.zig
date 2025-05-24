@@ -247,6 +247,18 @@ pub fn takeString(chars: [*c]u8, length: i32) [*c]ObjString {
 }
 
 pub fn copyString(chars: [*c]const u8, length: i32) [*c]ObjString {
+    // Safety check: ensure valid inputs
+    if (chars == null or length < 0) {
+        // Handle invalid inputs by creating empty string directly
+        const emptyChars = @as([*c]u8, @ptrCast(@alignCast(reallocate(null, 0, 1))));
+        emptyChars[0] = 0;
+        return allocateString(AllocStringParams{
+            .chars = emptyChars,
+            .length = 0,
+            .hash = hashString(emptyChars, 0),
+        });
+    }
+
     // Compute the hash of the string
     const hash = hashString(chars, length);
 
@@ -254,17 +266,17 @@ pub fn copyString(chars: [*c]const u8, length: i32) [*c]ObjString {
     const interned = table_h.tableFindString(&vm_h.vm.strings, chars, length, hash);
     if (interned != null) return interned;
 
-    // Allocate space for the new string and copy the characters
-    const heapChars = @as([*c]u8, @ptrCast(@alignCast(reallocate(null, 0, @intCast(@sizeOf(u8) *% length + 1)))));
+    // Allocate space for the new string (including null terminator)
+    const size = @as(usize, @intCast(length)) + 1;
+    const heapChars = @as([*c]u8, @ptrCast(@alignCast(reallocate(null, 0, size))));
 
     // Copy the string contents
-    _ = memcpy(@as(?*anyopaque, @ptrCast(heapChars)), @as(?*const anyopaque, @ptrCast(chars)), @intCast(length));
+    if (length > 0) {
+        _ = memcpy(@ptrCast(heapChars), @ptrCast(chars), @intCast(length));
+    }
 
     // Add null terminator
-    (blk: {
-        const tmp = length;
-        if (tmp >= 0) break :blk heapChars + @as(usize, @intCast(tmp)) else break :blk heapChars - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    }).* = '\x00';
+    heapChars[@intCast(length)] = 0;
 
     // Create a new string object
     return allocateString(AllocStringParams{
@@ -283,50 +295,100 @@ pub fn newUpvalue(slot: [*c]Value) [*c]ObjUpvalue {
 }
 
 pub fn split(list: [*c]ObjLinkedList, left: [*c]ObjLinkedList, right: [*c]ObjLinkedList) void {
-    const leftArg = left;
-    _ = &leftArg;
-    const rightArg = right;
-    _ = &rightArg;
-    var count: i32 = list.*.count;
-    _ = &count;
-    var middle: i32 = @divTrunc(count, @as(i32, 2));
-    _ = &middle;
-    leftArg.*.head = list.*.head;
-    leftArg.*.count = middle;
-    rightArg.*.count = count - middle;
-    var current: [*c]Node = list.*.head;
-    _ = &current;
-    {
-        var i: i32 = 0;
-        _ = &i;
-        while (i < (middle - 1)) : (i += 1) {
-            current = current.*.next;
-        }
+    // Safety checks
+    if (list == null or left == null or right == null) return;
+    if (list.*.head == null or list.*.count <= 1) {
+        // Handle empty or single-element lists
+        left.*.head = list.*.head;
+        left.*.tail = list.*.tail;
+        left.*.count = list.*.count;
+        right.*.head = null;
+        right.*.tail = null;
+        right.*.count = 0;
+        return;
     }
-    leftArg.*.tail = current;
-    rightArg.*.head = current.*.next;
-    current.*.next = null;
-    rightArg.*.head.*.prev = null;
+
+    const count = list.*.count;
+    const middle = @divTrunc(count, 2);
+
+    // Set up left half
+    left.*.head = list.*.head;
+    left.*.count = middle;
+
+    // Set up right half
+    right.*.count = count - middle;
+
+    // Find the middle node
+    var current = list.*.head;
+    for (0..@intCast(middle - 1)) |_| {
+        if (current.*.next == null) break;
+        current = current.*.next;
+    }
+
+    // Split the list at the middle
+    left.*.tail = current;
+    right.*.head = current.*.next;
+
+    // Break the connection between halves
+    if (current.*.next != null) {
+        current.*.next.*.prev = null;
+        current.*.next = null;
+    }
+
+    // Set right tail (use original list's tail since right half goes to the end)
+    right.*.tail = list.*.tail;
 }
 pub fn merge(left: [*c]Node, right: [*c]Node) [*c]Node {
-    const leftArg = left;
-    _ = &leftArg;
-    const rightArg = right;
-    _ = &rightArg;
-    if (leftArg == null) return rightArg;
-    if (rightArg == null) return leftArg;
-    if (value_h.valueCompare(leftArg.*.data, rightArg.*.data) < 0) {
-        leftArg.*.next = merge(leftArg.*.next, rightArg);
-        leftArg.*.next.*.prev = leftArg;
-        leftArg.*.prev = null;
-        return leftArg;
+    // Base cases: if one list is empty, return the other
+    if (left == null) return right;
+    if (right == null) return left;
+
+    // Use separate variables to avoid modifying const parameters
+    var leftPtr = left;
+    var rightPtr = right;
+
+    // Determine the head of the merged list
+    var head: [*c]Node = undefined;
+    var current: [*c]Node = undefined;
+    
+    if (value_h.valueCompare(leftPtr.*.data, rightPtr.*.data) < 0) {
+        head = leftPtr;
+        current = leftPtr;
+        leftPtr = leftPtr.*.next;
     } else {
-        rightArg.*.next = merge(leftArg, rightArg.*.next);
-        rightArg.*.next.*.prev = rightArg;
-        rightArg.*.prev = null;
-        return rightArg;
+        head = rightPtr;
+        current = rightPtr;
+        rightPtr = rightPtr.*.next;
     }
-    return null;
+    
+    // Set head's prev to null
+    head.*.prev = null;
+    
+    // Iteratively merge the remaining nodes
+    while (leftPtr != null and rightPtr != null) {
+        if (value_h.valueCompare(leftPtr.*.data, rightPtr.*.data) < 0) {
+            current.*.next = leftPtr;
+            leftPtr.*.prev = current;
+            current = leftPtr;
+            leftPtr = leftPtr.*.next;
+        } else {
+            current.*.next = rightPtr;
+            rightPtr.*.prev = current;
+            current = rightPtr;
+            rightPtr = rightPtr.*.next;
+        }
+    }
+    
+    // Append remaining nodes
+    if (leftPtr != null) {
+        current.*.next = leftPtr;
+        leftPtr.*.prev = current;
+    } else if (rightPtr != null) {
+        current.*.next = rightPtr;
+        rightPtr.*.prev = current;
+    }
+    
+    return head;
 }
 
 pub fn printFunction(function: [*c]ObjFunction) void {
@@ -355,6 +417,7 @@ pub fn cloneLinkedList(list: [*c]ObjLinkedList) [*c]ObjLinkedList {
     }
     return newList;
 }
+
 pub fn clearLinkedList(list: [*c]ObjLinkedList) void {
     var current: [*c]Node = list.*.head;
     _ = &current;
@@ -368,6 +431,7 @@ pub fn clearLinkedList(list: [*c]ObjLinkedList) void {
     list.*.tail = null;
     list.*.count = 0;
 }
+
 pub fn pushFront(list: [*c]ObjLinkedList, value: Value) void {
     var node: [*c]Node = @as([*c]Node, @ptrCast(@alignCast(reallocate(null, 0, @sizeOf(Node) *% 1))));
     _ = &node;

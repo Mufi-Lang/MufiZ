@@ -2,6 +2,7 @@ const object_h = @import("object.zig");
 const memory = @import("memory.zig");
 const value_h = @import("value.zig");
 const memcmp = @import("mem_utils.zig").memcmp;
+const std = @import("std");
 
 const ObjString = object_h.ObjString;
 const Obj = object_h.Obj;
@@ -15,25 +16,27 @@ const VAL_BOOL: i32 = 0;
 const TABLE_MAX_LOAD: f64 = 0.75;
 
 pub const Table = extern struct {
-    count: i32,
-    capacity: i32,
+    count: usize,
+    capacity: usize,
     entries: [*c]Entry,
 };
 
 pub const Entry = extern struct {
-    key: [*c]ObjString,
+    key: ?*ObjString,
     value: Value,
     deleted: bool,
 };
 
-pub fn initTable(table: *Table) callconv(.C) void {
+pub fn initTable(table: *Table) void {
     table.count = 0;
     table.capacity = 0;
     table.entries = null;
 }
 
-pub fn freeTable(table: *Table) callconv(.C) void {
-    _ = reallocate(@ptrCast(@alignCast(table.entries)), @intCast(table.capacity), 0);
+pub fn freeTable(table: *Table) void {
+    if (table.entries != null) {
+        _ = reallocate(@ptrCast(@alignCast(table.entries)), @intCast(table.capacity * @sizeOf(Entry)), 0);
+    }
     initTable(table);
 }
 
@@ -41,28 +44,27 @@ pub fn entries_(table: *Table) [*c]Entry {
     return table.entries;
 }
 
-pub fn findEntry(entries: [*]Entry, capacity: i32, key: [*c]ObjString) callconv(.C) ?*Entry {
+pub fn findEntry(entries: [*c]Entry, capacity: i32, key: ?*ObjString) ?*Entry {
     // Check for empty table or null key
     if (capacity <= 0 or key == null) {
         return null;
     }
-    
+
     const mask = capacity - 1;
-    var index: usize = @as(usize, @intCast(key.*.hash)) & @as(usize, @intCast(mask));
+    var index: usize = @as(usize, @intCast(key.?.hash)) & @as(usize, @intCast(mask));
     var firstTombstone: ?*Entry = null;
-    
+
     // Track initial index to detect full table traversal
     const startIndex = index;
-    
+
     while (true) {
         if (index >= @as(usize, @intCast(capacity))) {
             // Safety check to avoid out-of-bounds access
             return if (firstTombstone) |tombstone| tombstone else null;
         }
-        
-        const entry: *Entry = &entries[index];
-        // A reference in Zig cannot be null, so we don't need to check entry
-        
+
+        const entry: *Entry = @ptrCast(&entries[index]);
+
         if (entry.key == null) {
             // Empty entry (either never used or a tombstone)
             if (entry.deleted) {
@@ -78,10 +80,10 @@ pub fn findEntry(entries: [*]Entry, capacity: i32, key: [*c]ObjString) callconv(
             // Found the key
             return entry;
         }
-        
+
         // Linear probe
         index = (index + 1) & @as(usize, @intCast(mask));
-        
+
         // Check if we've searched the whole table
         if (index == startIndex) {
             // If we've searched the whole table and found no empty spots,
@@ -91,15 +93,15 @@ pub fn findEntry(entries: [*]Entry, capacity: i32, key: [*c]ObjString) callconv(
     }
 }
 
-pub fn tableGet(table: *Table, key: ?*ObjString, value: *Value) callconv(.C) bool {
+pub fn tableGet(table: *Table, key: ?*ObjString, value: *Value) bool {
     // Early validation
     if (table.count == 0 or key == null) return false;
     if (table.entries == null or table.capacity <= 0) return false;
-    
-    const entry = findEntry(table.entries, table.capacity, key);
+
+    const entry = findEntry(table.entries, @intCast(table.capacity), key);
     // Check for null entry (could happen if findEntry fails)
     if (entry == null) return false;
-    
+
     // Check if the entry is empty or deleted
     if (entry.?.key == null or entry.?.deleted) return false;
 
@@ -108,47 +110,55 @@ pub fn tableGet(table: *Table, key: ?*ObjString, value: *Value) callconv(.C) boo
     return true;
 }
 
-pub fn adjustCapacity(table: *Table, capacity: i32) callconv(.C) void {
-    var entries: [*c]Entry = @ptrCast(@alignCast(reallocate(null, 0, @as(usize, @intCast(@sizeOf(Entry) * capacity)))));
-    const c: usize = @intCast(capacity);
+pub fn adjustCapacity(table: *Table, capacity: i32) void {
+    const new_size = @as(usize, @intCast(capacity)) * @sizeOf(Entry);
+    const entries_ptr = reallocate(null, 0, new_size);
+    const entries: [*c]Entry = @ptrCast(@alignCast(entries_ptr));
 
-    for (0..c) |i| {
+    for (0..@intCast(capacity)) |i| {
         entries[i].key = null;
         entries[i].value = .{ .type = .VAL_NIL, .as = .{ .num_int = 0 } };
+        entries[i].deleted = false;
     }
-    table.*.count = 0;
+    table.count = 0;
 
-    for (0..@as(usize, @intCast(table.*.capacity))) |i| {
-        const entry: [*c]Entry = &table.*.entries[i];
-        if (entry.*.key == null) continue;
-        const dest: [*c]Entry = findEntry(entries, capacity, entry.*.key);
-        dest.*.key = entry.*.key;
-        dest.*.value = entry.*.value;
-        table.*.count += 1;
+    if (table.entries != null) {
+        for (0..table.capacity) |i| {
+            const entry = &table.entries[i];
+            if (entry.key == null) continue;
+            const dest = findEntry(entries, capacity, entry.key);
+            if (dest) |d| {
+                d.key = entry.key;
+                d.value = entry.value;
+                d.deleted = false;
+                table.count += 1;
+            }
+        }
+        _ = reallocate(@ptrCast(@alignCast(table.entries)), @intCast(table.capacity * @sizeOf(Entry)), 0);
     }
-    _ = reallocate(table.*.entries, @intCast(table.*.capacity), 0);
-    table.*.entries = entries;
-    table.*.capacity = capacity;
+    
+    table.entries = entries;
+    table.capacity = @intCast(capacity);
 }
 
 pub fn tableSet(table: *Table, key: ?*ObjString, value: Value) bool {
     if (key == null) return false;
-    
-    if (@as(f64, @floatFromInt(table.*.count + 1)) > (@as(f64, @floatFromInt(table.*.capacity)) * TABLE_MAX_LOAD)) {
-        const capacity: i32 = @max(8, table.*.capacity * 2);
+
+    if (@as(f64, @floatFromInt(table.count + 1)) > (@as(f64, @floatFromInt(table.capacity)) * TABLE_MAX_LOAD)) {
+        const capacity: i32 = @max(8, @as(i32, @intCast(table.capacity * 2)));
         adjustCapacity(table, capacity);
     }
-    
-    if (table.*.entries == null) return false;
-    
-    const entry = findEntry(table.*.entries, table.*.capacity, key);
+
+    if (table.entries == null) return false;
+
+    const entry = findEntry(table.entries, @intCast(table.capacity), key);
     if (entry) |validEntry| {
         const isNewKey: bool = validEntry.key == null or validEntry.deleted;
         if (isNewKey and (validEntry.value.type == .VAL_NIL)) {
             if (validEntry.deleted) {
                 validEntry.deleted = false; // reusing deleted entry
             } else {
-                table.*.count += 1;
+                table.count += 1;
             }
         }
         validEntry.key = key;
@@ -160,10 +170,10 @@ pub fn tableSet(table: *Table, key: ?*ObjString, value: Value) bool {
 }
 
 pub fn tableDelete(table: *Table, key: ?*ObjString) bool {
-    if (key == null or table.*.count == 0) return false;
-    if (table.*.entries == null) return false;
-    
-    const entry = findEntry(table.*.entries, table.*.capacity, key);
+    if (key == null or table.count == 0) return false;
+    if (table.entries == null) return false;
+
+    const entry = findEntry(table.entries, @intCast(table.capacity), key);
     if (entry) |validEntry| {
         if (validEntry.key == null or validEntry.deleted) return false;
         validEntry.deleted = true;
@@ -173,28 +183,30 @@ pub fn tableDelete(table: *Table, key: ?*ObjString) bool {
 }
 
 pub fn tableAddAll(from: *Table, to: *Table) void {
+    if (from.entries == null) return;
+    
     var i: usize = 0;
-    while (i < from.*.capacity) : (i += 1) {
-        const entry: [*c]Entry = &from.*.entries[i];
-        if (entry.*.key != null) {
-            _ = tableSet(to, entry.*.key, entry.*.value);
+    while (i < from.capacity) : (i += 1) {
+        const entry = &from.entries[i];
+        if (entry.key != null and !entry.deleted) {
+            _ = tableSet(to, entry.key, entry.value);
         }
     }
 }
 
-pub fn tableFindString(table: *Table, chars: [*c]const u8, length: i32, hash: u64) callconv(.C) ?*ObjString {
+pub fn tableFindString(table: *Table, chars: [*]const u8, length: i32, hash: u64) ?*ObjString {
     // Early return if count is 0
-    if (table.count <= 0) return null;
+    if (table.count <= 0 or table.entries == null) return null;
 
     // Calculate the initial index
     const cap = table.capacity;
     var index: usize = @as(usize, @intCast(hash & @as(u64, @intCast(cap -| 1))));
 
     // Get entries array
-    const entries_ptr = table.entries;
+    const entries = table.entries;
 
     while (true) {
-        const entry = &entries_ptr[index];
+        const entry = &entries[index];
         const key = entry.key;
 
         // Check for empty slot
@@ -202,9 +214,9 @@ pub fn tableFindString(table: *Table, chars: [*c]const u8, length: i32, hash: u6
             if (entry.value.type == .VAL_NIL) return null;
         } else if (!entry.deleted) {
             // Check string matches
-            if (key.*.length == length and key.*.hash == hash) {
+            if (key.?.length == length and key.?.hash == hash) {
                 // Compare contents
-                if (memcmp(@ptrCast(key.*.chars), @ptrCast(chars), @intCast(length)) == 0) {
+                if (memcmp(@ptrCast(key.?.chars), @ptrCast(chars), @intCast(length)) == 0) {
                     return key;
                 }
             }
@@ -215,11 +227,13 @@ pub fn tableFindString(table: *Table, chars: [*c]const u8, length: i32, hash: u6
     }
 }
 
-pub fn tableRemoveWhite(table: *Table) callconv(.C) void {
-    for (0..@as(usize, @intCast(table.*.capacity))) |i| {
-        const entry: [*c]Entry = &table.*.entries[i];
-        if (entry.*.key != null and !entry.*.key.*.obj.isMarked) {
-            _ = tableDelete(table, entry.*.key);
+pub fn tableRemoveWhite(table: *Table) void {
+    if (table.entries == null) return;
+    
+    for (0..table.capacity) |i| {
+        const entry = &table.entries[i];
+        if (entry.key != null and !entry.key.?.obj.isMarked) {
+            _ = tableDelete(table, entry.key);
         }
     }
 }
@@ -229,9 +243,13 @@ inline fn markValue(value: Value) void {
 }
 
 pub fn markTable(table: *Table) void {
-    for (0..@as(usize, @intCast(table.*.capacity))) |i| {
-        const entry: [*c]Entry = &table.entries[i];
-        markObject(@ptrCast(@alignCast(entry.*.key)));
-        markValue(entry.*.value);
+    if (table.entries == null) return;
+    
+    for (0..table.capacity) |i| {
+        const entry = &table.entries[i];
+        if (entry.key) |key| {
+            markObject(@ptrCast(@alignCast(key)));
+        }
+        markValue(entry.value);
     }
 }
