@@ -385,15 +385,19 @@ pub fn valuesEqual(a: Value, b: Value) bool {
                     },
                     .OBJ_LINKED_LIST => {
                         {
-                            const list_a: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(a.as.obj)));
-                            const list_b: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(b.as.obj)));
-                            if (list_a.*.count != list_b.*.count) return false;
-                            var node_a: [*c]Node = list_a.*.head;
-                            var node_b: [*c]Node = list_b.*.head;
-                            while (node_a != @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(i32, 0))))))) {
-                                if (!valuesEqual(node_a.*.data, node_b.*.data)) return false;
-                                node_a = node_a.*.next;
-                                node_b = node_b.*.next;
+                            const list_a: *ObjLinkedList = @as(*ObjLinkedList, @ptrCast(@alignCast(a.as.obj)));
+                            const list_b: *ObjLinkedList = @as(*ObjLinkedList, @ptrCast(@alignCast(b.as.obj)));
+                            if (list_a.count != list_b.count) return false;
+                            var node_a: ?*Node = list_a.head;
+                            var node_b: ?*Node = list_b.head;
+                            while (node_a) |nodeA| {
+                                if (node_b) |nodeB| {
+                                    if (!valuesEqual(nodeA.data, nodeB.data)) return false;
+                                    node_a = nodeA.next;
+                                    node_b = nodeB.next;
+                                } else {
+                                    return false;
+                                }
                             }
                             return true;
                         }

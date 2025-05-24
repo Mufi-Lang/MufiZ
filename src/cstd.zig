@@ -138,7 +138,7 @@ pub fn linkedlist_nf(argCount: i32, args: [*c]Value) Value {
         return Value.init_nil();
     }
 
-    const ll: [*c]ObjLinkedList = obj_h.newLinkedList();
+    const ll: *ObjLinkedList = obj_h.newLinkedList();
     return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(ll))));
 }
 pub fn hashtable_nf(argCount: i32, args: [*c]Value) Value {
@@ -227,7 +227,7 @@ pub fn slice_nf(argCount: i32, args: [*c]Value) Value {
             return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(s))));
         },
         .OBJ_LINKED_LIST => {
-            const l = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
+            const l = @as(*ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
             const s = obj_h.sliceLinkedList(l, start, end);
             return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(s))));
         },
@@ -276,7 +276,7 @@ pub fn splice_nf(argCount: i32, args: [*c]Value) Value {
             return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(s))));
         },
         .OBJ_LINKED_LIST => {
-            const l = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
+            const l = @as(*ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
             const s = obj_h.spliceLinkedList(l, start, end);
             return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(s))));
         },
@@ -309,7 +309,7 @@ pub fn push_nf(argCount: i32, args: [*c]Value) Value {
             return Value.init_nil();
         },
         .OBJ_LINKED_LIST => {
-            const l: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
+            const l: *ObjLinkedList = @as(*ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
 
             for (1..@intCast(argCount)) |i| {
                 obj_h.pushBack(l, args[i]);
@@ -353,7 +353,7 @@ pub fn pop_nf(argCount: i32, args: [*c]Value) Value {
             return Value.init_double(vector.pop());
         },
         .OBJ_LINKED_LIST => {
-            const list = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
+            const list = @as(*ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
             return obj_h.popBack(list);
         },
         else => {
@@ -405,15 +405,15 @@ pub fn nth_nf(argCount: i32, args: [*c]Value) Value {
             return Value.init_double(value);
         },
         .OBJ_LINKED_LIST => {
-            const l = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
+            const l = @as(*ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
 
-            if (index >= 0 and index < l.*.count) {
-                var node = l.*.head;
+            if (index >= 0 and index < l.count) {
+                var node = l.head;
                 var i: i32 = 0;
                 while (i < index) : (i += 1) {
-                    node = node.*.next;
+                    node = node.?.next;
                 }
-                return node.*.data;
+                return node.?.data;
             }
 
             runtimeError("Index out of bounds.", .{});
@@ -458,7 +458,7 @@ pub fn sort_nf(argCount: i32, args: [*c]Value) Value {
             return Value.init_nil();
         },
         .OBJ_LINKED_LIST => {
-            const list = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
+            const list = @as(*ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
             obj_h.mergeSort(list);
             return Value.init_nil();
         },
@@ -514,15 +514,15 @@ pub fn contains_nf(argCount: i32, args: [*c]Value) Value {
             return Value.init_bool(!valuesEqual(value, Value.init_nil()));
         },
         .OBJ_LINKED_LIST => {
-            const list = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
-            var current = list.*.head;
+            const list = @as(*ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
+            var current = list.head;
 
             // Traverse the list looking for a matching value
-            while (current != @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
-                if (valuesEqual(current.*.data, args[1])) {
+            while (current) |node| {
+                if (valuesEqual(node.data, args[1])) {
                     return Value.init_bool(true);
                 }
-                current = current.*.next;
+                current = node.next;
             }
             return Value.init_bool(false);
         },
@@ -609,8 +609,8 @@ pub fn len_nf(argCount: i32, args: [*c]Value) Value {
             return Value.init_int(@intCast(vector.count));
         },
         .OBJ_LINKED_LIST => {
-            const list = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
-            return Value.init_int(list.*.count);
+            const list = @as(*ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
+            return Value.init_int(list.count);
         },
         else => {
             runtimeError("Invalid argument type.", .{});
@@ -655,7 +655,7 @@ pub fn search_nf(argCount: i32, args: [*c]Value) Value {
             return if (result == -1) Value.init_nil() else Value.init_int(result);
         },
         .OBJ_LINKED_LIST => {
-            const list = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
+            const list = @as(*ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
             const result = obj_h.searchLinkedList(list, args[1]);
             return if (result == -1) Value.init_nil() else Value.init_int(result);
         },
@@ -700,8 +700,8 @@ pub fn is_empty_nf(argCount: i32, args: [*c]Value) Value {
             return Value.init_bool(vector.*.count == 0);
         },
         .OBJ_LINKED_LIST => {
-            const list = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
-            return Value.init_bool(list.*.count == 0);
+            const list = @as(*ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
+            return Value.init_bool(list.count == 0);
         },
         else => {
             runtimeError("Unsupported type for is_empty().", .{});
@@ -750,8 +750,8 @@ pub fn equal_list_nf(argCount: i32, args: [*c]Value) Value {
                 return Value.init_nil();
             }
 
-            const listA = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
-            const listB = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[1].as.obj)));
+            const listA = @as(*ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
+            const listB = @as(*ObjLinkedList, @ptrCast(@alignCast(args[1].as.obj)));
 
             return Value.init_bool(obj_h.equalLinkedList(listA, listB));
         },
@@ -789,7 +789,7 @@ pub fn reverse_nf(argCount: i32, args: [*c]Value) Value {
             return Value.init_nil();
         },
         .OBJ_LINKED_LIST => {
-            const list = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
+            const list = @as(*ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
             obj_h.reverseLinkedList(list);
             return Value.init_nil();
         },
@@ -823,8 +823,8 @@ pub fn merge_nf(argCount: i32, args: [*c]Value) Value {
     // Process based on object type
     switch (args[0].as.obj.*.type) {
         .OBJ_LINKED_LIST => {
-            const listA = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
-            const listB = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[1].as.obj)));
+            const listA = @as(*ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
+            const listB = @as(*ObjLinkedList, @ptrCast(@alignCast(args[1].as.obj)));
             const result = obj_h.mergeLinkedList(listA, listB);
             return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(result))));
         },
@@ -873,7 +873,7 @@ pub fn clone_nf(argCount: i32, args: [*c]Value) Value {
             return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(clone))));
         },
         .OBJ_LINKED_LIST => {
-            const list = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
+            const list = @as(*ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
             const clone = obj_h.cloneLinkedList(list);
             return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(clone))));
         },
@@ -920,7 +920,7 @@ pub fn clear_nf(argCount: i32, args: [*c]Value) Value {
             vector.clear();
         },
         .OBJ_LINKED_LIST => {
-            const list = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
+            const list = @as(*ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
             obj_h.clearLinkedList(list);
         },
         .OBJ_HASH_TABLE => {
@@ -1370,7 +1370,7 @@ pub fn push_front_nf(argCount: i32, args: [*c]Value) Value {
     }
 
     // Process the linked list operation
-    const list = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
+    const list = @as(*ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
 
     for (1..@intCast(argCount)) |i| {
         obj_h.pushFront(list, args[i]);
@@ -1392,7 +1392,7 @@ pub fn pop_front_nf(argCount: i32, args: [*c]Value) Value {
     }
 
     // Process the linked list operation
-    const list = @as([*c]ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
+    const list = @as(*ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
     return obj_h.popFront(list);
 }
 

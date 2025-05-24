@@ -31,16 +31,16 @@ pub const ObjString = extern struct {
     hash: u64,
 };
 
-pub const Node = extern struct {
+pub const Node = struct {
     data: Value,
-    prev: [*c]Node,
-    next: [*c]Node,
+    prev: ?*Node,
+    next: ?*Node,
 };
 
-pub const ObjLinkedList = extern struct {
+pub const ObjLinkedList = struct {
     obj: Obj,
-    head: [*c]Node,
-    tail: [*c]Node,
+    head: ?*Node,
+    tail: ?*Node,
     count: i32,
 };
 
@@ -294,51 +294,50 @@ pub fn newUpvalue(slot: [*c]Value) [*c]ObjUpvalue {
     return upvalue;
 }
 
-pub fn split(list: [*c]ObjLinkedList, left: [*c]ObjLinkedList, right: [*c]ObjLinkedList) void {
+pub fn split(list: *ObjLinkedList, left: *ObjLinkedList, right: *ObjLinkedList) void {
     // Safety checks
-    if (list == null or left == null or right == null) return;
-    if (list.*.head == null or list.*.count <= 1) {
+    if (list.head == null or list.count <= 1) {
         // Handle empty or single-element lists
-        left.*.head = list.*.head;
-        left.*.tail = list.*.tail;
-        left.*.count = list.*.count;
-        right.*.head = null;
-        right.*.tail = null;
-        right.*.count = 0;
+        left.head = list.head;
+        left.tail = list.tail;
+        left.count = list.count;
+        right.head = null;
+        right.tail = null;
+        right.count = 0;
         return;
     }
 
-    const count = list.*.count;
+    const count = list.count;
     const middle = @divTrunc(count, 2);
 
     // Set up left half
-    left.*.head = list.*.head;
-    left.*.count = middle;
+    left.head = list.head;
+    left.count = middle;
 
     // Set up right half
-    right.*.count = count - middle;
+    right.count = count - middle;
 
     // Find the middle node
-    var current = list.*.head;
+    var current = list.head;
     for (0..@intCast(middle - 1)) |_| {
-        if (current.*.next == null) break;
-        current = current.*.next;
+        if (current.?.next == null) break;
+        current = current.?.next;
     }
 
     // Split the list at the middle
-    left.*.tail = current;
-    right.*.head = current.*.next;
+    left.tail = current;
+    right.head = current.?.next;
 
     // Break the connection between halves
-    if (current.*.next != null) {
-        current.*.next.*.prev = null;
-        current.*.next = null;
+    if (current.?.next) |next_node| {
+        next_node.prev = null;
+        current.?.next = null;
     }
 
     // Set right tail (use original list's tail since right half goes to the end)
-    right.*.tail = list.*.tail;
+    right.tail = list.tail;
 }
-pub fn merge(left: [*c]Node, right: [*c]Node) [*c]Node {
+pub fn merge(left: ?*Node, right: ?*Node) ?*Node {
     // Base cases: if one list is empty, return the other
     if (left == null) return right;
     if (right == null) return left;
@@ -348,44 +347,44 @@ pub fn merge(left: [*c]Node, right: [*c]Node) [*c]Node {
     var rightPtr = right;
 
     // Determine the head of the merged list
-    var head: [*c]Node = undefined;
-    var current: [*c]Node = undefined;
+    var head: ?*Node = undefined;
+    var current: ?*Node = undefined;
 
-    if (value_h.valueCompare(leftPtr.*.data, rightPtr.*.data) < 0) {
+    if (value_h.valueCompare(leftPtr.?.data, rightPtr.?.data) < 0) {
         head = leftPtr;
         current = leftPtr;
-        leftPtr = leftPtr.*.next;
+        leftPtr = leftPtr.?.next;
     } else {
         head = rightPtr;
         current = rightPtr;
-        rightPtr = rightPtr.*.next;
+        rightPtr = rightPtr.?.next;
     }
 
     // Set head's prev to null
-    head.*.prev = null;
+    head.?.prev = null;
 
     // Iteratively merge the remaining nodes
     while (leftPtr != null and rightPtr != null) {
-        if (value_h.valueCompare(leftPtr.*.data, rightPtr.*.data) < 0) {
-            current.*.next = leftPtr;
-            leftPtr.*.prev = current;
+        if (value_h.valueCompare(leftPtr.?.data, rightPtr.?.data) < 0) {
+            current.?.next = leftPtr;
+            leftPtr.?.prev = current;
             current = leftPtr;
-            leftPtr = leftPtr.*.next;
+            leftPtr = leftPtr.?.next;
         } else {
-            current.*.next = rightPtr;
-            rightPtr.*.prev = current;
+            current.?.next = rightPtr;
+            rightPtr.?.prev = current;
             current = rightPtr;
-            rightPtr = rightPtr.*.next;
+            rightPtr = rightPtr.?.next;
         }
     }
 
     // Append remaining nodes
-    if (leftPtr != null) {
-        current.*.next = leftPtr;
-        leftPtr.*.prev = current;
-    } else if (rightPtr != null) {
-        current.*.next = rightPtr;
-        rightPtr.*.prev = current;
+    if (leftPtr) |left_node| {
+        current.?.next = left_node;
+        left_node.prev = current;
+    } else if (rightPtr) |right_node| {
+        current.?.next = right_node;
+        right_node.prev = current;
     }
 
     return head;
@@ -399,122 +398,112 @@ pub fn printFunction(function: [*c]ObjFunction) void {
     print("<fn {s}>", .{function.*.name.*.chars});
 }
 
-pub fn newLinkedList() [*c]ObjLinkedList {
-    const list: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjLinkedList), .OBJ_LINKED_LIST))));
-    list.*.head = null;
-    list.*.tail = null;
-    list.*.count = 0;
+pub fn newLinkedList() *ObjLinkedList {
+    const list: *ObjLinkedList = @as(*ObjLinkedList, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjLinkedList), .OBJ_LINKED_LIST))));
+    list.head = null;
+    list.tail = null;
+    list.count = 0;
     return list;
 }
-pub fn cloneLinkedList(list: [*c]ObjLinkedList) [*c]ObjLinkedList {
-    const newList: [*c]ObjLinkedList = newLinkedList();
-    var current: [*c]Node = list.*.head;
-    while (current != null) {
-        pushBack(newList, current.*.data);
-        current = current.*.next;
+pub fn cloneLinkedList(list: *ObjLinkedList) *ObjLinkedList {
+    const newList: *ObjLinkedList = newLinkedList();
+    var current: ?*Node = list.head;
+    while (current) |node| {
+        pushBack(newList, node.data);
+        current = node.next;
     }
     return newList;
 }
 
-pub fn clearLinkedList(list: [*c]ObjLinkedList) void {
-    var current: [*c]Node = list.*.head;
-    while (current != null) {
-        const next: [*c]Node = current.*.next;
-        _ = reallocate(@as(?*anyopaque, @ptrCast(current)), @sizeOf(Node), 0);
+pub fn clearLinkedList(list: *ObjLinkedList) void {
+    var current: ?*Node = list.head;
+    while (current) |node| {
+        const next: ?*Node = node.next;
+        _ = reallocate(@as(?*anyopaque, @ptrCast(node)), @sizeOf(Node), 0);
         current = next;
     }
-    list.*.head = null;
-    list.*.tail = null;
-    list.*.count = 0;
+    list.head = null;
+    list.tail = null;
+    list.count = 0;
 }
 
-pub fn pushFront(list: [*c]ObjLinkedList, value: Value) void {
-    const node: [*c]Node = @as([*c]Node, @ptrCast(@alignCast(reallocate(null, 0, @sizeOf(Node) *% 1))));
-    node.*.data = value;
-    node.*.prev = null;
-    node.*.next = list.*.head;
-    if (list.*.head != null) {
-        list.*.head.*.prev = node;
+pub fn pushFront(list: *ObjLinkedList, value: Value) void {
+    const node: *Node = @as(*Node, @ptrCast(@alignCast(reallocate(null, 0, @sizeOf(Node) *% 1))));
+    node.data = value;
+    node.prev = null;
+    node.next = list.head;
+    if (list.head) |head| {
+        head.prev = node;
     }
-    list.*.head = node;
-    if (list.*.tail == null) {
-        list.*.tail = node;
+    list.head = node;
+    if (list.tail == null) {
+        list.tail = node;
     }
-    list.*.count += 1;
+    list.count += 1;
 }
 
-pub fn pushBack(list: [*c]ObjLinkedList, value: Value) void {
-    const node: [*c]Node = @as([*c]Node, @ptrCast(@alignCast(reallocate(null, 0, @sizeOf(Node) *% 1))));
-    node.*.data = value;
-    node.*.prev = list.*.tail;
-    node.*.next = null;
-    if (list.*.tail != null) {
-        list.*.tail.*.next = node;
+pub fn pushBack(list: *ObjLinkedList, value: Value) void {
+    const node: *Node = @as(*Node, @ptrCast(@alignCast(reallocate(null, 0, @sizeOf(Node) *% 1))));
+    node.data = value;
+    node.prev = list.tail;
+    node.next = null;
+    if (list.tail) |tail| {
+        tail.next = node;
     }
-    list.*.tail = node;
-    if (list.*.head == null) {
-        list.*.head = node;
+    list.tail = node;
+    if (list.head == null) {
+        list.head = node;
     }
-    list.*.count += 1;
+    list.count += 1;
 }
 
-pub fn popFront(list: [*c]ObjLinkedList) Value {
-    if (list.*.head == null) {
-        return Value.init_nil();
+pub fn popFront(list: *ObjLinkedList) Value {
+    const node = list.head orelse return Value.init_nil();
+    const data: Value = node.data;
+    list.head = node.next;
+    if (list.head) |head| {
+        head.prev = null;
     }
-    const node: [*c]Node = list.*.head;
-    const data: Value = node.*.data;
-    list.*.head = node.*.next;
-    if (list.*.head != null) {
-        list.*.head.*.prev = null;
+    if (list.tail == node) {
+        list.tail = null;
     }
-    if (list.*.tail == node) {
-        list.*.tail = null;
-    }
-    list.*.count -= 1;
+    list.count -= 1;
     _ = reallocate(@as(?*anyopaque, @ptrCast(node)), @sizeOf(Node), 0);
     return data;
 }
 
-pub fn popBack(list: [*c]ObjLinkedList) Value {
-    if (list.*.tail == null) {
-        return Value.init_nil();
-    }
-    const node: [*c]Node = list.*.tail;
+pub fn popBack(list: *ObjLinkedList) Value {
+    const node = list.tail orelse return Value.init_nil();
+    const data: Value = node.data;
 
-    const data: Value = node.*.data;
-
-    list.*.tail = node.*.prev;
-    if (list.*.tail != null) {
-        list.*.tail.*.next = null;
+    list.tail = node.prev;
+    if (list.tail) |tail| {
+        tail.next = null;
     }
-    if (list.*.head == node) {
-        list.*.head = null;
+    if (list.head == node) {
+        list.head = null;
     }
-    list.*.count -= 1;
+    list.count -= 1;
     _ = reallocate(@as(?*anyopaque, @ptrCast(node)), @sizeOf(Node), 0);
     return data;
 }
 
-pub fn equalLinkedList(a: [*c]ObjLinkedList, b: [*c]ObjLinkedList) bool {
-    // Safety checks
-    if (a == null or b == null) return a == b;
-
+pub fn equalLinkedList(a: *ObjLinkedList, b: *ObjLinkedList) bool {
     // Quick check: if counts differ, lists can't be equal
-    if (a.*.count != b.*.count) {
+    if (a.count != b.count) {
         return false;
     }
 
     // Compare each element
-    var currentA = a.*.head;
-    var currentB = b.*.head;
+    var currentA = a.head;
+    var currentB = b.head;
 
     while (currentA != null and currentB != null) {
-        if (!valuesEqual(currentA.*.data, currentB.*.data)) {
+        if (!valuesEqual(currentA.?.data, currentB.?.data)) {
             return false;
         }
-        currentA = currentA.*.next;
-        currentB = currentB.*.next;
+        currentA = currentA.?.next;
+        currentB = currentB.?.next;
     }
 
     // If we've traversed all elements without finding differences, lists are equal
@@ -522,20 +511,18 @@ pub fn equalLinkedList(a: [*c]ObjLinkedList, b: [*c]ObjLinkedList) bool {
     return true;
 }
 
-pub fn freeObjectLinkedList(list: [*c]ObjLinkedList) void {
-    var current: [*c]Node = list.*.head;
-
-    while (current != null) {
-        const next: [*c]Node = current.*.next;
-        _ = reallocate(@as(?*anyopaque, @ptrCast(current)), @sizeOf(Node), 0);
+pub fn freeObjectLinkedList(list: *ObjLinkedList) void {
+    var current: ?*Node = list.head;
+    while (current) |node| {
+        const next: ?*Node = node.next;
+        _ = reallocate(@as(?*anyopaque, @ptrCast(node)), @sizeOf(Node), 0);
         current = next;
     }
-    _ = reallocate(@as(?*anyopaque, @ptrCast(list)), @sizeOf(ObjLinkedList), 0);
 }
 
-pub fn mergeSort(list: [*c]ObjLinkedList) void {
+pub fn mergeSort(list: *ObjLinkedList) void {
     // Safety check and base case
-    if (list == null or list.*.count < 2) {
+    if (list.count < 2) {
         return;
     }
 
@@ -551,35 +538,35 @@ pub fn mergeSort(list: [*c]ObjLinkedList) void {
     mergeSort(&right);
 
     // Merge the sorted halves back together
-    list.*.head = merge(left.head, right.head);
+    list.head = merge(left.head, right.head);
 
     // Find and update the tail pointer
-    if (list.*.head != null) {
-        var current = list.*.head;
-        while (current.*.next != null) {
-            current = current.*.next;
+    if (list.head) |head| {
+        var current = head;
+        while (current.next) |next| {
+            current = next;
         }
-        list.*.tail = current;
+        list.tail = current;
     } else {
-        list.*.tail = null;
+        list.tail = null;
     }
 }
 
-pub fn searchLinkedList(list: [*c]ObjLinkedList, value: Value) i32 {
+pub fn searchLinkedList(list: *ObjLinkedList, value: Value) i32 {
     // Safety check
-    if (list == null or list.*.head == null) {
+    if (list.head == null) {
         return -1;
     }
 
     // Search through the list
-    var current = list.*.head;
+    var current = list.head;
     var index: i32 = 0;
 
-    while (current != null) {
-        if (valuesEqual(current.*.data, value)) {
+    while (current) |node| {
+        if (valuesEqual(node.data, value)) {
             return index;
         }
-        current = current.*.next;
+        current = node.next;
         index += 1;
     }
 
@@ -587,100 +574,100 @@ pub fn searchLinkedList(list: [*c]ObjLinkedList, value: Value) i32 {
     return -1;
 }
 
-pub fn reverseLinkedList(list: [*c]ObjLinkedList) void {
+pub fn reverseLinkedList(list: *ObjLinkedList) void {
     // Safety checks
-    if (list == null or list.*.head == null) {
+    if (list.head == null) {
         return;
     }
 
     // Reverse the direction of all pointers
-    var current = list.*.head;
-    while (current != null) {
+    var current = list.head;
+    while (current) |node| {
         // Swap next and prev pointers
-        const temp = current.*.next;
-        current.*.next = current.*.prev;
-        current.*.prev = temp;
+        const temp = node.next;
+        node.next = node.prev;
+        node.prev = temp;
         current = temp;
     }
 
     // Swap head and tail pointers
-    const temp = list.*.head;
-    list.*.head = list.*.tail;
-    list.*.tail = temp;
+    const temp = list.head;
+    list.head = list.tail;
+    list.tail = temp;
 }
 
-pub fn mergeLinkedList(a: [*c]ObjLinkedList, b: [*c]ObjLinkedList) [*c]ObjLinkedList {
+pub fn mergeLinkedList(a: *ObjLinkedList, b: *ObjLinkedList) *ObjLinkedList {
     const result = newLinkedList();
-    var currentA = a.*.head;
-    var currentB = b.*.head;
+    var currentA = a.head;
+    var currentB = b.head;
 
     // Merge elements in sorted order
     while (currentA != null and currentB != null) {
-        if (value_h.valueCompare(currentA.*.data, currentB.*.data) < 0) {
-            pushBack(result, currentA.*.data);
-            currentA = currentA.*.next;
+        if (value_h.valueCompare(currentA.?.data, currentB.?.data) < 0) {
+            pushBack(result, currentA.?.data);
+            currentA = currentA.?.next;
         } else {
-            pushBack(result, currentB.*.data);
-            currentB = currentB.*.next;
+            pushBack(result, currentB.?.data);
+            currentB = currentB.?.next;
         }
     }
 
     // Add remaining elements from list A
-    while (currentA != null) {
-        pushBack(result, currentA.*.data);
-        currentA = currentA.*.next;
+    while (currentA) |nodeA| {
+        pushBack(result, nodeA.data);
+        currentA = nodeA.next;
     }
 
     // Add remaining elements from list B
-    while (currentB != null) {
-        pushBack(result, currentB.*.data);
-        currentB = currentB.*.next;
+    while (currentB) |nodeB| {
+        pushBack(result, nodeB.data);
+        currentB = nodeB.next;
     }
 
     return result;
 }
-pub fn sliceLinkedList(list: [*c]ObjLinkedList, start: i32, end: i32) [*c]ObjLinkedList {
+pub fn sliceLinkedList(list: *ObjLinkedList, start: i32, end: i32) *ObjLinkedList {
     const sliced = newLinkedList();
-    var current = list.*.head;
+    var current = list.head;
     var index: i32 = 0;
 
-    while (current != null) {
+    while (current) |node| {
         if (index >= start and index < end) {
-            pushBack(sliced, current.*.data);
+            pushBack(sliced, node.data);
         }
-        current = current.*.next;
+        current = node.next;
         index += 1;
     }
 
     return sliced;
 }
-pub fn spliceLinkedList(list: [*c]ObjLinkedList, start: i32, end: i32) [*c]ObjLinkedList {
+pub fn spliceLinkedList(list: *ObjLinkedList, start: i32, end: i32) *ObjLinkedList {
     const spliced = newLinkedList();
-    var current = list.*.head;
+    var current = list.head;
     var index: i32 = 0;
 
-    while (current != null) {
-        const next = current.*.next;
+    while (current) |node| {
+        const next = node.next;
 
         if (index >= start and index < end) {
             // Add to spliced list
-            pushBack(spliced, current.*.data);
+            pushBack(spliced, node.data);
 
             // Remove from original list
-            if (current.*.prev != null) {
-                current.*.prev.*.next = current.*.next;
+            if (node.prev) |prev| {
+                prev.next = node.next;
             } else {
-                list.*.head = current.*.next;
+                list.head = node.next;
             }
 
-            if (current.*.next != null) {
-                current.*.next.*.prev = current.*.prev;
+            if (node.next) |next_node| {
+                next_node.prev = node.prev;
             } else {
-                list.*.tail = current.*.prev;
+                list.tail = node.prev;
             }
 
-            list.*.count -= 1;
-            _ = reallocate(@as(?*anyopaque, @ptrCast(current)), @sizeOf(Node), 0);
+            list.count -= 1;
+            _ = reallocate(@as(?*anyopaque, @ptrCast(node)), @sizeOf(Node), 0);
         }
 
         current = next;
@@ -778,15 +765,15 @@ pub fn printObject(value: Value) void {
             // print("}", .{});
         },
         .OBJ_LINKED_LIST => {
-            const list = @as([*c]ObjLinkedList, @ptrCast(@alignCast(value.as.obj)));
+            const list = @as(*ObjLinkedList, @ptrCast(@alignCast(value.as.obj)));
             print("[", .{});
-            var current = list.*.head;
-            while (current != null) {
-                value_h.printValue(current.*.data);
-                if (current.*.next != null) {
+            var current = list.head;
+            while (current) |node| {
+                value_h.printValue(node.data);
+                if (node.next != null) {
                     print(", ", .{});
                 }
-                current = current.*.next;
+                current = node.next;
             }
             print("]", .{});
         },

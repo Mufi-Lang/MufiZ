@@ -162,7 +162,7 @@ pub fn freeObject(object: [*c]Obj) void {
         },
 
         .OBJ_LINKED_LIST => {
-            const linkedList: [*c]obj_h.ObjLinkedList = @ptrCast(@alignCast(object));
+            const linkedList: *obj_h.ObjLinkedList = @ptrCast(@alignCast(object));
             _ = &linkedList;
             obj_h.freeObjectLinkedList(linkedList);
         },
@@ -223,11 +223,11 @@ pub fn blackenObject(object: [*c]Obj) void {
         //     }
         // },
         .OBJ_LINKED_LIST => {
-            const linkedList: [*c]obj_h.ObjLinkedList = @ptrCast(@alignCast(object));
-            var current: [*c]Node = linkedList.*.head;
-            while (current != null) {
-                markValue(current.*.data);
-                current = current.*.next;
+            const linkedList: *obj_h.ObjLinkedList = @ptrCast(@alignCast(object));
+            var current: ?*Node = linkedList.head;
+            while (current) |node| {
+                markValue(node.data);
+                current = node.next;
             }
         },
         .OBJ_HASH_TABLE => {
