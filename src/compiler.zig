@@ -1305,7 +1305,7 @@ pub fn synchronize() void {
 }
 
 pub fn compile(source: [*c]const u8) ?*ObjFunction {
-    scanner_h.initScanner(@constCast(source));
+    scanner_h.init_scanner(@constCast(source));
     var compiler: Compiler = undefined;
     _ = &compiler;
     initCompiler(&compiler, .TYPE_SCRIPT);

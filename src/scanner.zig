@@ -114,28 +114,28 @@ pub const Scanner = struct {
 
 var scanner: Scanner = undefined;
 
-pub fn initScanner(source: [*c]u8) void {
+pub fn init_scanner(source: [*c]u8) void {
     scanner.start = @ptrCast(source);
     scanner.current = @ptrCast(source);
     scanner.line = 1;
     initKeywordMap();
 }
 
-pub fn isAlpha(c: u8) bool {
+pub fn is_alpha(c: u8) bool {
     return (c >= 'a' and c <= 'z') or
         (c >= 'A' and c <= 'Z') or
         c == '_';
 }
 
-pub fn isDigit(c: u8) bool {
+pub fn is_digit(c: u8) bool {
     return c >= '0' and c <= '9';
 }
 
-pub fn isAtEnd() bool {
+pub fn is_at_end() bool {
     return scanner.current[0] == '\x00';
 }
 
-pub fn __scanner__advance() u8 {
+pub fn advance() u8 {
     const char = scanner.current[0];
     scanner.current += 1;
     return char;
@@ -146,11 +146,11 @@ pub fn peek() u8 {
 }
 
 pub fn peekNext() u8 {
-    if (isAtEnd()) return 0;
+    if (is_at_end()) return 0;
     return scanner.current[1];
 }
 /// TODO: need to simply without converting so much
-pub fn makeToken(type_: TokenType) Token {
+pub fn make_token(type_: TokenType) Token {
     return .{
         .type = type_,
         .start = scanner.start,
@@ -168,18 +168,18 @@ pub fn errorToken(message: [*c]u8) Token {
     };
 }
 
-pub fn skipWhitespace() void {
+pub fn skip_whitespace() void {
     while (true) {
         const c = peek();
         switch (c) {
-            ' ', '\r', '\t' => _ = __scanner__advance(),
+            ' ', '\r', '\t' => _ = advance(),
             '\n' => {
                 scanner.line += 1;
-                _ = __scanner__advance();
+                _ = advance();
             },
             '/' => {
                 if (peekNext() == '/') {
-                    while (peek() != '\n' and !isAtEnd()) _ = __scanner__advance();
+                    while (peek() != '\n' and !is_at_end()) _ = advance();
                 } else {
                     return;
                 }
@@ -190,9 +190,9 @@ pub fn skipWhitespace() void {
 }
 
 /// TODO: need to simply without converting so much
-pub fn __scanner__match(arg_expected: u8) bool {
+pub fn match(arg_expected: u8) bool {
     const expected = arg_expected;
-    if (isAtEnd()) return false;
+    if (is_at_end()) return false;
     if (scanner.current[0] != expected) return false;
     scanner.current += 1;
     return true;
@@ -209,97 +209,97 @@ pub fn identifierType() TokenType {
     return .TOKEN_IDENTIFIER;
 }
 pub fn identifier() Token {
-    while (isAlpha(peek()) or isDigit(peek())) {
-        _ = __scanner__advance();
+    while (is_alpha(peek()) or is_digit(peek())) {
+        _ = advance();
     }
-    return makeToken(identifierType());
+    return make_token(identifierType());
 }
 
-pub fn __scanner__number() Token {
-    while (isDigit(peek())) {
-        _ = __scanner__advance();
+pub fn number() Token {
+    while (is_digit(peek())) {
+        _ = advance();
     }
-    if (peek() == '.' and isDigit(peekNext())) {
-        _ = __scanner__advance();
-        while (isDigit(peek())) _ = __scanner__advance();
+    if (peek() == '.' and is_digit(peekNext())) {
+        _ = advance();
+        while (is_digit(peek())) _ = advance();
 
-        return makeToken(.TOKEN_DOUBLE);
+        return make_token(.TOKEN_DOUBLE);
     } else {
-        return makeToken(.TOKEN_INT);
+        return make_token(.TOKEN_INT);
     }
 }
 
-pub fn __scanner__string() Token {
-    while (peek() != '"' and !isAtEnd()) {
+pub fn string() Token {
+    while (peek() != '"' and !is_at_end()) {
         if (peek() == '\n') {
             scanner.line += 1;
         }
-        _ = __scanner__advance();
+        _ = advance();
     }
-    if (isAtEnd()) return errorToken(@ptrCast(@constCast("Unterminated string.")));
-    _ = __scanner__advance();
-    return makeToken(.TOKEN_STRING);
+    if (is_at_end()) return errorToken(@ptrCast(@constCast("Unterminated string.")));
+    _ = advance();
+    return make_token(.TOKEN_STRING);
 }
 
 pub fn scanToken() Token {
-    skipWhitespace();
+    skip_whitespace();
     scanner.start = scanner.current;
-    if (isAtEnd()) return makeToken(.TOKEN_EOF);
-    const c = __scanner__advance();
+    if (is_at_end()) return make_token(.TOKEN_EOF);
+    const c = advance();
 
-    if (isAlpha(c)) return identifier();
-    if (isDigit(c)) return __scanner__number();
+    if (is_alpha(c)) return identifier();
+    if (is_digit(c)) return number();
 
     switch (c) {
-        '(' => return makeToken(.TOKEN_LEFT_PAREN),
-        ')' => return makeToken(.TOKEN_RIGHT_PAREN),
-        '{' => return makeToken(.TOKEN_LEFT_BRACE),
-        '}' => return makeToken(.TOKEN_RIGHT_BRACE),
-        '[' => return makeToken(.TOKEN_LEFT_SQPAREN),
-        ']' => return makeToken(.TOKEN_RIGHT_SQPAREN),
-        ';' => return makeToken(.TOKEN_SEMICOLON),
-        ':' => return makeToken(.TOKEN_COLON),
-        ',' => return makeToken(.TOKEN_COMMA),
-        '.' => return makeToken(.TOKEN_DOT),
+        '(' => return make_token(.TOKEN_LEFT_PAREN),
+        ')' => return make_token(.TOKEN_RIGHT_PAREN),
+        '{' => return make_token(.TOKEN_LEFT_BRACE),
+        '}' => return make_token(.TOKEN_RIGHT_BRACE),
+        '[' => return make_token(.TOKEN_LEFT_SQPAREN),
+        ']' => return make_token(.TOKEN_RIGHT_SQPAREN),
+        ';' => return make_token(.TOKEN_SEMICOLON),
+        ':' => return make_token(.TOKEN_COLON),
+        ',' => return make_token(.TOKEN_COMMA),
+        '.' => return make_token(.TOKEN_DOT),
         '-' => {
-            if (__scanner__match('=')) {
-                return makeToken(.TOKEN_MINUS_EQUAL);
-            } else if (__scanner__match('-')) {
-                return makeToken(.TOKEN_MINUS_MINUS);
+            if (match('=')) {
+                return make_token(.TOKEN_MINUS_EQUAL);
+            } else if (match('-')) {
+                return make_token(.TOKEN_MINUS_MINUS);
             } else {
-                return makeToken(.TOKEN_MINUS);
+                return make_token(.TOKEN_MINUS);
             }
         },
         '+' => {
-            if (__scanner__match('=')) {
-                return makeToken(.TOKEN_PLUS_EQUAL);
-            } else if (__scanner__match('+')) {
-                return makeToken(.TOKEN_PLUS_PLUS);
+            if (match('=')) {
+                return make_token(.TOKEN_PLUS_EQUAL);
+            } else if (match('+')) {
+                return make_token(.TOKEN_PLUS_PLUS);
             } else {
-                return makeToken(.TOKEN_PLUS);
+                return make_token(.TOKEN_PLUS);
             }
         },
         '/' => {
-            if (__scanner__match('=')) return makeToken(.TOKEN_SLASH_EQUAL) else return makeToken(.TOKEN_SLASH);
+            if (match('=')) return make_token(.TOKEN_SLASH_EQUAL) else return make_token(.TOKEN_SLASH);
         },
         '*' => {
-            if (__scanner__match('=')) return makeToken(.TOKEN_STAR_EQUAL) else return makeToken(.TOKEN_STAR);
+            if (match('=')) return make_token(.TOKEN_STAR_EQUAL) else return make_token(.TOKEN_STAR);
         },
         '!' => {
-            if (__scanner__match('=')) return makeToken(.TOKEN_BANG_EQUAL) else return makeToken(.TOKEN_BANG);
+            if (match('=')) return make_token(.TOKEN_BANG_EQUAL) else return make_token(.TOKEN_BANG);
         },
         '=' => {
-            if (__scanner__match('=')) return makeToken(.TOKEN_EQUAL_EQUAL) else return makeToken(.TOKEN_EQUAL);
+            if (match('=')) return make_token(.TOKEN_EQUAL_EQUAL) else return make_token(.TOKEN_EQUAL);
         },
         '<' => {
-            if (__scanner__match('=')) return makeToken(.TOKEN_LESS_EQUAL) else return makeToken(.TOKEN_LESS);
+            if (match('=')) return make_token(.TOKEN_LESS_EQUAL) else return make_token(.TOKEN_LESS);
         },
         '>' => {
-            if (__scanner__match('=')) return makeToken(.TOKEN_GREATER_EQUAL) else return makeToken(.TOKEN_GREATER);
+            if (match('=')) return make_token(.TOKEN_GREATER_EQUAL) else return make_token(.TOKEN_GREATER);
         },
-        '%' => return makeToken(.TOKEN_PERCENT),
-        '^' => return makeToken(.TOKEN_HAT),
-        '"' => return __scanner__string(),
+        '%' => return make_token(.TOKEN_PERCENT),
+        '^' => return make_token(.TOKEN_HAT),
+        '"' => return string(),
         else => {},
     }
     return errorToken(@ptrCast(@constCast("Unexpected Character.")));
