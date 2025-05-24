@@ -11,7 +11,7 @@ pub const FloatVector = struct {
     pos: usize,
     data: []f64,
     sorted: bool,
-    
+
     const Self = *@This();
 
     pub fn init(size: usize) Self {
@@ -109,7 +109,7 @@ pub const FloatVector = struct {
 
     pub fn insert(self: Self, index: usize, value: f64) void {
         if (index > self.count) return;
-        
+
         if (self.count >= self.size) {
             const new_size = if (self.size == 0) 1 else self.size * 2;
             const new_byte_size = @sizeOf(f64) * new_size;
@@ -146,13 +146,13 @@ pub const FloatVector = struct {
 
     pub fn remove(self: Self, index: usize) f64 {
         if (index >= self.count) return 0.0;
-        
+
         const removedValue = self.data[index];
-        
+
         for (index..self.count - 1) |i| {
             self.data[i] = self.data[i + 1];
         }
-        
+
         self.count -= 1;
         return removedValue;
     }
@@ -160,7 +160,7 @@ pub const FloatVector = struct {
     pub fn merge(self: Self, other: Self) Self {
         const total_count = self.count + other.count;
         const result = FloatVector.init(total_count);
-        
+
         for (0..self.count) |i| {
             FloatVector.push(result, self.data[i]);
         }
@@ -175,7 +175,7 @@ pub const FloatVector = struct {
             std.debug.print("Index out of bounds\n", .{});
             return FloatVector.init(0);
         }
-        
+
         const result = FloatVector.init(end - start + 1);
         for (start..end + 1) |i| {
             FloatVector.push(result, self.data[i]);
@@ -241,7 +241,7 @@ pub const FloatVector = struct {
     pub fn variance(self: Self) f64 {
         if (self.count == 0) return 0.0;
         const mean_val = FloatVector.mean(self);
-        
+
         const len = self.count;
         const Vec4 = @Vector(4, f64);
         var sum_vec: Vec4 = @splat(@as(f64, 0.0));
@@ -302,15 +302,15 @@ pub const FloatVector = struct {
     pub fn add(a: Self, b: Self) Self {
         const min_count = @min(a.count, b.count);
         const result = FloatVector.init(min_count);
-        
+
         // Process elements in chunks of 4 using SIMD
         const Vec4 = @Vector(4, f64);
         const vec_iterations = @divTrunc(min_count, 4);
-        
+
         var i: usize = 0;
         while (i < vec_iterations) : (i += 1) {
             const offset = i * 4;
-            
+
             // Load 4 elements from each vector
             const vec1 = Vec4{
                 a.data[offset],
@@ -318,14 +318,14 @@ pub const FloatVector = struct {
                 a.data[offset + 2],
                 a.data[offset + 3],
             };
-            
+
             const vec2 = Vec4{
                 b.data[offset],
                 b.data[offset + 1],
                 b.data[offset + 2],
                 b.data[offset + 3],
             };
-            
+
             // Add vectors and store result
             const sum_result = vec1 + vec2;
             result.data[offset] = sum_result[0];
@@ -333,7 +333,7 @@ pub const FloatVector = struct {
             result.data[offset + 2] = sum_result[2];
             result.data[offset + 3] = sum_result[3];
         }
-        
+
         // Handle remaining elements
         const remaining = @mod(min_count, 4);
         if (remaining > 0) {
@@ -342,7 +342,7 @@ pub const FloatVector = struct {
                 result.data[j] = a.data[j] + b.data[j];
             }
         }
-        
+
         result.count = min_count;
         return result;
     }
@@ -350,15 +350,15 @@ pub const FloatVector = struct {
     pub fn sub(a: Self, b: Self) Self {
         const min_count = @min(a.count, b.count);
         const result = FloatVector.init(min_count);
-        
+
         // Process elements in chunks of 4 using SIMD
         const Vec4 = @Vector(4, f64);
         const vec_iterations = @divTrunc(min_count, 4);
-        
+
         var i: usize = 0;
         while (i < vec_iterations) : (i += 1) {
             const offset = i * 4;
-            
+
             // Load 4 elements from each vector
             const vec1 = Vec4{
                 a.data[offset],
@@ -366,14 +366,14 @@ pub const FloatVector = struct {
                 a.data[offset + 2],
                 a.data[offset + 3],
             };
-            
+
             const vec2 = Vec4{
                 b.data[offset],
                 b.data[offset + 1],
                 b.data[offset + 2],
                 b.data[offset + 3],
             };
-            
+
             // Subtract vectors and store result
             const diff = vec1 - vec2;
             result.data[offset] = diff[0];
@@ -381,7 +381,7 @@ pub const FloatVector = struct {
             result.data[offset + 2] = diff[2];
             result.data[offset + 3] = diff[3];
         }
-        
+
         // Handle remaining elements
         const remaining = @mod(min_count, 4);
         if (remaining > 0) {
@@ -390,7 +390,7 @@ pub const FloatVector = struct {
                 result.data[j] = a.data[j] - b.data[j];
             }
         }
-        
+
         result.count = min_count;
         return result;
     }
@@ -398,15 +398,15 @@ pub const FloatVector = struct {
     pub fn mul(a: Self, b: Self) Self {
         const min_count = @min(a.count, b.count);
         const result = FloatVector.init(min_count);
-        
+
         // Process elements in chunks of 4 using SIMD
         const Vec4 = @Vector(4, f64);
         const vec_iterations = @divTrunc(min_count, 4);
-        
+
         var i: usize = 0;
         while (i < vec_iterations) : (i += 1) {
             const offset = i * 4;
-            
+
             // Load 4 elements from each vector
             const vec1 = Vec4{
                 a.data[offset],
@@ -414,14 +414,14 @@ pub const FloatVector = struct {
                 a.data[offset + 2],
                 a.data[offset + 3],
             };
-            
+
             const vec2 = Vec4{
                 b.data[offset],
                 b.data[offset + 1],
                 b.data[offset + 2],
                 b.data[offset + 3],
             };
-            
+
             // Multiply vectors and store result
             const prod = vec1 * vec2;
             result.data[offset] = prod[0];
@@ -429,7 +429,7 @@ pub const FloatVector = struct {
             result.data[offset + 2] = prod[2];
             result.data[offset + 3] = prod[3];
         }
-        
+
         // Handle remaining elements
         const remaining = @mod(min_count, 4);
         if (remaining > 0) {
@@ -438,7 +438,7 @@ pub const FloatVector = struct {
                 result.data[j] = a.data[j] * b.data[j];
             }
         }
-        
+
         result.count = min_count;
         return result;
     }
@@ -446,15 +446,15 @@ pub const FloatVector = struct {
     pub fn div(a: Self, b: Self) Self {
         const min_count = @min(a.count, b.count);
         const result = FloatVector.init(min_count);
-        
+
         // Process elements in chunks of 4 using SIMD
         const Vec4 = @Vector(4, f64);
         const vec_iterations = @divTrunc(min_count, 4);
-        
+
         var i: usize = 0;
         while (i < vec_iterations) : (i += 1) {
             const offset = i * 4;
-            
+
             // Load 4 elements from each vector
             const vec1 = Vec4{
                 a.data[offset],
@@ -462,14 +462,14 @@ pub const FloatVector = struct {
                 a.data[offset + 2],
                 a.data[offset + 3],
             };
-            
+
             const vec2 = Vec4{
                 b.data[offset],
                 b.data[offset + 1],
                 b.data[offset + 2],
                 b.data[offset + 3],
             };
-            
+
             // Divide vectors and store result
             const quotient = vec1 / vec2;
             result.data[offset] = quotient[0];
@@ -477,7 +477,7 @@ pub const FloatVector = struct {
             result.data[offset + 2] = quotient[2];
             result.data[offset + 3] = quotient[3];
         }
-        
+
         // Handle remaining elements
         const remaining = @mod(min_count, 4);
         if (remaining > 0) {
@@ -490,7 +490,7 @@ pub const FloatVector = struct {
                 }
             }
         }
-        
+
         result.count = min_count;
         return result;
     }
@@ -507,7 +507,7 @@ pub const FloatVector = struct {
     pub fn scale(self: Self, scalar: f64) Self {
         const result = FloatVector.init(self.count);
         const simdSize = self.count - @mod(self.count, 4);
-        
+
         // Process 4 elements at a time using Zig SIMD
         var i: usize = 0;
         while (i < simdSize) : (i += 4) {
@@ -518,19 +518,19 @@ pub const FloatVector = struct {
                 self.data[i + 3],
             };
             const scaled = vec4 * @as(@Vector(4, f64), @splat(scalar));
-            
+
             result.data[i] = scaled[0];
             result.data[i + 1] = scaled[1];
             result.data[i + 2] = scaled[2];
             result.data[i + 3] = scaled[3];
         }
-        
+
         // Process remaining elements
         i = simdSize;
         while (i < self.count) : (i += 1) {
             result.data[i] = self.data[i] * scalar;
         }
-        
+
         result.count = self.count;
         return result;
     }
@@ -538,7 +538,7 @@ pub const FloatVector = struct {
     pub fn single_add(self: Self, scalar: f64) Self {
         const result = FloatVector.init(self.count);
         const simdSize = self.count - @mod(self.count, 4);
-        
+
         // Process 4 elements at a time using Zig SIMD
         var i: usize = 0;
         while (i < simdSize) : (i += 4) {
@@ -549,19 +549,19 @@ pub const FloatVector = struct {
                 self.data[i + 3],
             };
             const added = vec4 + @as(@Vector(4, f64), @splat(scalar));
-            
+
             result.data[i] = added[0];
             result.data[i + 1] = added[1];
             result.data[i + 2] = added[2];
             result.data[i + 3] = added[3];
         }
-        
+
         // Process remaining elements
         i = simdSize;
         while (i < self.count) : (i += 1) {
             result.data[i] = self.data[i] + scalar;
         }
-        
+
         result.count = self.count;
         return result;
     }
@@ -576,7 +576,7 @@ pub const FloatVector = struct {
 
     pub fn reverse(self: Self) void {
         if (self.count <= 1) return;
-        
+
         var i: usize = 0;
         var j: usize = self.count - 1;
         while (i < j) {
@@ -629,12 +629,12 @@ pub const FloatVector = struct {
         const count: usize = @intCast(@max(n, 0));
         const result: Self = FloatVector.init(count);
         if (count == 0) return result;
-        
+
         if (count == 1) {
             FloatVector.push(result, start);
             return result;
         }
-        
+
         const step: f64 = (end - start) / @as(f64, @floatFromInt(count - 1));
         for (0..count) |i| {
             const value = start + (@as(f64, @floatFromInt(i)) * step);
@@ -676,7 +676,7 @@ pub const FloatVector = struct {
         if (a.count != 3 or b.count != 3) {
             return FloatVector.init(0);
         }
-        
+
         const result = FloatVector.init(3);
         FloatVector.push(result, a.data[1] * b.data[2] - a.data[2] * b.data[1]);
         FloatVector.push(result, a.data[2] * b.data[0] - a.data[0] * b.data[2]);
@@ -715,15 +715,15 @@ pub const FloatVector = struct {
     pub fn refraction(incident: Self, normal: Self, eta: f64) Self {
         const dot_product = FloatVector.dot(incident, normal);
         const k = 1.0 - eta * eta * (1.0 - dot_product * dot_product);
-        
+
         if (k < 0.0) {
             return FloatVector.init(0); // Total internal reflection
         }
-        
+
         const eta_incident = FloatVector.scale(incident, eta);
         const term = eta * dot_product + @sqrt(k);
         const eta_normal = FloatVector.scale(normal, term);
-        
+
         return FloatVector.sub(eta_incident, eta_normal);
     }
 
@@ -731,9 +731,9 @@ pub const FloatVector = struct {
         const dot_product = FloatVector.dot(a, b);
         const mag_a = FloatVector.magnitude(a);
         const mag_b = FloatVector.magnitude(b);
-        
+
         if (mag_a == 0.0 or mag_b == 0.0) return 0.0;
-        
+
         const cos_theta = dot_product / (mag_a * mag_b);
         return std.math.acos(@max(-1.0, @min(1.0, cos_theta)));
     }
@@ -741,11 +741,11 @@ pub const FloatVector = struct {
     pub fn binary_search(vector: Self, value: f64) i32 {
         var left: i32 = 0;
         var right: i32 = @intCast(vector.count - 1);
-        
+
         while (left <= right) {
             const mid = left + @divTrunc((right - left), 2);
             const mid_value = vector.data[@intCast(mid)];
-            
+
             if (compare_double(mid_value, value) == 0) {
                 return mid;
             } else if (compare_double(mid_value, value) < 0) {
@@ -769,7 +769,7 @@ fn quickSort(arr: []f64, low: i32, high: i32) void {
 fn partition(arr: []f64, low: i32, high: i32) i32 {
     const pivot = arr[@intCast(high)];
     var i = low - 1;
-    
+
     for (@intCast(low)..@intCast(high)) |j| {
         if (arr[j] <= pivot) {
             i += 1;

@@ -663,26 +663,26 @@ pub fn run() InterpretResult {
                     // Get the superclass from the instance's class
                     const instance_obj: [*c]ObjInstance = @ptrCast(@alignCast(instance.as.obj));
                     const superclass = instance_obj.*.klass.*.superclass;
-                    
+
                     if (@intFromPtr(superclass) == 0) {
                         runtimeError("Object has no superclass.", .{});
                         return .INTERPRET_RUNTIME_ERROR;
                     }
-                    
+
                     print("OP_GET_SUPER: Using superclass: {s}\n", .{zstr(superclass.*.name)});
-                    
+
                     // Look up the method in the superclass
                     var method_value: Value = undefined;
                     if (!tableGet(&superclass.*.methods, name, &method_value)) {
                         runtimeError("Undefined property '{s}'.", .{zstr(name)});
                         return .INTERPRET_RUNTIME_ERROR;
                     }
-                    
+
                     // Create a bound method using the instance and method
                     const bound = newBoundMethod(instance, @ptrCast(@alignCast(method_value.as.obj)));
                     _ = pop(); // Pop the instance
                     push(Value.init_obj(@ptrCast(@alignCast(bound))));
-                    
+
                     print("OP_GET_SUPER: Found and bound method '{s}' in superclass\n", .{zstr(name)});
                     continue;
                 },
@@ -885,16 +885,16 @@ pub fn run() InterpretResult {
                         runtimeError("Only instances have superclasses.", .{});
                         return .INTERPRET_RUNTIME_ERROR;
                     }
-                    
+
                     // Get the superclass from the instance's class
                     const instance_obj: [*c]ObjInstance = @ptrCast(@alignCast(instance.as.obj));
                     const superclass = instance_obj.*.klass.*.superclass;
-                    
+
                     if (@intFromPtr(superclass) == 0) {
                         runtimeError("Object has no superclass.", .{});
                         return .INTERPRET_RUNTIME_ERROR;
                     }
-                    
+
                     print("OP_SUPER_INVOKE: Using superclass: {s}\n", .{zstr(superclass.*.name)});
 
                     // Get the method from the superclass
@@ -903,9 +903,9 @@ pub fn run() InterpretResult {
                         runtimeError("Undefined method '{s}'.", .{zstr(method)});
                         return .INTERPRET_RUNTIME_ERROR;
                     }
-                    
+
                     print("OP_SUPER_INVOKE: Found method '{s}' in superclass\n", .{zstr(method)});
-                    
+
                     // Call the method directly to avoid recursion
                     if (!invokeFromClass(superclass, method, argCount)) {
                         return .INTERPRET_RUNTIME_ERROR;

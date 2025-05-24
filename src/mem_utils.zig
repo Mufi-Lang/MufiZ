@@ -449,7 +449,7 @@ pub fn memcmp(s1: ?*const anyopaque, s2: ?*const anyopaque, n: usize) i32 {
     // Handle remaining bytes
     while (offset < num) {
         if (ptr1[offset] != ptr2[offset]) {
-            return @as(i32, @intCast(@as(i16, @intCast(ptr1[offset])) - @as(i16, @intCast(ptr2[offset])))); 
+            return @as(i32, @intCast(@as(i16, @intCast(ptr1[offset])) - @as(i16, @intCast(ptr2[offset]))));
         }
         offset += 1;
     }

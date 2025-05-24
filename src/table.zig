@@ -136,7 +136,7 @@ pub fn adjustCapacity(table: *Table, capacity: i32) void {
         }
         _ = reallocate(@ptrCast(@alignCast(table.entries)), @intCast(table.capacity * @sizeOf(Entry)), 0);
     }
-    
+
     table.entries = entries;
     table.capacity = @intCast(capacity);
 }
@@ -184,7 +184,7 @@ pub fn tableDelete(table: *Table, key: ?*ObjString) bool {
 
 pub fn tableAddAll(from: *Table, to: *Table) void {
     if (from.entries == null) return;
-    
+
     var i: usize = 0;
     while (i < from.capacity) : (i += 1) {
         const entry = &from.entries[i];
@@ -229,7 +229,7 @@ pub fn tableFindString(table: *Table, chars: [*]const u8, length: i32, hash: u64
 
 pub fn tableRemoveWhite(table: *Table) void {
     if (table.entries == null) return;
-    
+
     for (0..table.capacity) |i| {
         const entry = &table.entries[i];
         if (entry.key != null and !entry.key.?.obj.isMarked) {
@@ -244,7 +244,7 @@ inline fn markValue(value: Value) void {
 
 pub fn markTable(table: *Table) void {
     if (table.entries == null) return;
-    
+
     for (0..table.capacity) |i| {
         const entry = &table.entries[i];
         if (entry.key) |key| {

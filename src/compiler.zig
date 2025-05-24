@@ -307,7 +307,7 @@ pub fn declaration() void {
 }
 pub fn getRule(type_: TokenType) *ParseRule {
     const index: usize = @intCast(@intFromEnum(type_));
-    
+
     // Special case for certain token types
     if (type_ == .TOKEN_TRUE or type_ == .TOKEN_FALSE or type_ == .TOKEN_NIL) {
         // Use a static rule for literal tokens
@@ -358,13 +358,13 @@ pub fn getRule(type_: TokenType) *ParseRule {
         };
         return &static_super_rule;
     }
-    
+
     if (index < rules.len) {
         return &rules[index];
     } else {
         // Return a default rule for unexpected token types
         var static_default_rule = ParseRule{
-            .prefix = null, 
+            .prefix = null,
             .infix = null,
             .precedence = PREC_NONE,
         };
@@ -673,7 +673,7 @@ pub fn string(canAssign: bool) void {
     // Create a safe offset calculation
     const start = parser.previous.start + 1; // Safely skip the opening quote
     const length = if (parser.previous.length >= 2) parser.previous.length - 2 else 0;
-    
+
     emitConstant(Value{
         .type = .VAL_OBJ,
         .as = .{
@@ -816,23 +816,23 @@ pub fn super_(canAssign: bool) void {
     consume(.TOKEN_IDENTIFIER, "Expect superclass method name.");
     var name: u8 = identifierConstant(&parser.previous);
     _ = &name;
-    
+
     // Push 'self' as the receiver (this)
     namedVariable(syntheticToken("self"), false);
-    
+
     if (match(.TOKEN_LEFT_PAREN)) {
         var argCount: u8 = argumentList();
         _ = &argCount;
-        
+
         // Use the "super" local variable that stores the superclass
         namedVariable(syntheticToken("super"), false);
-        
+
         emitBytes(@intCast(@intFromEnum(OpCode.OP_SUPER_INVOKE)), name);
         emitByte(argCount);
     } else {
         // Use the "super" local variable that stores the superclass
         namedVariable(syntheticToken("super"), false);
-        
+
         emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_SUPER)), name);
     }
 }
@@ -1142,28 +1142,28 @@ pub fn classDeclaration() void {
     classCompiler.enclosing = currentClass;
     classCompiler.hasSuperclass = false;
     currentClass = &classCompiler;
-    
+
     // Begin scope for methods and self
     beginScope();
     addLocal(syntheticToken("self"));
-    
+
     if (match(.TOKEN_LESS)) {
         consume(.TOKEN_IDENTIFIER, "Expect superclass name.");
         variable(false);
         if (identifiersEqual(&className, &parser.previous)) {
             @"error"("A class can't inherit itself.");
         }
-        
+
         // Store the superclass in a local variable named "super"
         addLocal(syntheticToken("super"));
         namedVariable(parser.previous, false);
         defineVariable(0);
-        
+
         namedVariable(className, false);
         emitByte(@intCast(@intFromEnum(OpCode.OP_INHERIT)));
         currentClass.?.hasSuperclass = true;
     }
-    
+
     namedVariable(className, false);
     consume(.TOKEN_LEFT_BRACE, "Expect '{' before class body.");
     while (!check(.TOKEN_RIGHT_BRACE) and !check(.TOKEN_EOF)) {
@@ -1171,10 +1171,10 @@ pub fn classDeclaration() void {
     }
     consume(.TOKEN_RIGHT_BRACE, "Expect '}' after class body.");
     emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
-    
+
     // End scope for methods, self, and super
     endScope();
-    
+
     currentClass = currentClass.?.enclosing;
 }
 pub fn funDeclaration() void {
