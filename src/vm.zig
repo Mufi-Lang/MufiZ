@@ -68,7 +68,7 @@ pub const VM = struct {
     stackTop: [*c]Value = null,
     globals: Table,
     strings: Table,
-    initString: [*c]ObjString = null,
+    initString: ?*ObjString = null,
     openUpvalues: [*c]ObjUpvalue = null,
     bytesAllocated: u128 = 0,
     nextGC: u128 = 1024 * 1024,
@@ -146,9 +146,10 @@ pub fn runtimeError(comptime format: []const u8, args: anytype) void {
         if (function.*.name == null) {
             stderr.writeAll("script\n") catch {};
         } else {
-            const name = function.*.name.*.chars;
-            const len: usize = @intCast(function.*.name.*.length);
-            stderr.print("{s}()\n", .{@as([]u8, @ptrCast(@alignCast(name[0..len])))}) catch {};
+            const nameObj = function.*.name.?;
+            const name = nameObj.chars;
+            const len: usize = @intCast(nameObj.length);
+            stderr.print("{s}()\n", .{name[0..len]}) catch {};
         }
     }
 
@@ -223,9 +224,13 @@ pub fn importCollections() void {
     defineNative("refract", &cstd_h.refract_nf);
 }
 
-inline fn zstr(s: [*c]ObjString) []u8 {
-    const len: usize = @intCast(s.*.length);
-    return @ptrCast(@alignCast(s.*.chars[0..len]));
+inline fn zstr(s: ?*ObjString) []u8 {
+    if (s) |str| {
+        const len: usize = @intCast(str.length);
+        return str.chars[0..len];
+    } else {
+        return @constCast("null");
+    }
 }
 
 pub fn interpret(source: [*c]const u8) InterpretResult {
@@ -369,17 +374,14 @@ pub fn callValue(callee: Value, argCount: i32) bool {
     return false;
 }
 
-pub fn invokeFromClass(klass: [*c]ObjClass, name: [*c]ObjString, argCount: i32) bool {
+pub fn invokeFromClass(klass: [*c]ObjClass, name: *ObjString, argCount: i32) bool {
     // Validate input parameters
     if (klass == null) {
         runtimeError("Cannot invoke methods on null class.", .{});
         return false;
     }
 
-    if (name == null) {
-        runtimeError("Cannot invoke method with null name.", .{});
-        return false;
-    }
+
 
     var method: Value = undefined;
     if (!tableGet(&klass.*.methods, name, &method)) {
@@ -397,7 +399,7 @@ pub fn invokeFromClass(klass: [*c]ObjClass, name: [*c]ObjString, argCount: i32) 
     return call(@ptrCast(@alignCast(method.as.obj)), argCount);
 }
 
-pub fn invoke(name: [*c]ObjString, argCount: i32) bool {
+pub fn invoke(name: *ObjString, argCount: i32) bool {
     const receiver: Value = peek(argCount);
     // First check if we're dealing with an instance
     if (!object_h.isObjType(receiver, .OBJ_INSTANCE)) {
@@ -424,11 +426,11 @@ pub fn invoke(name: [*c]ObjString, argCount: i32) bool {
     return invokeFromClass(instance.*.klass, name, argCount);
 }
 
-pub fn bindMethod(klass: [*c]ObjClass, name: [*c]ObjString) bool {
+pub fn bindMethod(klass: [*c]ObjClass, name: *ObjString) bool {
     var method: Value = undefined;
 
     if (!tableGet(&klass.*.methods, name, &method)) {
-        runtimeError("Undefined property '{s}'.", .{@as([]u8, @ptrCast(@alignCast(name.*.chars[0..@intCast(name.*.length)])))});
+        runtimeError("Undefined property '{s}'.", .{zstr(name)});
         return false;
     }
     const bound: [*c]ObjBoundMethod = object_h.newBoundMethod(peek(0), @ptrCast(@alignCast(method.as.obj)));
@@ -469,7 +471,7 @@ pub fn closeUpvalues(last: [*c]Value) void {
     }
 }
 
-pub fn defineMethod(name: [*c]ObjString) void {
+pub fn defineMethod(name: *ObjString) void {
     const method: Value = peek(0);
 
     const klass: [*c]ObjClass = @ptrCast(@alignCast(peek(1).as.obj));
@@ -571,7 +573,7 @@ pub fn run() InterpretResult {
                     continue;
                 },
                 .OP_GET_GLOBAL => {
-                    const name: [*c]ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
+                    const name: *ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
                         get_slot(frame)
                     ].as.obj));
                     var value: Value = undefined;
@@ -583,7 +585,7 @@ pub fn run() InterpretResult {
                     continue;
                 },
                 .OP_DEFINE_GLOBAL => {
-                    const name: [*c]ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
+                    const name: *ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
                         get_slot(frame)
                     ].as.obj));
                     _ = tableSet(&vm.globals, name, peek(0));
@@ -591,7 +593,7 @@ pub fn run() InterpretResult {
                     continue;
                 },
                 .OP_SET_GLOBAL => {
-                    const name: [*c]ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
+                    const name: *ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
                         get_slot(frame)
                     ].as.obj));
                     if (tableSet(&vm.globals, name, peek(0))) {
@@ -617,7 +619,7 @@ pub fn run() InterpretResult {
                         return .INTERPRET_RUNTIME_ERROR;
                     }
                     const instance: [*c]ObjInstance = @as([*c]ObjInstance, @ptrCast(@alignCast(peek(0).as.obj)));
-                    const name: [*c]ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
+                    const name: *ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
                         get_slot(frame)
                     ].as.obj));
                     var value: Value = undefined;
@@ -646,7 +648,7 @@ pub fn run() InterpretResult {
                     continue;
                 },
                 .OP_GET_SUPER => {
-                    const name: [*c]ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
+                    const name: *ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
                         get_slot(frame)
                     ].as.obj));
 
@@ -857,7 +859,7 @@ pub fn run() InterpretResult {
                     continue;
                 },
                 .OP_INVOKE => {
-                    const method: [*c]ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
+                    const method: *ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
                         get_slot(frame)
                     ].as.obj));
 
@@ -870,7 +872,7 @@ pub fn run() InterpretResult {
                     continue;
                 },
                 .OP_SUPER_INVOKE => {
-                    const method: [*c]ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
+                    const method: *ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
                         get_slot(frame)
                     ].as.obj));
 

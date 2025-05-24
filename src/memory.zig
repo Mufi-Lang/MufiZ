@@ -153,8 +153,8 @@ pub fn freeObject(object: [*c]Obj) void {
             _ = reallocate(@ptrCast(object), @sizeOf(obj_h.ObjNative), 0);
         },
         .OBJ_STRING => {
-            const string: [*c]obj_h.ObjString = @ptrCast(@alignCast(object));
-            _ = reallocate(@ptrCast(string.*.chars), @intCast(@sizeOf(u8) *% string.*.length + 1), 0);
+            const string: *obj_h.ObjString = @ptrCast(@alignCast(object));
+            _ = reallocate(@ptrCast(string.chars), @intCast(@sizeOf(u8) *% string.length + 1), 0);
             _ = reallocate(@ptrCast(object), @sizeOf(obj_h.ObjString), 0);
         },
         .OBJ_UPVALUE => {
@@ -163,7 +163,6 @@ pub fn freeObject(object: [*c]Obj) void {
 
         .OBJ_LINKED_LIST => {
             const linkedList: *obj_h.ObjLinkedList = @ptrCast(@alignCast(object));
-            _ = &linkedList;
             obj_h.freeObjectLinkedList(linkedList);
         },
         .OBJ_HASH_TABLE => {

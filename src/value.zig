@@ -342,7 +342,7 @@ pub const Value = extern struct {
         };
     }
 
-    pub fn as_string(self: Self) [*c]ObjString {
+    pub fn as_string(self: Self) *ObjString {
         return @ptrCast(@alignCast(self.as.obj));
     }
 
@@ -378,9 +378,9 @@ pub fn valuesEqual(a: Value, b: Value) bool {
                 switch (obj_a.*.type) {
                     .OBJ_STRING => {
                         {
-                            const str_a: [*c]ObjString = @as([*c]ObjString, @ptrCast(@alignCast(a.as.obj)));
-                            const str_b: [*c]ObjString = @as([*c]ObjString, @ptrCast(@alignCast(b.as.obj)));
-                            return (str_a.*.length == str_b.*.length) and (scanner_h.memcmp(@ptrCast(str_a.*.chars), @ptrCast(str_b.*.chars), @intCast(str_a.*.length)) == 0);
+                            const str_a: *ObjString = @as(*ObjString, @ptrCast(@alignCast(a.as.obj)));
+                            const str_b: *ObjString = @as(*ObjString, @ptrCast(@alignCast(b.as.obj)));
+                            return (str_a.length == str_b.length) and (scanner_h.memcmp(@ptrCast(str_a.chars), @ptrCast(str_b.chars), @intCast(str_a.length)) == 0);
                         }
                     },
                     .OBJ_LINKED_LIST => {
