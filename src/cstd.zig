@@ -147,8 +147,8 @@ pub fn hashtable_nf(argCount: i32, args: [*c]Value) Value {
         return Value.init_nil();
     }
 
-    const h: [*c]ObjHashTable = obj_h.newHashTable();
-    return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(h))));
+    const h: *ObjHashTable = obj_h.newHashTable();
+    return Value.init_obj(@as(*Obj, @ptrCast(@alignCast(h))));
 }
 
 pub fn fvector_nf(argCount: i32, args: [*c]Value) Value {
@@ -502,7 +502,7 @@ pub fn contains_nf(argCount: i32, args: [*c]Value) Value {
             return Value.init_bool(false);
         },
         .OBJ_HASH_TABLE => {
-            const hashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
+            const hashTable = @as(*ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
 
             if (!isObjType(args[1], .OBJ_STRING)) {
                 runtimeError("Hash table key must be a string.", .{});
@@ -601,7 +601,7 @@ pub fn len_nf(argCount: i32, args: [*c]Value) Value {
     // Process based on object type
     switch (args[0].as.obj.*.type) {
         .OBJ_HASH_TABLE => {
-            const hashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
+            const hashTable = @as(*ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
             return Value.init_int(@intCast(hashTable.*.table.count));
         },
         .OBJ_FVECTOR => {
@@ -692,7 +692,7 @@ pub fn is_empty_nf(argCount: i32, args: [*c]Value) Value {
     // Process based on object type
     switch (args[0].as.obj.*.type) {
         .OBJ_HASH_TABLE => {
-            const hashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
+            const hashTable = @as(*ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
             return Value.init_bool(hashTable.*.table.count == 0);
         },
         .OBJ_FVECTOR => {
@@ -878,9 +878,9 @@ pub fn clone_nf(argCount: i32, args: [*c]Value) Value {
             return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(clone))));
         },
         .OBJ_HASH_TABLE => {
-            const hashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
+            const hashTable = @as(*ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
             const clone = obj_h.cloneHashTable(hashTable);
-            return Value.init_obj(@as([*c]Obj, @ptrCast(@alignCast(clone))));
+            return Value.init_obj(@as(*Obj, @ptrCast(@alignCast(clone))));
         },
         else => {
             runtimeError("Unsupported type for clone().", .{});
@@ -924,7 +924,7 @@ pub fn clear_nf(argCount: i32, args: [*c]Value) Value {
             obj_h.clearLinkedList(list);
         },
         .OBJ_HASH_TABLE => {
-            const hashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
+            const hashTable = @as(*ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
             obj_h.clearHashTable(hashTable);
         },
         else => {
@@ -1281,7 +1281,7 @@ pub fn put_nf(argCount: i32, args: [*c]Value) Value {
     }
 
     // Process the hash table operation
-    const hashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
+    const hashTable = @as(*ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
     const key = @as(*ObjString, @ptrCast(@alignCast(args[1].as.obj)));
 
     return Value.init_bool(obj_h.putHashTable(hashTable, key, args[2]));
@@ -1306,7 +1306,7 @@ pub fn get_nf(argCount: i32, args: [*c]Value) Value {
     }
 
     // Process the hash table operation
-    const hashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
+    const hashTable = @as(*ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
     const key = @as(*ObjString, @ptrCast(@alignCast(args[1].as.obj)));
 
     return obj_h.getHashTable(hashTable, key);
@@ -1339,7 +1339,7 @@ pub fn remove_nf(argCount: i32, args: [*c]Value) Value {
     // Process the removal based on container type
     switch (args[0].as.obj.*.type) {
         .OBJ_HASH_TABLE => {
-            const hashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
+            const hashTable = @as(*ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
             const key = @as(*ObjString, @ptrCast(@alignCast(args[1].as.obj)));
             return Value.init_bool(obj_h.removeHashTable(hashTable, key));
         },

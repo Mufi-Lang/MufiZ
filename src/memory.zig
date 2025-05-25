@@ -166,7 +166,7 @@ pub fn freeObject(object: [*c]Obj) void {
             obj_h.freeObjectLinkedList(linkedList);
         },
         .OBJ_HASH_TABLE => {
-            const hashTable: [*c]obj_h.ObjHashTable = @ptrCast(@alignCast(object));
+            const hashTable: *obj_h.ObjHashTable = @ptrCast(@alignCast(object));
             obj_h.freeObjectHashTable(hashTable);
         },
         .OBJ_FVECTOR => {
@@ -230,7 +230,7 @@ pub fn blackenObject(object: [*c]Obj) void {
             }
         },
         .OBJ_HASH_TABLE => {
-            const hashTable: [*c]ObjHashTable = @ptrCast(@alignCast(object));
+            const hashTable: *ObjHashTable = @ptrCast(@alignCast(object));
             markTable(&hashTable.*.table);
         },
 

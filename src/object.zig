@@ -44,7 +44,7 @@ pub const ObjLinkedList = struct {
     count: i32,
 };
 
-pub const ObjHashTable = extern struct {
+pub const ObjHashTable = struct {
     obj: Obj,
     table: Table,
 };
@@ -674,25 +674,25 @@ pub fn spliceLinkedList(list: *ObjLinkedList, start: i32, end: i32) *ObjLinkedLi
 
     return spliced;
 }
-pub fn newHashTable() [*c]ObjHashTable {
-    const htable: [*c]ObjHashTable = @as([*c]ObjHashTable, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjHashTable), .OBJ_HASH_TABLE))));
+pub fn newHashTable() *ObjHashTable {
+    const htable: *ObjHashTable = @as(*ObjHashTable, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjHashTable), .OBJ_HASH_TABLE))));
     table_h.initTable(&htable.*.table);
     return htable;
 }
-pub fn cloneHashTable(table: [*c]ObjHashTable) [*c]ObjHashTable {
-    var newTable: [*c]ObjHashTable = newHashTable();
+pub fn cloneHashTable(table: *ObjHashTable) *ObjHashTable {
+    var newTable: *ObjHashTable = newHashTable();
     _ = &newTable;
     table_h.tableAddAll(&table.*.table, &newTable.*.table);
     return newTable;
 }
-pub fn clearHashTable(table: [*c]ObjHashTable) void {
+pub fn clearHashTable(table: *ObjHashTable) void {
     table_h.freeTable(&table.*.table);
     table_h.initTable(&table.*.table);
 }
-pub fn putHashTable(table: [*c]ObjHashTable, key: *ObjString, value: Value) bool {
+pub fn putHashTable(table: *ObjHashTable, key: *ObjString, value: Value) bool {
     return table_h.tableSet(&table.*.table, key, value);
 }
-pub fn getHashTable(table: [*c]ObjHashTable, key: *ObjString) Value {
+pub fn getHashTable(table: *ObjHashTable, key: *ObjString) Value {
     var value: Value = undefined;
 
     if (table_h.tableGet(&table.*.table, key, &value)) {
@@ -702,10 +702,10 @@ pub fn getHashTable(table: [*c]ObjHashTable, key: *ObjString) Value {
     }
     return @import("std").mem.zeroes(Value);
 }
-pub fn removeHashTable(table: [*c]ObjHashTable, key: *ObjString) bool {
+pub fn removeHashTable(table: *ObjHashTable, key: *ObjString) bool {
     return table_h.tableDelete(&table.*.table, key);
 }
-pub fn freeObjectHashTable(table: [*c]ObjHashTable) void {
+pub fn freeObjectHashTable(table: *ObjHashTable) void {
     table_h.freeTable(&table.*.table);
     _ = reallocate(@as(?*anyopaque, @ptrCast(table)), @sizeOf(ObjHashTable), 0);
 }
@@ -779,7 +779,7 @@ pub fn printObject(value: Value) void {
             print("]", .{});
         },
         .OBJ_HASH_TABLE => {
-            const hashtable = @as([*c]ObjHashTable, @ptrCast(@alignCast(value.as.obj)));
+            const hashtable = @as(*ObjHashTable, @ptrCast(@alignCast(value.as.obj)));
             print("{{", .{});
             const entries = hashtable.*.table.entries;
             var count: i32 = 0;
