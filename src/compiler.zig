@@ -62,7 +62,7 @@ pub const ClassCompiler = struct {
 
 pub const Compiler = struct {
     enclosing: ?*Compiler,
-    function: [*c]ObjFunction,
+    function: *ObjFunction,
     type_: FunctionType,
     locals: [256]Local,
     localCount: i32,
@@ -175,7 +175,6 @@ pub fn patchJump(offset: i32) void {
 }
 pub fn initCompiler(compiler: *Compiler, type_: FunctionType) void {
     compiler.*.enclosing = current;
-    compiler.*.function = null;
     compiler.*.type_ = type_;
     compiler.*.localCount = 0;
     compiler.*.scopeDepth = 0;

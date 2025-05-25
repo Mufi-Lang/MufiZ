@@ -88,7 +88,7 @@ pub fn disassembleInstruction(chunk: [*c]Chunk, offset: i32) i32 {
             printValue(chunk.*.constants.values[constant]);
             print("\n", .{});
 
-            const function = @as([*c]ObjFunction, @ptrCast(@alignCast(chunk.*.constants.values[constant].as.obj)));
+            const function = @as(*ObjFunction, @ptrCast(@alignCast(chunk.*.constants.values[constant].as.obj)));
 
             // Process upvalues
             var j: i32 = 0;

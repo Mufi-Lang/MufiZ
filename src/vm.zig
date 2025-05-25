@@ -308,18 +308,10 @@ pub fn callValue(callee: Value, argCount: i32) bool {
                 return call(bound.*.method, argCount);
             },
             .OBJ_CLASS => {
-                const klass: [*c]ObjClass = @ptrCast(@alignCast(callee.as.obj));
-                if (klass == null) {
-                    runtimeError("Cannot instantiate null class.", .{});
-                    return false;
-                }
+                const klass: *ObjClass = @ptrCast(@alignCast(callee.as.obj));
 
                 // Create instance
                 const instance = object_h.newInstance(klass);
-                if (instance == null) {
-                    runtimeError("Failed to create instance.", .{});
-                    return false;
-                }
 
                 // Create the instance value
                 const instanceValue = Value.init_obj(@ptrCast(@alignCast(instance)));
@@ -351,13 +343,13 @@ pub fn callValue(callee: Value, argCount: i32) bool {
             },
             .OBJ_CLOSURE => return call(@as([*c]ObjClosure, @ptrCast(@alignCast(callee.as.obj))), argCount),
             .OBJ_INSTANCE => {
-                const klass: [*c]ObjClass = @ptrCast(@alignCast(callee.as.obj));
+                const klass: *ObjClass = @ptrCast(@alignCast(callee.as.obj));
                 set_stack_top(argCount, Value.init_obj(@ptrCast(@alignCast(object_h.newInstance(klass)))));
 
                 return true;
             },
             .OBJ_NATIVE => {
-                const native: NativeFn = @as([*c]ObjNative, @ptrCast(@alignCast(callee.as.obj))).*.function;
+                const native: NativeFn = @as(*ObjNative, @ptrCast(@alignCast(callee.as.obj))).*.function;
                 if (native == null) {
                     runtimeError("Native function is null.", .{});
                     return false;
@@ -374,17 +366,15 @@ pub fn callValue(callee: Value, argCount: i32) bool {
     return false;
 }
 
-pub fn invokeFromClass(klass: [*c]ObjClass, name: *ObjString, argCount: i32) bool {
+pub fn invokeFromClass(klass: ?*ObjClass, name: *ObjString, argCount: i32) bool {
     // Validate input parameters
     if (klass == null) {
         runtimeError("Cannot invoke methods on null class.", .{});
         return false;
     }
 
-
-
     var method: Value = undefined;
-    if (!tableGet(&klass.*.methods, name, &method)) {
+    if (!tableGet(&klass.?.methods, name, &method)) {
         const len: usize = @intCast(name.*.length);
         runtimeError("Undefined property '{s}'.", .{name.*.chars[0..len]});
         return false;
@@ -407,12 +397,7 @@ pub fn invoke(name: *ObjString, argCount: i32) bool {
         return false;
     }
 
-    const instance: [*c]ObjInstance = @as([*c]ObjInstance, @ptrCast(@alignCast(receiver.as.obj)));
-    // Ensure the instance has a valid class
-    if (instance.*.klass == null) {
-        runtimeError("Instance has no class.", .{});
-        return false;
-    }
+    const instance: *ObjInstance = @as(*ObjInstance, @ptrCast(@alignCast(receiver.as.obj)));
 
     var value: Value = undefined;
 
@@ -426,7 +411,7 @@ pub fn invoke(name: *ObjString, argCount: i32) bool {
     return invokeFromClass(instance.*.klass, name, argCount);
 }
 
-pub fn bindMethod(klass: [*c]ObjClass, name: *ObjString) bool {
+pub fn bindMethod(klass: *ObjClass, name: *ObjString) bool {
     var method: Value = undefined;
 
     if (!tableGet(&klass.*.methods, name, &method)) {
@@ -474,7 +459,7 @@ pub fn closeUpvalues(last: [*c]Value) void {
 pub fn defineMethod(name: *ObjString) void {
     const method: Value = peek(0);
 
-    const klass: [*c]ObjClass = @ptrCast(@alignCast(peek(1).as.obj));
+    const klass: *ObjClass = @ptrCast(@alignCast(peek(1).as.obj));
     _ = tableSet(&klass.*.methods, name, method);
     _ = pop();
 }
@@ -618,7 +603,7 @@ pub fn run() InterpretResult {
                         runtimeError("Only instances have properties.", .{});
                         return .INTERPRET_RUNTIME_ERROR;
                     }
-                    const instance: [*c]ObjInstance = @as([*c]ObjInstance, @ptrCast(@alignCast(peek(0).as.obj)));
+                    const instance: *ObjInstance = @as(*ObjInstance, @ptrCast(@alignCast(peek(0).as.obj)));
                     const name: *ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
                         get_slot(frame)
                     ].as.obj));
@@ -638,7 +623,7 @@ pub fn run() InterpretResult {
                         runtimeError("Only instances have fields.", .{});
                         return .INTERPRET_RUNTIME_ERROR;
                     }
-                    const instance: [*c]ObjInstance = @as([*c]ObjInstance, @ptrCast(@alignCast(peek(1).as.obj)));
+                    const instance: *ObjInstance = @as(*ObjInstance, @ptrCast(@alignCast(peek(1).as.obj)));
                     _ = tableSet(&instance.*.fields, @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
                         get_slot(frame)
                     ].as.obj)), peek(0));
@@ -663,7 +648,7 @@ pub fn run() InterpretResult {
                     }
 
                     // Get the superclass from the instance's class
-                    const instance_obj: [*c]ObjInstance = @ptrCast(@alignCast(instance.as.obj));
+                    const instance_obj: *ObjInstance = @ptrCast(@alignCast(instance.as.obj));
                     const superclass = instance_obj.*.klass.*.superclass;
 
                     if (@intFromPtr(superclass) == 0) {
@@ -671,11 +656,11 @@ pub fn run() InterpretResult {
                         return .INTERPRET_RUNTIME_ERROR;
                     }
 
-                    print("OP_GET_SUPER: Using superclass: {s}\n", .{zstr(superclass.*.name)});
+                    print("OP_GET_SUPER: Using superclass: {s}\n", .{zstr(superclass.?.name)});
 
                     // Look up the method in the superclass
                     var method_value: Value = undefined;
-                    if (!tableGet(&superclass.*.methods, name, &method_value)) {
+                    if (!tableGet(&superclass.?.methods, name, &method_value)) {
                         runtimeError("Undefined property '{s}'.", .{zstr(name)});
                         return .INTERPRET_RUNTIME_ERROR;
                     }
@@ -889,7 +874,7 @@ pub fn run() InterpretResult {
                     }
 
                     // Get the superclass from the instance's class
-                    const instance_obj: [*c]ObjInstance = @ptrCast(@alignCast(instance.as.obj));
+                    const instance_obj: *ObjInstance = @ptrCast(@alignCast(instance.as.obj));
                     const superclass = instance_obj.*.klass.*.superclass;
 
                     if (@intFromPtr(superclass) == 0) {
@@ -897,11 +882,11 @@ pub fn run() InterpretResult {
                         return .INTERPRET_RUNTIME_ERROR;
                     }
 
-                    print("OP_SUPER_INVOKE: Using superclass: {s}\n", .{zstr(superclass.*.name)});
+                    print("OP_SUPER_INVOKE: Using superclass: {s}\n", .{zstr(superclass.?.name)});
 
                     // Get the method from the superclass
                     var method_value: Value = undefined;
-                    if (!tableGet(&superclass.*.methods, method, &method_value)) {
+                    if (!tableGet(&superclass.?.methods, method, &method_value)) {
                         runtimeError("Undefined method '{s}'.", .{zstr(method)});
                         return .INTERPRET_RUNTIME_ERROR;
                     }
@@ -917,7 +902,7 @@ pub fn run() InterpretResult {
                     continue;
                 },
                 .OP_CLOSURE => {
-                    const function: [*c]ObjFunction = @as([*c]ObjFunction, @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
+                    const function: *ObjFunction = @as(*ObjFunction, @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
                         get_slot(frame)
                     ].as.obj)));
 
@@ -970,10 +955,10 @@ pub fn run() InterpretResult {
                         runtimeError("Superclass must be a class.", .{});
                         return .INTERPRET_RUNTIME_ERROR;
                     }
-                    const subclass: [*c]ObjClass = @ptrCast(@alignCast(peek(0).as.obj));
+                    const subclass: *ObjClass = @ptrCast(@alignCast(peek(0).as.obj));
 
                     // Copy all methods from superclass to subclass
-                    const superclassPtr = @as([*c]ObjClass, @ptrCast(@alignCast(superclass.as.obj)));
+                    const superclassPtr = @as(*ObjClass, @ptrCast(@alignCast(superclass.as.obj)));
                     table_h.tableAddAll(&superclassPtr.*.methods, &subclass.*.methods);
 
                     // Store the superclass reference directly in the subclass

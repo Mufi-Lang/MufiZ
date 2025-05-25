@@ -49,7 +49,7 @@ pub const ObjHashTable = struct {
     table: Table,
 };
 
-pub const ObjFunction = extern struct {
+pub const ObjFunction = struct {
     obj: Obj,
     arity: i32,
     upvalueCount: i32,
@@ -58,7 +58,7 @@ pub const ObjFunction = extern struct {
 };
 
 pub const NativeFn = ?*const fn (i32, [*c]Value) Value;
-pub const ObjNative = extern struct {
+pub const ObjNative = struct {
     obj: Obj,
     function: NativeFn,
 };
@@ -72,19 +72,19 @@ pub const ObjUpvalue = extern struct {
 
 pub const ObjClosure = extern struct {
     obj: Obj,
-    function: [*c]ObjFunction,
+    function: *ObjFunction,
     upvalues: [*c][*c]ObjUpvalue,
     upvalueCount: i32,
 };
-pub const ObjClass = extern struct {
+pub const ObjClass = struct {
     obj: Obj,
     name: ?*ObjString,
     methods: Table,
-    superclass: [*c]ObjClass,
+    superclass: ?*ObjClass,
 };
-pub const ObjInstance = extern struct {
+pub const ObjInstance = struct {
     obj: Obj,
-    klass: [*c]ObjClass,
+    klass: *ObjClass,
     fields: Table,
 };
 pub const ObjBoundMethod = extern struct {
@@ -133,14 +133,14 @@ pub fn newBoundMethod(receiver: Value, method: [*c]ObjClosure) [*c]ObjBoundMetho
     bound.*.method = method;
     return bound;
 }
-pub fn newClass(name: ?*ObjString) [*c]ObjClass {
-    const klass: [*c]ObjClass = @as([*c]ObjClass, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjClass), .OBJ_CLASS))));
+pub fn newClass(name: *ObjString) *ObjClass {
+    const klass: *ObjClass = @as(*ObjClass, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjClass), .OBJ_CLASS))));
     klass.*.name = name;
     klass.*.superclass = @ptrFromInt(0);
     table_h.initTable(&klass.*.methods);
     return klass;
 }
-pub fn newClosure(function: [*c]ObjFunction) [*c]ObjClosure {
+pub fn newClosure(function: *ObjFunction) [*c]ObjClosure {
     // Allocate memory for upvalues array
     const upvalueCount = function.*.upvalueCount;
     var upvalues = @as([*c][*c]ObjUpvalue, @ptrCast(@alignCast(reallocate(null, 0, @intCast(@sizeOf([*c]ObjUpvalue) *% upvalueCount)))));
@@ -162,8 +162,8 @@ pub fn newClosure(function: [*c]ObjFunction) [*c]ObjClosure {
     return closure;
 }
 
-pub fn newFunction() [*c]ObjFunction {
-    const function: [*c]ObjFunction = @as([*c]ObjFunction, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjFunction), .OBJ_FUNCTION))));
+pub fn newFunction() *ObjFunction {
+    const function: *ObjFunction = @as(*ObjFunction, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjFunction), .OBJ_FUNCTION))));
     function.*.arity = 0;
     function.*.upvalueCount = 0;
     function.*.name = null;
@@ -171,15 +171,15 @@ pub fn newFunction() [*c]ObjFunction {
     return function;
 }
 
-pub fn newInstance(klass: [*c]ObjClass) [*c]ObjInstance {
-    const instance: [*c]ObjInstance = @as([*c]ObjInstance, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjInstance), .OBJ_INSTANCE))));
+pub fn newInstance(klass: *ObjClass) *ObjInstance {
+    const instance: *ObjInstance = @as(*ObjInstance, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjInstance), .OBJ_INSTANCE))));
     instance.*.klass = klass;
     table_h.initTable(&instance.*.fields);
     return instance;
 }
 
-pub fn newNative(function: NativeFn) [*c]ObjNative {
-    const native: [*c]ObjNative = @as([*c]ObjNative, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjNative), .OBJ_NATIVE))));
+pub fn newNative(function: NativeFn) *ObjNative {
+    const native: *ObjNative = @as(*ObjNative, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjNative), .OBJ_NATIVE))));
     native.*.function = function;
     return native;
 }
@@ -388,7 +388,7 @@ pub fn merge(left: ?*Node, right: ?*Node) ?*Node {
     return head;
 }
 
-pub fn printFunction(function: [*c]ObjFunction) void {
+pub fn printFunction(function: *ObjFunction) void {
     if (function.*.name == null) {
         print("<script>", .{});
         return;
@@ -729,7 +729,7 @@ pub fn printObject(value: Value) void {
             printFunction(bound_method.*.method.*.function);
         },
         .OBJ_CLASS => {
-            const class = @as([*c]ObjClass, @ptrCast(@alignCast(value.as.obj)));
+            const class = @as(*ObjClass, @ptrCast(@alignCast(value.as.obj)));
             print("{s}", .{zstr(class.*.name)});
         },
         .OBJ_CLOSURE => {
@@ -740,7 +740,7 @@ pub fn printObject(value: Value) void {
             printFunction(@ptrCast(@alignCast(value.as.obj)));
         },
         .OBJ_INSTANCE => {
-            const instance = @as([*c]ObjInstance, @ptrCast(@alignCast(value.as.obj)));
+            const instance = @as(*ObjInstance, @ptrCast(@alignCast(value.as.obj)));
             print("{s} instance", .{zstr(instance.*.klass.*.name)});
         },
         .OBJ_NATIVE => {

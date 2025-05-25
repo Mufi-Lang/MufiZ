@@ -129,7 +129,7 @@ pub fn freeObject(object: [*c]Obj) void {
             _ = reallocate(@ptrCast(object), @sizeOf(obj_h.ObjBoundMethod), 0);
         },
         .OBJ_CLASS => {
-            const klass: [*c]obj_h.ObjClass = @ptrCast(@alignCast(object));
+            const klass: *obj_h.ObjClass = @ptrCast(@alignCast(object));
             freeTable(&klass.*.methods);
             _ = reallocate(@ptrCast(object), @sizeOf(obj_h.ObjClass), 0);
         },
@@ -139,13 +139,13 @@ pub fn freeObject(object: [*c]Obj) void {
             _ = reallocate(@ptrCast(object), @sizeOf(obj_h.ObjClosure), 0);
         },
         .OBJ_FUNCTION => {
-            const function: [*c]obj_h.ObjFunction = @ptrCast(@alignCast(object));
+            const function: *obj_h.ObjFunction = @ptrCast(@alignCast(object));
 
             chunk_h.freeChunk(&function.*.chunk);
             _ = reallocate(@ptrCast(object), @sizeOf(obj_h.ObjFunction), 0);
         },
         .OBJ_INSTANCE => {
-            const instance: [*c]obj_h.ObjInstance = @ptrCast(@alignCast(object));
+            const instance: *obj_h.ObjInstance = @ptrCast(@alignCast(object));
             freeTable(&instance.*.fields);
             _ = reallocate(@ptrCast(object), @sizeOf(obj_h.ObjInstance), 0);
         },
@@ -190,7 +190,7 @@ pub fn blackenObject(object: [*c]Obj) void {
             markObject(@ptrCast(@alignCast(bound.*.method)));
         },
         .OBJ_CLASS => {
-            var klass: [*c]obj_h.ObjClass = @ptrCast(@alignCast(object));
+            var klass: *obj_h.ObjClass = @ptrCast(@alignCast(object));
             _ = &klass;
             markObject(@ptrCast(@alignCast(klass.*.name)));
             markTable(&klass.*.methods);
@@ -203,12 +203,12 @@ pub fn blackenObject(object: [*c]Obj) void {
             }
         },
         .OBJ_FUNCTION => {
-            const function: [*c]obj_h.ObjFunction = @ptrCast(@alignCast(object));
+            const function: *obj_h.ObjFunction = @ptrCast(@alignCast(object));
             markObject(@ptrCast(@alignCast(function.*.name)));
             markArray(&function.*.chunk.constants);
         },
         .OBJ_INSTANCE => {
-            const instance: [*c]obj_h.ObjInstance = @ptrCast(@alignCast(object));
+            const instance: *obj_h.ObjInstance = @ptrCast(@alignCast(object));
             markObject(@ptrCast(@alignCast(instance.*.klass)));
             markTable(&instance.*.fields);
         },
