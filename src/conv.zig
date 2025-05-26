@@ -39,7 +39,7 @@ pub fn what_is(val: Value) []const u8 {
 }
 
 /// Checks if the given range has the correct type
-pub fn type_check(n: usize, values: [*c]Value, val_type: i32) bool {
+pub fn type_check(n: usize, values: [*]Value, val_type: i32) bool {
     const check_fn = switch (val_type) {
         0 => &Value.is_int,
         1 => &Value.is_double,

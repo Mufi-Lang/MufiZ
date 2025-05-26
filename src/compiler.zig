@@ -4,6 +4,7 @@ const object_h = @import("object.zig");
 const chunk_h = @import("chunk.zig");
 const value_h = @import("value.zig");
 const vm_h = @import("vm.zig");
+const std = @import("std");
 const Token = scanner_h.Token;
 const TokenType = scanner_h.TokenType;
 const ObjFunction = object_h.ObjFunction;
@@ -74,10 +75,10 @@ pub var parser: Parser = undefined;
 pub var current: ?*Compiler = null;
 pub var currentClass: ?*ClassCompiler = null;
 
-pub fn currentChunk() [*c]Chunk {
+pub fn currentChunk() *Chunk {
     return &current.?.function.*.chunk;
 }
-pub fn errorAt(token: *Token, message: [*c]const u8) void {
+pub fn errorAt(token: *Token, message: [*]const u8) void {
     if (parser.panicMode) return;
     parser.panicMode = true;
     print("[line {d}] Error", .{token.*.line});
@@ -86,14 +87,18 @@ pub fn errorAt(token: *Token, message: [*c]const u8) void {
     } else if (token.*.type == .TOKEN_ERROR) {} else {
         print(" at '{s}'", .{token.*.start[0..@intCast(token.*.length)]});
     }
-    print(": {s}\n", .{message});
+    
+    // Convert the C-style string to a Zig-style string slice by calculating its length
+    var i: usize = 0;
+    while (message[i] != 0) : (i += 1) {}
+    print(": {s}\n", .{message[0..i]});
     parser.hadError = true;
 }
 
-pub fn @"error"(message: [*c]const u8) void {
+pub fn @"error"(message: [*]const u8) void {
     errorAt(&parser.previous, message);
 }
-pub fn errorAtCurrent(message: [*c]const u8) void {
+pub fn errorAtCurrent(message: [*]const u8) void {
     errorAt(&parser.current, message);
 }
 
@@ -105,7 +110,7 @@ pub fn advance() void {
         errorAtCurrent(parser.current.start);
     }
 }
-pub fn consume(type_: TokenType, message: [*c]const u8) void {
+pub fn consume(type_: TokenType, message: [*]const u8) void {
     if (parser.current.type == type_) {
         advance();
         return;
@@ -170,8 +175,10 @@ pub fn patchJump(offset: i32) void {
         @"error"("Too much code to jump over.");
     }
 
-    currentChunk().*.code[@intCast(offset)] = @intCast((jump >> 8) & 255);
-    currentChunk().*.code[@intCast(offset + 1)] = @intCast(jump & 255);
+    if (currentChunk().*.code) |code| {
+        code[@intCast(offset)] = @intCast((jump >> 8) & 255);
+        code[@intCast(offset + 1)] = @intCast(jump & 255);
+    }
 }
 pub fn initCompiler(compiler: *Compiler, type_: FunctionType) void {
     compiler.*.enclosing = current;
@@ -234,7 +241,7 @@ pub fn endCompiler() *ObjFunction {
 
     if (debug_opts.print_code) {
         if (!parser.hadError) {
-            const name: [*c]u8 = if (function_1.*.name != null) function_1.*.name.*.chars else @ptrCast(@constCast("<script>"));
+            const name: [*]u8 = if (function_1.*.name != null) function_1.*.name.*.chars else @ptrCast("<script>");
             debug_h.disassembleChunk(currentChunk(), name);
         }
     }
@@ -394,7 +401,7 @@ pub fn identifierConstant(name: *Token) u8 {
     return makeConstant(Value{
         .type = .VAL_OBJ,
         .as = .{
-            .obj = @as([*c]object_h.Obj, @ptrCast(@alignCast(object_h.copyString(name.*.start, name.*.length)))),
+            .obj = @ptrCast(object_h.copyString(name.*.start, name.*.length)),
         },
     });
 }
@@ -491,8 +498,8 @@ pub fn declareVariable() void {
     }
     addLocal(name.*);
 }
-pub fn parseVariable(errorMessage: [*c]const u8) u8 {
-    consume(.TOKEN_IDENTIFIER, errorMessage);
+pub fn parseVariable(message: [*]const u8) u8 {
+    consume(.TOKEN_IDENTIFIER, message);
     declareVariable();
     if (current.?.scopeDepth > 0) return 0;
     return identifierConstant(&parser.previous);
@@ -676,7 +683,7 @@ pub fn string(canAssign: bool) void {
     emitConstant(Value{
         .type = .VAL_OBJ,
         .as = .{
-            .obj = @as([*c]object_h.Obj, @ptrCast(@alignCast(object_h.copyString(start, length)))),
+            .obj = @ptrCast(object_h.copyString(start, length)),
         },
     });
 }
@@ -792,11 +799,13 @@ pub fn variable(canAssign: bool) void {
     namedVariable(parser.previous, canAssign);
 }
 
-pub fn syntheticToken(text: [*c]const u8) Token {
+pub fn syntheticToken(text: [*]const u8) Token {
+    // Calculate the length to create a proper slice
+    const length = scanner_h.strlen(text);
     var token: Token = Token{
         .type = .TOKEN_IDENTIFIER,
         .start = @ptrCast(@constCast(text)),
-        .length = @as(i32, @bitCast(@as(c_uint, @truncate(scanner_h.strlen(text))))),
+        .length = @as(i32, @intCast(length)),
         .line = 0,
     };
     _ = &token;
@@ -1102,7 +1111,7 @@ pub fn function(type_: FunctionType) void {
     emitBytes(@intCast(@intFromEnum(OpCode.OP_CLOSURE)), makeConstant(Value{
         .type = .VAL_OBJ,
         .as = .{
-            .obj = @as([*c]object_h.Obj, @ptrCast(@alignCast(function_1))),
+            .obj = @ptrCast(function_1),
         },
     }));
     {
@@ -1303,7 +1312,7 @@ pub fn synchronize() void {
     }
 }
 
-pub fn compile(source: [*c]const u8) ?*ObjFunction {
+pub fn compile(source: [*]const u8) ?*ObjFunction {
     scanner_h.init_scanner(@constCast(source));
     var compiler: Compiler = undefined;
     _ = &compiler;

@@ -18,7 +18,7 @@ const TABLE_MAX_LOAD: f64 = 0.75;
 pub const Table = extern struct {
     count: usize,
     capacity: usize,
-    entries: [*c]Entry,
+    entries: ?[*]Entry,
 };
 
 pub const Entry = extern struct {
@@ -34,17 +34,17 @@ pub fn initTable(table: *Table) void {
 }
 
 pub fn freeTable(table: *Table) void {
-    if (table.entries != null) {
-        _ = reallocate(@ptrCast(@alignCast(table.entries)), @intCast(table.capacity * @sizeOf(Entry)), 0);
+    if (table.entries) |entries| {
+        _ = reallocate(@ptrCast(entries), @intCast(@sizeOf(Entry) * table.capacity), 0);
     }
     initTable(table);
 }
 
-pub fn entries_(table: *Table) [*c]Entry {
-    return table.entries;
+pub fn entries_(table: *Table) [*]Entry {
+    return table.entries orelse unreachable;
 }
 
-pub fn findEntry(entries: [*c]Entry, capacity: i32, key: ?*ObjString) ?*Entry {
+pub fn findEntry(entries: [*]Entry, capacity: i32, key: ?*ObjString) ?*Entry {
     // Check for empty table or null key
     if (capacity <= 0 or key == null) {
         return null;
@@ -94,26 +94,26 @@ pub fn findEntry(entries: [*c]Entry, capacity: i32, key: ?*ObjString) ?*Entry {
 }
 
 pub fn tableGet(table: *Table, key: ?*ObjString, value: *Value) bool {
-    // Early validation
     if (table.count == 0 or key == null) return false;
     if (table.entries == null or table.capacity <= 0) return false;
 
-    const entry = findEntry(table.entries, @intCast(table.capacity), key);
-    // Check for null entry (could happen if findEntry fails)
-    if (entry == null) return false;
+    if (table.entries) |entries| {
+        const entry = findEntry(entries, @intCast(table.capacity), key);
+        // Check for null entry (could happen if findEntry fails)
+        if (entry == null) return false;
 
-    // Check if the entry is empty or deleted
-    if (entry.?.key == null or entry.?.deleted) return false;
-
-    // Found a valid entry, copy the value
-    value.* = entry.?.value;
-    return true;
+        if (entry.?.key == null or entry.?.deleted) return false;
+        value.* = entry.?.value;
+        return true;
+    } else {
+        return false;
+    }
 }
 
 pub fn adjustCapacity(table: *Table, capacity: i32) void {
     const new_size = @as(usize, @intCast(capacity)) * @sizeOf(Entry);
     const entries_ptr = reallocate(null, 0, new_size);
-    const entries: [*c]Entry = @ptrCast(@alignCast(entries_ptr));
+    const entries: [*]Entry = @ptrCast(@alignCast(entries_ptr));
 
     for (0..@intCast(capacity)) |i| {
         entries[i].key = null;
@@ -121,10 +121,10 @@ pub fn adjustCapacity(table: *Table, capacity: i32) void {
         entries[i].deleted = false;
     }
     table.count = 0;
-
+    // Copy all entries to new table
     if (table.entries != null) {
-        for (0..table.capacity) |i| {
-            const entry = &table.entries[i];
+        for (0..@intCast(table.capacity)) |i| {
+            const entry = &table.entries.?[i];
             if (entry.key == null) continue;
             const dest = findEntry(entries, capacity, entry.key);
             if (dest) |d| {
@@ -151,7 +151,7 @@ pub fn tableSet(table: *Table, key: ?*ObjString, value: Value) bool {
 
     if (table.entries == null) return false;
 
-    const entry = findEntry(table.entries, @intCast(table.capacity), key);
+    const entry = findEntry(table.entries.?, @intCast(table.capacity), key);
     if (entry) |validEntry| {
         const isNewKey: bool = validEntry.key == null or validEntry.deleted;
         if (isNewKey and (validEntry.value.type == .VAL_NIL)) {
@@ -170,14 +170,16 @@ pub fn tableSet(table: *Table, key: ?*ObjString, value: Value) bool {
 }
 
 pub fn tableDelete(table: *Table, key: ?*ObjString) bool {
-    if (key == null or table.count == 0) return false;
+    if (table.count == 0) return false;
     if (table.entries == null) return false;
 
-    const entry = findEntry(table.entries, @intCast(table.capacity), key);
-    if (entry) |validEntry| {
-        if (validEntry.key == null or validEntry.deleted) return false;
-        validEntry.deleted = true;
-        return true;
+    if (table.entries) |entries| {
+        const entry = findEntry(entries, @intCast(table.capacity), key);
+        if (entry) |validEntry| {
+            if (validEntry.key == null or validEntry.deleted) return false;
+            validEntry.deleted = true;
+            return true;
+        }
     }
     return false;
 }
@@ -185,11 +187,13 @@ pub fn tableDelete(table: *Table, key: ?*ObjString) bool {
 pub fn tableAddAll(from: *Table, to: *Table) void {
     if (from.entries == null) return;
 
-    var i: usize = 0;
-    while (i < from.capacity) : (i += 1) {
-        const entry = &from.entries[i];
-        if (entry.key != null and !entry.deleted) {
-            _ = tableSet(to, entry.key, entry.value);
+    if (from.entries) |entries| {
+        var i: usize = 0;
+        while (i < from.capacity) : (i += 1) {
+            const entry = &entries[i];
+            if (entry.key != null and !entry.deleted) {
+                _ = tableSet(to, entry.key, entry.value);
+            }
         }
     }
 }
@@ -203,35 +207,37 @@ pub fn tableFindString(table: *Table, chars: [*]const u8, length: i32, hash: u64
     var index: usize = @as(usize, @intCast(hash & @as(u64, @intCast(cap -| 1))));
 
     // Get entries array
-    const entries = table.entries;
+    if (table.entries) |entries| {
+        while (true) {
+            const entry = &entries[index];
+            const key = entry.key;
 
-    while (true) {
-        const entry = &entries[index];
-        const key = entry.key;
-
-        // Check for empty slot
-        if (key == null) {
-            if (entry.value.type == .VAL_NIL) return null;
-        } else if (!entry.deleted) {
-            // Check string matches
-            if (key.?.length == length and key.?.hash == hash) {
-                // Compare contents
-                if (memcmp(@ptrCast(key.?.chars), @ptrCast(chars), @intCast(length)) == 0) {
-                    return key;
+            // Check for empty slot
+            if (key == null) {
+                if (entry.value.type == .VAL_NIL) return null;
+            } else if (!entry.deleted) {
+                // Check string matches
+                if (key.?.length == length and key.?.hash == hash) {
+                    // Compare contents
+                    if (memcmp(@ptrCast(key.?.chars), @ptrCast(chars), @intCast(length)) == 0) {
+                        return key;
+                    }
                 }
             }
-        }
 
-        // Move to next slot
-        index = (index +% 1) & @as(usize, @intCast(cap -| 1));
+            // Check next slot (linear probing)
+            index = (index + 1) & @as(usize, @intCast(cap - 1));
+        }
     }
+    
+    return null;
 }
 
 pub fn tableRemoveWhite(table: *Table) void {
     if (table.entries == null) return;
 
-    for (0..table.capacity) |i| {
-        const entry = &table.entries[i];
+    for (0..@intCast(table.capacity)) |i| {
+        const entry = &table.entries.?[i];
         if (entry.key != null and !entry.key.?.obj.isMarked) {
             _ = tableDelete(table, entry.key);
         }
@@ -245,11 +251,13 @@ inline fn markValue(value: Value) void {
 pub fn markTable(table: *Table) void {
     if (table.entries == null) return;
 
-    for (0..table.capacity) |i| {
-        const entry = &table.entries[i];
-        if (entry.key) |key| {
-            markObject(@ptrCast(@alignCast(key)));
+    if (table.entries) |entries| {
+        for (0..@intCast(table.capacity)) |i| {
+            const entry = &entries[i];
+            if (entry.key) |key| {
+                markObject(@ptrCast(key));
+            }
+            markValue(entry.value);
         }
-        markValue(entry.value);
     }
 }

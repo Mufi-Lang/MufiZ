@@ -28,7 +28,7 @@ pub const GCState = enum(i32) {
 pub const GCData = struct {
     state: GCState = .GC_IDLE,
     rootIndex: usize = 0,
-    sweepingObject: [*c]Obj = null,
+    sweepingObject: ?*Obj = null,
 };
 
 pub var gcData: GCData = .{};
@@ -80,24 +80,27 @@ pub fn reallocate(pointer: ?*anyopaque, oldSize: usize, newSize: usize) ?*anyopa
     return result;
 }
 
-pub fn markObject(object: [*c]Obj) void {
-    if (object == null or object.*.isMarked) return;
+pub fn markObject(object: ?*Obj) void {
+    if (object == null) return;
+    
+    const obj = object.?;
+    if (obj.isMarked) return;
 
     if (debug_opts.log_gc) {
-        print("{p} mark ", .{@as(*anyopaque, @ptrCast(@alignCast(object)))});
-        value_h.printValue(value_h.OBJ_VAL(object));
+        print("{p} mark ", .{@as(*anyopaque, @ptrCast(obj))});
+        value_h.printValue(value_h.OBJ_VAL(obj));
         print("\n", .{});
     }
 
-    object.*.isMarked = true;
+    obj.isMarked = true;
     if (vm_h.vm.grayCapacity < (vm_h.vm.grayCount + 1)) {
         vm_h.vm.grayCapacity = if (vm_h.vm.grayCapacity < 8) 8 else vm_h.vm.grayCapacity * 2;
-        vm_h.vm.grayStack = @ptrCast(@alignCast(realloc(@ptrCast(vm_h.vm.grayStack), @intCast(@sizeOf([*c]Obj) *% vm_h.vm.grayCapacity))));
+        vm_h.vm.grayStack = @ptrCast(@alignCast(realloc(@ptrCast(vm_h.vm.grayStack), @intCast(@sizeOf(*Obj) *% vm_h.vm.grayCapacity))));
     }
     vm_h.vm.grayCount += 1;
-    vm_h.vm.grayStack[@intCast(vm_h.vm.grayCount)] = object;
-    if (vm_h.vm.grayStack == null)
-        exit(1);
+    if (vm_h.vm.grayStack) |stack| {
+        stack[@intCast(vm_h.vm.grayCount - 1)] = @ptrCast(@alignCast(obj));
+    }
 }
 
 pub fn markValue(value: Value) void {
@@ -112,30 +115,32 @@ pub fn collectGarbage() void {
 }
 
 pub fn freeObjects() void {
-    var object: [*c]Obj = vm_h.vm.objects;
-    while (object != null) {
-        const next = object.*.next;
-        freeObject(object);
+    var object: ?*Obj = vm_h.vm.objects;
+    while (object) |current| {
+        const next = current.next;
+        freeObject(@ptrCast(@alignCast(current)));
         object = next;
     }
-    free(@ptrCast(vm_h.vm.grayStack));
+    if (vm_h.vm.grayStack) |stack| {
+        free(@ptrCast(stack));
+    }
 }
 
-pub fn freeObject(object: [*c]Obj) void {
-    if (debug_opts.log_gc) print("{p} free type {any}\n", .{ @as(*anyopaque, @ptrCast(@alignCast(object))), object.*.type });
+pub fn freeObject(object: *Obj) void {
+    if (debug_opts.log_gc) print("{p} free type {any}\n", .{ @as(*anyopaque, @ptrCast(object)), object.*.type });
 
     switch (object.*.type) {
         .OBJ_BOUND_METHOD => {
             _ = reallocate(@ptrCast(object), @sizeOf(obj_h.ObjBoundMethod), 0);
         },
         .OBJ_CLASS => {
-            const klass: *obj_h.ObjClass = @ptrCast(@alignCast(object));
+            const klass: *obj_h.ObjClass = @ptrCast(object);
             freeTable(&klass.*.methods);
             _ = reallocate(@ptrCast(object), @sizeOf(obj_h.ObjClass), 0);
         },
         .OBJ_CLOSURE => {
-            const closure: [*c]obj_h.ObjClosure = @ptrCast(@alignCast(object));
-            _ = reallocate(@ptrCast(closure.*.upvalues), @intCast(@sizeOf([*c]obj_h.ObjUpvalue) *% closure.*.upvalueCount), 0);
+            const closure: *obj_h.ObjClosure = @ptrCast(@alignCast(object));
+            _ = reallocate(@ptrCast(closure.*.upvalues), @intCast(@sizeOf(?*obj_h.ObjUpvalue) *% closure.*.upvalueCount), 0);
             _ = reallocate(@ptrCast(object), @sizeOf(obj_h.ObjClosure), 0);
         },
         .OBJ_FUNCTION => {
@@ -176,16 +181,16 @@ pub fn freeObject(object: [*c]Obj) void {
     }
 }
 
-pub fn blackenObject(object: [*c]Obj) void {
+pub fn blackenObject(object: *Obj) void {
     if (debug_opts.log_gc) {
-        print("{p} blacken ", .{@as(*anyopaque, @ptrCast(@alignCast(object)))});
-        value_h.printValue(value_h.OBJ_VAL(@ptrCast(@alignCast(object))));
+        print("{p} blacken ", .{@as(*anyopaque, @ptrCast(object))});
+        value_h.printValue(value_h.OBJ_VAL(object));
         print("\n", .{});
     }
 
     switch (object.*.type) {
         .OBJ_BOUND_METHOD => {
-            const bound: [*c]obj_h.ObjBoundMethod = @ptrCast(@alignCast(object));
+            const bound: *obj_h.ObjBoundMethod = @ptrCast(object);
             markValue(bound.*.receiver);
             markObject(@ptrCast(@alignCast(bound.*.method)));
         },
@@ -196,10 +201,12 @@ pub fn blackenObject(object: [*c]Obj) void {
             markTable(&klass.*.methods);
         },
         .OBJ_CLOSURE => {
-            const closure: [*c]obj_h.ObjClosure = @ptrCast(@alignCast(object));
+            const closure: *obj_h.ObjClosure = @ptrCast(@alignCast(object));
             markObject(@ptrCast(@alignCast(closure.*.function)));
             for (0..@intCast(closure.*.upvalueCount)) |i| {
-                markObject(@ptrCast(@alignCast(closure.*.upvalues[i])));
+                if (closure.upvalues.?[i]) |upvalue| {
+                    markObject(@ptrCast(@alignCast(upvalue)));
+                }
             }
         },
         .OBJ_FUNCTION => {
@@ -213,10 +220,10 @@ pub fn blackenObject(object: [*c]Obj) void {
             markTable(&instance.*.fields);
         },
         .OBJ_UPVALUE => {
-            markValue(@as([*c]obj_h.ObjUpvalue, @ptrCast(@alignCast(object))).*.closed);
+            markValue(@as(*obj_h.ObjUpvalue, @ptrCast(@alignCast(object))).*.closed);
         },
         // .OBJ_ARRAY => {
-        //     const array: [*c]obj_h.ObjArray = @ptrCast(@alignCast(object));
+        //     const array: *obj_h.ObjArray = @ptrCast(object);
         //     for (0..@intCast(array.*.count)) |i| {
         //         markValue(array.*.values[i]);
         //     }
@@ -238,7 +245,7 @@ pub fn blackenObject(object: [*c]Obj) void {
     }
 }
 
-pub fn markArray(array: [*c]value_h.ValueArray) void {
+pub fn markArray(array: *value_h.ValueArray) void {
     for (0..@intCast(array.*.count)) |i| {
         markValue(array.*.values[i]);
     }
@@ -270,10 +277,11 @@ pub fn incrementalGC() void {
                     markTable(&vm_h.vm.strings);
                     markObject(@ptrCast(@alignCast(vm_h.vm.initString)));
 
-                    var upvalue: [*c]obj_h.ObjUpvalue = vm_h.vm.openUpvalues;
+                    var upvalue: ?*obj_h.ObjUpvalue = vm_h.vm.openUpvalues;
 
-                    while (upvalue != null) : (upvalue = upvalue.*.next) {
-                        markObject(@ptrCast(@alignCast(upvalue)));
+                    while (upvalue) |current| {
+                        markObject(@ptrCast(@alignCast(current)));
+                        upvalue = current.next;
                     }
 
                     gcData.state = .GC_TRACING;
@@ -282,9 +290,11 @@ pub fn incrementalGC() void {
             .GC_TRACING => {
                 while ((vm_h.vm.grayCount > 0) and (workDone < INCREMENT_LIMIT)) {
                     vm_h.vm.grayCount -= 1;
-                    const object = vm_h.vm.grayStack[@intCast(vm_h.vm.grayCount)];
-                    blackenObject(object);
-                    workDone += 1;
+                    if (vm_h.vm.grayStack) |stack| {
+                        const object = stack[@intCast(vm_h.vm.grayCount)];
+                        blackenObject(@ptrCast(@alignCast(object)));
+                        workDone += 1;
+                    }
                 }
                 if (vm_h.vm.grayCount == 0) {
                     gcData.state = .GC_SWEEPING;
@@ -293,15 +303,17 @@ pub fn incrementalGC() void {
             },
             .GC_SWEEPING => {
                 while ((gcData.sweepingObject != null) and (workDone < INCREMENT_LIMIT)) {
-                    const next: [*c]Obj = gcData.sweepingObject.*.next;
-                    if (!gcData.sweepingObject.*.isMarked) {
-                        freeObject(gcData.sweepingObject);
-                        vm_h.vm.objects = next;
-                    } else {
-                        gcData.sweepingObject.*.isMarked = false;
+                    if (gcData.sweepingObject) |current| {
+                        const next: ?*Obj = current.next;
+                        if (!current.isMarked) {
+                            freeObject(@ptrCast(@alignCast(current)));
+                            vm_h.vm.objects = next;
+                        } else {
+                            current.isMarked = false;
+                        }
+                        gcData.sweepingObject = next;
+                        workDone += 1;
                     }
-                    gcData.sweepingObject = next;
-                    workDone += 1;
                 }
                 if (gcData.sweepingObject == null) {
                     gcData.state = .GC_IDLE;

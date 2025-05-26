@@ -15,7 +15,7 @@ const print = std.debug.print;
 //     count: Int,
 //     pos: Int,
 //     _static: bool,
-//     values: [*c]Value,
+//     values: [*]Value,
 
 //     const Self = [*c]@This();
 //     const Int = i32;

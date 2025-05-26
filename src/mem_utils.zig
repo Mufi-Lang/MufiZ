@@ -274,9 +274,7 @@ test "memcpyFast test" {
 ///
 /// @return Length of the string, not including the null terminator
 ///
-pub fn strlen(s: [*c]const u8) usize {
-    if (s == null) return 0;
-
+pub fn strlen(s: [*]const u8) usize {
     const start_ptr = s;
     var ptr = s;
 
@@ -400,8 +398,8 @@ test "strlen test" {
 }
 
 pub fn memcmp(s1: ?*const anyopaque, s2: ?*const anyopaque, n: usize) i32 {
-    const str1: [*c]const u8 = @ptrCast(s1.?);
-    const str2: [*c]const u8 = @ptrCast(s2.?);
+    const str1: [*]const u8 = @ptrCast(s1.?);
+    const str2: [*]const u8 = @ptrCast(s2.?);
     const num: usize = @intCast(n);
 
     if (num == 0) return 0;

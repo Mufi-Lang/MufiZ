@@ -114,7 +114,7 @@ pub const Scanner = struct {
 
 var scanner: Scanner = undefined;
 
-pub fn init_scanner(source: [*c]u8) void {
+pub fn init_scanner(source: [*]u8) void {
     scanner.start = @ptrCast(source);
     scanner.current = @ptrCast(source);
     scanner.line = 1;
@@ -159,7 +159,7 @@ pub fn make_token(type_: TokenType) Token {
     };
 }
 
-pub fn errorToken(message: [*c]u8) Token {
+pub fn errorToken(message: [*]u8) Token {
     return .{
         .type = TokenType.TOKEN_ERROR,
         .start = @ptrCast(message),

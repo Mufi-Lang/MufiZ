@@ -53,29 +53,29 @@ pub const STACK_MAX = FRAMES_MAX * UINT8_COUNT;
 pub const UINT8_COUNT = UINT8_MAX + 1;
 pub const UINT8_MAX: i32 = @intCast(std.math.maxInt(u8));
 
-pub const CallFrame = extern struct {
-    closure: [*c]ObjClosure,
+pub const CallFrame = struct {
+    closure: *ObjClosure,
     ip: [*c]u8,
-    slots: [*c]Value,
+    slots: [*]Value,
 };
 
 pub const VM = struct {
     frames: [64]CallFrame = std.mem.zeroes([64]CallFrame),
     frameCount: i32 = 0,
-    chunk: [*c]Chunk = null,
-    ip: [*c]u8 = null,
+    chunk: ?*Chunk = null,
+    ip: [*]u8,
     stack: [16384]Value,
-    stackTop: [*c]Value = null,
+    stackTop: [*]Value = undefined,
     globals: Table,
     strings: Table,
     initString: ?*ObjString = null,
-    openUpvalues: [*c]ObjUpvalue = null,
+    openUpvalues: ?*ObjUpvalue = null,
     bytesAllocated: u128 = 0,
     nextGC: u128 = 1024 * 1024,
-    objects: [*c]Obj = null,
+    objects: ?*Obj = null,
     grayCount: i32 = 0,
     grayCapacity: i32 = 0,
-    grayStack: [*c][*c]Obj = null,
+    grayStack: ?[*][*]Obj = null,
 };
 
 pub fn initVM() void {
@@ -116,13 +116,13 @@ inline fn next_frame_count() i32 {
 inline fn set_stack_top(argc: i32, value: Value) void {
     const tmp = -argc - 1;
     // if (tmp >= 0) break :blk vm.stackTop + @as(usize, @intCast(tmp)) else break :blk vm.stackTop - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    var ref: [*c]Value = null;
+    var ref: [*]Value = undefined;
     if (tmp >= 0) {
         ref = vm.stackTop + @as(usize, @intCast(tmp));
     } else {
         ref = vm.stackTop - @as(usize, @intCast(-tmp - 1));
     }
-    ref.* = value;
+    ref[0] = value;
 }
 
 const initTable = table_h.initTable;
@@ -141,7 +141,7 @@ pub fn runtimeError(comptime format: []const u8, args: anytype) void {
         const function = frame.*.closure.*.function;
         const instruction: usize = @intFromPtr(frame.ip) - @intFromPtr(function.*.chunk.code) - 1;
 
-        stderr.print("[line {d}] in ", .{function.*.chunk.lines[instruction]}) catch {};
+        stderr.print("[line {d}] in ", .{function.*.chunk.lines.?[instruction]}) catch {};
 
         if (function.*.name == null) {
             stderr.writeAll("script\n") catch {};
@@ -149,7 +149,8 @@ pub fn runtimeError(comptime format: []const u8, args: anytype) void {
             const nameObj = function.*.name.?;
             const name = nameObj.chars;
             const len: usize = @intCast(nameObj.length);
-            stderr.print("{s}()\n", .{name[0..len]}) catch {};
+            const nameSlice = name[0..len];
+            stderr.print("{s}()\n", .{nameSlice}) catch {};
         }
     }
 
@@ -236,20 +237,26 @@ inline fn zstr(s: ?*ObjString) []u8 {
 pub fn interpret(source: [*c]const u8) InterpretResult {
     const function: ?*ObjFunction = compiler_h.compile(source);
     if (function == null) return .INTERPRET_COMPILE_ERROR;
-    push(Value.init_obj(@ptrCast(@alignCast(function))));
-    const closure: [*c]ObjClosure = object_h.newClosure(@ptrCast(function));
+    push(Value{
+        .type = .VAL_OBJ,
+        .as = .{ .obj = @ptrCast(@alignCast(function)) },
+    });
+    const closure: *ObjClosure = object_h.newClosure(@ptrCast(function));
     _ = pop();
-    push(Value.init_obj(@ptrCast(@alignCast(closure))));
+    push(Value{
+        .type = .VAL_OBJ,
+        .as = .{ .obj = @ptrCast(@alignCast(closure)) },
+    });
     _ = call(closure, 0);
     return run();
 }
 pub fn push(value: Value) void {
-    vm.stackTop.* = value;
+    vm.stackTop[0] = value;
     vm.stackTop += 1;
 }
 pub fn pop() Value {
     vm.stackTop -= 1;
-    return vm.stackTop.*;
+    return vm.stackTop[0];
 }
 pub fn defineNative(name: [*c]const u8, function: NativeFn) void {
     // Push the name string and the function object onto the stack
@@ -266,7 +273,7 @@ pub fn defineNative(name: [*c]const u8, function: NativeFn) void {
 }
 
 pub fn resetStack() void {
-    vm.stackTop = @as([*c]Value, @ptrCast(@alignCast(&vm.stack)));
+    vm.stackTop = @ptrCast(&vm.stack);
     vm.frameCount = 0;
     vm.openUpvalues = null;
 }
@@ -274,13 +281,13 @@ pub fn resetStack() void {
 pub fn peek(distance: i32) Value {
     const tmp = -1 - distance;
     if (tmp >= 0) {
-        return (vm.stackTop + @as(usize, @intCast(tmp))).*;
+        return (vm.stackTop + @as(usize, @intCast(tmp)))[0];
     } else {
-        return (vm.stackTop - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1))).*;
+        return (vm.stackTop - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1)))[0];
     }
 }
 
-pub fn call(closure: [*c]ObjClosure, argCount: i32) bool {
+pub fn call(closure: *ObjClosure, argCount: i32) bool {
     if (argCount != closure.*.function.*.arity) {
         runtimeError("Expected {d} arguments but got {d}.", .{ closure.*.function.*.arity, argCount });
         return false;
@@ -289,12 +296,12 @@ pub fn call(closure: [*c]ObjClosure, argCount: i32) bool {
         runtimeError("Stack overflow.", .{});
         return false;
     }
-    const frame: [*c]CallFrame = &vm.frames[@intCast(next_frame_count())];
+    const frame: *CallFrame = &vm.frames[@intCast(next_frame_count())];
     frame.*.closure = closure;
     frame.*.ip = closure.*.function.*.chunk.code;
 
     // The slots pointer should point to the first argument, which is 'self' for methods
-    frame.*.slots = vm.stackTop - @as(usize, @intCast(argCount + 1));
+    frame.*.slots = @ptrFromInt(@intFromPtr(vm.stackTop) - @sizeOf(Value) * @as(usize, @intCast(argCount + 1)));
 
     return true;
 }
@@ -302,7 +309,7 @@ pub fn callValue(callee: Value, argCount: i32) bool {
     if (callee.type == .VAL_OBJ) {
         switch (callee.as.obj.*.type) {
             .OBJ_BOUND_METHOD => {
-                const bound: [*c]ObjBoundMethod = @as([*c]ObjBoundMethod, @ptrCast(@alignCast(callee.as.obj)));
+                const bound: *ObjBoundMethod = @as(*ObjBoundMethod, @ptrCast(@alignCast(callee.as.obj)));
 
                 set_stack_top(argCount, bound.*.receiver);
                 return call(bound.*.method, argCount);
@@ -320,7 +327,7 @@ pub fn callValue(callee: Value, argCount: i32) bool {
                 const selfSlot = vm.stackTop - @as(usize, @intCast(argCount + 1));
 
                 // Set the selfSlot to the instance value - this ensures 'self' is available in methods
-                selfSlot.* = instanceValue;
+                selfSlot[0] = instanceValue;
 
                 // Call initializer if it exists
                 if (vm.initString != null) {
@@ -332,7 +339,7 @@ pub fn callValue(callee: Value, argCount: i32) bool {
                             return false;
                         }
 
-                        return call(@as([*c]ObjClosure, @ptrCast(@alignCast(initializer.as.obj))), argCount);
+                        return call(@as(*ObjClosure, @ptrCast(@alignCast(initializer.as.obj))), argCount);
                     } else if (argCount != 0) {
                         runtimeError("Expected 0 arguments but got {d}.", .{argCount});
                         return false;
@@ -341,7 +348,7 @@ pub fn callValue(callee: Value, argCount: i32) bool {
 
                 return true;
             },
-            .OBJ_CLOSURE => return call(@as([*c]ObjClosure, @ptrCast(@alignCast(callee.as.obj))), argCount),
+            .OBJ_CLOSURE => return call(@as(*ObjClosure, @ptrCast(@alignCast(callee.as.obj))), argCount),
             .OBJ_INSTANCE => {
                 const klass: *ObjClass = @ptrCast(@alignCast(callee.as.obj));
                 set_stack_top(argCount, Value.init_obj(@ptrCast(@alignCast(object_h.newInstance(klass)))));
@@ -418,40 +425,40 @@ pub fn bindMethod(klass: *ObjClass, name: *ObjString) bool {
         runtimeError("Undefined property '{s}'.", .{zstr(name)});
         return false;
     }
-    const bound: [*c]ObjBoundMethod = object_h.newBoundMethod(peek(0), @ptrCast(@alignCast(method.as.obj)));
+    const bound: *ObjBoundMethod = object_h.newBoundMethod(peek(0), @ptrCast(@alignCast(method.as.obj)));
     _ = pop();
     push(Value.init_obj(@ptrCast(@alignCast(bound))));
     return true;
 }
 
-pub fn captureUpvalue(local: [*c]Value) [*c]ObjUpvalue {
-    var prevUpvalue: [*c]ObjUpvalue = null;
+pub fn captureUpvalue(local: [*]Value) *ObjUpvalue {
+    var prevUpvalue: ?*ObjUpvalue = null;
 
-    var upvalue: [*c]ObjUpvalue = vm.openUpvalues;
+    var upvalue: ?*ObjUpvalue = vm.openUpvalues;
 
-    while ((upvalue != null) and (upvalue.*.location > local)) {
+    while ((upvalue != null) and (@intFromPtr(upvalue.?.location) > @intFromPtr(local))) {
         prevUpvalue = upvalue;
-        upvalue = upvalue.*.next;
+        upvalue = upvalue.?.next;
     }
-    while ((upvalue != null) and (upvalue.*.location == local)) {
-        return upvalue;
+    while ((upvalue != null) and (upvalue.?.location == local)) {
+        return upvalue.?;
     }
-    const createdUpvalue: [*c]ObjUpvalue = object_h.newUpvalue(local);
+    const createdUpvalue: *ObjUpvalue = object_h.newUpvalue(local);
     createdUpvalue.*.next = upvalue;
     if (prevUpvalue == null) {
         vm.openUpvalues = createdUpvalue;
     } else {
-        prevUpvalue.*.next = createdUpvalue;
+        prevUpvalue.?.next = createdUpvalue;
     }
     return createdUpvalue;
 }
 
-pub fn closeUpvalues(last: [*c]Value) void {
-    while ((vm.openUpvalues != null) and (vm.openUpvalues.*.location >= last)) {
-        var upvalue: [*c]ObjUpvalue = vm.openUpvalues;
+pub fn closeUpvalues(last: [*]Value) void {
+    while ((vm.openUpvalues != null) and (@intFromPtr(vm.openUpvalues.?.location) >= @intFromPtr(last))) {
+        var upvalue: *ObjUpvalue = vm.openUpvalues.?;
         _ = &upvalue;
-        upvalue.*.closed = upvalue.*.location.*;
-        upvalue.*.location = &upvalue.*.closed;
+        upvalue.*.closed = upvalue.*.location[0];
+        upvalue.*.location = @as([*]Value, @ptrCast(&upvalue.*.closed));
         vm.openUpvalues = upvalue.*.next;
     }
 }
@@ -476,7 +483,7 @@ pub fn setFloatVector(f: [*c]FloatVector, index: i32, value: f64) void {
     fvec._write(f, index, value);
 }
 
-inline fn get_slot(frame: [*c]CallFrame) u8 {
+fn get_slot(frame: *CallFrame) u8 {
     const ref = &frame.*.ip;
     const tmp = ref.*;
     ref.* += 1;
@@ -487,7 +494,7 @@ inline fn get_slot(frame: [*c]CallFrame) u8 {
 /// and advances the instruction pointer by 2 bytes.
 ///
 /// Returns: The 16-bit value read from bytecode
-fn readOffset(frame: [*c]CallFrame) u16 {
+fn readOffset(frame: *CallFrame) u16 {
     // Move instruction pointer forward by 2 bytes
     frame.*.ip += 2;
 
@@ -501,11 +508,11 @@ fn readOffset(frame: [*c]CallFrame) u16 {
 
 // now work on this
 pub fn run() InterpretResult {
-    var frame: [*c]CallFrame = &vm.frames[@intCast(vm.frameCount - 1)];
+    var frame: *CallFrame = &vm.frames[@intCast(vm.frameCount - 1)];
     if (debug_opts.trace_exec) {
         print("         ", .{});
 
-        var slot: [*c]Value = @ptrCast(@alignCast(&vm.stack));
+        var slot: [*]Value = @ptrCast(@alignCast(&vm.stack));
         while (slot < vm.stackTop) : (slot += 1) {
             print("[ ", .{});
             printValue(slot.*);
@@ -590,12 +597,16 @@ pub fn run() InterpretResult {
                 },
                 .OP_GET_UPVALUE => {
                     const slot = get_slot(frame);
-                    push(frame.*.closure.*.upvalues[slot].*.location.*);
+                    if (frame.*.closure.upvalues.?[slot]) |upvalue| {
+                        push(upvalue.*.location[0]);
+                    }
                     continue;
                 },
                 .OP_SET_UPVALUE => {
                     const slot = get_slot(frame);
-                    frame.*.closure.*.upvalues[slot].*.location.* = peek(0);
+                    if (frame.*.closure.*.upvalues.?[slot]) |upvalue| {
+                        upvalue.*.location[0] = peek(0);
+                    }
                     continue;
                 },
                 .OP_GET_PROPERTY => {
@@ -656,7 +667,8 @@ pub fn run() InterpretResult {
                         return .INTERPRET_RUNTIME_ERROR;
                     }
 
-                    print("OP_GET_SUPER: Using superclass: {s}\n", .{zstr(superclass.?.name)});
+                    const superName = zstr(superclass.?.name);
+                    print("OP_GET_SUPER: Using superclass: {s}\n", .{superName});
 
                     // Look up the method in the superclass
                     var method_value: Value = undefined;
@@ -670,7 +682,8 @@ pub fn run() InterpretResult {
                     _ = pop(); // Pop the instance
                     push(Value.init_obj(@ptrCast(@alignCast(bound))));
 
-                    print("OP_GET_SUPER: Found and bound method '{s}' in superclass\n", .{zstr(name)});
+                    const nameStr = zstr(name);
+                    print("OP_GET_SUPER: Found and bound method '{s}' in superclass\n", .{nameStr});
                     continue;
                 },
 
@@ -882,7 +895,8 @@ pub fn run() InterpretResult {
                         return .INTERPRET_RUNTIME_ERROR;
                     }
 
-                    print("OP_SUPER_INVOKE: Using superclass: {s}\n", .{zstr(superclass.?.name)});
+                    const superName = zstr(superclass.?.name);
+                    print("OP_SUPER_INVOKE: Using superclass: {s}\n", .{superName});
 
                     // Get the method from the superclass
                     var method_value: Value = undefined;
@@ -891,7 +905,8 @@ pub fn run() InterpretResult {
                         return .INTERPRET_RUNTIME_ERROR;
                     }
 
-                    print("OP_SUPER_INVOKE: Found method '{s}' in superclass\n", .{zstr(method)});
+                    const methodName = zstr(method);
+                    print("OP_SUPER_INVOKE: Found method '{s}' in superclass\n", .{methodName});
 
                     // Call the method directly to avoid recursion
                     if (!invokeFromClass(superclass, method, argCount)) {
@@ -906,7 +921,7 @@ pub fn run() InterpretResult {
                         get_slot(frame)
                     ].as.obj)));
 
-                    const closure: [*c]ObjClosure = object_h.newClosure(function);
+                    const closure: *ObjClosure = object_h.newClosure(function);
 
                     push(Value.init_obj(@ptrCast(@alignCast(closure))));
 
@@ -916,17 +931,17 @@ pub fn run() InterpretResult {
 
                         if (isLocal != 0) {
                             // Local variable being captured
-                            closure.*.upvalues[i] = captureUpvalue(frame.*.slots + @as(usize, @intCast(index)));
+                            closure.upvalues.?[i] = captureUpvalue(frame.*.slots + @as(usize, @intCast(index)));
                         } else {
                             // Upvalue from enclosing function
-                            closure.*.upvalues[i] = frame.*.closure.*.upvalues[index];
+                            closure.upvalues.?[i] = frame.*.closure.upvalues.?[index];
                         }
                     }
 
                     continue;
                 },
                 .OP_CLOSE_UPVALUE => {
-                    closeUpvalues(vm.stackTop - @as(usize, @bitCast(@as(isize, @intCast(1)))));
+                    closeUpvalues(@ptrFromInt(@intFromPtr(vm.stackTop) - @sizeOf(Value)));
                     _ = pop();
                     continue;
                 },

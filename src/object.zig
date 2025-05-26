@@ -57,23 +57,23 @@ pub const ObjFunction = struct {
     name: ?*ObjString,
 };
 
-pub const NativeFn = ?*const fn (i32, [*c]Value) Value;
+pub const NativeFn = ?*const fn (i32, [*]Value) Value;
 pub const ObjNative = struct {
     obj: Obj,
     function: NativeFn,
 };
 
-pub const ObjUpvalue = extern struct {
+pub const ObjUpvalue = struct {
     obj: Obj,
-    location: [*c]Value,
+    location: [*]Value,
     closed: Value,
-    next: [*c]ObjUpvalue,
+    next: ?*ObjUpvalue,
 };
 
-pub const ObjClosure = extern struct {
+pub const ObjClosure = struct {
     obj: Obj,
     function: *ObjFunction,
-    upvalues: [*c][*c]ObjUpvalue,
+    upvalues: ?[*]?*ObjUpvalue,
     upvalueCount: i32,
 };
 pub const ObjClass = struct {
@@ -87,19 +87,23 @@ pub const ObjInstance = struct {
     klass: *ObjClass,
     fields: Table,
 };
-pub const ObjBoundMethod = extern struct {
+pub const ObjBoundMethod = struct {
     obj: Obj,
     receiver: Value,
-    method: [*c]ObjClosure,
+    method: *ObjClosure,
 };
 
-pub fn allocateObject(size: usize, type_: ObjType) [*c]Obj {
-    const object: [*c]Obj = @ptrCast(@alignCast(reallocate(null, 0, size)));
+pub fn allocateObject(size: usize, type_: ObjType) *Obj {
+    const mem = reallocate(null, 0, size);
+    if (mem == null) {
+        @panic("Failed to allocate object memory");
+    }
+    const object: *Obj = @ptrCast(@alignCast(mem));
     object.*.type = type_;
     object.*.isMarked = false;
     object.*.next = vm_h.vm.objects;
     vm_h.vm.objects = object;
-    // if (debug_opts.log_gc) print("{*} allocate {d} for {d}\n", .{@as([*c]ObjArray, @ptrCast(@alignCast(object))), size, @intFromEnum(type_)});
+    // if (debug_opts.log_gc) print("{*} allocate {d} for {d}\n", .{@as(*ObjArray, @ptrCast(object)), size, @intFromEnum(type_)});
     return object;
 }
 
@@ -107,7 +111,7 @@ pub fn allocateObject(size: usize, type_: ObjType) [*c]Obj {
 //     return AS_OBJ(value).*.type;
 // }
 
-// pub inline fn NOT_LIST_TYPES(values: [*c]Value, n: i32) bool {
+// pub inline fn NOT_LIST_TYPES(values: [*]Value, n: i32) bool {
 //     return notObjTypes(ObjTypeCheckParams{
 //         .values = values,
 //         .objType = .OBJ_LINKED_LIST,
@@ -119,7 +123,7 @@ pub fn allocateObject(size: usize, type_: ObjType) [*c]Obj {
 //     });
 // }
 
-// pub inline fn NOT_COLLECTION_TYPES(values: [*c]Value, n: i32) bool {
+// pub inline fn NOT_COLLECTION_TYPES(values: [*]Value, n: i32) bool {
 //     return notObjTypes(ObjTypeCheckParams{
 //         .values = values,
 //         .objType = .OBJ_HASH_TABLE,
@@ -127,8 +131,8 @@ pub fn allocateObject(size: usize, type_: ObjType) [*c]Obj {
 //     }) and NOT_LIST_TYPES(values, n);
 // }
 
-pub fn newBoundMethod(receiver: Value, method: [*c]ObjClosure) [*c]ObjBoundMethod {
-    const bound: [*c]ObjBoundMethod = @as([*c]ObjBoundMethod, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjBoundMethod), .OBJ_BOUND_METHOD))));
+pub fn newBoundMethod(receiver: Value, method: *ObjClosure) *ObjBoundMethod {
+    const bound: *ObjBoundMethod = @as(*ObjBoundMethod, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjBoundMethod), .OBJ_BOUND_METHOD))));
     bound.*.receiver = receiver;
     bound.*.method = method;
     return bound;
@@ -140,25 +144,34 @@ pub fn newClass(name: *ObjString) *ObjClass {
     table_h.initTable(&klass.*.methods);
     return klass;
 }
-pub fn newClosure(function: *ObjFunction) [*c]ObjClosure {
+pub fn newClosure(function: *ObjFunction) *ObjClosure {
     // Allocate memory for upvalues array
     const upvalueCount = function.*.upvalueCount;
-    var upvalues = @as([*c][*c]ObjUpvalue, @ptrCast(@alignCast(reallocate(null, 0, @intCast(@sizeOf([*c]ObjUpvalue) *% upvalueCount)))));
-
-    // Initialize upvalues to null
-    var i: i32 = 0;
-    while (i < upvalueCount) : (i += 1) {
-        upvalues[@intCast(i)] = null;
+    
+    // Create the closure object first
+    const closure = @as(*ObjClosure, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjClosure), .OBJ_CLOSURE))));
+    
+    // Then allocate upvalues if needed
+    if (upvalueCount > 0) {
+        const upvalue_mem = reallocate(null, 0, @intCast(@sizeOf(?*ObjUpvalue) * @as(usize, @intCast(upvalueCount))));
+        if (upvalue_mem == null) {
+            @panic("Failed to allocate upvalues memory");
+        }
+        
+        closure.*.upvalues = @ptrCast(@alignCast(upvalue_mem));
+        
+        // Initialize upvalues to null
+        var i: i32 = 0;
+        while (i < upvalueCount) : (i += 1) {
+            closure.*.upvalues.?[@intCast(i)] = null;
+        }
+    } else {
+        closure.*.upvalues = null;
     }
-
-    // Create the closure object
-    const closure = @as([*c]ObjClosure, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjClosure), .OBJ_CLOSURE))));
 
     // Set closure properties
     closure.*.function = function;
-    closure.*.upvalues = upvalues;
     closure.*.upvalueCount = upvalueCount;
-
     return closure;
 }
 
@@ -202,7 +215,7 @@ pub fn allocateString(params: AllocStringParams) *ObjString {
     // Add to VM string table to enable string interning
     push(Value{
         .type = .VAL_OBJ,
-        .as = .{ .obj = @as([*c]Obj, @ptrCast(@alignCast(string))) },
+        .as = .{ .obj = @as(*Obj, @ptrCast(string)) },
     });
     _ = table_h.tableSet(&vm_h.vm.strings, string, Value.init_nil());
     _ = pop();
@@ -284,8 +297,8 @@ pub fn copyString(chars: ?[*]const u8, length: i32) *ObjString {
     });
 }
 
-pub fn newUpvalue(slot: [*c]Value) [*c]ObjUpvalue {
-    const upvalue: [*c]ObjUpvalue = @as([*c]ObjUpvalue, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjUpvalue), .OBJ_UPVALUE))));
+pub fn newUpvalue(slot: [*]Value) *ObjUpvalue {
+    const upvalue: *ObjUpvalue = @as(*ObjUpvalue, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjUpvalue), .OBJ_UPVALUE))));
     upvalue.*.location = slot;
     upvalue.*.closed = Value.init_nil();
     upvalue.*.next = null;
@@ -393,7 +406,8 @@ pub fn printFunction(function: *ObjFunction) void {
         print("<script>", .{});
         return;
     }
-    print("<fn {s}>", .{zstr(function.*.name)});
+    const nameStr = zstr(function.*.name);
+    print("<fn {s}>", .{nameStr});
 }
 
 pub fn newLinkedList() *ObjLinkedList {
@@ -709,9 +723,9 @@ pub fn freeObjectHashTable(table: *ObjHashTable) void {
     table_h.freeTable(&table.*.table);
     _ = reallocate(@as(?*anyopaque, @ptrCast(table)), @sizeOf(ObjHashTable), 0);
 }
-// pub extern fn mergeHashTable(a: [*c]ObjHashTable, b: [*c]ObjHashTable) [*c]ObjHashTable;
-// pub extern fn keysHashTable(table: [*c]ObjHashTable) [*c]ObjArray;
-// pub extern fn valuesHashTable(table: [*c]ObjHashTable) [*c]ObjArray;
+// pub extern fn mergeHashTable(a: *ObjHashTable, b: *ObjHashTable) *ObjHashTable;
+// pub extern fn keysHashTable(table: *ObjHashTable) *ObjArray;
+// pub extern fn valuesHashTable(table: *ObjHashTable) *ObjArray;
 
 inline fn zstr(s: ?*ObjString) []const u8 {
     if (s) |str| {
@@ -722,18 +736,19 @@ inline fn zstr(s: ?*ObjString) []const u8 {
 }
 
 pub fn printObject(value: Value) void {
-    const obj: [*c]Obj = @ptrCast(@alignCast(value.as.obj));
+    const obj: *Obj = @ptrCast(value.as.obj);
     switch (obj.*.type) {
         .OBJ_BOUND_METHOD => {
-            const bound_method = @as([*c]ObjBoundMethod, @ptrCast(@alignCast(value.as.obj)));
+            const bound_method = @as(*ObjBoundMethod, @ptrCast(value.as.obj));
             printFunction(bound_method.*.method.*.function);
         },
         .OBJ_CLASS => {
-            const class = @as(*ObjClass, @ptrCast(@alignCast(value.as.obj)));
-            print("{s}", .{zstr(class.*.name)});
+            const class = @as(*ObjClass, @ptrCast(value.as.obj));
+            const nameStr = zstr(class.*.name);
+            print("{s}", .{nameStr});
         },
         .OBJ_CLOSURE => {
-            const closure = @as([*c]ObjClosure, @ptrCast(@alignCast(value.as.obj)));
+            const closure = @as(*ObjClosure, @ptrCast(@alignCast(value.as.obj)));
             printFunction(closure.*.function);
         },
         .OBJ_FUNCTION => {
@@ -741,13 +756,15 @@ pub fn printObject(value: Value) void {
         },
         .OBJ_INSTANCE => {
             const instance = @as(*ObjInstance, @ptrCast(@alignCast(value.as.obj)));
-            print("{s} instance", .{zstr(instance.*.klass.*.name)});
+            const nameStr = zstr(instance.*.klass.*.name);
+            print("{s} instance", .{nameStr});
         },
         .OBJ_NATIVE => {
             print("<native fn>", .{});
         },
         .OBJ_STRING => {
-            print("{s}", .{zstr(@ptrCast(@alignCast(value.as.obj)))});
+            const str = zstr(@ptrCast(@alignCast(value.as.obj)));
+            print("{s}", .{str});
         },
         .OBJ_UPVALUE => {
             print("upvalue", .{});
@@ -779,26 +796,26 @@ pub fn printObject(value: Value) void {
             print("]", .{});
         },
         .OBJ_HASH_TABLE => {
-            const hashtable = @as(*ObjHashTable, @ptrCast(@alignCast(value.as.obj)));
+            const ht = @as(*ObjHashTable, @ptrCast(@alignCast(value.as.obj)));
             print("{{", .{});
-            const entries = hashtable.*.table.entries;
-            var count: i32 = 0;
+            if (ht.*.table.entries) |entries| {
+                var count: i32 = 0;
 
-            for (0..@intCast(hashtable.*.table.capacity)) |i| {
-                const entry = &entries[i];
-                if (entry.*.key != null) {
-                    if (count > 0) {
-                        print(", ", .{});
+                for (0..@intCast(ht.*.table.capacity)) |i| {
+                    if (entries[i].key != null) {
+                        if (count > 0) {
+                            print(", ", .{});
+                        }
+                        value_h.printValue(Value{
+                            .type = .VAL_OBJ,
+                            .as = .{
+                                .obj = @ptrCast(entries[i].key),
+                            },
+                        });
+                        print(": ", .{});
+                        value_h.printValue(entries[i].value);
+                        count += 1;
                     }
-                    value_h.printValue(Value{
-                        .type = .VAL_OBJ,
-                        .as = .{
-                            .obj = @as([*c]Obj, @ptrCast(@alignCast(entry.*.key))),
-                        },
-                    });
-                    print(": ", .{});
-                    value_h.printValue(entry.*.value);
-                    count += 1;
                 }
             }
             print("}}", .{});
@@ -810,7 +827,7 @@ pub fn isObjType(value: Value, type_: ObjType) bool {
 }
 
 pub const ObjTypeCheckParams = extern struct {
-    values: [*c]Value,
+    values: [*]Value,
     objType: ObjType,
     count: i32,
 };

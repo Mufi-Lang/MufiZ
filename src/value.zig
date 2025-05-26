@@ -360,7 +360,7 @@ pub const Value = extern struct {
 pub const ValueArray = extern struct {
     capacity: i32,
     count: i32,
-    values: [*c]Value,
+    values: [*]Value,
 };
 
 pub fn valuesEqual(a: Value, b: Value) bool {
@@ -455,24 +455,24 @@ pub fn valueCompare(a: Value, b: Value) i32 {
     return -1;
 }
 
-pub fn initValueArray(array: [*c]ValueArray) void {
-    array.*.values = null;
-    array.*.capacity = 0;
-    array.*.count = 0;
+pub fn initValueArray(array: *ValueArray) void {
+    array.values = undefined;
+    array.capacity = 0;
+    array.count = 0;
 }
 
-pub fn writeValueArray(array: [*c]ValueArray, value: Value) void {
-    if (array.*.capacity < (array.*.count + 1)) {
-        const oldCapacity: i32 = array.*.capacity;
-        array.*.capacity = if (oldCapacity < 8) 8 else oldCapacity * 2;
-        array.*.values = @ptrCast(@alignCast(reallocate(@ptrCast(array.*.values), @intCast(@sizeOf(Value) * oldCapacity), @intCast(@sizeOf(Value) * array.*.capacity))));
+pub fn writeValueArray(array: *ValueArray, value: Value) void {
+    if (array.capacity < (array.count + 1)) {
+        const oldCapacity: i32 = array.capacity;
+        array.capacity = if (oldCapacity < 8) 8 else oldCapacity * 2;
+        array.values = @ptrCast(@alignCast(reallocate(@ptrCast(array.values), @intCast(@sizeOf(Value) * oldCapacity), @intCast(@sizeOf(Value) * array.capacity))));
     }
-    array.*.values[@intCast(array.*.count)] = value;
-    array.*.count += 1;
+    array.values[@intCast(array.count)] = value;
+    array.count += 1;
 }
 
-pub fn freeValueArray(array: [*c]ValueArray) void {
-    _ = reallocate(@ptrCast(array.*.values), @intCast(@sizeOf(Value) * array.*.capacity), 0);
+pub fn freeValueArray(array: *ValueArray) void {
+    _ = reallocate(@ptrCast(@alignCast(array.values)), @intCast(@sizeOf(Value) * array.capacity), 0);
     initValueArray(array);
 }
 

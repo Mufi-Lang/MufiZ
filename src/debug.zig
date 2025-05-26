@@ -5,8 +5,10 @@ const printValue = @import("value.zig").printValue;
 const obj_h = @import("object.zig");
 const ObjFunction = obj_h.ObjFunction;
 
-pub fn disassembleChunk(chunk: [*c]Chunk, name: [*c]const u8) void {
-    print("== {s} ==\n", .{name});
+pub fn disassembleChunk(chunk: *Chunk, name: [*]const u8) void {
+    // Create a slice from the pointer to handle string formatting properly
+    const nameSlice = std.mem.sliceTo(name, 0);
+    print("== {s} ==\n", .{nameSlice});
 
     var offset: i32 = 0;
 
@@ -15,12 +17,12 @@ pub fn disassembleChunk(chunk: [*c]Chunk, name: [*c]const u8) void {
     }
 }
 
-pub fn disassembleInstruction(chunk: [*c]Chunk, offset: i32) i32 {
+pub fn disassembleInstruction(chunk: *Chunk, offset: i32) i32 {
     print("{d:0>4} ", .{offset});
 
     // Helper function to get line at a specific offset
     const getLine = struct {
-        fn get(c: [*c]Chunk, pos: i32) i32 {
+        fn get(c: *Chunk, pos: i32) i32 {
             const idx: usize = @intCast(if (pos >= 0) pos else unreachable);
             return c.*.lines[idx];
         }
@@ -28,7 +30,7 @@ pub fn disassembleInstruction(chunk: [*c]Chunk, offset: i32) i32 {
 
     // Helper function to get byte at a specific offset
     const getByte = struct {
-        fn get(c: [*c]Chunk, pos: i32) u8 {
+        fn get(c: *Chunk, pos: i32) u8 {
             const idx: usize = @intCast(if (pos >= 0) pos else unreachable);
             return c.*.code[idx];
         }
@@ -98,7 +100,8 @@ pub fn disassembleInstruction(chunk: [*c]Chunk, offset: i32) i32 {
                 const index = getByte(chunk, newOffset);
                 newOffset += 1;
 
-                print("{d:0>4}      |                  {s} {d:0>4}\n", .{ newOffset - 2, if (isLocal) "local" else "upvalue", index });
+                const localOrUpvalue = if (isLocal) "local" else "upvalue";
+                print("{d:0>4}      |                  {s} {d:0>4}\n", .{ newOffset - 2, localOrUpvalue, index });
             }
 
             return newOffset;
@@ -119,39 +122,45 @@ pub fn disassembleInstruction(chunk: [*c]Chunk, offset: i32) i32 {
     }
 }
 
-pub fn constantInstruction(name: [*c]const u8, chunk: [*c]Chunk, offset: i32) i32 {
+pub fn constantInstruction(name: [*]const u8, chunk: *Chunk, offset: i32) i32 {
+    const nameSlice = std.mem.sliceTo(name, 0);
     const constant: u8 = chunk.*.code[@intCast(offset + 1)];
-    print("{s: <16} {d:4} '", .{ name, constant });
+    print("{s: <16} {d:4} '", .{ nameSlice, constant });
     printValue(chunk.*.constants.values[constant]);
     print("'\n", .{});
     return offset + 2;
 }
 
-pub fn invokeInstruction(name: [*c]const u8, chunk: [*c]Chunk, offset: i32) i32 {
+pub fn invokeInstruction(name: [*]const u8, chunk: *Chunk, offset: i32) i32 {
+    const nameSlice = std.mem.sliceTo(name, 0);
     const constant: u8 = chunk.*.code[@intCast(offset + 1)];
     const argCount: u8 = chunk.*.code[@intCast(offset + 2)];
-    print("{s: <16} ({d} args) {d:4} '", .{ name, argCount, constant });
+    print("{s: <16} ({d} args) {d:4} '", .{ nameSlice, argCount, constant });
     printValue(chunk.*.constants.values[constant]);
     print("'\n", .{});
     return offset + 3;
 }
-pub fn simpleInstruction(name: [*c]const u8, offset: i32) i32 {
-    print("{s}\n", .{name});
+pub fn simpleInstruction(name: [*]const u8, offset: i32) i32 {
+    // Convert to a proper slice for string formatting
+    const nameSlice = std.mem.sliceTo(name, 0);
+    print("{s}\n", .{nameSlice});
     return offset + 1;
 }
 
-pub fn byteInstruction(name: [*c]const u8, chunk: [*c]Chunk, offset: i32) i32 {
+pub fn byteInstruction(name: [*]const u8, chunk: *Chunk, offset: i32) i32 {
+    const nameSlice = std.mem.sliceTo(name, 0);
     const slot: u8 = chunk.*.code[@intCast(offset + 1)];
-    print("{s: <16} {d:4}", .{ name, slot });
+    print("{s: <16} {d:4}", .{ nameSlice, slot });
     return offset + 2;
 }
 
-pub fn jumpInstruction(name: [*c]const u8, sign: i32, chunk: [*c]Chunk, offset: i32) i32 {
+pub fn jumpInstruction(name: [*]const u8, sign: i32, chunk: *Chunk, offset: i32) i32 {
+    const nameSlice = std.mem.sliceTo(name, 0);
     const byte1: u8 = chunk.*.code[@intCast(offset + 1)];
     const byte2: u8 = chunk.*.code[@intCast(offset + 2)];
     const jump: u16 = (@as(u16, byte1) << 8) | byte2;
 
     const jumpTarget = (offset + 3) + (sign * @as(i32, jump));
-    print("{s: <16} {d:4} -> {d}\n", .{ name, offset, jumpTarget });
+    print("{s: <16} {d:4} -> {d}\n", .{ nameSlice, offset, jumpTarget });
     return offset + 3;
 }

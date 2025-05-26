@@ -45,15 +45,15 @@ pub const OpCode = enum(i32) {
     OP_FVECTOR = 39,
 };
 
-pub const Chunk = extern struct {
+pub const Chunk = struct {
     count: i32,
     capacity: i32,
-    code: [*c]u8,
-    lines: [*c]i32,
+    code: ?[*]u8,
+    lines: ?[*]i32,
     constants: value_h.ValueArray,
 };
 
-pub fn initChunk(chunk: [*c]Chunk) void {
+pub fn initChunk(chunk: *Chunk) void {
     chunk.*.count = 0;
     chunk.*.capacity = 0;
     chunk.*.code = null;
@@ -61,26 +61,34 @@ pub fn initChunk(chunk: [*c]Chunk) void {
     value_h.initValueArray(&chunk.*.constants);
 }
 
-pub fn freeChunk(chunk: [*c]Chunk) void {
-    _ = memory_h.reallocate(@ptrCast(chunk.*.code), @intCast(@sizeOf(u8) *% chunk.*.capacity), 0);
-    _ = memory_h.reallocate(@ptrCast(chunk.*.lines), @intCast(@sizeOf(i32) *% chunk.*.capacity), 0);
+pub fn freeChunk(chunk: *Chunk) void {
+    if (chunk.*.code) |code| {
+        _ = memory_h.reallocate(@ptrCast(code), @intCast(@sizeOf(u8) *% chunk.*.capacity), 0);
+    }
+    if (chunk.*.lines) |lines| {
+        _ = memory_h.reallocate(@ptrCast(lines), @intCast(@sizeOf(i32) *% chunk.*.capacity), 0);
+    }
     value_h.freeValueArray(&chunk.*.constants);
     initChunk(chunk);
 }
 
-pub fn writeChunk(chunk: [*c]Chunk, byte: u8, line: i32) void {
+pub fn writeChunk(chunk: *Chunk, byte: u8, line: i32) void {
     if (chunk.*.capacity < (chunk.*.count + 1)) {
         const oldCapacity: i32 = chunk.*.capacity;
         chunk.*.capacity = if (oldCapacity < 8) 8 else oldCapacity * 2;
         chunk.*.code = @ptrCast(@alignCast(memory_h.reallocate(@ptrCast(chunk.*.code), @intCast(@sizeOf(u8) *% oldCapacity), @intCast(@sizeOf(u8) *% chunk.*.capacity))));
         chunk.*.lines = @ptrCast(@alignCast(memory_h.reallocate(@ptrCast(chunk.*.lines), @intCast(@sizeOf(i32) *% oldCapacity), @intCast(@sizeOf(i32) *% chunk.*.capacity))));
     }
-    chunk.*.code[@intCast(chunk.*.count)] = byte;
-    chunk.*.lines[@intCast(chunk.*.count)] = line;
+    if (chunk.*.code) |code| {
+        code[@intCast(chunk.*.count)] = byte;
+    }
+    if (chunk.*.lines) |lines| {
+        lines[@intCast(chunk.*.count)] = line;
+    }
     chunk.*.count += 1;
 }
 
-pub fn addConstant(chunk: [*c]Chunk, value: value_h.Value) i32 {
+pub fn addConstant(chunk: *Chunk, value: value_h.Value) i32 {
     vm_h.push(value);
     value_h.writeValueArray(&chunk.*.constants, value);
     _ = vm_h.pop();
