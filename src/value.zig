@@ -26,7 +26,7 @@ pub const Value = extern struct {
         boolean: bool,
         num_double: f64,
         num_int: i32,
-        obj: [*c]Obj,
+        obj: ?*Obj,
         complex: Complex,
     },
 
@@ -48,12 +48,12 @@ pub const Value = extern struct {
         return Value.init_int(0);
     }
 
-    pub fn init_obj(obj: [*c]Obj) Self {
+    pub fn init_obj(obj: *Obj) Self {
         return Value{ .type = .VAL_OBJ, .as = .{ .obj = obj } };
     }
 
     pub fn init_string(s: []u8) Self {
-        const chars: [*c]const u8 = @ptrCast(@alignCast(s.ptr));
+        const chars: [*]const u8 = @ptrCast(@alignCast(s.ptr));
         const length: i32 = @intCast(s.len);
         const obj_str = obj_h.copyString(chars, length);
         return Value.init_obj(@ptrCast(obj_str));
@@ -112,7 +112,7 @@ pub const Value = extern struct {
                     const a = self.as_string();
                     const b = other.as_string();
                     const length: i32 = a.*.length + b.*.length;
-                    const chars: [*c]u8 = @as([*c]u8, @ptrCast(@alignCast(reallocate(null, 0, @intCast(@sizeOf(u8) *% length + 1)))));
+                    const chars: [*]u8 = @as([*]u8, @ptrCast(@alignCast(reallocate(null, 0, @intCast(@sizeOf(u8) *% length + 1)))));
                     _ = memcpy(@ptrCast(chars), @ptrCast(a.*.chars), @intCast(a.*.length));
                     _ = memcpy(@ptrCast(chars + @as(usize, @bitCast(@as(isize, @intCast(a.*.length))))), @ptrCast(b.*.chars), @intCast(b.*.length));
                     chars[@intCast(length)] = '\x00';
@@ -283,7 +283,7 @@ pub const Value = extern struct {
     }
 
     pub fn is_obj_type(self: Self, ty: obj_h.ObjType) bool {
-        return self.is_obj() and self.as.obj.*.type == ty;
+        return self.is_obj() and self.as.obj.?.type == ty;
     }
 
     pub fn is_string(self: Self) bool {
@@ -302,7 +302,7 @@ pub const Value = extern struct {
         return self.is_obj_type(.OBJ_FVECTOR);
     }
 
-    pub fn as_obj(self: Self) [*c]Obj {
+    pub fn as_obj(self: Self) ?*Obj {
         return self.as.obj;
     }
 
@@ -346,7 +346,7 @@ pub const Value = extern struct {
         return @ptrCast(@alignCast(self.as.obj));
     }
 
-    pub fn as_class(self: Self) [*c]obj_h.ObjClass {
+    pub fn as_class(self: Self) *obj_h.ObjClass {
         return @ptrCast(@alignCast(self.as.obj));
     }
 
@@ -372,8 +372,8 @@ pub fn valuesEqual(a: Value, b: Value) bool {
         .VAL_DOUBLE => return a.as.num_double == b.as.num_double,
         .VAL_OBJ => {
             {
-                const obj_a: [*c]Obj = a.as.obj;
-                const obj_b: [*c]Obj = b.as.obj;
+                const obj_a: *Obj = a.as.obj.?;
+                const obj_b: *Obj = b.as.obj.?;
                 if (obj_a.*.type != obj_b.*.type) return false;
                 switch (obj_a.*.type) {
                     .OBJ_STRING => {

@@ -823,7 +823,7 @@ pub fn printObject(value: Value) void {
     }
 }
 pub fn isObjType(value: Value, type_: ObjType) bool {
-    return (value.type == .VAL_OBJ) and (value.as.obj.*.type == type_);
+    return (value.type == .VAL_OBJ) and (value.as.obj.?.type == type_);
 }
 
 pub const ObjTypeCheckParams = extern struct {

@@ -220,7 +220,7 @@ pub fn slice_nf(argCount: i32, args: [*]Value) Value {
     const end: i32 = if (args[2].is_double()) @intFromFloat(args[2].as_num_double()) else args[2].as.num_int;
 
     // Process based on object type
-    switch (args[0].as.obj.*.type) {
+    switch (args[0].as.obj.?.type) {
         .OBJ_FVECTOR => {
             const f = @as(*FloatVector, @ptrCast(args[0].as.obj));
             const s = f.slice(@intCast(start), @intCast(end));
@@ -269,7 +269,7 @@ pub fn splice_nf(argCount: i32, args: [*]Value) Value {
     const end: i32 = if (args[2].is_double()) @intFromFloat(args[2].as_num_double()) else args[2].as.num_int;
 
     // Process based on object type
-    switch (args[0].as.obj.*.type) {
+    switch (args[0].as.obj.?.type) {
         .OBJ_FVECTOR => {
             const f = @as(*FloatVector, @ptrCast(args[0].as.obj));
             const s = f.splice(@intCast(start), @intCast(end));
@@ -299,7 +299,7 @@ pub fn push_nf(argCount: i32, args: [*]Value) Value {
         runtimeError("First argument must be a list type.", .{});
         return Value.init_nil();
     }
-    switch (args[0].as.obj.*.type) {
+    switch (args[0].as.obj.?.type) {
         .OBJ_FVECTOR => {
             const f: *FloatVector = @as(*FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
             for (1..@intCast(argCount)) |i| {
@@ -347,7 +347,7 @@ pub fn pop_nf(argCount: i32, args: [*]Value) Value {
     }
 
     // Process based on object type
-    switch (args[0].as.obj.*.type) {
+    switch (args[0].as.obj.?.type) {
         .OBJ_FVECTOR => {
             const vector = @as(*FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
             return Value.init_double(vector.pop());
@@ -398,7 +398,7 @@ pub fn nth_nf(argCount: i32, args: [*]Value) Value {
     const index = args[1].as_num_int();
 
     // Process based on object type
-    switch (args[0].as.obj.*.type) {
+    switch (args[0].as.obj.?.type) {
         .OBJ_FVECTOR => {
             const f = @as(*FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
             const value = f.get(@intCast(index));
@@ -451,7 +451,7 @@ pub fn sort_nf(argCount: i32, args: [*]Value) Value {
     }
 
     // Process based on object type
-    switch (args[0].as.obj.*.type) {
+    switch (args[0].as.obj.?.type) {
         .OBJ_FVECTOR => {
             const vector = @as(*FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
             fvec.FloatVector.sort(vector);
@@ -496,7 +496,7 @@ pub fn contains_nf(argCount: i32, args: [*]Value) Value {
     }
 
     // Process based on object type
-    switch (args[0].as.obj.*.type) {
+    switch (args[0].as.obj.?.type) {
         .OBJ_FVECTOR => {
             //TODO: Implement contains for float vector
             return Value.init_bool(false);
@@ -599,7 +599,7 @@ pub fn len_nf(argCount: i32, args: [*]Value) Value {
     }
 
     // Process based on object type
-    switch (args[0].as.obj.*.type) {
+    switch (args[0].as.obj.?.type) {
         .OBJ_HASH_TABLE => {
             const hashTable = @as(*ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
             return Value.init_int(@intCast(hashTable.*.table.count));
@@ -639,7 +639,7 @@ pub fn search_nf(argCount: i32, args: [*]Value) Value {
     }
 
     // Process based on object type
-    switch (args[0].as.obj.*.type) {
+    switch (args[0].as.obj.?.type) {
         .OBJ_FVECTOR => {
             const vector = @as(*FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
 
@@ -690,7 +690,7 @@ pub fn is_empty_nf(argCount: i32, args: [*]Value) Value {
     }
 
     // Process based on object type
-    switch (args[0].as.obj.*.type) {
+    switch (args[0].as.obj.?.type) {
         .OBJ_HASH_TABLE => {
             const hashTable = @as(*ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
             return Value.init_bool(hashTable.*.table.count == 0);
@@ -730,7 +730,7 @@ pub fn equal_list_nf(argCount: i32, args: [*]Value) Value {
     }
 
     // Process based on object type
-    switch (args[0].as.obj.*.type) {
+    switch (args[0].as.obj.?.type) {
         .OBJ_FVECTOR => {
             // Check that second argument is also a vector
             if (!isObjType(args[1], .OBJ_FVECTOR)) {
@@ -782,7 +782,7 @@ pub fn reverse_nf(argCount: i32, args: [*]Value) Value {
     }
 
     // Process based on object type
-    switch (args[0].as.obj.*.type) {
+    switch (args[0].as.obj.?.type) {
         .OBJ_FVECTOR => {
             const vector = @as(*FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
             vector.reverse();
@@ -821,7 +821,7 @@ pub fn merge_nf(argCount: i32, args: [*]Value) Value {
     }
 
     // Process based on object type
-    switch (args[0].as.obj.*.type) {
+    switch (args[0].as.obj.?.type) {
         .OBJ_LINKED_LIST => {
             const listA = @as(*ObjLinkedList, @ptrCast(args[0].as.obj));
             const listB = @as(*ObjLinkedList, @ptrCast(args[1].as.obj));
@@ -866,7 +866,7 @@ pub fn clone_nf(argCount: i32, args: [*]Value) Value {
     }
 
     // Process based on object type
-    switch (args[0].as.obj.*.type) {
+    switch (args[0].as.obj.?.type) {
         .OBJ_FVECTOR => {
             const vector = @as(*FloatVector, @ptrCast(args[0].as.obj));
             const clone = vector.clone();
@@ -914,7 +914,7 @@ pub fn clear_nf(argCount: i32, args: [*]Value) Value {
     }
 
     // Process based on object type
-    switch (args[0].as.obj.*.type) {
+    switch (args[0].as.obj.?.type) {
         .OBJ_FVECTOR => {
             const vector = @as(*FloatVector, @ptrCast(@alignCast(args[0].as.obj)));
             vector.clear();
@@ -1337,7 +1337,7 @@ pub fn remove_nf(argCount: i32, args: [*]Value) Value {
     }
 
     // Process the removal based on container type
-    switch (args[0].as.obj.*.type) {
+    switch (args[0].as.obj.?.type) {
         .OBJ_HASH_TABLE => {
             const hashTable = @as(*ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
             const key = @as(*ObjString, @ptrCast(@alignCast(args[1].as.obj)));

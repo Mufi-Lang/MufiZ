@@ -16,7 +16,7 @@ pub fn build(b: *std.Build) !void {
         .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
-        .link_libc = true,
+        .link_libc = true, // we did this in v0.9.0
     });
 
     const exe_check = b.addExecutable(.{
@@ -24,7 +24,7 @@ pub fn build(b: *std.Build) !void {
         .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
-        .link_libc = true,
+        .link_libc = true, // we did this in v0.9.0
     });
 
     if (target.query.cpu_arch == .wasm32) {

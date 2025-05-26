@@ -20,7 +20,7 @@ pub fn what_is(val: Value) []const u8 {
         .VAL_NIL => return "NIL",
         .VAL_OBJ => {
             const obj = val.as_obj();
-            switch (obj.*.type) {
+            switch (obj.?.type) {
                 .OBJ_CLOSURE => return "Closure",
                 .OBJ_FUNCTION => return "Function",
                 .OBJ_INSTANCE => return "Instance",
@@ -56,9 +56,9 @@ pub fn type_check(n: usize, values: [*]Value, val_type: i32) bool {
     return true;
 }
 
-/// Converts a Zig string to a C Null-Terminated string
-pub fn cstr(s: []u8) [*c]u8 {
-    var ptr: [*c]u8 = @ptrCast(s.ptr);
+// Converts a Zig string to a C Null-Terminated string
+pub fn cstr(s: []u8) [*]u8 {
+    var ptr: [*]u8 = @ptrCast(s.ptr);
     ptr[s.len] = '\x00';
     return ptr;
 }

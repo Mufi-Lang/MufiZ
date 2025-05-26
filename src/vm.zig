@@ -8,8 +8,11 @@ const compiler_h = @import("compiler.zig");
 const memory_h = @import("memory.zig");
 const debug_opts = @import("debug");
 const reallocate = memory_h.reallocate;
-const memcpy = @cImport(@cInclude("string.h")).memcpy;
-const strlen = @cImport(@cInclude("string.h")).strlen;
+// const memcpy = @cImport(@cInclude("string.h")).memcpy;
+// const strlen = @cImport(@cInclude("string.h")).strlen
+const mem_utils = @import("mem_utils.zig");
+const memcpy = mem_utils.memcpyFast;
+const strlen = mem_utils.strlen;
 const ObjClosure = object_h.ObjClosure;
 const ObjString = object_h.ObjString;
 const ObjUpvalue = object_h.ObjUpvalue;
@@ -55,7 +58,7 @@ pub const UINT8_MAX: i32 = @intCast(std.math.maxInt(u8));
 
 pub const CallFrame = struct {
     closure: *ObjClosure,
-    ip: [*c]u8,
+    ip: [*]u8,
     slots: [*]Value,
 };
 
@@ -234,7 +237,7 @@ inline fn zstr(s: ?*ObjString) []u8 {
     }
 }
 
-pub fn interpret(source: [*c]const u8) InterpretResult {
+pub fn interpret(source: [*]const u8) InterpretResult {
     const function: ?*ObjFunction = compiler_h.compile(source);
     if (function == null) return .INTERPRET_COMPILE_ERROR;
     push(Value{
@@ -258,7 +261,7 @@ pub fn pop() Value {
     vm.stackTop -= 1;
     return vm.stackTop[0];
 }
-pub fn defineNative(name: [*c]const u8, function: NativeFn) void {
+pub fn defineNative(name: [*]const u8, function: NativeFn) void {
     // Push the name string and the function object onto the stack
     // This ensures GC doesn't collect them during allocation
     push(Value.init_obj(@ptrCast(@alignCast(copyString(name, @intCast(strlen(name)))))));
@@ -298,7 +301,7 @@ pub fn call(closure: *ObjClosure, argCount: i32) bool {
     }
     const frame: *CallFrame = &vm.frames[@intCast(next_frame_count())];
     frame.*.closure = closure;
-    frame.*.ip = closure.*.function.*.chunk.code;
+    frame.*.ip = closure.*.function.*.chunk.code.?;
 
     // The slots pointer should point to the first argument, which is 'self' for methods
     frame.*.slots = @ptrFromInt(@intFromPtr(vm.stackTop) - @sizeOf(Value) * @as(usize, @intCast(argCount + 1)));
@@ -307,7 +310,7 @@ pub fn call(closure: *ObjClosure, argCount: i32) bool {
 }
 pub fn callValue(callee: Value, argCount: i32) bool {
     if (callee.type == .VAL_OBJ) {
-        switch (callee.as.obj.*.type) {
+        switch (callee.as.obj.?.type) {
             .OBJ_BOUND_METHOD => {
                 const bound: *ObjBoundMethod = @as(*ObjBoundMethod, @ptrCast(@alignCast(callee.as.obj)));
 
@@ -475,7 +478,7 @@ pub fn isFalsey(value: Value) bool {
     return (value.type == .VAL_NIL) or ((value.type == .VAL_BOOL) and !value.as.boolean);
 }
 
-pub fn setFloatVector(f: [*c]FloatVector, index: i32, value: f64) void {
+pub fn setFloatVector(f: *FloatVector, index: i32, value: f64) void {
     if (index >= fvec._count(f)) {
         runtimeError("Index out of bounds.", .{});
         return;
@@ -484,10 +487,13 @@ pub fn setFloatVector(f: [*c]FloatVector, index: i32, value: f64) void {
 }
 
 fn get_slot(frame: *CallFrame) u8 {
-    const ref = &frame.*.ip;
-    const tmp = ref.*;
-    ref.* += 1;
-    return tmp.*;
+    // const ref = &frame.*.ip;
+    // const tmp = ref.*;
+    // ref.* += 1;
+    // return tmp.*;
+    const result = frame.ip[0];
+    frame.ip += 1;
+    return result;
 }
 
 /// Reads a 16-bit big-endian value from bytecode at the current instruction pointer

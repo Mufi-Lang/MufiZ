@@ -274,31 +274,123 @@ test "memcpyFast test" {
 ///
 /// @return Length of the string, not including the null terminator
 ///
+// pub fn strlen(s: [*]const u8) usize {
+//     const start_ptr = s;
+//     var ptr = s;
+
+//     // Fast path for short strings (avoid SIMD setup overhead)
+//     // Check first 8 bytes directly
+//     inline for (0..8) |i| {
+//         if (ptr[i] == 0) {
+//             return i;
+//         }
+//     }
+
+//     // String is longer than 8 bytes
+//     ptr = s + 8;
+
+//     // If CPU supports AVX-2/SSE, use SIMD approach
+//     if (@hasDecl(std.simd, "suggestVectorLength")) {
+//         // Use SIMD vector operations
+//         const Vec16 = @Vector(16, u8);
+//         const zeros: Vec16 = @splat(0);
+
+//         // Align to 16-byte boundary for optimal SIMD performance
+//         const alignment_offset = @intFromPtr(ptr) & 0xF;
+//         if (alignment_offset != 0) {
+//             // Process bytes until aligned
+//             const to_align = 16 - alignment_offset;
+//             for (0..to_align) |_| {
+//                 if (ptr[0] == 0) {
+//                     return @intFromPtr(ptr) - @intFromPtr(start_ptr);
+//                 }
+//                 ptr += 1;
+//             }
+//         }
+
+//         // Main SIMD loop - process 16 bytes at a time
+//         while (true) {
+//             // Load 16 bytes and compare with zeros
+//             const chunk = @as(*align(1) const Vec16, @ptrCast(ptr)).*;
+//             const mask = chunk == zeros;
+
+//             // Check if any byte is zero
+//             if (@reduce(.Or, mask)) {
+//                 // Find which byte is zero
+//                 inline for (0..16) |i| {
+//                     if (mask[i]) {
+//                         return @intFromPtr(ptr) - @intFromPtr(start_ptr) + i;
+//                     }
+//                 }
+//             }
+
+//             ptr += 16;
+//         }
+//     } else {
+//         // Fallback to word-size optimized approach for platforms without SIMD
+//         const uword = if (@sizeOf(usize) == 8) u64 else u32;
+//         const word_size = @sizeOf(uword);
+
+//         // Align to word boundary
+//         while (@intFromPtr(ptr) & (word_size - 1) != 0) {
+//             if (ptr[0] == 0) return @intFromPtr(ptr) - @intFromPtr(start_ptr);
+//             ptr += 1;
+//         }
+
+//         // Process word at a time
+//         const word_ptr = @as([*]const uword, @ptrCast(@alignCast(ptr)));
+//         var idx: usize = 0;
+//         while (true) {
+//             // This magic detects null bytes in a word
+//             const word = word_ptr[idx];
+//             // (word - 0x01..) & ~word & 0x80.. detects null bytes
+//             const has_zero = ((word -% comptime repeatedByte(0x01, word_size)) &
+//                 ~word & comptime repeatedByte(0x80, word_size)) != 0;
+
+//             if (has_zero) {
+//                 // Found a null byte in this word
+//                 ptr = @ptrCast(word_ptr + idx);
+//                 // Find exact position
+//                 for (0..word_size) |i| {
+//                     if (ptr[i] == 0) {
+//                         return @intFromPtr(ptr) + i - @intFromPtr(start_ptr);
+//                     }
+//                 }
+//             }
+//             idx += 1;
+//         }
+//     }
+// }
+
+// /// Helper function to create a word with repeated bytes
+// fn repeatedByte(byte: u8, size: usize) usize {
+//     var result: usize = 0;
+//     var i: usize = 0;
+//     while (i < size) : (i += 1) {
+//         result = (result << 8) | byte;
+//     }
+//     return result;
+// }
 pub fn strlen(s: [*]const u8) usize {
     const start_ptr = s;
     var ptr = s;
 
-    // Fast path for short strings (avoid SIMD setup overhead)
-    // Check first 8 bytes directly
+    // Fast path for first 8 bytes
     inline for (0..8) |i| {
         if (ptr[i] == 0) {
             return i;
         }
     }
 
-    // String is longer than 8 bytes
-    ptr = s + 8;
+    ptr += 8;
 
-    // If CPU supports AVX-2/SSE, use SIMD approach
     if (@hasDecl(std.simd, "suggestVectorLength")) {
-        // Use SIMD vector operations
         const Vec16 = @Vector(16, u8);
         const zeros: Vec16 = @splat(0);
 
-        // Align to 16-byte boundary for optimal SIMD performance
+        // Align pointer to 16 bytes
         const alignment_offset = @intFromPtr(ptr) & 0xF;
         if (alignment_offset != 0) {
-            // Process bytes until aligned
             const to_align = 16 - alignment_offset;
             for (0..to_align) |_| {
                 if (ptr[0] == 0) {
@@ -308,68 +400,63 @@ pub fn strlen(s: [*]const u8) usize {
             }
         }
 
-        // Main SIMD loop - process 16 bytes at a time
+        // Main SIMD loop
         while (true) {
-            // Load 16 bytes and compare with zeros
-            const chunk = @as(*align(1) const Vec16, @ptrCast(ptr)).*;
+            const chunk_ptr = @as(*align(1) const Vec16, @ptrCast(ptr));
+            const chunk = chunk_ptr.*;
             const mask = chunk == zeros;
 
-            // Check if any byte is zero
             if (@reduce(.Or, mask)) {
-                // Find which byte is zero
                 inline for (0..16) |i| {
                     if (mask[i]) {
                         return @intFromPtr(ptr) - @intFromPtr(start_ptr) + i;
                     }
                 }
             }
-
             ptr += 16;
         }
     } else {
-        // Fallback to word-size optimized approach for platforms without SIMD
+        // Fallback using word-sized chunks
         const uword = if (@sizeOf(usize) == 8) u64 else u32;
         const word_size = @sizeOf(uword);
 
         // Align to word boundary
-        while (@intFromPtr(ptr) & (word_size - 1) != 0) {
-            if (ptr[0] == 0) return @intFromPtr(ptr) - @intFromPtr(start_ptr);
+        while ((@intFromPtr(ptr) & (word_size - 1)) != 0) {
+            if (ptr[0] == 0) {
+                return @intFromPtr(ptr) - @intFromPtr(start_ptr);
+            }
             ptr += 1;
         }
 
-        // Process word at a time
         const word_ptr = @as([*]const uword, @ptrCast(@alignCast(ptr)));
         var idx: usize = 0;
         while (true) {
-            // This magic detects null bytes in a word
             const word = word_ptr[idx];
-            // (word - 0x01..) & ~word & 0x80.. detects null bytes
+
             const has_zero = ((word -% comptime repeatedByte(0x01, word_size)) &
                 ~word & comptime repeatedByte(0x80, word_size)) != 0;
 
             if (has_zero) {
-                // Found a null byte in this word
                 ptr = @ptrCast(word_ptr + idx);
-                // Find exact position
                 for (0..word_size) |i| {
                     if (ptr[i] == 0) {
-                        return @intFromPtr(ptr) + i - @intFromPtr(start_ptr);
+                        return @intFromPtr(ptr) - @intFromPtr(start_ptr) + i;
                     }
                 }
             }
+
             idx += 1;
         }
     }
 }
 
-/// Helper function to create a word with repeated bytes
-fn repeatedByte(byte: u8, size: usize) usize {
-    var result: usize = 0;
-    var i: usize = 0;
-    while (i < size) : (i += 1) {
-        result = (result << 8) | byte;
+// Helper to create a repeated byte pattern
+fn repeatedByte(byte: u8, len: usize) u64 {
+    var val: u64 = 0;
+    inline for (0..len) |i| {
+        val |= (@as(u64, byte) << @intCast( i * 8));
     }
-    return result;
+    return val;
 }
 
 test "strlen test" {

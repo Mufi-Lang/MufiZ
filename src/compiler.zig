@@ -11,9 +11,11 @@ const ObjFunction = object_h.ObjFunction;
 const Chunk = chunk_h.Chunk;
 const Value = value_h.Value;
 const print = @import("std").debug.print;
+const strlen = @import("mem_utils.zig").strlen;
 const stdlib_h = @cImport(@cInclude("stdlib.h"));
 const atoi = stdlib_h.atoi;
 const strtod = stdlib_h.strtod;
+
 const OpCode = chunk_h.OpCode;
 const debug_h = @import("debug.zig");
 
@@ -87,7 +89,7 @@ pub fn errorAt(token: *Token, message: [*]const u8) void {
     } else if (token.*.type == .TOKEN_ERROR) {} else {
         print(" at '{s}'", .{token.*.start[0..@intCast(token.*.length)]});
     }
-    
+
     // Convert the C-style string to a Zig-style string slice by calculating its length
     var i: usize = 0;
     while (message[i] != 0) : (i += 1) {}
@@ -643,8 +645,7 @@ pub fn grouping(canAssign: bool) void {
 pub fn number(canAssign: bool) void {
     _ = &canAssign;
     if (parser.previous.type == .TOKEN_INT) {
-        var value: i32 = atoi(parser.previous.start);
-        _ = &value;
+        const value: i32 = atoi(parser.previous.start);
         emitConstant(Value{
             .type = .VAL_INT,
             .as = .{
@@ -652,8 +653,7 @@ pub fn number(canAssign: bool) void {
             },
         });
     } else {
-        var value: f64 = strtod(parser.previous.start, null);
-        _ = &value;
+        const value: f64 = strtod(parser.previous.start, null);
         emitConstant(Value{
             .type = .VAL_DOUBLE,
             .as = .{
