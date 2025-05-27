@@ -1,0 +1,10 @@
+fun f() {
+  for (;;) {
+    var i = "i";
+    fun g() { return i; }
+    return g;
+  }
+}
+
+var h = f();
+assert(h(), "i");

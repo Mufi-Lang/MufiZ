@@ -47,6 +47,7 @@ const targets: []const std.Target.Query = &.{
     .{ .cpu_arch = .x86_64, .os_tag = .macos },
     .{ .cpu_arch = .x86_64, .os_tag = .windows },
     .{ .cpu_arch = .x86_64, .os_tag = .windows, .abi = .gnu },
+    .{ .cpu_arch = .sparc64, .os_tag = .linux },
 };
 
 // zig fmt: on
@@ -80,8 +81,8 @@ fn buildTarget(b: *std.Build, target: std.Target.Query, options: *std.Build.Step
         .name = "mufiz",
         .root_source_file = b.path("src/main.zig"),
         .target = b.resolveTargetQuery(target),
-        .optimize = .ReleaseSafe,
-        .link_libc = true,
+        .optimize = .ReleaseFast,
+        .link_libc = false,
     });
 
     if (target.cpu_arch == .wasm32) {

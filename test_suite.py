@@ -1,7 +1,6 @@
 import os
 import subprocess
 import logging
-from datetime import datetime
 
 
 # ANSI escape codes for colors

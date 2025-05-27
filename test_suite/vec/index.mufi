@@ -1,0 +1,4 @@
+var f = {1, 2, 3};
+assert(f[0], 1.0);
+assert(f[1], 2.0);
+assert(f[2], 3.0);

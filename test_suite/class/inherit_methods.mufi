@@ -1,0 +1,14 @@
+class Foo {
+  methodOnFoo() { return "foo"; }
+  override() { return "foo"; }
+}
+
+class Bar < Foo {
+  methodOnBar() { return "bar"; }
+  override() { return "bar"; }
+}
+
+var bar = Bar();
+assert(bar.methodOnFoo(), "foo"); // expect: foo
+assert(bar.methodOnBar(), "bar"); // expect: bar
+assert(bar.override(), "bar"); // expect: bar

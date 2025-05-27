@@ -15,7 +15,7 @@ const print = std.debug.print;
 //     count: Int,
 //     pos: Int,
 //     _static: bool,
-//     values: [*c]Value,
+//     values: [*]Value,
 
 //     const Self = [*c]@This();
 //     const Int = i32;
@@ -51,15 +51,15 @@ const print = std.debug.print;
 // pub fn TArray(comptime T: type) type {
 //     return extern struct {
 //         values: [*c]T = null,
-//         count: c_int = 0,
-//         capacity: c_int = 0,
+//         count: i32 = 0,
+//         capacity: i32 = 0,
 //         obj: Obj = Obj,
-//         pos: c_int = 0,
+//         pos: i32 = 0,
 //         _static: bool = false,
 
 //         const Self = [*c]@This();
 
-//         pub fn init(capacity: c_int, static_: bool, obj_type: ObjType) Self {
+//         pub fn init(capacity: i32, static_: bool, obj_type: ObjType) Self {
 //             const self: Self = @ptrCast(@alignCast(allocateObject(@sizeOf(Self), obj_type)));
 //             self.*.values = @alignCast(@ptrCast(reallocate(null, 0, @intCast(capacity *% @sizeOf(T)))));
 //             self.*.capacity = capacity;

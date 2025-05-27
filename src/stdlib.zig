@@ -15,8 +15,7 @@ pub const time = @import("stdlib/time.zig");
 pub const types = @import("stdlib/types.zig");
 pub const fs = @import("stdlib/fs.zig");
 pub const io = @import("stdlib/io.zig");
-
-pub const NativeFn = *const fn (c_int, [*c]Value) callconv(.C) Value;
+const NativeFn = @import("object.zig").NativeFn;
 
 fn defineNative(name: []const u8, fun: NativeFn) void {
     vm.defineNative(@ptrCast(@constCast(name)), @ptrCast(fun));
@@ -88,7 +87,7 @@ pub fn addNet() void {
     }
 }
 
-pub fn what_is(argc: c_int, args: [*c]Value) callconv(.C) Value {
+pub fn what_is(argc: i32, args: [*]Value) Value {
     if (argc != 1) return stdlib_error("what_is() expects 1 argument!", .{ .argn = argc });
 
     const str = conv.what_is(args[0]);
@@ -97,7 +96,7 @@ pub fn what_is(argc: c_int, args: [*c]Value) callconv(.C) Value {
     return Value.init_nil();
 }
 
-// pub fn import(argc: c_int, args: [*c]Value) callconv(.C) Value {
+// pub fn import(argc: i32, args: [*]Value)  Value {
 //     if (argc != 1) return stdlib_error("import() expects 1 argument!", .{ .argn = argc });
 
 //     const module = args[0].as_zstring();
@@ -117,7 +116,7 @@ pub fn what_is(argc: c_int, args: [*c]Value) callconv(.C) Value {
 // }
 
 const net_funs = if (enable_net) struct {
-    pub fn get(argc: c_int, args: [*c]Value) callconv(.C) Value {
+    pub fn get(argc: i32, args: [*]Value) Value {
         // expects `(url, method)`
         if (argc < 2) return stdlib_error("get() expects at least 2 arguments!", .{ .argn = argc });
         const url = args[0].as_zstring();
@@ -135,7 +134,7 @@ const net_funs = if (enable_net) struct {
         return Value.init_string(data);
     }
 
-    pub fn post(argc: c_int, args: [*c]Value) callconv(.C) Value {
+    pub fn post(argc: i32, args: [*]Value) Value {
         // expects `(url, method)`
         if (argc < 3) return stdlib_error("get() expects at least 2 arguments!", .{ .argn = argc });
         const url = args[0].as_zstring();
@@ -154,7 +153,7 @@ const net_funs = if (enable_net) struct {
         return Value.init_string(resp);
     }
 
-    pub fn put(argc: c_int, args: [*c]Value) callconv(.C) Value {
+    pub fn put(argc: i32, args: [*]Value) Value {
         // expects `(url, method)`
         if (argc < 3) return stdlib_error("get() expects at least 2 arguments!", .{ .argn = argc });
         const url = args[0].as_zstring();
@@ -173,7 +172,7 @@ const net_funs = if (enable_net) struct {
         return Value.init_string(resp);
     }
 
-    pub fn delete(argc: c_int, args: [*c]Value) callconv(.C) Value {
+    pub fn delete(argc: i32, args: [*]Value) Value {
         // expects `(url, method)`
         if (argc < 2) return stdlib_error("get() expects at least 2 arguments!", .{ .argn = argc });
         const url = args[0].as_zstring();
@@ -191,7 +190,7 @@ const net_funs = if (enable_net) struct {
         return Value.init_string(data);
     }
 
-    pub fn open(argc: c_int, args: [*c]Value) callconv(.C) Value {
+    pub fn open(argc: i32, args: [*]Value) Value {
         if (argc != 1) return stdlib_error("open() expects 1 argument", .{ .argn = argc });
         const url = args[0].as_zstring();
         const op = net.Open.init(@constCast(url));

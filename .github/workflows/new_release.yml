@@ -9,7 +9,8 @@ on:
       - main
 
 env:
-  codename: "Ruby"
+  codename: "Kova"
+  version: "0.9.0"
 
 jobs:
   build:
@@ -40,6 +41,7 @@ jobs:
           sudo apt-get install -y unzip
           sudo apt-get install rpm
           gem install fpm
+          gem install package_cloud
 
       - name: Run Build Multi
         run: zig build --build-file build_multi.zig
@@ -52,9 +54,11 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           token: ${{secrets.SECRET}}
-          tag_name: v0.8.0
-          name: v0.8.0 ${{env.codename}} Release
+          tag_name: v${{env.version}}
+          name: v${{env.version}} ${{env.codename}} Release
           generate_release_notes: true
           draft: true
           prerelease: false
           files: "pkg/*"
+      - name: Upload deb and rpm to packagecloud
+        run: ./upload.sh -u ${{env.version}}

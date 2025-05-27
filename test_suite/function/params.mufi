@@ -1,0 +1,26 @@
+fun f0() { return 0; }
+assert(f0(), 0); // expect: 0
+
+fun f1(a) { return a; }
+assert(f1(1), 1); // expect: 1
+
+fun f2(a, b) { return a + b; }
+assert(f2(1, 2), 3); // expect: 3
+
+fun f3(a, b, c) { return a + b + c; }
+assert(f3(1, 2, 3), 6); // expect: 6
+
+fun f4(a, b, c, d) { return a + b + c + d; }
+assert(f4(1, 2, 3, 4), 10); // expect: 10
+
+fun f5(a, b, c, d, e) { return a + b + c + d + e; }
+assert(f5(1, 2, 3, 4, 5), 15); // expect: 15
+
+fun f6(a, b, c, d, e, f) { return a + b + c + d + e + f; }
+assert(f6(1, 2, 3, 4, 5, 6), 21); // expect: 21
+
+fun f7(a, b, c, d, e, f, g) { return a + b + c + d + e + f + g; }
+assert(f7(1, 2, 3, 4, 5, 6, 7), 28); // expect: 28
+
+fun f8(a, b, c, d, e, f, g, h) { return a + b + c + d + e + f + g + h; }
+assert(f8(1, 2, 3, 4, 5, 6, 7, 8), 36); // expect: 36

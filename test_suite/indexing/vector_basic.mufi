@@ -1,0 +1,27 @@
+// Basic vector indexing tests
+var vec = {10.0, 20.0, 30.0, 40.0, 50.0};
+
+// Test basic read operations
+print vec[0];  // Expected: 10
+print vec[1];  // Expected: 20
+print vec[2];  // Expected: 30
+print vec[3];  // Expected: 40
+print vec[4];  // Expected: 50
+
+// Test write operations
+vec[0] = 100.0;
+vec[2] = 300.0;
+vec[4] = 500.0;
+
+print vec[0];  // Expected: 100
+print vec[1];  // Expected: 20
+print vec[2];  // Expected: 300
+print vec[3];  // Expected: 40
+print vec[4];  // Expected: 500
+
+// Test chained operations
+var result = vec[0] + vec[2];
+print result;  // Expected: 400
+
+vec[1] = vec[0] * 2.0;
+print vec[1];  // Expected: 200

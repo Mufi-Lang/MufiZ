@@ -1,0 +1,12 @@
+class B{
+init(arg){
+        self.arg = arg;
+    }
+method() {
+    return "B.method(" + self.arg + ")";
+  }
+}
+
+
+var closure = B("arg").method();
+assert(closure, "B.method(arg)"); 

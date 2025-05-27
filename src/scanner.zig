@@ -1,18 +1,39 @@
 const std = @import("std");
-pub const strlen = @cImport(@cInclude("string.h")).strlen;
+pub const memcmp = @import("mem_utils.zig").memcmp;
+pub const strlen = @import("mem_utils.zig").strlen;
 
-pub fn memcmp(s1: ?*const anyopaque, s2: ?*const anyopaque, n: usize) c_int {
-    const str1: [*c]const u8 = @ptrCast(s1.?);
-    const str2: [*c]const u8 = @ptrCast(s2.?);
-    const num: usize = @intCast(n);
+// HashMap for keyword lookup
+const KeywordMap = std.HashMap([]const u8, TokenType, std.hash_map.StringContext, std.hash_map.default_max_load_percentage);
 
-    for (0..num) |i| {
-        if (str1[i] != str2[i]) {
-            return @as(c_int, @intCast(@as(i32, str1[i]) - @as(i32, str2[i])));
-        }
-    }
+var keyword_map: KeywordMap = undefined;
+var keyword_map_initialized: bool = false;
 
-    return 0;
+fn initKeywordMap() void {
+    if (keyword_map_initialized) return;
+
+    keyword_map = KeywordMap.init(std.heap.page_allocator);
+
+    keyword_map.put("and", .TOKEN_AND) catch unreachable;
+    keyword_map.put("class", .TOKEN_CLASS) catch unreachable;
+    keyword_map.put("else", .TOKEN_ELSE) catch unreachable;
+    keyword_map.put("each", .TOKEN_EACH) catch unreachable;
+    keyword_map.put("false", .TOKEN_FALSE) catch unreachable;
+    keyword_map.put("for", .TOKEN_FOR) catch unreachable;
+    keyword_map.put("fun", .TOKEN_FUN) catch unreachable;
+    keyword_map.put("if", .TOKEN_IF) catch unreachable;
+    keyword_map.put("item", .TOKEN_ITEM) catch unreachable;
+    keyword_map.put("let", .TOKEN_LET) catch unreachable;
+    keyword_map.put("nil", .TOKEN_NIL) catch unreachable;
+    keyword_map.put("or", .TOKEN_OR) catch unreachable;
+    keyword_map.put("print", .TOKEN_PRINT) catch unreachable;
+    keyword_map.put("return", .TOKEN_RETURN) catch unreachable;
+    keyword_map.put("self", .TOKEN_SELF) catch unreachable;
+    keyword_map.put("super", .TOKEN_SUPER) catch unreachable;
+    keyword_map.put("true", .TOKEN_TRUE) catch unreachable;
+    keyword_map.put("var", .TOKEN_VAR) catch unreachable;
+    keyword_map.put("while", .TOKEN_WHILE) catch unreachable;
+
+    keyword_map_initialized = true;
 }
 
 pub const TokenType = enum(c_int) {
@@ -78,57 +99,58 @@ pub const TokenType = enum(c_int) {
     TOKEN_COLON = 54,
 };
 
-pub const Token = extern struct {
+pub const Token = struct {
     type: TokenType,
-    start: [*c]u8,
+    start: [*]u8,
     length: i32,
     line: i32,
 };
 
-pub const Scanner = extern struct {
-    start: [*c]u8,
-    current: [*c]u8,
+pub const Scanner = struct {
+    start: [*]u8,
+    current: [*]u8,
     line: i32,
 };
 
 var scanner: Scanner = undefined;
 
-pub export fn initScanner(source: [*c]u8) callconv(.C) void {
-    scanner.start = source;
-    scanner.current = source;
+pub fn init_scanner(source: [*]u8) void {
+    scanner.start = @ptrCast(source);
+    scanner.current = @ptrCast(source);
     scanner.line = 1;
+    initKeywordMap();
 }
 
-pub export fn isAlpha(c: u8) callconv(.C) bool {
+pub fn is_alpha(c: u8) bool {
     return (c >= 'a' and c <= 'z') or
         (c >= 'A' and c <= 'Z') or
         c == '_';
 }
 
-pub export fn isDigit(c: u8) callconv(.C) bool {
+pub fn is_digit(c: u8) bool {
     return c >= '0' and c <= '9';
 }
 
-pub export fn isAtEnd() callconv(.C) bool {
-    return scanner.current.* == '\x00';
+pub fn is_at_end() bool {
+    return scanner.current[0] == '\x00';
 }
 
-pub export fn __scanner__advance() callconv(.C) u8 {
+pub fn advance() u8 {
     const char = scanner.current[0];
     scanner.current += 1;
     return char;
 }
 
-pub export fn peek() callconv(.C) u8 {
-    return scanner.current.*;
+pub fn peek() u8 {
+    return scanner.current[0];
 }
 
-pub export fn peekNext() callconv(.C) u8 {
-    if (isAtEnd()) return 0;
+pub fn peekNext() u8 {
+    if (is_at_end()) return 0;
     return scanner.current[1];
 }
 /// TODO: need to simply without converting so much
-pub export fn makeToken(type_: TokenType) callconv(.C) Token {
+pub fn make_token(type_: TokenType) Token {
     return .{
         .type = type_,
         .start = scanner.start,
@@ -136,28 +158,28 @@ pub export fn makeToken(type_: TokenType) callconv(.C) Token {
         .line = scanner.line,
     };
 }
-/// TODO: need to simply without converting so much
-pub export fn errorToken(message: [*c]u8) callconv(.C) Token {
+
+pub fn errorToken(message: [*]u8) Token {
     return .{
         .type = TokenType.TOKEN_ERROR,
-        .start = message,
+        .start = @ptrCast(message),
         .length = @intCast(strlen(message)),
         .line = scanner.line,
     };
 }
 
-pub export fn skipWhitespace() callconv(.C) void {
+pub fn skip_whitespace() void {
     while (true) {
         const c = peek();
         switch (c) {
-            ' ', '\r', '\t' => _ = __scanner__advance(),
+            ' ', '\r', '\t' => _ = advance(),
             '\n' => {
                 scanner.line += 1;
-                _ = __scanner__advance();
+                _ = advance();
             },
             '/' => {
                 if (peekNext() == '/') {
-                    while (peek() != '\n' and !isAtEnd()) _ = __scanner__advance();
+                    while (peek() != '\n' and !is_at_end()) _ = advance();
                 } else {
                     return;
                 }
@@ -166,170 +188,118 @@ pub export fn skipWhitespace() callconv(.C) void {
         }
     }
 }
+
 /// TODO: need to simply without converting so much
-pub export fn checkKeyword(arg_start: c_int, arg_length: c_int, arg_rest: [*c]const u8, arg_type: TokenType) callconv(.C) TokenType {
-    const start = arg_start;
-    const length = arg_length;
-    const rest = arg_rest;
-    const @"type" = arg_type;
-    if (@intFromPtr(scanner.current) - @intFromPtr(scanner.start) == start + length and memcmp(@ptrCast(@as([*c]u8, @ptrFromInt(@intFromPtr(scanner.start) + @as(usize, @intCast(start))))), @ptrCast(rest), @intCast(length)) == 0) {
-        return @"type";
-    }
-    return .TOKEN_IDENTIFIER;
-}
-/// TODO: need to simply without converting so much
-pub export fn __scanner__match(arg_expected: u8) callconv(.C) bool {
+pub fn match(arg_expected: u8) bool {
     const expected = arg_expected;
-    if (isAtEnd()) return @as(c_int, 0) != 0;
-    if (@as(c_int, @bitCast(@as(c_uint, scanner.current.*))) != @as(c_int, @bitCast(@as(c_uint, expected)))) return @as(c_int, 0) != 0;
+    if (is_at_end()) return false;
+    if (scanner.current[0] != expected) return false;
     scanner.current += 1;
-    return @as(c_int, 1) != 0;
+    return true;
 }
 
-pub export fn identifierType() callconv(.C) TokenType {
-    switch (scanner.start[0]) {
-        'a' => return checkKeyword(1, 2, @ptrCast("nd"), .TOKEN_AND),
-        'c' => return checkKeyword(1, 4, @ptrCast("lass"), .TOKEN_CLASS),
-        'e' => {
-            if (@intFromPtr(scanner.current) - @intFromPtr(scanner.start) > 1) {
-                switch (scanner.start[1]) {
-                    'l' => return checkKeyword(2, 2, @ptrCast("se"), .TOKEN_ELSE),
-                    'a' => return checkKeyword(2, 2, @ptrCast("ch"), .TOKEN_EACH),
-                    else => {},
-                }
-            }
-        },
-        'f' => {
-            if (@intFromPtr(scanner.current) - @intFromPtr(scanner.start) > 1) {
-                switch (scanner.start[1]) {
-                    'a' => return checkKeyword(2, 3, @ptrCast("lse"), .TOKEN_FALSE),
-                    'o' => return checkKeyword(2, 1, @ptrCast("r"), .TOKEN_FOR),
-                    'u' => return checkKeyword(2, 1, @ptrCast("n"), .TOKEN_FUN),
-                    else => {},
-                }
-            }
-        },
-        'i' => {
-            if (@intFromPtr(scanner.current) - @intFromPtr(scanner.start) > 1) {
-                switch (scanner.start[1]) {
-                    'f' => return checkKeyword(2, 0, @ptrCast(""), .TOKEN_IF),
-                    't' => return checkKeyword(2, 2, @ptrCast("em"), .TOKEN_ITEM),
-                    else => {},
-                }
-            }
-        },
-        'l' => return checkKeyword(1, 2, @ptrCast("et"), .TOKEN_LET),
-        'n' => return checkKeyword(1, 2, @ptrCast("il"), .TOKEN_NIL),
-        'p' => return checkKeyword(1, 4, @ptrCast("rint"), .TOKEN_PRINT),
-        'r' => return checkKeyword(1, 5, @ptrCast("eturn"), .TOKEN_RETURN),
-        's' => {
-            if (@intFromPtr(scanner.current) - @intFromPtr(scanner.start) > 1) {
-                switch (scanner.start[1]) {
-                    'e' => return checkKeyword(2, 2, @ptrCast("lf"), .TOKEN_SELF),
-                    'u' => return checkKeyword(2, 3, @ptrCast("per"), .TOKEN_SUPER),
-                    else => {},
-                }
-            }
-        },
-        't' => return checkKeyword(1, 3, @ptrCast("rue"), .TOKEN_TRUE),
-        'v' => return checkKeyword(1, 2, @ptrCast("ar"), .TOKEN_VAR),
-        'w' => return checkKeyword(1, 4, @ptrCast("hile"), .TOKEN_WHILE),
-        else => {},
+pub fn identifierType() TokenType {
+    const length = @intFromPtr(scanner.current) - @intFromPtr(scanner.start);
+    const identifier_slice = scanner.start[0..@intCast(length)];
+
+    if (keyword_map.get(identifier_slice)) |token_type| {
+        return token_type;
     }
+
     return .TOKEN_IDENTIFIER;
 }
-pub export fn identifier() callconv(.C) Token {
-    while (isAlpha(peek()) or isDigit(peek())) {
-        _ = __scanner__advance();
+pub fn identifier() Token {
+    while (is_alpha(peek()) or is_digit(peek())) {
+        _ = advance();
     }
-    return makeToken(identifierType());
+    return make_token(identifierType());
 }
 
-pub export fn __scanner__number() callconv(.C) Token {
-    while (isDigit(peek())) {
-        _ = __scanner__advance();
+pub fn number() Token {
+    while (is_digit(peek())) {
+        _ = advance();
     }
-    if (peek() == '.' and isDigit(peekNext())) {
-        _ = __scanner__advance();
-        while (isDigit(peek())) _ = __scanner__advance();
+    if (peek() == '.' and is_digit(peekNext())) {
+        _ = advance();
+        while (is_digit(peek())) _ = advance();
 
-        return makeToken(.TOKEN_DOUBLE);
+        return make_token(.TOKEN_DOUBLE);
     } else {
-        return makeToken(.TOKEN_INT);
+        return make_token(.TOKEN_INT);
     }
 }
 
-pub export fn __scanner__string() callconv(.C) Token {
-    while (peek() != '"' and !isAtEnd()) {
+pub fn string() Token {
+    while (peek() != '"' and !is_at_end()) {
         if (peek() == '\n') {
             scanner.line += 1;
         }
-        _ = __scanner__advance();
+        _ = advance();
     }
-    if (isAtEnd()) return errorToken(@ptrCast(@constCast("Unterminated string.")));
-    _ = __scanner__advance();
-    return makeToken(.TOKEN_STRING);
+    if (is_at_end()) return errorToken(@ptrCast(@constCast("Unterminated string.")));
+    _ = advance();
+    return make_token(.TOKEN_STRING);
 }
 
-pub export fn scanToken() Token {
-    skipWhitespace();
+pub fn scanToken() Token {
+    skip_whitespace();
     scanner.start = scanner.current;
-    if (isAtEnd()) return makeToken(.TOKEN_EOF);
-    const c = __scanner__advance();
+    if (is_at_end()) return make_token(.TOKEN_EOF);
+    const c = advance();
 
-    if (isAlpha(c)) return identifier();
-    if (isDigit(c)) return __scanner__number();
+    if (is_alpha(c)) return identifier();
+    if (is_digit(c)) return number();
 
     switch (c) {
-        '(' => return makeToken(.TOKEN_LEFT_PAREN),
-        ')' => return makeToken(.TOKEN_RIGHT_PAREN),
-        '{' => return makeToken(.TOKEN_LEFT_BRACE),
-        '}' => return makeToken(.TOKEN_RIGHT_BRACE),
-        '[' => return makeToken(.TOKEN_LEFT_SQPAREN),
-        ']' => return makeToken(.TOKEN_RIGHT_SQPAREN),
-        ';' => return makeToken(.TOKEN_SEMICOLON),
-        ':' => return makeToken(.TOKEN_COLON),
-        ',' => return makeToken(.TOKEN_COMMA),
-        '.' => return makeToken(.TOKEN_DOT),
+        '(' => return make_token(.TOKEN_LEFT_PAREN),
+        ')' => return make_token(.TOKEN_RIGHT_PAREN),
+        '{' => return make_token(.TOKEN_LEFT_BRACE),
+        '}' => return make_token(.TOKEN_RIGHT_BRACE),
+        '[' => return make_token(.TOKEN_LEFT_SQPAREN),
+        ']' => return make_token(.TOKEN_RIGHT_SQPAREN),
+        ';' => return make_token(.TOKEN_SEMICOLON),
+        ':' => return make_token(.TOKEN_COLON),
+        ',' => return make_token(.TOKEN_COMMA),
+        '.' => return make_token(.TOKEN_DOT),
         '-' => {
-            if (__scanner__match('=')) {
-                return makeToken(.TOKEN_MINUS_EQUAL);
-            } else if (__scanner__match('-')) {
-                return makeToken(.TOKEN_MINUS_MINUS);
+            if (match('=')) {
+                return make_token(.TOKEN_MINUS_EQUAL);
+            } else if (match('-')) {
+                return make_token(.TOKEN_MINUS_MINUS);
             } else {
-                return makeToken(.TOKEN_MINUS);
+                return make_token(.TOKEN_MINUS);
             }
         },
         '+' => {
-            if (__scanner__match('=')) {
-                return makeToken(.TOKEN_PLUS_EQUAL);
-            } else if (__scanner__match('+')) {
-                return makeToken(.TOKEN_PLUS_PLUS);
+            if (match('=')) {
+                return make_token(.TOKEN_PLUS_EQUAL);
+            } else if (match('+')) {
+                return make_token(.TOKEN_PLUS_PLUS);
             } else {
-                return makeToken(.TOKEN_PLUS);
+                return make_token(.TOKEN_PLUS);
             }
         },
         '/' => {
-            if (__scanner__match('=')) return makeToken(.TOKEN_SLASH_EQUAL) else return makeToken(.TOKEN_SLASH);
+            if (match('=')) return make_token(.TOKEN_SLASH_EQUAL) else return make_token(.TOKEN_SLASH);
         },
         '*' => {
-            if (__scanner__match('=')) return makeToken(.TOKEN_STAR_EQUAL) else return makeToken(.TOKEN_STAR);
+            if (match('=')) return make_token(.TOKEN_STAR_EQUAL) else return make_token(.TOKEN_STAR);
         },
         '!' => {
-            if (__scanner__match('=')) return makeToken(.TOKEN_BANG_EQUAL) else return makeToken(.TOKEN_BANG);
+            if (match('=')) return make_token(.TOKEN_BANG_EQUAL) else return make_token(.TOKEN_BANG);
         },
         '=' => {
-            if (__scanner__match('=')) return makeToken(.TOKEN_EQUAL_EQUAL) else return makeToken(.TOKEN_EQUAL);
+            if (match('=')) return make_token(.TOKEN_EQUAL_EQUAL) else return make_token(.TOKEN_EQUAL);
         },
         '<' => {
-            if (__scanner__match('=')) return makeToken(.TOKEN_LESS_EQUAL) else return makeToken(.TOKEN_LESS);
+            if (match('=')) return make_token(.TOKEN_LESS_EQUAL) else return make_token(.TOKEN_LESS);
         },
         '>' => {
-            if (__scanner__match('=')) return makeToken(.TOKEN_GREATER_EQUAL) else return makeToken(.TOKEN_GREATER);
+            if (match('=')) return make_token(.TOKEN_GREATER_EQUAL) else return make_token(.TOKEN_GREATER);
         },
-        '%' => return makeToken(.TOKEN_PERCENT),
-        '^' => return makeToken(.TOKEN_HAT),
-        '"' => return __scanner__string(),
+        '%' => return make_token(.TOKEN_PERCENT),
+        '^' => return make_token(.TOKEN_HAT),
+        '"' => return string(),
         else => {},
     }
     return errorToken(@ptrCast(@constCast("Unexpected Character.")));

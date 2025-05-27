@@ -8,23 +8,26 @@ const ObjFunction = obj_h.ObjFunction;
 const ObjLinkedList = obj_h.ObjLinkedList;
 const Node = obj_h.Node;
 const FloatVector = obj_h.FloatVector;
+const fvec = @import("objects/fvec.zig");
 const reallocate = @import("memory.zig").reallocate;
+const memory_h = @import("memory.zig");
 const print = std.debug.print;
+const memcpy = @import("mem_utils.zig").memcpyFast;
 
-pub const ValueType = enum(c_int) { VAL_BOOL = 0, VAL_NIL = 1, VAL_INT = 2, VAL_DOUBLE = 3, VAL_OBJ = 4, VAL_COMPLEX = 5 };
+pub const ValueType = enum(i32) { VAL_BOOL = 0, VAL_NIL = 1, VAL_INT = 2, VAL_DOUBLE = 3, VAL_OBJ = 4, VAL_COMPLEX = 5 };
 
-pub const Complex = extern struct {
+pub const Complex = struct {
     r: f64,
     i: f64,
 };
 
-pub const Value = extern struct {
+pub const Value = struct {
     type: ValueType,
-    as: extern union {
+    as: union {
         boolean: bool,
         num_double: f64,
         num_int: i32,
-        obj: [*c]Obj,
+        obj: ?*Obj,
         complex: Complex,
     },
 
@@ -46,13 +49,13 @@ pub const Value = extern struct {
         return Value.init_int(0);
     }
 
-    pub fn init_obj(obj: [*c]Obj) Self {
+    pub fn init_obj(obj: *Obj) Self {
         return Value{ .type = .VAL_OBJ, .as = .{ .obj = obj } };
     }
 
     pub fn init_string(s: []u8) Self {
-        const chars: [*c]const u8 = @ptrCast(@alignCast(s.ptr));
-        const length: c_int = @intCast(s.len);
+        const chars: [*]const u8 = @ptrCast(@alignCast(s.ptr));
+        const length: usize = @intCast(s.len);
         const obj_str = obj_h.copyString(chars, length);
         return Value.init_obj(@ptrCast(obj_str));
     }
@@ -61,11 +64,46 @@ pub const Value = extern struct {
         return Value{ .type = .VAL_COMPLEX, .as = .{ .complex = c } };
     }
 
+    // Reference counting support
+    pub fn retain(self: Self) void {
+        if (self.is_obj()) {
+            memory_h.incRef(self.as.obj);
+        }
+    }
+
+    pub fn release(self: Self) void {
+        if (self.is_obj()) {
+            memory_h.decRef(self.as.obj);
+        }
+    }
+
+    pub fn assign(self: *Self, other: Value) void {
+        const old = self.*;
+        
+        // Increment the reference count of the new value first
+        other.retain();
+        
+        // Assign the new value
+        self.* = other;
+        
+        // Release the old value after assignment is complete
+        old.release();
+    }
+
     pub fn negate(self: Self) Self {
         switch (self.type) {
             .VAL_INT => return Value.init_int(-self.as.num_int),
             .VAL_DOUBLE => return Value.init_double(-self.as.num_double),
             .VAL_COMPLEX => return Value.init_complex(.{ .r = -self.as.complex.r, .i = -self.as.complex.i }),
+            .VAL_OBJ => {
+                if (self.is_fvec()) {
+                    const vec = self.as_fvec();
+                    const result = vec.scale(-1.0);
+                    return Value.init_obj(@ptrCast(@alignCast(result)));
+                } else {
+                    @panic("Cannot negate non-numeric value");
+                }
+            },
             else => @panic("Cannot negate non-numeric value"),
         }
     }
@@ -96,7 +134,33 @@ pub const Value = extern struct {
                     else => {},
                 }
             },
-
+            .VAL_OBJ => {
+                if (self.is_string() and other.is_string()) {
+                    const a = self.as_string();
+                    const b = other.as_string();
+                    const length: usize = a.*.length + b.*.length;
+                    const chars: [*]u8 = @as([*]u8, @ptrCast(@alignCast(reallocate(null, 0, @intCast(@sizeOf(u8) *% length + 1)))));
+                    _ = memcpy(@ptrCast(chars), @ptrCast(a.*.chars), @intCast(a.*.length));
+                    _ = memcpy(@ptrCast(chars + @as(usize, @bitCast(@as(isize, @intCast(a.*.length))))), @ptrCast(b.*.chars), @intCast(b.*.length));
+                    chars[@intCast(length)] = '\x00';
+                    const result = obj_h.takeString(chars, length);
+                    return Value.init_obj(@ptrCast(@alignCast(result)));
+                } else if (self.is_fvec() and other.is_fvec()) {
+                    // Both are FloatVectors
+                    const a = self.as_fvec();
+                    const b = other.as_fvec();
+                    const result = a.add(b);
+                    return Value.init_obj(@ptrCast(result));
+                } else if (self.is_fvec() and other.is_prim_num()) {
+                    // FloatVector + scalar
+                    const a = self.as_fvec();
+                    const scalar = other.as_num_double();
+                    const result = a.single_add(scalar);
+                    return Value.init_obj(@ptrCast(result));
+                } else {
+                    @panic("Cannot add non-string object values");
+                }
+            },
             else => {},
         }
         return Value.init_nil();
@@ -130,6 +194,23 @@ pub const Value = extern struct {
                     .VAL_DOUBLE => return Value.init_complex(.{ .r = self.as.complex.r * other.as.num_double, .i = self.as.complex.i * other.as.num_double }),
                     .VAL_COMPLEX => return Value.init_complex(.{ .r = self.as.complex.r * other.as.complex.r - self.as.complex.i * other.as.complex.i, .i = self.as.complex.r * other.as.complex.i + self.as.complex.i * other.as.complex.r }),
                     else => {},
+                }
+            },
+            .VAL_OBJ => {
+                if (self.is_fvec() and other.is_fvec()) {
+                    // Both are FloatVectors
+                    const a = self.as_fvec();
+                    const b = other.as_fvec();
+                    const result = a.mul(b);
+                    return Value.init_obj(@ptrCast(result));
+                } else if (self.is_fvec() and other.is_prim_num()) {
+                    // FloatVector * scalar
+                    const a = self.as_fvec();
+                    const scalar = other.as_num_double();
+                    const result = a.scale(scalar);
+                    return Value.init_obj(@ptrCast(result));
+                } else {
+                    @panic("Cannot multiply these object types");
                 }
             },
             else => {},
@@ -178,6 +259,23 @@ pub const Value = extern struct {
                     else => {},
                 }
             },
+            .VAL_OBJ => {
+                if (self.is_fvec() and other.is_fvec()) {
+                    // Both are FloatVectors
+                    const a = self.as_fvec();
+                    const b = other.as_fvec();
+                    const result = a.div(b);
+                    return Value.init_obj(@ptrCast(result));
+                } else if (self.is_fvec() and other.is_prim_num()) {
+                    // FloatVector / scalar
+                    const a = self.as_fvec();
+                    const scalar = other.as_num_double();
+                    const result = a.single_div(scalar);
+                    return Value.init_obj(@ptrCast(result));
+                } else {
+                    @panic("Cannot divide these object types");
+                }
+            },
             else => {},
         }
         return Value.init_nil();
@@ -212,7 +310,7 @@ pub const Value = extern struct {
     }
 
     pub fn is_obj_type(self: Self, ty: obj_h.ObjType) bool {
-        return self.is_obj() and self.as.obj.*.type == ty;
+        return self.is_obj() and self.as.obj.?.type == ty;
     }
 
     pub fn is_string(self: Self) bool {
@@ -227,7 +325,11 @@ pub const Value = extern struct {
         return self.is_obj_type(.OBJ_INSTANCE);
     }
 
-    pub fn as_obj(self: Self) [*c]Obj {
+    pub fn is_fvec(self: Self) bool {
+        return self.is_obj_type(.OBJ_FVECTOR);
+    }
+
+    pub fn as_obj(self: Self) ?*Obj {
         return self.as.obj;
     }
 
@@ -247,6 +349,10 @@ pub const Value = extern struct {
         return self.as.complex;
     }
 
+    pub fn as_fvec(self: Self) *FloatVector {
+        return @ptrCast(@alignCast(self.as.obj));
+    }
+
     pub fn as_num_double(self: Self) f64 {
         return switch (self.type) {
             .VAL_INT => @as(f64, @floatFromInt(self.as.num_int)),
@@ -263,11 +369,11 @@ pub const Value = extern struct {
         };
     }
 
-    pub fn as_string(self: Self) [*c]ObjString {
+    pub fn as_string(self: Self) *ObjString {
         return @ptrCast(@alignCast(self.as.obj));
     }
 
-    pub fn as_class(self: Self) [*c]obj_h.ObjClass {
+    pub fn as_class(self: Self) *obj_h.ObjClass {
         return @ptrCast(@alignCast(self.as.obj));
     }
 
@@ -278,10 +384,10 @@ pub const Value = extern struct {
     }
 };
 
-pub const ValueArray = extern struct {
-    capacity: c_int,
-    count: c_int,
-    values: [*c]Value,
+pub const ValueArray = struct {
+    capacity: i32,
+    count: i32,
+    values: [*]Value,
 };
 
 pub fn valuesEqual(a: Value, b: Value) bool {
@@ -293,39 +399,43 @@ pub fn valuesEqual(a: Value, b: Value) bool {
         .VAL_DOUBLE => return a.as.num_double == b.as.num_double,
         .VAL_OBJ => {
             {
-                const obj_a: [*c]Obj = a.as.obj;
-                const obj_b: [*c]Obj = b.as.obj;
+                const obj_a: *Obj = a.as.obj.?;
+                const obj_b: *Obj = b.as.obj.?;
                 if (obj_a.*.type != obj_b.*.type) return false;
                 switch (obj_a.*.type) {
                     .OBJ_STRING => {
                         {
-                            const str_a: [*c]ObjString = @as([*c]ObjString, @ptrCast(@alignCast(a.as.obj)));
-                            const str_b: [*c]ObjString = @as([*c]ObjString, @ptrCast(@alignCast(b.as.obj)));
-                            return (str_a.*.length == str_b.*.length) and (scanner_h.memcmp(@ptrCast(str_a.*.chars), @ptrCast(str_b.*.chars), @intCast(str_a.*.length)) == 0);
+                            const str_a: *ObjString = @as(*ObjString, @ptrCast(@alignCast(a.as.obj)));
+                            const str_b: *ObjString = @as(*ObjString, @ptrCast(@alignCast(b.as.obj)));
+                            return (str_a.length == str_b.length) and (scanner_h.memcmp(@ptrCast(str_a.chars), @ptrCast(str_b.chars), @intCast(str_a.length)) == 0);
                         }
                     },
                     .OBJ_LINKED_LIST => {
                         {
-                            const list_a: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(a.as.obj)));
-                            const list_b: [*c]ObjLinkedList = @as([*c]ObjLinkedList, @ptrCast(@alignCast(b.as.obj)));
-                            if (list_a.*.count != list_b.*.count) return false;
-                            var node_a: [*c]Node = list_a.*.head;
-                            var node_b: [*c]Node = list_b.*.head;
-                            while (node_a != @as([*c]Node, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
-                                if (!valuesEqual(node_a.*.data, node_b.*.data)) return false;
-                                node_a = node_a.*.next;
-                                node_b = node_b.*.next;
+                            const list_a: *ObjLinkedList = @as(*ObjLinkedList, @ptrCast(@alignCast(a.as.obj)));
+                            const list_b: *ObjLinkedList = @as(*ObjLinkedList, @ptrCast(@alignCast(b.as.obj)));
+                            if (list_a.count != list_b.count) return false;
+                            var node_a: ?*Node = list_a.head;
+                            var node_b: ?*Node = list_b.head;
+                            while (node_a) |nodeA| {
+                                if (node_b) |nodeB| {
+                                    if (!valuesEqual(nodeA.data, nodeB.data)) return false;
+                                    node_a = nodeA.next;
+                                    node_b = nodeB.next;
+                                } else {
+                                    return false;
+                                }
                             }
                             return true;
                         }
                     },
                     .OBJ_FVECTOR => {
                         {
-                            const vec_a: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(a.as.obj)));
-                            const vec_b: [*c]FloatVector = @as([*c]FloatVector, @ptrCast(@alignCast(b.as.obj)));
+                            const vec_a: *FloatVector = @as(*FloatVector, @ptrCast(@alignCast(a.as.obj)));
+                            const vec_b: *FloatVector = @as(*FloatVector, @ptrCast(@alignCast(b.as.obj)));
                             if (vec_a.*.count != vec_b.*.count) return false;
 
-                            var i: c_int = 0;
+                            var i: i32 = 0;
                             while (i < vec_a.*.count) : (i += 1) {
                                 if (vec_a.*.data[@intCast(i)] != vec_b.*.data[@intCast(i)]) return false;
                             }
@@ -345,15 +455,15 @@ pub fn valuesEqual(a: Value, b: Value) bool {
     }
 }
 
-pub fn valueCompare(a: Value, b: Value) c_int {
+pub fn valueCompare(a: Value, b: Value) i32 {
     if (a.type != b.type) return -1;
 
     switch (a.type) {
         .VAL_BOOL => return @intCast(@intFromBool(a.as_bool()) - @intFromBool(b.as_bool())),
         .VAL_NIL => return 0,
         .VAL_INT => {
-            const a1: c_int = a.as.num_int;
-            const b1: c_int = b.as.num_int;
+            const a1: i32 = a.as.num_int;
+            const b1: i32 = b.as.num_int;
 
             if (a1 > b1) return 1;
             if (a1 < b1) return -1;
@@ -372,25 +482,27 @@ pub fn valueCompare(a: Value, b: Value) c_int {
     return -1;
 }
 
-pub fn initValueArray(array: [*c]ValueArray) void {
-    array.*.values = null;
-    array.*.capacity = 0;
-    array.*.count = 0;
+pub fn initValueArray(array: *ValueArray) void {
+    array.values = undefined;
+    array.capacity = 0;
+    array.count = 0;
 }
 
-pub fn writeValueArray(array: [*c]ValueArray, value: Value) void {
-    if (array.*.capacity < (array.*.count + 1)) {
-        const oldCapacity: c_int = array.*.capacity;
-        array.*.capacity = if (oldCapacity < 8) 8 else oldCapacity * 2;
-        array.*.values = @ptrCast(@alignCast(reallocate(@ptrCast(array.*.values), @intCast(@sizeOf(Value) * oldCapacity), @intCast(@sizeOf(Value) * array.*.capacity))));
+pub fn writeValueArray(array: *ValueArray, value: Value) void {
+    if (array.capacity < (array.count + 1)) {
+        const oldCapacity: i32 = array.capacity;
+        array.capacity = if (oldCapacity < 8) 8 else oldCapacity * 2;
+        array.values = @ptrCast(@alignCast(reallocate(@ptrCast(array.values), @intCast(@sizeOf(Value) * oldCapacity), @intCast(@sizeOf(Value) * array.capacity))));
     }
-    array.*.values[@intCast(array.*.count)] = value;
-    array.*.count += 1;
+    array.values[@intCast(array.count)] = value;
+    array.count += 1;
 }
-pub fn freeValueArray(array: [*c]ValueArray) void {
-    _ = reallocate(@ptrCast(array.*.values), @intCast(@sizeOf(Value) * array.*.capacity), 0);
+
+pub fn freeValueArray(array: *ValueArray) void {
+    _ = reallocate(@ptrCast(@alignCast(array.values)), @intCast(@sizeOf(Value) * array.capacity), 0);
     initValueArray(array);
 }
+
 pub fn printValue(value: Value) void {
     switch (value.type) {
         .VAL_BOOL => {
@@ -425,16 +537,16 @@ pub fn valueToString(value: Value) []const u8 {
         .VAL_BOOL => return if (value.as_bool()) "true" else "false",
         .VAL_NIL => return "nil",
         .VAL_INT => {
-            const s = std.fmt.allocPrint(std.heap.c_allocator, "{d}", .{value.as_int()}) catch unreachable;
+            const s = std.fmt.allocPrint(std.heap.page_allocator, "{d}", .{value.as_int()}) catch unreachable;
             return s;
         },
         .VAL_DOUBLE => {
-            const s = std.fmt.allocPrint(std.heap.c_allocator, "{d}", .{value.as_double()}) catch unreachable;
+            const s = std.fmt.allocPrint(std.heap.page_allocator, "{d}", .{value.as_double()}) catch unreachable;
             return s;
         },
         .VAL_COMPLEX => {
             const c = value.as_complex();
-            const s = std.fmt.allocPrint(std.heap.c_allocator, "{d} + {d}i", .{ c.r, c.i }) catch unreachable;
+            const s = std.fmt.allocPrint(std.heap.page_allocator, "{d} + {d}i", .{ c.r, c.i }) catch unreachable;
             return s;
         },
         .VAL_OBJ => {

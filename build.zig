@@ -1,12 +1,12 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
-comptime {
-    const supported_version = std.SemanticVersion.parse("0.13.0") catch unreachable;
-    if (builtin.zig_version.order(supported_version) != .eq) {
-        @compileError(std.fmt.comptimePrint("Unsupported Zig version ({}). Required Zig version 0.13.0.", .{builtin.zig_version}));
-    }
-}
+//comptime {
+//    const supported_version = std.SemanticVersion.parse("0.13.0") catch unreachable;
+//    if (builtin.zig_version.order(supported_version) != .eq) {
+//        @compileError(std.fmt.comptimePrint("Unsupported Zig version ({}). Required Zig version 0.13.0.", .{builtin.zig_version}));
+//    }
+//}
 
 pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
@@ -16,7 +16,7 @@ pub fn build(b: *std.Build) !void {
         .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
-        .link_libc = true,
+        .link_libc = false, // we did this in v0.9.0
     });
 
     const exe_check = b.addExecutable(.{
@@ -24,7 +24,7 @@ pub fn build(b: *std.Build) !void {
         .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
-        .link_libc = true,
+        .link_libc = false, // we did this in v0.9.0
     });
 
     if (target.query.cpu_arch == .wasm32) {
