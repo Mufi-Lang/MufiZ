@@ -32,10 +32,7 @@ pub const GCData = struct {
 };
 
 pub var gcData: GCData = .{};
-const stdlib = @cImport(@cInclude("stdlib.h"));
 const exit = std.process.exit;
-// const realloc = stdlib.realloc;
-// const free = stdlib.free;
 
 const mem_utils = @import("mem_utils.zig");
 const realloc = mem_utils.realloc;
@@ -330,8 +327,4 @@ pub fn incrementalGC() void {
             break;
         }
     }
-}
-
-pub inline fn FREE_ARRAY(@"type": anytype, pointer: *anyopaque, oldCount: usize) @TypeOf(reallocate(pointer, @import("std").zig.c_translation.sizeof(@"type") * oldCount, 0)) {
-    return reallocate(@ptrCast(@alignCast(pointer)), @import("std").zig.c_translation.sizeof(@"type") * oldCount, 0);
 }

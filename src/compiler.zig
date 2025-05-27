@@ -12,9 +12,6 @@ const Chunk = chunk_h.Chunk;
 const Value = value_h.Value;
 const print = @import("std").debug.print;
 const strlen = @import("mem_utils.zig").strlen;
-const stdlib_h = @cImport(@cInclude("stdlib.h"));
-const atoi = stdlib_h.atoi;
-const strtod = stdlib_h.strtod;
 
 const OpCode = chunk_h.OpCode;
 const debug_h = @import("debug.zig");
@@ -33,7 +30,7 @@ pub const PREC_UNARY: i32 = 8;
 pub const PREC_CALL: i32 = 9;
 pub const PREC_INDEX: i32 = 10;
 pub const PREC_PRIMARY: i32 = 11;
-pub const Precedence = c_uint;
+pub const Precedence = u32;
 
 pub const ParseFn = ?*const fn (bool) void;
 pub const ParseRule = struct {
@@ -645,7 +642,8 @@ pub fn grouping(canAssign: bool) void {
 pub fn number(canAssign: bool) void {
     _ = &canAssign;
     if (parser.previous.type == .TOKEN_INT) {
-        const value: i32 = atoi(parser.previous.start);
+        const token_slice = parser.previous.start[0..@intCast(parser.previous.length)];
+        const value: i32 = std.fmt.parseInt(i32, token_slice, 10) catch 0;
         emitConstant(Value{
             .type = .VAL_INT,
             .as = .{
@@ -653,7 +651,8 @@ pub fn number(canAssign: bool) void {
             },
         });
     } else {
-        const value: f64 = strtod(parser.previous.start, null);
+        const token_slice = parser.previous.start[0..@intCast(parser.previous.length)];
+        const value: f64 = std.fmt.parseFloat(f64, token_slice) catch 0.0;
         emitConstant(Value{
             .type = .VAL_DOUBLE,
             .as = .{
