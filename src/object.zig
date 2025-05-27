@@ -197,7 +197,7 @@ pub fn newNative(function: NativeFn) *ObjNative {
     return native;
 }
 
-pub const AllocStringParams = extern struct {
+pub const AllocStringParams =  struct {
     chars: [*]u8,
     length: i32,
     hash: u64,
@@ -723,9 +723,9 @@ pub fn freeObjectHashTable(table: *ObjHashTable) void {
     table_h.freeTable(&table.*.table);
     _ = reallocate(@as(?*anyopaque, @ptrCast(table)), @sizeOf(ObjHashTable), 0);
 }
-// pub extern fn mergeHashTable(a: *ObjHashTable, b: *ObjHashTable) *ObjHashTable;
-// pub extern fn keysHashTable(table: *ObjHashTable) *ObjArray;
-// pub extern fn valuesHashTable(table: *ObjHashTable) *ObjArray;
+// pub  fn mergeHashTable(a: *ObjHashTable, b: *ObjHashTable) *ObjHashTable;
+// pub  fn keysHashTable(table: *ObjHashTable) *ObjArray;
+// pub  fn valuesHashTable(table: *ObjHashTable) *ObjArray;
 
 inline fn zstr(s: ?*ObjString) []const u8 {
     if (s) |str| {
@@ -826,7 +826,7 @@ pub fn isObjType(value: Value, type_: ObjType) bool {
     return (value.type == .VAL_OBJ) and (value.as.obj.?.type == type_);
 }
 
-pub const ObjTypeCheckParams = extern struct {
+pub const ObjTypeCheckParams =  struct {
     values: [*]Value,
     objType: ObjType,
     count: i32,

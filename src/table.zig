@@ -15,13 +15,13 @@ const VAL_NIL: i32 = 1;
 const VAL_BOOL: i32 = 0;
 const TABLE_MAX_LOAD: f64 = 0.75;
 
-pub const Table = extern struct {
+pub const Table =  struct {
     count: usize,
     capacity: usize,
     entries: ?[*]Entry,
 };
 
-pub const Entry = extern struct {
+pub const Entry =  struct {
     key: ?*ObjString,
     value: Value,
     deleted: bool,

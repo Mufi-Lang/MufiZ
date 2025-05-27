@@ -15,14 +15,14 @@ const memcpy = @import("mem_utils.zig").memcpyFast;
 
 pub const ValueType = enum(i32) { VAL_BOOL = 0, VAL_NIL = 1, VAL_INT = 2, VAL_DOUBLE = 3, VAL_OBJ = 4, VAL_COMPLEX = 5 };
 
-pub const Complex = extern struct {
+pub const Complex =  struct {
     r: f64,
     i: f64,
 };
 
-pub const Value = extern struct {
+pub const Value =  struct {
     type: ValueType,
-    as: extern union {
+    as:  union {
         boolean: bool,
         num_double: f64,
         num_int: i32,
@@ -357,7 +357,7 @@ pub const Value = extern struct {
     }
 };
 
-pub const ValueArray = extern struct {
+pub const ValueArray =  struct {
     capacity: i32,
     count: i32,
     values: [*]Value,
