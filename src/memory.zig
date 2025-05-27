@@ -688,7 +688,7 @@ pub fn blackenObject(object: *Obj) void {
 
     switch (object.*.type) {
         .OBJ_BOUND_METHOD => {
-            const bound: *obj_h.ObjBoundMethod = @ptrCast(object);
+            const bound: *obj_h.ObjBoundMethod = @ptrCast(@alignCast(object));
             markValue(bound.*.receiver);
             markObject(@ptrCast(@alignCast(bound.*.method)));
         },

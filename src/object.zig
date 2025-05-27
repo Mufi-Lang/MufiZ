@@ -727,7 +727,7 @@ pub fn printObject(value: Value) void {
     const obj: *Obj = @ptrCast(value.as.obj);
     switch (obj.*.type) {
         .OBJ_BOUND_METHOD => {
-            const bound_method = @as(*ObjBoundMethod, @ptrCast(value.as.obj));
+            const bound_method = @as(*ObjBoundMethod, @ptrCast(@alignCast(value.as.obj)));
             printFunction(bound_method.*.method.*.function);
         },
         .OBJ_CLASS => {
