@@ -26,7 +26,7 @@ pub const FloatVector = @import("objects/fvec.zig").FloatVector;
 
 pub const ObjString = struct {
     obj: Obj,
-    length: i32,
+    length: usize,
     chars: []u8,
     hash: u64,
 };
@@ -102,46 +102,22 @@ pub fn allocateObject(size: usize, type_: ObjType) *Obj {
     object.*.type = type_;
     object.*.isMarked = false;
     object.*.next = vm_h.vm.objects;
-    
+
     // Initialize hybrid GC fields
     object.*.refCount = 1;
     object.*.generation = .Young;
     object.*.age = 0;
     object.*.inCycleDetection = false;
     object.*.cycleColor = .White;
-    
+
     // Add to young generation list for generational GC
     memory_h.gcData.youngGen.add(object);
-    
+
     vm_h.vm.objects = object;
     // if (debug_opts.log_gc) print("{*} allocate {d} for {d}\n", .{@as(*ObjArray, @ptrCast(object)), size, @intFromEnum(type_)});
 
     return object;
 }
-
-// pub inline fn OBJ_TYPE(value: Value) ObjType {
-//     return AS_OBJ(value).*.type;
-// }
-
-// pub inline fn NOT_LIST_TYPES(values: [*]Value, n: i32) bool {
-//     return notObjTypes(ObjTypeCheckParams{
-//         .values = values,
-//         .objType = .OBJ_LINKED_LIST,
-//         .count = n,
-//     }) and notObjTypes(ObjTypeCheckParams{
-//         .values = values,
-//         .objType = .OBJ_FVECTOR,
-//         .count = n,
-//     });
-// }
-
-// pub inline fn NOT_COLLECTION_TYPES(values: [*]Value, n: i32) bool {
-//     return notObjTypes(ObjTypeCheckParams{
-//         .values = values,
-//         .objType = .OBJ_HASH_TABLE,
-//         .count = n,
-//     }) and NOT_LIST_TYPES(values, n);
-// }
 
 pub fn newBoundMethod(receiver: Value, method: *ObjClosure) *ObjBoundMethod {
     const bound: *ObjBoundMethod = @as(*ObjBoundMethod, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjBoundMethod), .OBJ_BOUND_METHOD))));
@@ -159,19 +135,19 @@ pub fn newClass(name: *ObjString) *ObjClass {
 pub fn newClosure(function: *ObjFunction) *ObjClosure {
     // Allocate memory for upvalues array
     const upvalueCount = function.*.upvalueCount;
-    
+
     // Create the closure object first
     const closure = @as(*ObjClosure, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjClosure), .OBJ_CLOSURE))));
-    
+
     // Then allocate upvalues if needed
     if (upvalueCount > 0) {
         const upvalue_mem = reallocate(null, 0, @intCast(@sizeOf(?*ObjUpvalue) * @as(usize, @intCast(upvalueCount))));
         if (upvalue_mem == null) {
             @panic("Failed to allocate upvalues memory");
         }
-        
+
         closure.*.upvalues = @ptrCast(@alignCast(upvalue_mem));
-        
+
         // Initialize upvalues to null
         var i: i32 = 0;
         while (i < upvalueCount) : (i += 1) {
@@ -209,9 +185,9 @@ pub fn newNative(function: NativeFn) *ObjNative {
     return native;
 }
 
-pub const AllocStringParams =  struct {
+pub const AllocStringParams = struct {
     chars: [*]u8,
-    length: i32,
+    length: usize,
     hash: u64,
 };
 
@@ -235,7 +211,7 @@ pub fn allocateString(params: AllocStringParams) *ObjString {
     return string;
 }
 
-pub fn hashString(key: [*]const u8, length: i32) u64 {
+pub fn hashString(key: [*]const u8, length: usize) u64 {
     const FNV_OFFSET_BASIS: u64 = 0xcbf29ce484222325;
     const FNV_PRIME: u64 = 0x100000001b3;
 
@@ -249,7 +225,7 @@ pub fn hashString(key: [*]const u8, length: i32) u64 {
     return hash;
 }
 
-pub fn takeString(chars: [*]u8, length: i32) *ObjString {
+pub fn takeString(chars: [*]u8, length: usize) *ObjString {
     // Compute the hash of the string
     const hash = hashString(chars, length);
 
@@ -269,7 +245,7 @@ pub fn takeString(chars: [*]u8, length: i32) *ObjString {
     });
 }
 
-pub fn copyString(chars: ?[*]const u8, length: i32) *ObjString {
+pub fn copyString(chars: ?[*]const u8, length: usize) *ObjString {
     // Safety check: ensure valid inputs
     if (chars == null or length < 0) {
         // Handle invalid inputs by creating empty string directly
@@ -838,7 +814,7 @@ pub fn isObjType(value: Value, type_: ObjType) bool {
     return (value.type == .VAL_OBJ) and (value.as.obj.?.type == type_);
 }
 
-pub const ObjTypeCheckParams =  struct {
+pub const ObjTypeCheckParams = struct {
     values: [*]Value,
     objType: ObjType,
     count: i32,

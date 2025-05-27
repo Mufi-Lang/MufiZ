@@ -189,7 +189,7 @@ pub fn initCompiler(compiler: *Compiler, type_: FunctionType) void {
 
     // Set function name if not a script
     if (type_ != .TYPE_SCRIPT) {
-        current.?.function.*.name = object_h.copyString(parser.previous.start, parser.previous.length);
+        current.?.function.*.name = object_h.copyString(parser.previous.start, @intCast(parser.previous.length));
     }
 
     // Create first local slot - used for 'self' in methods
@@ -325,7 +325,7 @@ pub fn getRule(type_: TokenType) ParseRule {
         .TOKEN_SLASH => ParseRule{ .infix = &binary, .precedence = PREC_FACTOR },
         .TOKEN_STAR => ParseRule{ .infix = &binary, .precedence = PREC_FACTOR },
         .TOKEN_PERCENT => ParseRule{ .infix = &binary, .precedence = PREC_FACTOR },
-        
+
         // One or more character tokens
         .TOKEN_BANG => ParseRule{ .prefix = &unary, .precedence = PREC_NONE },
         .TOKEN_BANG_EQUAL => ParseRule{ .infix = &binary, .precedence = PREC_EQUALITY },
@@ -335,13 +335,13 @@ pub fn getRule(type_: TokenType) ParseRule {
         .TOKEN_GREATER_EQUAL => ParseRule{ .infix = &binary, .precedence = PREC_COMPARISON },
         .TOKEN_LESS => ParseRule{ .infix = &binary, .precedence = PREC_COMPARISON },
         .TOKEN_LESS_EQUAL => ParseRule{ .infix = &binary, .precedence = PREC_COMPARISON },
-        
+
         // Literals
         .TOKEN_IDENTIFIER => ParseRule{ .prefix = &variable, .precedence = PREC_NONE },
         .TOKEN_STRING => ParseRule{ .prefix = &string, .precedence = PREC_NONE },
         .TOKEN_DOUBLE => ParseRule{ .prefix = &number, .precedence = PREC_NONE },
         .TOKEN_INT => ParseRule{ .prefix = &number, .precedence = PREC_NONE },
-        
+
         // Keywords
         .TOKEN_AND => ParseRule{ .infix = &and_, .precedence = PREC_AND },
         .TOKEN_CLASS => ParseRule{ .precedence = PREC_NONE },
@@ -362,7 +362,7 @@ pub fn getRule(type_: TokenType) ParseRule {
         .TOKEN_VAR => ParseRule{ .precedence = PREC_NONE },
         .TOKEN_WHILE => ParseRule{ .precedence = PREC_NONE },
         .TOKEN_ITEM => ParseRule{ .prefix = &literal, .precedence = PREC_NONE },
-        
+
         // Misc
         .TOKEN_ERROR => ParseRule{ .precedence = PREC_NONE },
         .TOKEN_EOF => ParseRule{ .precedence = PREC_NONE },
@@ -403,7 +403,7 @@ pub fn identifierConstant(name: *Token) u8 {
     return makeConstant(Value{
         .type = .VAL_OBJ,
         .as = .{
-            .obj = @ptrCast(object_h.copyString(name.*.start, name.*.length)),
+            .obj = @ptrCast(object_h.copyString(name.*.start, @intCast(name.*.length))),
         },
     });
 }
@@ -682,12 +682,7 @@ pub fn string(canAssign: bool) void {
     const start = parser.previous.start + 1; // Safely skip the opening quote
     const length = if (parser.previous.length >= 2) parser.previous.length - 2 else 0;
 
-    emitConstant(Value{
-        .type = .VAL_OBJ,
-        .as = .{
-            .obj = @ptrCast(object_h.copyString(start, length)),
-        },
-    });
+    emitConstant(Value.init_obj(@ptrCast(object_h.copyString(start, @intCast(length)))));
 }
 // pub fn array(canAssign: bool)  void {
 //     _ = &canAssign;
@@ -862,7 +857,7 @@ pub fn item_(canAssign: bool) void {
 pub fn index_(canAssign: bool) void {
     expression();
     consume(.TOKEN_RIGHT_SQPAREN, "Expect ']' after index.");
-    
+
     if (canAssign and match(.TOKEN_EQUAL)) {
         expression();
         emitByte(@intCast(@intFromEnum(OpCode.OP_SET_INDEX)));

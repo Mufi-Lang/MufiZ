@@ -198,7 +198,7 @@ pub fn tableAddAll(from: *Table, to: *Table) void {
     }
 }
 
-pub fn tableFindString(table: *Table, chars: [*]const u8, length: i32, hash: u64) ?*ObjString {
+pub fn tableFindString(table: *Table, chars: [*]const u8, length: usize, hash: u64) ?*ObjString {
     // Early return if count is 0
     if (table.count <= 0 or table.entries == null) return null;
 

@@ -16,14 +16,14 @@ const memcpy = @import("mem_utils.zig").memcpyFast;
 
 pub const ValueType = enum(i32) { VAL_BOOL = 0, VAL_NIL = 1, VAL_INT = 2, VAL_DOUBLE = 3, VAL_OBJ = 4, VAL_COMPLEX = 5 };
 
-pub const Complex =  struct {
+pub const Complex = struct {
     r: f64,
     i: f64,
 };
 
-pub const Value =  struct {
+pub const Value = struct {
     type: ValueType,
-    as:  union {
+    as: union {
         boolean: bool,
         num_double: f64,
         num_int: i32,
@@ -55,7 +55,7 @@ pub const Value =  struct {
 
     pub fn init_string(s: []u8) Self {
         const chars: [*]const u8 = @ptrCast(@alignCast(s.ptr));
-        const length: i32 = @intCast(s.len);
+        const length: usize = @intCast(s.len);
         const obj_str = obj_h.copyString(chars, length);
         return Value.init_obj(@ptrCast(obj_str));
     }
@@ -128,7 +128,7 @@ pub const Value =  struct {
                 if (self.is_string() and other.is_string()) {
                     const a = self.as_string();
                     const b = other.as_string();
-                    const length: i32 = a.*.length + b.*.length;
+                    const length: usize = a.*.length + b.*.length;
                     const chars: [*]u8 = @as([*]u8, @ptrCast(@alignCast(reallocate(null, 0, @intCast(@sizeOf(u8) *% length + 1)))));
                     _ = memcpy(@ptrCast(chars), @ptrCast(a.*.chars), @intCast(a.*.length));
                     _ = memcpy(@ptrCast(chars + @as(usize, @bitCast(@as(isize, @intCast(a.*.length))))), @ptrCast(b.*.chars), @intCast(b.*.length));
@@ -374,7 +374,7 @@ pub const Value =  struct {
     }
 };
 
-pub const ValueArray =  struct {
+pub const ValueArray = struct {
     capacity: i32,
     count: i32,
     values: [*]Value,
