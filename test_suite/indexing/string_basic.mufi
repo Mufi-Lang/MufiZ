@@ -1,0 +1,27 @@
+// Basic string indexing tests
+var str = "Hello";
+
+// Test basic read operations
+print str[0];  // Expected: H
+print str[1];  // Expected: e
+print str[2];  // Expected: l
+print str[3];  // Expected: l
+print str[4];  // Expected: o
+
+// Test with different strings
+var greeting = "World";
+print greeting[0];  // Expected: W
+print greeting[1];  // Expected: o
+print greeting[2];  // Expected: r
+print greeting[3];  // Expected: l
+print greeting[4];  // Expected: d
+
+// Test string operations with indexing
+var message = "Test";
+for (var i = 0; i < 4; i = i + 1) {
+    print message[i];
+}
+
+// Test empty and single character strings
+var single = "A";
+print single[0];  // Expected: A

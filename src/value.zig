@@ -10,6 +10,7 @@ const Node = obj_h.Node;
 const FloatVector = obj_h.FloatVector;
 const fvec = @import("objects/fvec.zig");
 const reallocate = @import("memory.zig").reallocate;
+const memory_h = @import("memory.zig");
 const print = std.debug.print;
 const memcpy = @import("mem_utils.zig").memcpyFast;
 
@@ -61,6 +62,22 @@ pub const Value =  struct {
 
     pub fn init_complex(c: Complex) Self {
         return Value{ .type = .VAL_COMPLEX, .as = .{ .complex = c } };
+    }
+
+    // Reference counting support (temporarily disabled)
+    pub fn retain(self: Self) void {
+        _ = self;
+        // TODO: Re-enable when hybrid GC is stable
+    }
+
+    pub fn release(self: Self) void {
+        _ = self;
+        // TODO: Re-enable when hybrid GC is stable
+    }
+
+    pub fn assign(self: *Self, other: Value) void {
+        // Simple assignment for now
+        self.* = other;
     }
 
     pub fn negate(self: Self) Self {

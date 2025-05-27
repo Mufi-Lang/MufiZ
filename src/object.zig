@@ -102,8 +102,20 @@ pub fn allocateObject(size: usize, type_: ObjType) *Obj {
     object.*.type = type_;
     object.*.isMarked = false;
     object.*.next = vm_h.vm.objects;
+    
+    // Initialize hybrid GC fields
+    object.*.refCount = 1;
+    object.*.generation = .Young;
+    object.*.age = 0;
+    object.*.inCycleDetection = false;
+    object.*.cycleColor = .White;
+    
+    // Add to young generation list for generational GC
+    memory_h.gcData.youngGen.add(object);
+    
     vm_h.vm.objects = object;
     // if (debug_opts.log_gc) print("{*} allocate {d} for {d}\n", .{@as(*ObjArray, @ptrCast(object)), size, @intFromEnum(type_)});
+
     return object;
 }
 
