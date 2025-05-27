@@ -253,11 +253,11 @@ pub fn interpret(source: [*]const u8) InterpretResult {
     _ = call(closure, 0);
     return run();
 }
-pub fn push(value: Value) void {
+pub inline fn push(value: Value) void {
     vm.stackTop[0] = value;
     vm.stackTop += 1;
 }
-pub fn pop() Value {
+pub inline fn pop() Value {
     vm.stackTop -= 1;
     return vm.stackTop[0];
 }
@@ -281,7 +281,7 @@ pub fn resetStack() void {
     vm.openUpvalues = null;
 }
 
-pub fn peek(distance: i32) Value {
+pub inline fn peek(distance: i32) Value {
     const tmp = -1 - distance;
     if (tmp >= 0) {
         return (vm.stackTop + @as(usize, @intCast(tmp)))[0];
@@ -998,7 +998,7 @@ pub fn run() InterpretResult {
                 .OP_GET_INDEX => {
                     const index = pop();
                     const object = pop();
-                    
+
                     if (object.type == .VAL_OBJ and object.as.obj != null) {
                         switch (object.as.obj.?.type) {
                             .OBJ_FVECTOR => {
@@ -1045,7 +1045,7 @@ pub fn run() InterpretResult {
                     const value = pop();
                     const index = pop();
                     const object = peek(0); // Keep object on stack for assignment result
-                    
+
                     if (object.type == .VAL_OBJ and object.as.obj != null) {
                         switch (object.as.obj.?.type) {
                             .OBJ_FVECTOR => {
