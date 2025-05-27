@@ -64,20 +64,30 @@ pub const Value = struct {
         return Value{ .type = .VAL_COMPLEX, .as = .{ .complex = c } };
     }
 
-    // Reference counting support (temporarily disabled)
+    // Reference counting support
     pub fn retain(self: Self) void {
-        _ = self;
-        // TODO: Re-enable when hybrid GC is stable
+        if (self.is_obj()) {
+            memory_h.incRef(self.as.obj);
+        }
     }
 
     pub fn release(self: Self) void {
-        _ = self;
-        // TODO: Re-enable when hybrid GC is stable
+        if (self.is_obj()) {
+            memory_h.decRef(self.as.obj);
+        }
     }
 
     pub fn assign(self: *Self, other: Value) void {
-        // Simple assignment for now
+        const old = self.*;
+        
+        // Increment the reference count of the new value first
+        other.retain();
+        
+        // Assign the new value
         self.* = other;
+        
+        // Release the old value after assignment is complete
+        old.release();
     }
 
     pub fn negate(self: Self) Self {
