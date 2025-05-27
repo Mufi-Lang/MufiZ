@@ -43,6 +43,8 @@ pub const OpCode = enum(i32) {
     OP_INHERIT = 37,
     OP_METHOD = 38,
     OP_FVECTOR = 39,
+    OP_GET_INDEX = 40,
+    OP_SET_INDEX = 41,
 };
 
 pub const Chunk = struct {

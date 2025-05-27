@@ -138,6 +138,11 @@ pub const FloatVector = struct {
         return self.data[index];
     }
 
+    pub fn set(self: Self, index: usize, value: f64) void {
+        if (index >= self.count) return;
+        self.data[index] = value;
+    }
+
     pub fn pop(self: Self) f64 {
         if (self.count == 0) return 0.0;
         self.count -= 1;

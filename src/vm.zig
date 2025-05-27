@@ -995,6 +995,90 @@ pub fn run() InterpretResult {
                     ].as.obj)));
                     continue;
                 },
+                .OP_GET_INDEX => {
+                    const index = pop();
+                    const object = pop();
+                    
+                    if (object.type == .VAL_OBJ and object.as.obj != null) {
+                        switch (object.as.obj.?.type) {
+                            .OBJ_FVECTOR => {
+                                if (!index.is_int()) {
+                                    runtimeError("Index must be an integer.", .{});
+                                    return .INTERPRET_RUNTIME_ERROR;
+                                }
+                                const vector = @as(*fvec.FloatVector, @ptrCast(@alignCast(object.as.obj.?)));
+                                const idx = index.as_num_int();
+                                if (idx < 0 or idx >= vector.count) {
+                                    runtimeError("Index out of bounds.", .{});
+                                    return .INTERPRET_RUNTIME_ERROR;
+                                }
+                                const value = vector.get(@intCast(idx));
+                                push(Value.init_double(value));
+                            },
+                            .OBJ_STRING => {
+                                if (!index.is_int()) {
+                                    runtimeError("Index must be an integer.", .{});
+                                    return .INTERPRET_RUNTIME_ERROR;
+                                }
+                                const string = @as(*ObjString, @ptrCast(@alignCast(object.as.obj.?)));
+                                const idx = index.as_num_int();
+                                if (idx < 0 or idx >= string.length) {
+                                    runtimeError("Index out of bounds.", .{});
+                                    return .INTERPRET_RUNTIME_ERROR;
+                                }
+                                const char = string.chars[@intCast(idx)];
+                                const char_str = object_h.copyString(@ptrCast(&char), 1);
+                                push(Value.init_obj(@ptrCast(@alignCast(char_str))));
+                            },
+                            else => {
+                                runtimeError("Object is not indexable.", .{});
+                                return .INTERPRET_RUNTIME_ERROR;
+                            },
+                        }
+                    } else {
+                        runtimeError("Only objects can be indexed.", .{});
+                        return .INTERPRET_RUNTIME_ERROR;
+                    }
+                    continue;
+                },
+                .OP_SET_INDEX => {
+                    const value = pop();
+                    const index = pop();
+                    const object = peek(0); // Keep object on stack for assignment result
+                    
+                    if (object.type == .VAL_OBJ and object.as.obj != null) {
+                        switch (object.as.obj.?.type) {
+                            .OBJ_FVECTOR => {
+                                if (!index.is_int()) {
+                                    runtimeError("Index must be an integer.", .{});
+                                    return .INTERPRET_RUNTIME_ERROR;
+                                }
+                                if (!value.is_double() and !value.is_int()) {
+                                    runtimeError("Value must be a number.", .{});
+                                    return .INTERPRET_RUNTIME_ERROR;
+                                }
+                                const vector = @as(*fvec.FloatVector, @ptrCast(@alignCast(object.as.obj.?)));
+                                const idx = index.as_num_int();
+                                if (idx < 0 or idx >= vector.count) {
+                                    runtimeError("Index out of bounds.", .{});
+                                    return .INTERPRET_RUNTIME_ERROR;
+                                }
+                                vector.set(@intCast(idx), value.as_num_double());
+                                // Leave the assigned value on stack
+                                _ = pop(); // Remove object
+                                push(value);
+                            },
+                            else => {
+                                runtimeError("Object is not mutable or indexable.", .{});
+                                return .INTERPRET_RUNTIME_ERROR;
+                            },
+                        }
+                    } else {
+                        runtimeError("Only objects can be indexed.", .{});
+                        return .INTERPRET_RUNTIME_ERROR;
+                    }
+                    continue;
+                },
             }
         }
     }

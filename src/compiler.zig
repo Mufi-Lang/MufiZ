@@ -310,75 +310,78 @@ pub fn declaration() void {
         synchronize();
     }
 }
-pub fn getRule(type_: TokenType) *ParseRule {
-    const index: usize = @intCast(@intFromEnum(type_));
-
-    // Special case for certain token types
-    if (type_ == .TOKEN_TRUE or type_ == .TOKEN_FALSE or type_ == .TOKEN_NIL) {
-        // Use a static rule for literal tokens
-        var static_literal_rule = ParseRule{
-            .prefix = &literal,
-            .infix = null,
-            .precedence = PREC_NONE,
-        };
-        return &static_literal_rule;
-    } else if (type_ == .TOKEN_INT or type_ == .TOKEN_DOUBLE) {
-        // Handle number tokens
-        var static_number_rule = ParseRule{
-            .prefix = &number,
-            .infix = null,
-            .precedence = PREC_NONE,
-        };
-        return &static_number_rule;
-    } else if (type_ == .TOKEN_IDENTIFIER) {
-        // Handle identifier tokens
-        var static_identifier_rule = ParseRule{
-            .prefix = &variable,
-            .infix = null,
-            .precedence = PREC_NONE,
-        };
-        return &static_identifier_rule;
-    } else if (type_ == .TOKEN_STRING) {
-        // Handle string literals
-        var static_string_rule = ParseRule{
-            .prefix = &string,
-            .infix = null,
-            .precedence = PREC_NONE,
-        };
-        return &static_string_rule;
-    } else if (type_ == .TOKEN_SELF) {
-        // Handle self keyword
-        var static_self_rule = ParseRule{
-            .prefix = &self_,
-            .infix = null,
-            .precedence = PREC_NONE,
-        };
-        return &static_self_rule;
-    } else if (type_ == .TOKEN_SUPER) {
-        // Handle super keyword
-        var static_super_rule = ParseRule{
-            .prefix = &super_,
-            .infix = null,
-            .precedence = PREC_NONE,
-        };
-        return &static_super_rule;
-    }
-
-    if (index < rules.len) {
-        return &rules[index];
-    } else {
-        // Return a default rule for unexpected token types
-        var static_default_rule = ParseRule{
-            .prefix = null,
-            .infix = null,
-            .precedence = PREC_NONE,
-        };
-        return &static_default_rule;
-    }
+pub fn getRule(type_: TokenType) ParseRule {
+    return switch (type_) {
+        // Single character tokens
+        .TOKEN_LEFT_PAREN => ParseRule{ .prefix = &grouping, .infix = &call, .precedence = PREC_CALL },
+        .TOKEN_RIGHT_PAREN => ParseRule{ .precedence = PREC_NONE },
+        .TOKEN_LEFT_BRACE => ParseRule{ .prefix = &fvector, .precedence = PREC_NONE },
+        .TOKEN_RIGHT_BRACE => ParseRule{ .precedence = PREC_NONE },
+        .TOKEN_COMMA => ParseRule{ .precedence = PREC_NONE },
+        .TOKEN_DOT => ParseRule{ .prefix = &item_, .infix = &dot, .precedence = PREC_CALL },
+        .TOKEN_MINUS => ParseRule{ .prefix = &unary, .infix = &binary, .precedence = PREC_TERM },
+        .TOKEN_PLUS => ParseRule{ .infix = &binary, .precedence = PREC_TERM },
+        .TOKEN_SEMICOLON => ParseRule{ .precedence = PREC_NONE },
+        .TOKEN_SLASH => ParseRule{ .infix = &binary, .precedence = PREC_FACTOR },
+        .TOKEN_STAR => ParseRule{ .infix = &binary, .precedence = PREC_FACTOR },
+        .TOKEN_PERCENT => ParseRule{ .infix = &binary, .precedence = PREC_FACTOR },
+        
+        // One or more character tokens
+        .TOKEN_BANG => ParseRule{ .prefix = &unary, .precedence = PREC_NONE },
+        .TOKEN_BANG_EQUAL => ParseRule{ .infix = &binary, .precedence = PREC_EQUALITY },
+        .TOKEN_EQUAL => ParseRule{ .precedence = PREC_NONE },
+        .TOKEN_EQUAL_EQUAL => ParseRule{ .infix = &binary, .precedence = PREC_EQUALITY },
+        .TOKEN_GREATER => ParseRule{ .infix = &binary, .precedence = PREC_COMPARISON },
+        .TOKEN_GREATER_EQUAL => ParseRule{ .infix = &binary, .precedence = PREC_COMPARISON },
+        .TOKEN_LESS => ParseRule{ .infix = &binary, .precedence = PREC_COMPARISON },
+        .TOKEN_LESS_EQUAL => ParseRule{ .infix = &binary, .precedence = PREC_COMPARISON },
+        
+        // Literals
+        .TOKEN_IDENTIFIER => ParseRule{ .prefix = &variable, .precedence = PREC_NONE },
+        .TOKEN_STRING => ParseRule{ .prefix = &string, .precedence = PREC_NONE },
+        .TOKEN_DOUBLE => ParseRule{ .prefix = &number, .precedence = PREC_NONE },
+        .TOKEN_INT => ParseRule{ .prefix = &number, .precedence = PREC_NONE },
+        
+        // Keywords
+        .TOKEN_AND => ParseRule{ .infix = &and_, .precedence = PREC_AND },
+        .TOKEN_CLASS => ParseRule{ .precedence = PREC_NONE },
+        .TOKEN_ELSE => ParseRule{ .precedence = PREC_NONE },
+        .TOKEN_FALSE => ParseRule{ .prefix = &literal, .precedence = PREC_NONE },
+        .TOKEN_FOR => ParseRule{ .precedence = PREC_NONE },
+        .TOKEN_EACH => ParseRule{ .precedence = PREC_NONE },
+        .TOKEN_FUN => ParseRule{ .precedence = PREC_NONE },
+        .TOKEN_IF => ParseRule{ .precedence = PREC_NONE },
+        .TOKEN_LET => ParseRule{ .precedence = PREC_NONE },
+        .TOKEN_NIL => ParseRule{ .prefix = &literal, .precedence = PREC_NONE },
+        .TOKEN_OR => ParseRule{ .infix = &or_, .precedence = PREC_OR },
+        .TOKEN_PRINT => ParseRule{ .precedence = PREC_NONE },
+        .TOKEN_RETURN => ParseRule{ .precedence = PREC_NONE },
+        .TOKEN_SELF => ParseRule{ .prefix = &self_, .precedence = PREC_NONE },
+        .TOKEN_SUPER => ParseRule{ .prefix = &super_, .precedence = PREC_NONE },
+        .TOKEN_TRUE => ParseRule{ .prefix = &literal, .precedence = PREC_NONE },
+        .TOKEN_VAR => ParseRule{ .precedence = PREC_NONE },
+        .TOKEN_WHILE => ParseRule{ .precedence = PREC_NONE },
+        .TOKEN_ITEM => ParseRule{ .prefix = &literal, .precedence = PREC_NONE },
+        
+        // Misc
+        .TOKEN_ERROR => ParseRule{ .precedence = PREC_NONE },
+        .TOKEN_EOF => ParseRule{ .precedence = PREC_NONE },
+        .TOKEN_PLUS_EQUAL => ParseRule{ .precedence = PREC_NONE },
+        .TOKEN_MINUS_EQUAL => ParseRule{ .precedence = PREC_NONE },
+        .TOKEN_STAR_EQUAL => ParseRule{ .precedence = PREC_NONE },
+        .TOKEN_SLASH_EQUAL => ParseRule{ .precedence = PREC_NONE },
+        .TOKEN_PLUS_PLUS => ParseRule{ .precedence = PREC_NONE },
+        .TOKEN_MINUS_MINUS => ParseRule{ .precedence = PREC_NONE },
+        .TOKEN_HAT => ParseRule{ .infix = &binary, .precedence = PREC_FACTOR },
+        .TOKEN_LEFT_SQPAREN => ParseRule{ .infix = &index_, .precedence = PREC_INDEX },
+        .TOKEN_RIGHT_SQPAREN => ParseRule{ .precedence = PREC_NONE },
+        .TOKEN_COLON => ParseRule{ .precedence = PREC_NONE },
+    };
 }
+
 pub fn parsePrecedence(precedence: Precedence) void {
     advance();
-    const prefixRule: ParseFn = getRule(parser.previous.type).*.prefix;
+    const prefixRule: ParseFn = getRule(parser.previous.type).prefix;
 
     if (prefixRule == null) {
         @"error"("Expect expression.");
@@ -386,9 +389,9 @@ pub fn parsePrecedence(precedence: Precedence) void {
     }
     const canAssign: bool = precedence <= PREC_ASSIGNMENT;
     prefixRule.?(canAssign);
-    while (precedence <= getRule(parser.current.type).*.precedence) {
+    while (precedence <= getRule(parser.current.type).precedence) {
         advance();
-        const infixRule: ParseFn = getRule(parser.previous.type).*.infix;
+        const infixRule: ParseFn = getRule(parser.previous.type).infix;
         infixRule.?(canAssign);
     }
     if (canAssign and match(.TOKEN_EQUAL)) {
@@ -540,8 +543,8 @@ pub fn and_(canAssign: bool) void {
 pub fn binary(canAssign: bool) void {
     _ = canAssign;
     const operatorType: TokenType = parser.previous.type;
-    const rule: *ParseRule = getRule(operatorType);
-    parsePrecedence(rule.*.precedence +% 1);
+    const rule: ParseRule = getRule(operatorType);
+    parsePrecedence(rule.precedence +% 1);
     while (true) {
         switch (operatorType) {
             .TOKEN_BANG_EQUAL => {
@@ -856,6 +859,18 @@ pub fn item_(canAssign: bool) void {
     _ = &canAssign;
     variable(false);
 }
+pub fn index_(canAssign: bool) void {
+    expression();
+    consume(.TOKEN_RIGHT_SQPAREN, "Expect ']' after index.");
+    
+    if (canAssign and match(.TOKEN_EQUAL)) {
+        expression();
+        emitByte(@intCast(@intFromEnum(OpCode.OP_SET_INDEX)));
+    } else {
+        emitByte(@intCast(@intFromEnum(OpCode.OP_GET_INDEX)));
+    }
+}
+
 pub fn unary(canAssign: bool) void {
     _ = &canAssign;
     var operatorType: TokenType = parser.previous.type;
@@ -871,213 +886,12 @@ pub fn unary(canAssign: bool) void {
                 emitByte(@intCast(@intFromEnum(OpCode.OP_NEGATE)));
                 break;
             },
-            else => return,
+            else => break,
         }
         break;
     }
 }
-pub var rules: [56]ParseRule = .{
-    .{
-        .prefix = &grouping,
-        .infix = &call,
-        .precedence = PREC_CALL,
-    },
-    .{
-        .precedence = PREC_NONE,
-    },
-    .{
-        .prefix = &fvector,
-        .precedence = PREC_NONE,
-    },
-    .{
-        .precedence = PREC_NONE,
-    },
-    .{
-        .precedence = PREC_NONE,
-    },
-    .{
-        .prefix = &item_,
-        .infix = &dot,
-        .precedence = PREC_CALL,
-    },
-    .{
-        .prefix = &unary,
-        .infix = &binary,
-        .precedence = PREC_TERM,
-    },
-    .{
-        .infix = &binary,
-        .precedence = PREC_TERM,
-    },
-    .{
-        .precedence = PREC_NONE,
-    },
-    .{
-        .infix = &binary,
-        .precedence = PREC_FACTOR,
-    },
-    .{
-        .infix = &binary,
-        .precedence = PREC_FACTOR,
-    },
-    .{
-        .infix = &binary,
-        .precedence = PREC_FACTOR,
-    },
-    .{
-        .prefix = &unary,
-        .precedence = PREC_NONE,
-    },
-    .{
-        .infix = &binary,
-        .precedence = PREC_EQUALITY,
-    },
-    .{
-        .precedence = PREC_NONE,
-    },
-    .{
-        .infix = &binary,
-        .precedence = PREC_EQUALITY,
-    },
-    .{
-        .infix = &binary,
-        .precedence = PREC_COMPARISON,
-    },
-    .{
-        .infix = &binary,
-        .precedence = PREC_COMPARISON,
-    },
-    .{
-        .infix = &binary,
-        .precedence = PREC_COMPARISON,
-    },
-    .{
-        .infix = &binary,
-        .precedence = PREC_COMPARISON,
-    },
-    .{
-        .prefix = &string,
-        .precedence = PREC_NONE,
-    },
-    .{
-        .prefix = &number,
-        .precedence = PREC_NONE,
-    },
-    .{
-        .prefix = &number,
-        .precedence = PREC_NONE,
-    },
-    .{
-        .infix = &and_,
-        .precedence = PREC_AND,
-    },
-    .{
-        .precedence = PREC_NONE,
-    },
-    .{
-        .prefix = &literal,
-        .precedence = PREC_NONE,
-    },
-    .{
-        .prefix = &literal,
-        .precedence = PREC_NONE,
-    },
-    .{
-        .precedence = PREC_NONE,
-    },
-    .{
-        .precedence = PREC_NONE,
-    },
-    .{
-        .prefix = &literal,
-        .precedence = PREC_NONE,
-    },
-    .{
-        .precedence = PREC_NONE,
-    },
-    .{
-        .precedence = PREC_NONE,
-    },
-    .{
-        .prefix = &literal,
-        .precedence = PREC_NONE,
-    },
-    .{
-        .infix = &or_,
-        .precedence = PREC_OR,
-    },
-    .{
-        .precedence = PREC_NONE,
-    },
-    .{
-        .precedence = PREC_NONE,
-    },
-    .{
-        .prefix = &self_,
-        .precedence = PREC_NONE,
-    },
-    .{
-        .prefix = &super_,
-        .precedence = PREC_NONE,
-    },
-    .{
-        .prefix = &literal,
-        .precedence = PREC_NONE,
-    },
-    .{
-        .precedence = PREC_NONE,
-    },
-    .{
-        .prefix = &literal,
-        .precedence = PREC_NONE,
-    },
-    .{
-        .precedence = PREC_NONE,
-    },
-    .{
-        .precedence = PREC_NONE,
-    },
-    .{
-        .precedence = PREC_NONE,
-    },
-    .{
-        .precedence = PREC_NONE,
-    },
-    .{
-        .precedence = PREC_NONE,
-    },
-    .{
-        .precedence = PREC_NONE,
-    },
-    .{
-        .precedence = PREC_NONE,
-    },
-    .{
-        .precedence = PREC_NONE,
-    },
-    .{
-        .precedence = PREC_NONE,
-    },
-    .{
-        .precedence = PREC_NONE,
-    },
-    .{
-        .precedence = PREC_NONE,
-    },
-    .{
-        .infix = &binary,
-        .precedence = PREC_FACTOR,
-    },
-    .{
-        .precedence = PREC_NONE,
-    },
-    .{
-        .precedence = PREC_NONE,
-    },
-    .{
-        .precedence = PREC_NONE,
-    },
-};
+
 pub fn block() void {
     while (!check(.TOKEN_RIGHT_BRACE) and !check(.TOKEN_EOF)) {
         declaration();
