@@ -1,0 +1,17 @@
+// Minimal test for foreach loop with vector
+print "Starting minimal test";
+
+// Create a vector with 3 elements
+var vector = {1.0, 2.0, 3.0};
+
+// Simple print to verify the vector exists
+print "Vector created";
+
+// Iterate using foreach
+print "Starting foreach loop:";
+foreach (x in vector) {
+    print x;
+}
+
+// Verify loop completed
+print "Foreach loop completed";

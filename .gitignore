@@ -18,3 +18,5 @@ __pycache__
 ctests/hashdict.c
 
 dist/
+Gemfile
+Gemfile.lock

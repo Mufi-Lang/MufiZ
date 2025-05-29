@@ -519,9 +519,9 @@ pub fn run() InterpretResult {
         print("         ", .{});
 
         var slot: [*]Value = @ptrCast(@alignCast(&vm.stack));
-        while (slot < vm.stackTop) : (slot += 1) {
+        while (@intFromPtr(slot) < @intFromPtr(vm.stackTop)) : (slot += 1) {
             print("[ ", .{});
-            printValue(slot.*);
+            printValue(slot[0]);
             print(" ]", .{});
         }
 
@@ -695,13 +695,28 @@ pub fn run() InterpretResult {
 
                 .OP_FVECTOR => {
                     const count: i32 = @as(i32, @bitCast(@as(c_uint, get_slot(frame))));
+                    // Initialize with exact size needed
                     const f = fvec.FloatVector.init(@intCast(count));
+                    
+                    // First collect all values from the stack
+                    var values: [255]f64 = undefined;
                     for (0..@intCast(count)) |i| {
-                        FloatVector.push(f, peek((count - @as(i32, @intCast(i))) - 1).as_num_double());
+                        values[i] = peek((count - @as(i32, @intCast(i))) - 1).as_num_double();
                     }
+                    
+                    // Pop the values from the stack
                     for (0..@intCast(count)) |_| {
                         _ = pop();
                     }
+                    
+                    // Set values directly in the vector
+                    for (0..@intCast(count)) |i| {
+                        f.*.data[i] = values[i];
+                    }
+                    // Set count manually to ensure it matches
+                    f.*.count = @intCast(count);
+                    
+                    // Push the vector object
                     push(Value.init_obj(@ptrCast(@alignCast(f))));
                     continue;
                 },
@@ -995,34 +1010,73 @@ pub fn run() InterpretResult {
                     ].as.obj)));
                     continue;
                 },
+                .OP_LENGTH => {
+                    const object = pop();
+                    
+                    if (object.type == .VAL_OBJ and object.as.obj != null) {
+                        switch (object.as.obj.?.type) {
+                            .OBJ_FVECTOR => {
+                                const vector = @as(*fvec.FloatVector, @ptrCast(@alignCast(object.as.obj.?)));
+                                // Get object's count and keep object alive
+                                object.retain();
+                                push(Value.init_int(@intCast(vector.count)));
+                                object.release();
+                            },
+                            .OBJ_STRING => {
+                                const string = @as(*ObjString, @ptrCast(@alignCast(object.as.obj.?)));
+                                push(Value.init_int(@intCast(string.length)));
+                            },
+                            // Add other collection types here as they get implemented
+                            else => {
+                                push(Value.init_int(0));
+                            },
+                        }
+                    } else {
+                        push(Value.init_int(0));
+                    }
+                    
+                    continue;
+                },
                 .OP_GET_INDEX => {
                     const index = pop();
                     const object = pop();
 
-                    if (object.type == .VAL_OBJ and object.as.obj != null) {
-                        switch (object.as.obj.?.type) {
-                            .OBJ_FVECTOR => {
-                                if (!index.is_int()) {
-                                    runtimeError("Index must be an integer.", .{});
-                                    return .INTERPRET_RUNTIME_ERROR;
-                                }
-                                const vector = @as(*fvec.FloatVector, @ptrCast(@alignCast(object.as.obj.?)));
-                                const idx = index.as_num_int();
-                                if (idx < 0 or idx >= vector.count) {
-                                    runtimeError("Index out of bounds.", .{});
-                                    return .INTERPRET_RUNTIME_ERROR;
-                                }
-                                const value = vector.get(@intCast(idx));
-                                push(Value.init_double(value));
-                            },
-                            .OBJ_STRING => {
-                                if (!index.is_int()) {
-                                    runtimeError("Index must be an integer.", .{});
-                                    return .INTERPRET_RUNTIME_ERROR;
-                                }
-                                const string = @as(*ObjString, @ptrCast(@alignCast(object.as.obj.?)));
-                                const idx = index.as_num_int();
-                                if (idx < 0 or idx >= string.length) {
+                    // For non-objects, return an error
+                    if (object.type != .VAL_OBJ or object.as.obj == null) {
+                        runtimeError("Cannot index non-object value.", .{});
+                        return .INTERPRET_RUNTIME_ERROR;
+                    }
+
+                    switch (object.as.obj.?.type) {
+                        .OBJ_FVECTOR => {
+                            // Convert index to integer if possible
+                            var idx: i32 = 0;
+                            if (index.is_int()) {
+                                idx = index.as_num_int();
+                            } else if (index.is_double()) {
+                                idx = @as(i32, @intFromFloat(index.as_num_double()));
+                            } else {
+                                runtimeError("Index must be a number.", .{});
+                                return .INTERPRET_RUNTIME_ERROR;
+                            }
+                            
+                            const vector = @as(*fvec.FloatVector, @ptrCast(@alignCast(object.as.obj.?)));
+                            
+                            if (idx < 0 or idx >= vector.count) {
+                                runtimeError("Index out of bounds: {} (count: {})", .{idx, vector.count});
+                                return .INTERPRET_RUNTIME_ERROR;
+                            }
+                            const value = vector.get(@intCast(idx));
+                            push(Value.init_double(value));
+                        },
+                        .OBJ_STRING => {
+                            if (!index.is_int()) {
+                                runtimeError("Index must be an integer.", .{});
+                                return .INTERPRET_RUNTIME_ERROR;
+                            }
+                            const string = @as(*ObjString, @ptrCast(@alignCast(object.as.obj.?)));
+                            const idx = index.as_num_int();
+                            if (idx < 0 or idx >= string.length) {
                                     runtimeError("Index out of bounds.", .{});
                                     return .INTERPRET_RUNTIME_ERROR;
                                 }
@@ -1030,15 +1084,38 @@ pub fn run() InterpretResult {
                                 const char_str = object_h.copyString(@ptrCast(&char), 1);
                                 push(Value.init_obj(@ptrCast(@alignCast(char_str))));
                             },
+                            .OBJ_LINKED_LIST => {
+                                if (!index.is_int()) {
+                                    runtimeError("Index must be an integer.", .{});
+                                    return .INTERPRET_RUNTIME_ERROR;
+                                }
+                                const list = @as(*ObjLinkedList, @ptrCast(@alignCast(object.as.obj.?)));
+                                const idx = index.as_num_int();
+                                if (idx < 0 or idx >= list.count) {
+                                    runtimeError("Index out of bounds.", .{});
+                                    return .INTERPRET_RUNTIME_ERROR;
+                                }
+                                
+                                // Traverse the linked list to find the element at index
+                                var current = list.head;
+                                var i: i32 = 0;
+                                while (current != null and i < idx) {
+                                    current = current.?.next;
+                                    i += 1;
+                                }
+                                
+                                if (current != null) {
+                                    push(current.?.data);
+                                } else {
+                                    runtimeError("Index out of bounds.", .{});
+                                    return .INTERPRET_RUNTIME_ERROR;
+                                }
+                            },
                             else => {
-                                runtimeError("Object is not indexable.", .{});
+                                runtimeError("Cannot index this type of object.", .{});
                                 return .INTERPRET_RUNTIME_ERROR;
                             },
                         }
-                    } else {
-                        runtimeError("Only objects can be indexed.", .{});
-                        return .INTERPRET_RUNTIME_ERROR;
-                    }
                     continue;
                 },
                 .OP_SET_INDEX => {
@@ -1079,6 +1156,40 @@ pub fn run() InterpretResult {
                     }
                     continue;
                 },
+                .OP_DUP => {
+                    const value = peek(0);
+                    push(value);
+                    continue;
+                },
+                .OP_INT => {
+                    const value = pop();
+                    if (value.is_int()) {
+                        // Already an int, just push it back
+                        push(value);
+                    } else if (value.is_double()) {
+                        // Convert double to int
+                        const intValue = @as(i32, @intFromFloat(value.as_num_double()));
+                        push(Value.init_int(intValue));
+                    } else if (value.is_bool()) {
+                        // Convert boolean to int (true=1, false=0)
+                        const intValue: i32 = if (value.as.boolean) 1 else 0;
+                        push(Value.init_int(intValue));
+                    } else if (value.is_obj()) {
+                        // Try to get length for objects
+                        if (value.as.obj != null and value.as.obj.?.type == .OBJ_FVECTOR) {
+                            const vector = @as(*fvec.FloatVector, @ptrCast(@alignCast(value.as.obj.?)));
+                            push(Value.init_int(@intCast(vector.count)));
+                        } else {
+                            // Default to 0 for other objects
+                            push(Value.init_int(0));
+                        }
+                    } else {
+                        // For other types, convert to 0
+                        push(Value.init_int(0));
+                    }
+                    continue;
+                },
+
             }
         }
     }

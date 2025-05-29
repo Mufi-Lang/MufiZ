@@ -240,7 +240,7 @@ pub fn endCompiler() *ObjFunction {
 
     if (debug_opts.print_code) {
         if (!parser.hadError) {
-            const name: [*]u8 = if (function_1.*.name != null) function_1.*.name.*.chars else @ptrCast("<script>");
+            const name: [*]u8 = if (function_1.*.name != null) @ptrCast(function_1.*.name.?.chars.ptr) else @ptrCast(@constCast("<script>"));
             debug_h.disassembleChunk(currentChunk(), name);
         }
     }
@@ -274,6 +274,10 @@ pub fn statement() void {
         .TOKEN_FOR => {
             advance();
             forStatement();
+        },
+        .TOKEN_FOREACH => {
+            advance();
+            foreachStatement();
         },
         .TOKEN_IF => {
             advance();
@@ -362,6 +366,8 @@ pub fn getRule(type_: TokenType) ParseRule {
         .TOKEN_VAR => ParseRule{ .precedence = PREC_NONE },
         .TOKEN_WHILE => ParseRule{ .precedence = PREC_NONE },
         .TOKEN_ITEM => ParseRule{ .prefix = &literal, .precedence = PREC_NONE },
+        .TOKEN_FOREACH => ParseRule{ .precedence = PREC_NONE },
+        .TOKEN_IN => ParseRule{ .precedence = PREC_NONE },
 
         // Misc
         .TOKEN_ERROR => ParseRule{ .precedence = PREC_NONE },
@@ -1055,6 +1061,81 @@ pub fn forStatement() void {
     endScope();
 }
 // eachStatement function removed - it was using removed iterator opcodes
+pub fn foreachStatement() void {
+    beginScope();
+    
+    // Expect '(' after 'foreach'
+    consume(.TOKEN_LEFT_PAREN, "Expect '(' after 'foreach'.");
+    
+    // Parse the loop variable (item)
+    consume(.TOKEN_IDENTIFIER, "Expect variable name.");
+    const itemName = parser.previous;
+    
+    // Expect 'in' keyword
+    consume(.TOKEN_IN, "Expect 'in' after loop variable.");
+    
+    // We need to keep the collection in a variable that won't be garbage collected
+    // and won't be affected by scope changes
+    addLocal(syntheticToken("__collection"));
+    expression();  // Collection expression leaves value on stack
+    
+    markInitialized();  // This effectively assigns the value to the local
+    const collectionSlot = current.?.localCount - 1;
+    
+    // Expect ')'
+    consume(.TOKEN_RIGHT_PAREN, "Expect ')' after collection.");
+    
+    // Initialize index variable
+    addLocal(syntheticToken("__index"));
+    emitConstant(Value.init_int(0));
+    markInitialized();
+    const indexSlot = current.?.localCount - 1;
+    
+    // Declare item variable but don't initialize it yet
+    addLocal(itemName);
+    const itemSlot = current.?.localCount - 1;
+    
+    const loopStart: i32 = currentChunk().*.count;
+    
+    // Loop condition: check if index < collection.length
+    emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(indexSlot));
+    emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(collectionSlot));
+    emitByte(@intCast(@intFromEnum(OpCode.OP_LENGTH)));
+    emitByte(@intCast(@intFromEnum(OpCode.OP_LESS)));
+    
+    const exitJump: i32 = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
+    emitByte(@intCast(@intFromEnum(OpCode.OP_POP))); // Pop the condition result
+    
+    // Get current element: collection[index] and assign to item
+    emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(collectionSlot));
+    emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(indexSlot));
+    emitByte(@intCast(@intFromEnum(OpCode.OP_GET_INDEX)));
+    
+    // Set the item variable to the value from GET_INDEX
+    emitBytes(@intCast(@intFromEnum(OpCode.OP_SET_LOCAL)), @intCast(itemSlot));
+    emitByte(@intCast(@intFromEnum(OpCode.OP_POP))); // Pop the value after setting local
+    markInitialized();  // Mark the item variable as initialized
+    
+    // Execute loop body
+    statement();
+    
+    // Increment index
+    emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(indexSlot));
+    emitConstant(Value.init_int(1));
+    emitByte(@intCast(@intFromEnum(OpCode.OP_ADD)));
+    emitBytes(@intCast(@intFromEnum(OpCode.OP_SET_LOCAL)), @intCast(indexSlot));
+    emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+    
+    // Jump back to start
+    emitLoop(loopStart);
+    
+    // Patch exit jump
+    patchJump(exitJump);
+    emitByte(@intCast(@intFromEnum(OpCode.OP_POP))); // Pop the false condition
+    
+    endScope();
+}
+
 pub fn ifStatement() void {
     consume(.TOKEN_LEFT_PAREN, "Expect '(' after 'if'.");
     expression();

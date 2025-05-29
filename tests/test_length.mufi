@@ -1,0 +1,12 @@
+// Simple test to isolate the OP_GET_LENGTH issue
+print "Testing length operation directly";
+
+var vec = {1.0, 2.0, 3.0};
+print vec;
+
+// Test if we can access the vector normally
+print vec[0];
+print vec[1];
+print vec[2];
+
+print "Vector created successfully";

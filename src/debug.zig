@@ -115,6 +115,9 @@ pub fn disassembleInstruction(chunk: *Chunk, offset: i32) i32 {
         39 => return simpleInstruction("OP_FVECTOR", offset),
         40 => return simpleInstruction("OP_GET_INDEX", offset),
         41 => return simpleInstruction("OP_SET_INDEX", offset),
+        42 => return simpleInstruction("OP_LENGTH", offset),
+        43 => return simpleInstruction("OP_DUP", offset),
+        44 => return simpleInstruction("OP_INT", offset),
         else => {
             print("Unknown opcode {d}\n", .{instruction});
             return offset + 1;

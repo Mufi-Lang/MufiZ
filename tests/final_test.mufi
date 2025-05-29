@@ -1,0 +1,39 @@
+// Final test for foreach loops with vectors
+
+// Test 1: Simple vector
+print "Test 1: Simple vector";
+var vec1 = {1.0, 2.0, 3.0};
+print "Iterating:";
+foreach (x in vec1) {
+    print x;
+}
+print "Test 1 complete";
+
+// Test 2: Another vector
+print "Test 2: Another vector";
+var vec2 = {10.0, 20.0, 30.0};
+print "Iterating:";
+foreach (y in vec2) {
+    print y;
+}
+print "Test 2 complete";
+
+// Test 3: Empty vector
+print "Test 3: Empty vector";
+var empty = {};
+print "Iterating:";
+foreach (z in empty) {
+    print "This should not print";
+}
+print "Test 3 complete";
+
+// Test 4: Calculations
+print "Test 4: Calculations";
+var calc = {5.0, 10.0, 15.0};
+print "Doubling values:";
+foreach (n in calc) {
+    print n * 2;
+}
+print "Test 4 complete";
+
+print "All tests completed";

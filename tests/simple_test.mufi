@@ -1,0 +1,6 @@
+// Simple test to check foreach keyword recognition
+print "Before foreach";
+foreach (x in {1.0, 2.0}) {
+    print "Inside foreach";
+}
+print "After foreach";

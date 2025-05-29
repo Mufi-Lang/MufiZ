@@ -1,0 +1,24 @@
+// Test alternative foreach syntax
+print "Testing foreach with alternative syntax";
+
+// Simple test
+foreach(var x : {1.0, 2.0, 3.0}){
+    print x;
+}
+
+// Test with predefined vector
+var numbers = {10.0, 20.0, 30.0};
+print "Iterating over predefined vector:";
+foreach(var item : numbers){
+    print item;
+}
+
+// Test with empty vector
+var empty = {};
+print "Testing empty vector:";
+foreach(var e : empty){
+    print "This should not print for empty vector";
+}
+print "Done with empty vector";
+
+print "All tests complete";

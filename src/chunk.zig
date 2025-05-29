@@ -45,6 +45,9 @@ pub const OpCode = enum(i32) {
     OP_FVECTOR = 39,
     OP_GET_INDEX = 40,
     OP_SET_INDEX = 41,
+    OP_LENGTH = 42,
+    OP_DUP = 43,
+    OP_INT = 44,
 };
 
 pub const Chunk = struct {

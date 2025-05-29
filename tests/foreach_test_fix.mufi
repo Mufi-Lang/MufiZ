@@ -1,0 +1,44 @@
+// Test foreach loop fix with vectors of different sizes
+print "Testing foreach loop fix";
+
+// Empty vector test
+print "Testing empty vector:";
+var empty_vec = {};
+foreach (x in empty_vec) {
+    print "This should not print for empty vector";
+}
+print "End of empty vector test";
+
+// Small vector test
+print "Testing small vector (2 items):";
+var small_vec = {1.0, 2.0};
+foreach (x in small_vec) {
+    print x;
+}
+
+// Medium vector test
+print "Testing medium vector (5 items):";
+var medium_vec = {10.0, 20.0, 30.0, 40.0, 50.0};
+foreach (x in medium_vec) {
+    print x;
+}
+
+// Large vector test
+print "Testing large vector (10 items):";
+var large_vec = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0};
+foreach (x in large_vec) {
+    print x;
+}
+
+// Test with calculations
+print "Testing vector with calculations:";
+var calc_vec = {5.0, 10.0, 15.0};
+foreach (num in calc_vec) {
+    var doubled = num * 2;
+    print "Original:";
+    print num;
+    print "Doubled:";
+    print doubled;
+}
+
+print "All tests completed successfully";

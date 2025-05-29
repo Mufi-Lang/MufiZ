@@ -1,0 +1,14 @@
+// Simple test for foreach with vectors
+print "SIMPLE TEST 2 START";
+
+// Create a vector
+var vec = {1.0, 2.0, 3.0};
+print "Vector created with 3 elements";
+
+// Simple loop
+print "Starting foreach loop:";
+foreach (x in vec) {
+    print x;
+}
+
+print "SIMPLE TEST 2 COMPLETE";

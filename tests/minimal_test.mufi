@@ -1,0 +1,18 @@
+// Minimal test case for foreach loop problem
+print "MINIMAL TEST START";
+
+// First vector definition and loop
+print "Test vector 1:";
+var vec1 = {1.0, 2.0, 3.0};
+foreach (x in vec1) {
+    print x;
+}
+
+// Second vector definition and loop
+print "Test vector 2:";
+var vec2 = {10.0, 20.0, 30.0};
+foreach (y in vec2) {
+    print y;
+}
+
+print "MINIMAL TEST COMPLETE";

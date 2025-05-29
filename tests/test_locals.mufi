@@ -1,0 +1,18 @@
+// Test local variable handling for foreach debugging
+print "Testing local variables";
+
+var vec = {1.0, 2.0, 3.0};
+print "Created vector";
+print vec;
+
+// Test basic indexing works
+print "Testing direct indexing";
+print vec[0];
+
+// Test foreach with simple body
+print "Testing foreach";
+foreach (x in vec) {
+    print "In loop, x =";
+    print x;
+}
+print "Done";
