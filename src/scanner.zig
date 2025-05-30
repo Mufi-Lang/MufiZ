@@ -101,6 +101,7 @@ pub const TokenType = enum(c_int) {
     TOKEN_LEFT_SQPAREN = 54,
     TOKEN_RIGHT_SQPAREN = 55,
     TOKEN_COLON = 56,
+    TOKEN_IMAGINARY = 57,
 };
 
 pub const Token = struct {
@@ -227,10 +228,103 @@ pub fn number() Token {
         _ = advance();
         while (is_digit(peek())) _ = advance();
 
+        // Check for imaginary unit 'i'
+        if (peek() == 'i') {
+            _ = advance();
+            return make_token(.TOKEN_IMAGINARY);
+        }
         return make_token(.TOKEN_DOUBLE);
     } else {
+        // Check for imaginary unit 'i' after integer
+        if (peek() == 'i') {
+            _ = advance();
+            return make_token(.TOKEN_IMAGINARY);
+        }
         return make_token(.TOKEN_INT);
     }
+}
+
+pub fn peek_for_complex() bool {
+    var i: usize = 0;
+    const start_pos = scanner.current;
+    
+    // Skip over first number
+    while (start_pos[i] != 0 and is_digit(start_pos[i])) {
+        i += 1;
+    }
+    if (start_pos[i] == '.' and is_digit(start_pos[i + 1])) {
+        i += 1;
+        while (start_pos[i] != 0 and is_digit(start_pos[i])) {
+            i += 1;
+        }
+    }
+    
+    // Check for immediate 'i' (pure imaginary)
+    if (start_pos[i] == 'i') {
+        return true;
+    }
+    
+    // Look for operator
+    if (start_pos[i] == '+' or start_pos[i] == '-') {
+        i += 1;
+        
+        // Skip optional digits for coefficient
+        while (start_pos[i] != 0 and is_digit(start_pos[i])) {
+            i += 1;
+        }
+        if (start_pos[i] == '.' and is_digit(start_pos[i + 1])) {
+            i += 1;
+            while (start_pos[i] != 0 and is_digit(start_pos[i])) {
+                i += 1;
+            }
+        }
+        
+        // Must end with 'i'
+        if (start_pos[i] == 'i') {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+pub fn parse_complex_token() Token {
+    // Start by parsing the first number
+    while (is_digit(peek())) {
+        _ = advance();
+    }
+    if (peek() == '.' and is_digit(peekNext())) {
+        _ = advance();
+        while (is_digit(peek())) _ = advance();
+    }
+    
+    // Check for 'i' (pure imaginary)
+    if (peek() == 'i') {
+        _ = advance();
+        return make_token(.TOKEN_IMAGINARY);
+    }
+    
+    // Check for operator
+    if (peek() == '+' or peek() == '-') {
+        _ = advance();
+        
+        // Parse second number (imaginary coefficient)
+        while (is_digit(peek())) {
+            _ = advance();
+        }
+        if (peek() == '.' and is_digit(peekNext())) {
+            _ = advance();
+            while (is_digit(peek())) _ = advance();
+        }
+        
+        // Must end with 'i'
+        if (peek() == 'i') {
+            _ = advance();
+            return make_token(.TOKEN_IMAGINARY);
+        }
+    }
+    
+    return errorToken(@ptrCast(@constCast("Invalid complex number.")));
 }
 
 pub fn string() Token {
@@ -252,7 +346,14 @@ pub fn scanToken() Token {
     const c = advance();
 
     if (is_alpha(c)) return identifier();
-    if (is_digit(c)) return number();
+    if (is_digit(c)) {
+        // Look ahead to see if this could be a complex number
+        if (peek_for_complex()) {
+            return parse_complex_token();
+        } else {
+            return number();
+        }
+    }
 
     switch (c) {
         '(' => return make_token(.TOKEN_LEFT_PAREN),

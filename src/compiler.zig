@@ -10,6 +10,7 @@ const TokenType = scanner_h.TokenType;
 const ObjFunction = object_h.ObjFunction;
 const Chunk = chunk_h.Chunk;
 const Value = value_h.Value;
+const Complex = value_h.Complex;
 const print = @import("std").debug.print;
 const strlen = @import("mem_utils.zig").strlen;
 
@@ -345,6 +346,7 @@ pub fn getRule(type_: TokenType) ParseRule {
         .TOKEN_STRING => ParseRule{ .prefix = &string, .precedence = PREC_NONE },
         .TOKEN_DOUBLE => ParseRule{ .prefix = &number, .precedence = PREC_NONE },
         .TOKEN_INT => ParseRule{ .prefix = &number, .precedence = PREC_NONE },
+        .TOKEN_IMAGINARY => ParseRule{ .prefix = &imaginary_number, .precedence = PREC_NONE },
 
         // Keywords
         .TOKEN_AND => ParseRule{ .infix = &and_, .precedence = PREC_AND },
@@ -649,7 +651,7 @@ pub fn grouping(canAssign: bool) void {
     consume(.TOKEN_RIGHT_PAREN, "Expect ')' after expression.");
 }
 pub fn number(canAssign: bool) void {
-    _ = &canAssign;
+    _ = canAssign;
     if (parser.previous.type == .TOKEN_INT) {
         const token_slice = parser.previous.start[0..@intCast(parser.previous.length)];
         const value: i32 = std.fmt.parseInt(i32, token_slice, 10) catch 0;
@@ -670,8 +672,93 @@ pub fn number(canAssign: bool) void {
         });
     }
 }
+
+pub fn imaginary_number(canAssign: bool) void {
+    _ = canAssign;
+    const token_slice = parser.previous.start[0..@intCast(parser.previous.length)];
+    
+    // Parse complex number in format "a+bi" or "a-bi"
+    if (parseComplexNumber(token_slice)) |complex_val| {
+        emitConstant(Value{
+            .type = .VAL_COMPLEX,
+            .as = .{
+                .complex = complex_val,
+            },
+        });
+    } else {
+        // Fallback to pure imaginary number
+        const imaginary_str = token_slice[0..token_slice.len-1]; // Remove 'i' suffix
+        const imaginary_value: f64 = std.fmt.parseFloat(f64, imaginary_str) catch 0.0;
+        emitConstant(Value{
+            .type = .VAL_COMPLEX,
+            .as = .{
+                .complex = Complex{ .r = 0.0, .i = imaginary_value },
+            },
+        });
+    }
+}
+
+fn parseComplexNumber(input: []const u8) ?Complex {
+    var real_part: f64 = 0.0;
+    var imaginary_part: f64 = 0.0;
+    var i: usize = 0;
+    
+    // Skip leading whitespace
+    while (i < input.len and (input[i] == ' ' or input[i] == '\t')) {
+        i += 1;
+    }
+    
+    // Parse real part
+    const real_start = i;
+    while (i < input.len and (isDigitChar(input[i]) or input[i] == '.' or input[i] == '-' or input[i] == '+')) {
+        if (input[i] == '+' or input[i] == '-') {
+            if (i > real_start) break; // Found operator after real part
+        }
+        i += 1;
+    }
+    
+    if (i > real_start) {
+        const real_str = input[real_start..i];
+        real_part = std.fmt.parseFloat(f64, real_str) catch return null;
+    }
+    
+    // Skip whitespace
+    while (i < input.len and (input[i] == ' ' or input[i] == '\t')) {
+        i += 1;
+    }
+    
+    // Look for +/- operator
+    var sign: f64 = 1.0;
+    if (i < input.len and (input[i] == '+' or input[i] == '-')) {
+        if (input[i] == '-') sign = -1.0;
+        i += 1;
+        
+        // Skip whitespace after operator
+        while (i < input.len and (input[i] == ' ' or input[i] == '\t')) {
+            i += 1;
+        }
+        
+        // Parse imaginary part
+        const imaginary_start = i;
+        while (i < input.len and (isDigitChar(input[i]) or input[i] == '.')) {
+            i += 1;
+        }
+        
+        if (i > imaginary_start and i < input.len and input[i] == 'i') {
+            const imaginary_str = input[imaginary_start..i];
+            imaginary_part = (std.fmt.parseFloat(f64, imaginary_str) catch return null) * sign;
+            return Complex{ .r = real_part, .i = imaginary_part };
+        }
+    }
+    
+    return null;
+}
+
+fn isDigitChar(c: u8) bool {
+    return c >= '0' and c <= '9';
+}
 pub fn or_(canAssign: bool) void {
-    _ = &canAssign;
+    _ = canAssign;
     var elseJump: i32 = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
     _ = &elseJump;
     var endJump: i32 = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));

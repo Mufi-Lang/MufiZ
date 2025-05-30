@@ -1,0 +1,53 @@
+{
+  "name": "tree-sitter-mufiz",
+  "version": "0.1.0",
+  "description": "Tree-sitter grammar for MufiZ programming language",
+  "main": "bindings/node",
+  "types": "bindings/node",
+  "keywords": [
+    "tree-sitter",
+    "parser",
+    "mufiz",
+    "syntax",
+    "highlighting"
+  ],
+  "author": "MufiZ Contributors",
+  "license": "MIT",
+  "dependencies": {
+    "nan": "^2.14.0"
+  },
+  "devDependencies": {
+    "tree-sitter-cli": "^0.20.8",
+    "@types/node": "^20.0.0"
+  },
+  "peerDependencies": {
+    "tree-sitter": "^0.20.0"
+  },
+  "tree-sitter": [
+    {
+      "scope": "source.mufiz",
+      "file-types": [
+        "mufi"
+      ],
+      "highlights": "queries/highlights.scm",
+      "injections": "queries/injections.scm",
+      "locals": "queries/locals.scm"
+    }
+  ],
+  "files": [
+    "grammar.js",
+    "src",
+    "bindings",
+    "queries"
+  ],
+  "scripts": {
+    "build": "tree-sitter generate && node-gyp build",
+    "test": "tree-sitter test",
+    "parse": "tree-sitter parse"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Mustafif/MufiZ.git",
+    "directory": "tree-sitter-mufiz"
+  }
+}
