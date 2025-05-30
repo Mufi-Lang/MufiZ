@@ -20,4 +20,4 @@ ctests/hashdict.c
 dist/
 Gemfile
 Gemfile.lock
-tree-sitter-mufiz/node_modules
+tree-sitter-mufiz
