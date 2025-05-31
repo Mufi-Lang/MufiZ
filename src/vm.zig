@@ -63,7 +63,7 @@ pub const CallFrame = struct {
 };
 
 pub const VM = struct {
-    frames: [64]CallFrame = std.mem.zeroes([64]CallFrame),
+    frames: [64]CallFrame = undefined,
     frameCount: i32 = 0,
     chunk: ?*Chunk = null,
     ip: [*]u8,
@@ -697,25 +697,25 @@ pub fn run() InterpretResult {
                     const count: i32 = @as(i32, @bitCast(@as(c_uint, get_slot(frame))));
                     // Initialize with exact size needed
                     const f = fvec.FloatVector.init(@intCast(count));
-                    
+
                     // First collect all values from the stack
                     var values: [255]f64 = undefined;
                     for (0..@intCast(count)) |i| {
                         values[i] = peek((count - @as(i32, @intCast(i))) - 1).as_num_double();
                     }
-                    
+
                     // Pop the values from the stack
                     for (0..@intCast(count)) |_| {
                         _ = pop();
                     }
-                    
+
                     // Set values directly in the vector
                     for (0..@intCast(count)) |i| {
                         f.*.data[i] = values[i];
                     }
                     // Set count manually to ensure it matches
                     f.*.count = @intCast(count);
-                    
+
                     // Push the vector object
                     push(Value.init_obj(@ptrCast(@alignCast(f))));
                     continue;
@@ -1012,7 +1012,7 @@ pub fn run() InterpretResult {
                 },
                 .OP_LENGTH => {
                     const object = pop();
-                    
+
                     if (object.type == .VAL_OBJ and object.as.obj != null) {
                         switch (object.as.obj.?.type) {
                             .OBJ_FVECTOR => {
@@ -1034,7 +1034,7 @@ pub fn run() InterpretResult {
                     } else {
                         push(Value.init_int(0));
                     }
-                    
+
                     continue;
                 },
                 .OP_GET_INDEX => {
@@ -1059,11 +1059,11 @@ pub fn run() InterpretResult {
                                 runtimeError("Index must be a number.", .{});
                                 return .INTERPRET_RUNTIME_ERROR;
                             }
-                            
+
                             const vector = @as(*fvec.FloatVector, @ptrCast(@alignCast(object.as.obj.?)));
-                            
+
                             if (idx < 0 or idx >= vector.count) {
-                                runtimeError("Index out of bounds: {} (count: {})", .{idx, vector.count});
+                                runtimeError("Index out of bounds: {} (count: {})", .{ idx, vector.count });
                                 return .INTERPRET_RUNTIME_ERROR;
                             }
                             const value = vector.get(@intCast(idx));
@@ -1077,45 +1077,45 @@ pub fn run() InterpretResult {
                             const string = @as(*ObjString, @ptrCast(@alignCast(object.as.obj.?)));
                             const idx = index.as_num_int();
                             if (idx < 0 or idx >= string.length) {
-                                    runtimeError("Index out of bounds.", .{});
-                                    return .INTERPRET_RUNTIME_ERROR;
-                                }
-                                const char = string.chars[@intCast(idx)];
-                                const char_str = object_h.copyString(@ptrCast(&char), 1);
-                                push(Value.init_obj(@ptrCast(@alignCast(char_str))));
-                            },
-                            .OBJ_LINKED_LIST => {
-                                if (!index.is_int()) {
-                                    runtimeError("Index must be an integer.", .{});
-                                    return .INTERPRET_RUNTIME_ERROR;
-                                }
-                                const list = @as(*ObjLinkedList, @ptrCast(@alignCast(object.as.obj.?)));
-                                const idx = index.as_num_int();
-                                if (idx < 0 or idx >= list.count) {
-                                    runtimeError("Index out of bounds.", .{});
-                                    return .INTERPRET_RUNTIME_ERROR;
-                                }
-                                
-                                // Traverse the linked list to find the element at index
-                                var current = list.head;
-                                var i: i32 = 0;
-                                while (current != null and i < idx) {
-                                    current = current.?.next;
-                                    i += 1;
-                                }
-                                
-                                if (current != null) {
-                                    push(current.?.data);
-                                } else {
-                                    runtimeError("Index out of bounds.", .{});
-                                    return .INTERPRET_RUNTIME_ERROR;
-                                }
-                            },
-                            else => {
-                                runtimeError("Cannot index this type of object.", .{});
+                                runtimeError("Index out of bounds.", .{});
                                 return .INTERPRET_RUNTIME_ERROR;
-                            },
-                        }
+                            }
+                            const char = string.chars[@intCast(idx)];
+                            const char_str = object_h.copyString(@ptrCast(&char), 1);
+                            push(Value.init_obj(@ptrCast(@alignCast(char_str))));
+                        },
+                        .OBJ_LINKED_LIST => {
+                            if (!index.is_int()) {
+                                runtimeError("Index must be an integer.", .{});
+                                return .INTERPRET_RUNTIME_ERROR;
+                            }
+                            const list = @as(*ObjLinkedList, @ptrCast(@alignCast(object.as.obj.?)));
+                            const idx = index.as_num_int();
+                            if (idx < 0 or idx >= list.count) {
+                                runtimeError("Index out of bounds.", .{});
+                                return .INTERPRET_RUNTIME_ERROR;
+                            }
+
+                            // Traverse the linked list to find the element at index
+                            var current = list.head;
+                            var i: i32 = 0;
+                            while (current != null and i < idx) {
+                                current = current.?.next;
+                                i += 1;
+                            }
+
+                            if (current != null) {
+                                push(current.?.data);
+                            } else {
+                                runtimeError("Index out of bounds.", .{});
+                                return .INTERPRET_RUNTIME_ERROR;
+                            }
+                        },
+                        else => {
+                            runtimeError("Cannot index this type of object.", .{});
+                            return .INTERPRET_RUNTIME_ERROR;
+                        },
+                    }
                     continue;
                 },
                 .OP_SET_INDEX => {
@@ -1189,7 +1189,6 @@ pub fn run() InterpretResult {
                     }
                     continue;
                 },
-
             }
         }
     }

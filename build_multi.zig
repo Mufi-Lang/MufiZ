@@ -48,6 +48,8 @@ const targets: []const std.Target.Query = &.{
     .{ .cpu_arch = .x86_64, .os_tag = .windows },
     .{ .cpu_arch = .x86_64, .os_tag = .windows, .abi = .gnu },
     .{ .cpu_arch = .sparc64, .os_tag = .linux },
+    .{.cpu_arch = .armv7a, .os_tag = .linux},
+    .{.cpu_arch = .loongarch64, .os_tag = .linux}
 };
 
 // zig fmt: on
@@ -77,13 +79,7 @@ pub fn build(b: *std.Build) !void {
 }
 
 fn buildTarget(b: *std.Build, target: std.Target.Query, options: *std.Build.Step.Options, debug_opts: *std.Build.Step.Options) !void {
-    const exe = b.addExecutable(.{
-        .name = "mufiz",
-        .root_source_file = b.path("src/main.zig"),
-        .target = b.resolveTargetQuery(target),
-        .optimize = .ReleaseFast,
-        .link_libc = false,
-    });
+    const exe = b.addExecutable(.{ .name = "mufiz", .root_module = b.createModule(.{ .root_source_file = b.path("src/main.zig"), .optimize = .ReleaseFast, .target = b.resolveTargetQuery(target) }) });
 
     if (target.cpu_arch == .wasm32) {
         b.enable_wasmtime = true;

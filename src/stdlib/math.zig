@@ -4,7 +4,7 @@ const Value = @import("../core.zig").value_h.Value;
 const stdlib_error = @import("../stdlib.zig").stdlib_error;
 const NativeFn = @import("../stdlib.zig").NativeFn;
 const type_check = conv.type_check;
-const Prng = std.rand.Xoshiro256; // Using Xoshiro256 as the PRNG
+const Prng = std.Random.Xoshiro256;
 
 // Int = 2
 // Double = 3
