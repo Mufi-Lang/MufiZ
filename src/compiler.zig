@@ -1,23 +1,81 @@
-const scanner_h = @import("scanner.zig");
-const debug_opts = @import("debug");
-const object_h = @import("object.zig");
-const chunk_h = @import("chunk.zig");
-const value_h = @import("value.zig");
-const vm_h = @import("vm.zig");
-const std = @import("std");
-const Token = scanner_h.Token;
-const TokenType = scanner_h.TokenType;
-const ObjFunction = object_h.ObjFunction;
-const Chunk = chunk_h.Chunk;
-const Value = value_h.Value;
-const Complex = value_h.Complex;
 const print = @import("std").debug.print;
-const strlen = @import("mem_utils.zig").strlen;
+const std = @import("std");
 
+const debug_opts = @import("debug");
+
+const chunk_h = @import("chunk.zig");
+const Chunk = chunk_h.Chunk;
 const OpCode = chunk_h.OpCode;
 const debug_h = @import("debug.zig");
+const errors = @import("errors.zig");
+const object_h = @import("object.zig");
+const ObjFunction = object_h.ObjFunction;
+const scanner_h = @import("scanner.zig");
+const Token = scanner_h.Token;
+const TokenType = scanner_h.TokenType;
+const strlen = @import("mem_utils.zig").strlen;
+const value_h = @import("value.zig");
+const Value = value_h.Value;
+const Complex = value_h.Complex;
+const vm_h = @import("vm.zig");
 
-pub const Parser = struct { current: Token, previous: Token, hadError: bool, panicMode: bool };
+// Global error manager and variable tracking
+pub var globalErrorManager: errors.ErrorManager = undefined;
+var knownVariables: std.ArrayList([]const u8) = undefined;
+pub var errorManagerInitialized: bool = false;
+
+// Track all declared variables for suggestion system
+pub fn addKnownVariable(name: []const u8) void {
+    if (errorManagerInitialized) {
+        knownVariables.append(name) catch {};
+    }
+}
+
+pub fn findSimilarVariables(name: []const u8, allocator: std.mem.Allocator) []const []const u8 {
+    if (!errorManagerInitialized) return &[_][]const u8{};
+
+    var similar = std.ArrayList([]const u8).init(allocator);
+
+    for (knownVariables.items) |candidate| {
+        const distance = errors.levenshteinDistance(name, candidate);
+        if (distance <= 2 and distance > 0 and !std.mem.eql(u8, name, candidate)) {
+            similar.append(candidate) catch break;
+        }
+    }
+
+    return similar.toOwnedSlice() catch &[_][]const u8{};
+}
+
+// Function to populate known variables from VM's global table
+pub fn populateKnownVariablesFromGlobals() void {
+    if (!errorManagerInitialized) return;
+
+    const vm_module = @import("vm.zig");
+    const iterator = vm_module.vm.globals.entries;
+    var i: usize = 0;
+
+    while (i < vm_module.vm.globals.capacity) : (i += 1) {
+        if (iterator.?[i].key != null) {
+            const objString = iterator.?[i].key.?;
+            const varName = objString.chars[0..@intCast(objString.length)];
+            addKnownVariable(varName);
+        }
+    }
+}
+
+// Function to set scanner error manager pointer
+pub fn setScannerErrorManager() void {
+    scanner_h.globalErrorManager = &globalErrorManager;
+    scanner_h.errorManagerInitialized = errorManagerInitialized;
+}
+
+pub const Parser = struct {
+    current: Token,
+    previous: Token,
+    hadError: bool,
+    panicMode: bool,
+    currentFile: ?[]const u8 = null,
+};
 
 pub const PREC_NONE: i32 = 0;
 pub const PREC_ASSIGNMENT: i32 = 1;
@@ -80,26 +138,82 @@ pub fn currentChunk() *Chunk {
 }
 pub fn errorAt(token: *Token, message: [*]const u8) void {
     if (parser.panicMode) return;
-    parser.panicMode = true;
-    print("[line {d}] Error", .{token.*.line});
-    if (token.*.type == .TOKEN_EOF) {
-        print(" at end", .{});
-    } else if (token.*.type == .TOKEN_ERROR) {} else {
-        print(" at '{s}'", .{token.*.start[0..@intCast(token.*.length)]});
-    }
 
-    // Convert the C-style string to a Zig-style string slice by calculating its length
+    // Convert the C-style string to a Zig-style string slice
     var i: usize = 0;
     while (message[i] != 0) : (i += 1) {}
-    print(": {s}\n", .{message[0..i]});
+    const msg = message[0..i];
+
+    // Create error info with enhanced details
+    var errorInfo = errors.ErrorInfo{
+        .code = .UNEXPECTED_TOKEN,
+        .category = .SYNTAX,
+        .severity = .ERROR,
+        .line = @intCast(@as(u32, @bitCast(token.*.line))),
+        .column = 1, // TODO: Calculate actual column from token position
+        .length = @intCast(@as(u32, @bitCast(token.*.length))),
+        .message = msg,
+        .suggestions = &[_]errors.ErrorSuggestion{},
+        .file_path = parser.currentFile,
+    };
+
+    // Add context-specific suggestions based on token type
+    if (token.*.type == .TOKEN_EOF) {
+        errorInfo.suggestions = &[_]errors.ErrorSuggestion{
+            .{ .message = "Add the missing token before the end of file" },
+            .{ .message = "Check for unclosed brackets, braces, or parentheses" },
+        };
+    } else if (token.*.type == .TOKEN_ERROR) {
+        errorInfo.suggestions = &[_]errors.ErrorSuggestion{
+            .{ .message = "Check for invalid characters or malformed tokens" },
+        };
+    }
+
+    if (errorManagerInitialized) {
+        globalErrorManager.reportError(errorInfo);
+    } else {
+        // Fallback to old behavior if error manager not initialized
+        print("[line {d}] Error: {s}\n", .{ token.*.line, msg });
+    }
     parser.hadError = true;
 }
 
 pub fn @"error"(message: [*]const u8) void {
     errorAt(&parser.previous, message);
 }
+
 pub fn errorAtCurrent(message: [*]const u8) void {
     errorAt(&parser.current, message);
+}
+
+pub fn errorWithSuggestions(token: *Token, errorCode: errors.ErrorCode, message: []const u8, suggestions: []const errors.ErrorSuggestion) void {
+    if (parser.panicMode) return;
+
+    const errorInfo = errors.ErrorInfo{
+        .code = errorCode,
+        .category = switch (errorCode) {
+            .UNEXPECTED_TOKEN, .UNTERMINATED_STRING, .INVALID_CHARACTER => .SYNTAX,
+            .UNDEFINED_VARIABLE, .REDEFINED_VARIABLE, .WRONG_ARGUMENT_COUNT => .SEMANTIC,
+            .STACK_OVERFLOW, .INDEX_OUT_OF_BOUNDS => .RUNTIME,
+            .TYPE_MISMATCH, .INVALID_CAST => .TYPE,
+            .TOO_MANY_CONSTANTS, .TOO_MANY_LOCALS => .MEMORY,
+            else => .SYNTAX,
+        },
+        .severity = .ERROR,
+        .line = @intCast(@as(u32, @bitCast(token.*.line))),
+        .column = 1,
+        .length = @intCast(@as(u32, @bitCast(token.*.length))),
+        .message = message,
+        .suggestions = suggestions,
+        .file_path = parser.currentFile,
+    };
+
+    if (errorManagerInitialized) {
+        globalErrorManager.reportError(errorInfo);
+    } else {
+        print("[line {d}] Error: {s}\n", .{ token.*.line, message });
+    }
+    parser.hadError = true;
 }
 
 pub fn advance() void {
@@ -137,7 +251,12 @@ pub fn emitLoop(loopStart: i32) void {
     const offset: i32 = (currentChunk().*.count - loopStart) + 2;
 
     if (offset > 65535) {
-        @"error"("Loop body too large.");
+        const suggestions = [_]errors.ErrorSuggestion{
+            .{ .message = "Break the loop body into smaller funs" },
+            .{ .message = "Consider restructuring the loop logic" },
+            .{ .message = "Maximum loop body size is 65535 bytes" },
+        };
+        errorWithSuggestions(&parser.previous, .LOOP_TOO_LARGE, "Loop body too large (maximum 65535 bytes)", &suggestions);
     }
     emitByte(@intCast((offset >> 8) & 255));
     emitByte(@intCast(offset & 255));
@@ -160,7 +279,12 @@ pub fn emitReturn() void {
 pub fn makeConstant(value: Value) u8 {
     const constant: i32 = chunk_h.addConstant(currentChunk(), value);
     if (constant > 255) {
-        @"error"("Too many constants in one chunk.");
+        const suggestions = [_]errors.ErrorSuggestion{
+            .{ .message = "Break large funs into smaller ones" },
+            .{ .message = "Reduce the number of literal values in this fun" },
+            .{ .message = "Consider using variables for repeated constant values" },
+        };
+        errorWithSuggestions(&parser.previous, .TOO_MANY_CONSTANTS, "Too many constants in one chunk (maximum 256)", &suggestions);
         return 0;
     }
     return @intCast(constant);
@@ -172,7 +296,12 @@ pub fn emitConstant(value: Value) void {
 pub fn patchJump(offset: i32) void {
     const jump: i32 = (currentChunk().*.count - offset) - 2;
     if (jump > 65535) {
-        @"error"("Too much code to jump over.");
+        const suggestions = [_]errors.ErrorSuggestion{
+            .{ .message = "Break large code blocks into smaller funs" },
+            .{ .message = "Restructure conditional logic to reduce jump distances" },
+            .{ .message = "Maximum jump distance is 65535 bytes" },
+        };
+        errorWithSuggestions(&parser.previous, .JUMP_TOO_LARGE, "Too much code to jump over (maximum 65535 bytes)", &suggestions);
     }
 
     if (currentChunk().*.code) |code| {
@@ -392,7 +521,12 @@ pub fn parsePrecedence(precedence: Precedence) void {
     const prefixRule: ParseFn = getRule(parser.previous.type).prefix;
 
     if (prefixRule == null) {
-        @"error"("Expect expression.");
+        const suggestions = [_]errors.ErrorSuggestion{
+            .{ .message = "Add a valid expression (variable, number, string, etc.)" },
+            .{ .message = "Check for missing operands in arithmetic expressions" },
+            .{ .message = "Add a valid expression", .example = "x + 1, \"hello\", myFun()" },
+        };
+        errorWithSuggestions(&parser.previous, .EXPECTED_EXPRESSION, "Expected expression", &suggestions);
         return;
     }
     const canAssign: bool = precedence <= PREC_ASSIGNMENT;
@@ -403,7 +537,12 @@ pub fn parsePrecedence(precedence: Precedence) void {
         infixRule.?(canAssign);
     }
     if (canAssign and match(.TOKEN_EQUAL)) {
-        @"error"("Invalid assignment target.");
+        const suggestions = [_]errors.ErrorSuggestion{
+            .{ .message = "You can only assign to variables and object properties" },
+            .{ .message = "Check that the left side is a valid assignment target" },
+            .{ .message = "Use valid assignment targets", .example = "variable = value, object.property = value" },
+        };
+        errorWithSuggestions(&parser.previous, .INVALID_ASSIGNMENT, "Invalid assignment target", &suggestions);
     }
 }
 
@@ -425,7 +564,12 @@ pub fn resolveLocal(compiler: *Compiler, name: *Token) i32 {
         const local: *Local = &compiler.*.locals[@as(c_uint, @intCast(i))];
         if (identifiersEqual(name, &local.*.name)) {
             if (local.*.depth == -1) {
-                @"error"("Can't read local variable in its own initializer.");
+                const suggestions = [_]errors.ErrorSuggestion{
+                    .{ .message = "Use a different variable name or initialize with a different value" },
+                    .{ .message = "A variable cannot reference itself during initialization" },
+                    .{ .message = "Initialize with a different value", .example = "var x = 5; // Not: var x = x + 1;" },
+                };
+                errorWithSuggestions(&parser.previous, .UNDEFINED_VARIABLE, "Cannot read local variable in its own initializer", &suggestions);
             }
             return i;
         }
@@ -446,7 +590,12 @@ pub fn addUpvalue(compiler: *Compiler, index_1: u8, isLocal: bool) i32 {
     }
 
     if (upvalueCount == (255 + 1)) {
-        @"error"("Too many closures variables in function.");
+        const suggestions = [_]errors.ErrorSuggestion{
+            .{ .message = "Reduce the number of captured variables from outer scopes" },
+            .{ .message = "Pass values as parameters instead of capturing them" },
+            .{ .message = "Maximum closure variables per fun is 256" },
+        };
+        errorWithSuggestions(&parser.previous, .TOO_MANY_LOCALS, "Too many closure variables in fun (maximum 256)", &suggestions);
         return 0;
     }
     compiler.*.upvalues[@intCast(upvalueCount)].isLocal = isLocal;
@@ -473,20 +622,30 @@ pub fn resolveUpvalue(compiler: *Compiler, name: *Token) i32 {
 }
 pub fn addLocal(name: Token) void {
     if (current.?.localCount == (255 + 1)) {
-        @"error"("Too many local variables in function.");
+        const errorInfo = errors.ErrorTemplates.tooManyLocals();
+        if (errorManagerInitialized) {
+            globalErrorManager.reportError(errorInfo);
+        } else {
+            print("Error: Too many local variables in function\n", .{});
+        }
+        parser.hadError = true;
         return;
     }
     const local: *Local = &current.?.locals[
-        @as(c_uint, @intCast(blk: {
+        @intCast(blk: {
             const ref = &current.?.localCount;
             const tmp = ref.*;
             ref.* += 1;
             break :blk tmp;
-        }))
+        })
     ];
     local.*.name = name;
     local.*.depth = -1;
     local.*.isCaptured = false;
+
+    // Track this variable for suggestion system
+    const varName = name.start[0..@intCast(name.length)];
+    addKnownVariable(varName);
 }
 pub fn declareVariable() void {
     if (current.?.scopeDepth == 0) return;
@@ -501,7 +660,13 @@ pub fn declareVariable() void {
                 break;
             }
             if (identifiersEqual(name, &local.*.name)) {
-                @"error"("Already a variable with this name in this scope.");
+                const varName = name.start[0..@intCast(name.length)];
+                const suggestions = [_]errors.ErrorSuggestion{
+                    .{ .message = "Use a different variable name" },
+                    .{ .message = "Variables in the same scope must have unique names" },
+                    .{ .message = "Try alternative names", .example = std.fmt.allocPrint(std.heap.page_allocator, "{s}2, new{s}, {s}Value", .{ varName, varName, varName }) catch "newName, value2" },
+                };
+                errorWithSuggestions(&parser.previous, .REDEFINED_VARIABLE, std.fmt.allocPrint(std.heap.page_allocator, "Variable '{s}' already declared in this scope", .{varName}) catch "Variable already declared", &suggestions);
                 return;
             }
         }
@@ -523,6 +688,17 @@ pub fn defineVariable(global: u8) void {
         markInitialized();
         return;
     }
+
+    // Track global variable for suggestion system
+    if (errorManagerInitialized and global < currentChunk().*.constants.count) {
+        const constant = currentChunk().*.constants.values[@intCast(global)];
+        if (constant.type == .VAL_OBJ and object_h.isObjType(constant, .OBJ_STRING)) {
+            const objString = @as(*object_h.ObjString, @ptrCast(@alignCast(constant.as.obj)));
+            const varName = objString.chars[0..@intCast(objString.length)];
+            addKnownVariable(varName);
+        }
+    }
+
     emitBytes(@intCast(@intFromEnum(OpCode.OP_DEFINE_GLOBAL)), global);
 }
 pub fn argumentList() u8 {
@@ -531,7 +707,12 @@ pub fn argumentList() u8 {
         while (true) {
             expression();
             if (@as(i32, @bitCast(@as(c_uint, argCount))) == 255) {
-                @"error"("Can't have more than 255 arguments.");
+                const suggestions = [_]errors.ErrorSuggestion{
+                    .{ .message = "Break down complex function calls into multiple steps" },
+                    .{ .message = "Use data structures to group related arguments" },
+                    .{ .message = "Maximum arguments per function call is 255" },
+                };
+                errorWithSuggestions(&parser.previous, .TOO_MANY_ARGUMENTS, "Cannot have more than 255 arguments", &suggestions);
             }
             argCount +%= 1;
             if (!match(.TOKEN_COMMA)) break;
@@ -676,7 +857,7 @@ pub fn number(canAssign: bool) void {
 pub fn imaginary_number(canAssign: bool) void {
     _ = canAssign;
     const token_slice = parser.previous.start[0..@intCast(parser.previous.length)];
-    
+
     // Parse complex number in format "a+bi" or "a-bi"
     if (parseComplexNumber(token_slice)) |complex_val| {
         emitConstant(Value{
@@ -687,7 +868,7 @@ pub fn imaginary_number(canAssign: bool) void {
         });
     } else {
         // Fallback to pure imaginary number
-        const imaginary_str = token_slice[0..token_slice.len-1]; // Remove 'i' suffix
+        const imaginary_str = token_slice[0 .. token_slice.len - 1]; // Remove 'i' suffix
         const imaginary_value: f64 = std.fmt.parseFloat(f64, imaginary_str) catch 0.0;
         emitConstant(Value{
             .type = .VAL_COMPLEX,
@@ -702,12 +883,12 @@ fn parseComplexNumber(input: []const u8) ?Complex {
     var real_part: f64 = 0.0;
     var imaginary_part: f64 = 0.0;
     var i: usize = 0;
-    
+
     // Skip leading whitespace
     while (i < input.len and (input[i] == ' ' or input[i] == '\t')) {
         i += 1;
     }
-    
+
     // Parse real part
     const real_start = i;
     while (i < input.len and (isDigitChar(input[i]) or input[i] == '.' or input[i] == '-' or input[i] == '+')) {
@@ -716,41 +897,41 @@ fn parseComplexNumber(input: []const u8) ?Complex {
         }
         i += 1;
     }
-    
+
     if (i > real_start) {
         const real_str = input[real_start..i];
         real_part = std.fmt.parseFloat(f64, real_str) catch return null;
     }
-    
+
     // Skip whitespace
     while (i < input.len and (input[i] == ' ' or input[i] == '\t')) {
         i += 1;
     }
-    
+
     // Look for +/- operator
     var sign: f64 = 1.0;
     if (i < input.len and (input[i] == '+' or input[i] == '-')) {
         if (input[i] == '-') sign = -1.0;
         i += 1;
-        
+
         // Skip whitespace after operator
         while (i < input.len and (input[i] == ' ' or input[i] == '\t')) {
             i += 1;
         }
-        
+
         // Parse imaginary part
         const imaginary_start = i;
         while (i < input.len and (isDigitChar(input[i]) or input[i] == '.')) {
             i += 1;
         }
-        
+
         if (i > imaginary_start and i < input.len and input[i] == 'i') {
             const imaginary_str = input[imaginary_start..i];
             imaginary_part = (std.fmt.parseFloat(f64, imaginary_str) catch return null) * sign;
             return Complex{ .r = real_part, .i = imaginary_part };
         }
     }
-    
+
     return null;
 }
 
@@ -803,7 +984,12 @@ pub fn fvector(canAssign: bool) void {
             expression();
             argCount +%= 1;
             if (@as(i32, @bitCast(@as(c_uint, argCount))) > 255) {
-                @"error"("Can't have more than 255 elements in a vector.");
+                const suggestions = [_]errors.ErrorSuggestion{
+                    .{ .message = "Break large vectors into smaller ones" },
+                    .{ .message = "Use arrays or other data structures for large collections" },
+                    .{ .message = "Maximum vector size is 255 elements" },
+                };
+                errorWithSuggestions(&parser.previous, .TOO_MANY_ARGUMENTS, "Cannot have more than 255 elements in a vector", &suggestions);
             }
             if (!match(.TOKEN_COMMA)) break;
         }
@@ -815,6 +1001,7 @@ pub fn namedVariable(name: Token, canAssign: bool) void {
     var getOp: u8 = undefined;
     var setOp: u8 = undefined;
     var arg: i32 = resolveLocal(current.?, @constCast(&name));
+
     if (arg != -1) {
         getOp = @intCast(@intFromEnum(OpCode.OP_GET_LOCAL));
         setOp = @intCast(@intFromEnum(OpCode.OP_SET_LOCAL));
@@ -825,6 +1012,8 @@ pub fn namedVariable(name: Token, canAssign: bool) void {
         getOp = @intCast(@intFromEnum(OpCode.OP_GET_UPVALUE));
         setOp = @intCast(@intFromEnum(OpCode.OP_SET_UPVALUE));
     } else {
+        // For now, we'll let undefined globals be caught at runtime
+        // since compile-time detection is complex with dynamic scoping
         arg = @intCast(identifierConstant(@constCast(&name)));
         getOp = @intCast(@intFromEnum(OpCode.OP_GET_GLOBAL));
         setOp = @intCast(@intFromEnum(OpCode.OP_SET_GLOBAL));
@@ -904,10 +1093,20 @@ pub fn syntheticToken(text: [*]const u8) Token {
 pub fn super_(canAssign: bool) void {
     _ = canAssign;
     if (currentClass == null) {
-        @"error"("Can't use 'super' outside of a class.");
+        const suggestions = [_]errors.ErrorSuggestion{
+            .{ .message = "Use 'super' only inside class methods" },
+            .{ .message = "Move the 'super' call into a class definition" },
+            .{ .message = "Use super in derived class methods", .example = "class Child extends Parent { method() { super.method(); } }" },
+        };
+        errorWithSuggestions(&parser.previous, .INVALID_SUPER_USAGE, "Cannot use 'super' outside of a class", &suggestions);
         return;
     } else if (!currentClass.?.*.hasSuperclass) {
-        @"error"("Can't use 'super' in a class with no superclass.");
+        const suggestions = [_]errors.ErrorSuggestion{
+            .{ .message = "Add a parent class for inheritance" },
+            .{ .message = "Remove the 'super' call if inheritance is not needed" },
+            .{ .message = "Use proper inheritance syntax", .example = "class Child extends Parent { ... }" },
+        };
+        errorWithSuggestions(&parser.previous, .INVALID_SUPER_USAGE, "Cannot use 'super' in a class with no superclass", &suggestions);
         return;
     }
     consume(.TOKEN_DOT, "Expect '.' after 'super'.");
@@ -937,7 +1136,12 @@ pub fn super_(canAssign: bool) void {
 pub fn self_(canAssign: bool) void {
     _ = canAssign;
     if (currentClass == null) {
-        @"error"("Can't use 'self' outside of a class.");
+        const suggestions = [_]errors.ErrorSuggestion{
+            .{ .message = "Use 'self' only inside class methods" },
+            .{ .message = "Move the 'self' reference into a class definition" },
+            .{ .message = "Use self in class methods", .example = "class MyClass { method() { self.property = value; } }" },
+        };
+        errorWithSuggestions(&parser.previous, .INVALID_SELF_USAGE, "Cannot use 'self' outside of a class", &suggestions);
         return;
     }
     // Look up "self" variable
@@ -1060,7 +1264,13 @@ pub fn classDeclaration() void {
         consume(.TOKEN_IDENTIFIER, "Expect superclass name.");
         variable(false);
         if (identifiersEqual(&className, &parser.previous)) {
-            @"error"("A class can't inherit itself.");
+            const className_str = className.start[0..@intCast(className.length)];
+            const suggestions = [_]errors.ErrorSuggestion{
+                .{ .message = "Inherit from a different class" },
+                .{ .message = "Remove the inheritance if not needed" },
+                .{ .message = "Classes cannot inherit from themselves" },
+            };
+            errorWithSuggestions(&parser.previous, .CLASS_INHERITANCE_ERROR, std.fmt.allocPrint(std.heap.page_allocator, "Class '{s}' cannot inherit from itself", .{className_str}) catch "Class cannot inherit from itself", &suggestions);
         }
 
         // Store the superclass in a local variable named "super"
@@ -1150,76 +1360,76 @@ pub fn forStatement() void {
 // eachStatement function removed - it was using removed iterator opcodes
 pub fn foreachStatement() void {
     beginScope();
-    
+
     // Expect '(' after 'foreach'
     consume(.TOKEN_LEFT_PAREN, "Expect '(' after 'foreach'.");
-    
+
     // Parse the loop variable (item)
     consume(.TOKEN_IDENTIFIER, "Expect variable name.");
     const itemName = parser.previous;
-    
+
     // Expect 'in' keyword
     consume(.TOKEN_IN, "Expect 'in' after loop variable.");
-    
+
     // We need to keep the collection in a variable that won't be garbage collected
     // and won't be affected by scope changes
     addLocal(syntheticToken("__collection"));
-    expression();  // Collection expression leaves value on stack
-    
-    markInitialized();  // This effectively assigns the value to the local
+    expression(); // Collection expression leaves value on stack
+
+    markInitialized(); // This effectively assigns the value to the local
     const collectionSlot = current.?.localCount - 1;
-    
+
     // Expect ')'
     consume(.TOKEN_RIGHT_PAREN, "Expect ')' after collection.");
-    
+
     // Initialize index variable
     addLocal(syntheticToken("__index"));
     emitConstant(Value.init_int(0));
     markInitialized();
     const indexSlot = current.?.localCount - 1;
-    
+
     // Declare item variable but don't initialize it yet
     addLocal(itemName);
     const itemSlot = current.?.localCount - 1;
-    
+
     const loopStart: i32 = currentChunk().*.count;
-    
+
     // Loop condition: check if index < collection.length
     emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(indexSlot));
     emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(collectionSlot));
     emitByte(@intCast(@intFromEnum(OpCode.OP_LENGTH)));
     emitByte(@intCast(@intFromEnum(OpCode.OP_LESS)));
-    
+
     const exitJump: i32 = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
     emitByte(@intCast(@intFromEnum(OpCode.OP_POP))); // Pop the condition result
-    
+
     // Get current element: collection[index] and assign to item
     emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(collectionSlot));
     emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(indexSlot));
     emitByte(@intCast(@intFromEnum(OpCode.OP_GET_INDEX)));
-    
+
     // Set the item variable to the value from GET_INDEX
     emitBytes(@intCast(@intFromEnum(OpCode.OP_SET_LOCAL)), @intCast(itemSlot));
     emitByte(@intCast(@intFromEnum(OpCode.OP_POP))); // Pop the value after setting local
-    markInitialized();  // Mark the item variable as initialized
-    
+    markInitialized(); // Mark the item variable as initialized
+
     // Execute loop body
     statement();
-    
+
     // Increment index
     emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(indexSlot));
     emitConstant(Value.init_int(1));
     emitByte(@intCast(@intFromEnum(OpCode.OP_ADD)));
     emitBytes(@intCast(@intFromEnum(OpCode.OP_SET_LOCAL)), @intCast(indexSlot));
     emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
-    
+
     // Jump back to start
     emitLoop(loopStart);
-    
+
     // Patch exit jump
     patchJump(exitJump);
     emitByte(@intCast(@intFromEnum(OpCode.OP_POP))); // Pop the false condition
-    
+
     endScope();
 }
 
@@ -1247,13 +1457,23 @@ pub fn printStatement() void {
 }
 pub fn returnStatement() void {
     if (current.?.type_ == .TYPE_SCRIPT) {
-        @"error"("Can't return from top-level code.");
+        const suggestions = [_]errors.ErrorSuggestion{
+            .{ .message = "Use return statements only inside functions" },
+            .{ .message = "Remove the return statement from global scope" },
+            .{ .message = "Use return in functions", .example = "fun example() { return value; }" },
+        };
+        errorWithSuggestions(&parser.previous, .INVALID_RETURN, "Cannot return from top-level code", &suggestions);
     }
     if (match(.TOKEN_SEMICOLON)) {
         emitReturn();
     } else {
         if (current.?.type_ == .TYPE_INITIALIZER) {
-            @"error"("Can't return a value from an initializer.");
+            const suggestions = [_]errors.ErrorSuggestion{
+                .{ .message = "Use 'return;' without a value in initializers" },
+                .{ .message = "Initializers automatically return the instance" },
+                .{ .message = "Use return without value in initializers", .example = "init() { this.property = value; return; }" },
+            };
+            errorWithSuggestions(&parser.previous, .INVALID_RETURN, "Cannot return a value from an initializer", &suggestions);
         }
         expression();
         consume(.TOKEN_SEMICOLON, "Expect ';' after return value.");
@@ -1289,17 +1509,32 @@ pub fn synchronize() void {
 }
 
 pub fn compile(source: [*]const u8) ?*ObjFunction {
+    // Initialize error manager if not already done
+    if (!errorManagerInitialized) {
+        globalErrorManager = errors.ErrorManager.init(std.heap.page_allocator);
+        knownVariables = std.ArrayList([]const u8).init(std.heap.page_allocator);
+        errorManagerInitialized = true;
+    } else {
+        globalErrorManager.reset();
+        knownVariables.clearRetainingCapacity();
+    }
+
+    // Set scanner error manager
+    setScannerErrorManager();
+
     scanner_h.init_scanner(@constCast(source));
     var compiler: Compiler = undefined;
     _ = &compiler;
     initCompiler(&compiler, .TYPE_SCRIPT);
     parser.hadError = false;
     parser.panicMode = false;
+    parser.currentFile = "<script>";
     advance();
     while (!match(.TOKEN_EOF)) {
         declaration();
     }
     var function_1: *ObjFunction = endCompiler();
     _ = &function_1;
+
     return if (@as(i32, @intFromBool(parser.hadError)) != 0) null else function_1;
 }

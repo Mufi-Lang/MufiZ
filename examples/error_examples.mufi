@@ -1,0 +1,181 @@
+// Error Examples for MufiZ Language
+// This file demonstrates various error scenarios and how the enhanced
+// error system provides helpful suggestions and context.
+
+// SYNTAX ERRORS
+
+// 1. Unterminated string
+// var message = "Hello, world!;  // Missing closing quote
+
+// 2. Unexpected character
+// var x = 5 @ 3;  // @ is not a valid operator
+
+// 3. Missing semicolon
+// var a = 10
+// var b = 20;  // Missing semicolon after first line
+
+// 4. Mismatched brackets
+// var arr = [1, 2, 3};  // Should be ]
+
+// 5. Invalid complex number
+// var c = 3+4j;  // Should be 3+4i
+
+// SEMANTIC ERRORS
+
+// 6. Undefined variable
+fun testUndefined() {
+    print(unknownVariable);  // Variable not declared
+    // Suggestion: Declare the variable or check spelling
+}
+
+// 7. Variable redefinition in same scope
+fun testRedefinition() {
+    var x = 5;
+    var x = 10;  // Error: x already declared
+    // Suggestion: Use different name like x2, newX, xValue
+}
+
+// 8. Wrong argument count
+fun add(a, b) {
+    return a + b;
+}
+
+fun testWrongArgs() {
+    var result = add(5);  // Missing second argument
+    // Suggestion: Add 1 more argument
+}
+
+// 9. Too many function arguments
+fun testTooManyArgs() {
+    // This would trigger if we had a function call with > 255 arguments
+    // someFunction(arg1, arg2, ..., arg256);  // Too many arguments
+}
+
+// 10. Too many local variables
+fun testTooManyLocals() {
+    // This would trigger if we had > 255 local variables
+    // var local1, local2, ..., local256;  // Too many locals
+}
+
+// CLASS-RELATED ERRORS
+
+// 11. Invalid super usage
+// super.method();  // Error: super used outside class
+// Suggestion: Use super only inside class methods
+
+// 12. Invalid self usage
+// self.property = 5;  // Error: self used outside class
+// Suggestion: Use self only inside class methods
+
+// 13. Class inheriting from itself
+// class MyClass extends MyClass {  // Error: circular inheritance
+//     // Suggestion: Inherit from a different class
+// }
+
+// 14. Super in class with no parent
+class Standalone {
+    method() {
+        // super.method();  // Error: no superclass
+        // Suggestion: Add parent class or remove super call
+    }
+}
+
+// RUNTIME ERRORS
+
+// 15. Stack overflow (recursive function without base case)
+fun infiniteRecursion(n) {
+    return infiniteRecursion(n + 1);  // No base case
+    // Suggestion: Add base case like "if (n > 100) return n;"
+}
+
+// 16. Index out of bounds
+fun testBounds() {
+    var vec = {1, 2, 3};
+    var value = vec[5];  // Index 5 is out of bounds for size 3
+    // Suggestion: Valid indices are 0 to 2
+}
+
+// 17. Division by zero
+fun testDivision(a, b) {
+    return a / b;  // Error if b is 0
+    // Suggestion: Add check "if (b != 0) { ... }"
+}
+
+// CONTROL FLOW ERRORS
+
+// 18. Invalid return context
+// return 42;  // Error: return in top-level code
+// Suggestion: Use return only inside functions
+
+class Example {
+    init() {
+        // return 42;  // Error: return value from initializer
+        // Suggestion: Use "return;" without value
+    }
+}
+
+// TYPE ERRORS
+
+// 19. Type mismatch in operations
+fun testTypeMismatch() {
+    var str = "hello";
+    var num = 42;
+    // var result = str + num;  // Potential type error
+    // Suggestion: Convert types or use compatible operations
+}
+
+// MEMORY/LIMIT ERRORS
+
+// 20. Too many constants
+fun testConstants() {
+    // Having > 256 literal values would trigger this error
+    // Suggestion: Use variables for repeated values
+}
+
+// 21. Too many vector elements
+fun testLargeVector() {
+    // var bigVec = {1, 2, 3, ..., 256};  // Too many elements
+    // Suggestion: Break into smaller vectors
+}
+
+// GOOD EXAMPLES (These should work)
+
+fun goodFunction(x, y) {
+    if (y == 0) {
+        print("Cannot divide by zero");
+        return 0;
+    }
+    return x / y;
+}
+
+class Parent {
+    method() {
+        print("Parent method");
+    }
+}
+
+class Child extends Parent {
+    method() {
+        super.method();  // Correct super usage
+        print("Child method");
+    }
+    
+    init() {
+        self.value = 42;  // Correct self usage
+        return;  // Correct return in initializer
+    }
+}
+
+fun recursiveFactorial(n) {
+    if (n <= 1) return 1;  // Base case prevents stack overflow
+    return n * recursiveFactorial(n - 1);
+}
+
+fun safeArrayAccess(arr, index) {
+    if (index >= 0 && index < arr.length) {
+        return arr[index];
+    } else {
+        print("Index out of bounds");
+        return null;
+    }
+}

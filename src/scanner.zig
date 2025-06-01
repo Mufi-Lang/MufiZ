@@ -1,12 +1,17 @@
 const std = @import("std");
 pub const memcmp = @import("mem_utils.zig").memcmp;
 pub const strlen = @import("mem_utils.zig").strlen;
+const errors = @import("errors.zig");
 
 // HashMap for keyword lookup
 const KeywordMap = std.HashMap([]const u8, TokenType, std.hash_map.StringContext, std.hash_map.default_max_load_percentage);
 
 var keyword_map: KeywordMap = undefined;
 var keyword_map_initialized: bool = false;
+
+// External declarations for error manager (defined in compiler.zig)
+pub var globalErrorManager: ?*errors.ErrorManager = null;
+pub var errorManagerInitialized: bool = false;
 
 fn initKeywordMap() void {
     if (keyword_map_initialized) return;
@@ -165,6 +170,28 @@ pub fn make_token(type_: TokenType) Token {
 }
 
 pub fn errorToken(message: [*]u8) Token {
+    // Also report enhanced error through error system if available
+    if (errorManagerInitialized and globalErrorManager != null) {
+        const msg_len = strlen(message);
+        const msg_slice = message[0..msg_len];
+        
+        const errorInfo = errors.ErrorInfo{
+            .code = .INVALID_CHARACTER,
+            .category = .SYNTAX,
+            .severity = .ERROR,
+            .line = @intCast(@as(u32, @bitCast(scanner.line))),
+            .column = @intCast(scanner.current - scanner.start + 1),
+            .length = 1,
+            .message = msg_slice,
+            .suggestions = &[_]errors.ErrorSuggestion{
+                .{ .message = "Remove or replace the invalid character" },
+                .{ .message = "Check for non-ASCII characters or symbols" },
+            },
+        };
+        
+        globalErrorManager.?.reportError(errorInfo);
+    }
+    
     return .{
         .type = TokenType.TOKEN_ERROR,
         .start = @ptrCast(message),
@@ -324,6 +351,25 @@ pub fn parse_complex_token() Token {
         }
     }
     
+    // Enhanced error for complex numbers
+    if (errorManagerInitialized and globalErrorManager != null) {
+        const errorInfo = errors.ErrorInfo{
+            .code = .INVALID_CHARACTER,
+            .category = .SYNTAX,
+            .severity = .ERROR,
+            .line = @intCast(@as(u32, @bitCast(scanner.line))),
+            .column = @intCast(scanner.current - scanner.start + 1),
+            .length = @intCast(@intFromPtr(scanner.current) - @intFromPtr(scanner.start)),
+            .message = "Invalid complex number format",
+            .suggestions = &[_]errors.ErrorSuggestion{
+                .{ .message = "Complex numbers should be in format: real+imagi or real-imagi" },
+                .{ .message = "Use proper complex number format", .example = "3+4i, 2.5-1.2i, 0+5i" },
+                .{ .message = "Ensure both real and imaginary parts are valid numbers" },
+            },
+        };
+        globalErrorManager.?.reportError(errorInfo);
+    }
+    
     return errorToken(@ptrCast(@constCast("Invalid complex number.")));
 }
 
@@ -334,7 +380,27 @@ pub fn string() Token {
         }
         _ = advance();
     }
-    if (is_at_end()) return errorToken(@ptrCast(@constCast("Unterminated string.")));
+    if (is_at_end()) {
+        // Enhanced error for unterminated string
+        if (errorManagerInitialized and globalErrorManager != null) {
+            const errorInfo = errors.ErrorInfo{
+                .code = .UNTERMINATED_STRING,
+                .category = .SYNTAX,
+                .severity = .ERROR,
+                .line = @intCast(@as(u32, @bitCast(scanner.line))),
+                .column = 1,
+                .length = @intCast(@intFromPtr(scanner.current) - @intFromPtr(scanner.start)),
+                .message = "Unterminated string literal",
+                .suggestions = &[_]errors.ErrorSuggestion{
+                    .{ .message = "Add a closing quote (\") to end the string" },
+                    .{ .message = "Check for escaped quotes that should be \\\"" },
+                    .{ .message = "Use proper string syntax", .example = "\"Hello, world!\"" },
+                },
+            };
+            globalErrorManager.?.reportError(errorInfo);
+        }
+        return errorToken(@ptrCast(@constCast("Unterminated string.")));
+    }
     _ = advance();
     return make_token(.TOKEN_STRING);
 }
@@ -407,5 +473,27 @@ pub fn scanToken() Token {
         '"' => return string(),
         else => {},
     }
+    // Enhanced error for unexpected character
+    if (errorManagerInitialized and globalErrorManager != null) {
+        const current_char = if (@intFromPtr(scanner.current) > @intFromPtr(scanner.start)) (scanner.current - 1)[0] else scanner.current[0];
+        const message = std.fmt.allocPrint(std.heap.page_allocator, "Unexpected character '{c}' (ASCII {d})", .{ current_char, current_char }) catch "Unexpected character";
+        
+        const errorInfo = errors.ErrorInfo{
+            .code = .UNEXPECTED_TOKEN,
+            .category = .SYNTAX,
+            .severity = .ERROR,
+            .line = @intCast(@as(u32, @bitCast(scanner.line))),
+            .column = @intCast(scanner.current - scanner.start),
+            .length = 1,
+            .message = message,
+            .suggestions = &[_]errors.ErrorSuggestion{
+                .{ .message = "Remove the unexpected character" },
+                .{ .message = "Check if you meant to use a different operator or symbol" },
+                .{ .message = "Ensure all characters are valid in the current context" },
+            },
+        };
+        globalErrorManager.?.reportError(errorInfo);
+    }
+    
     return errorToken(@ptrCast(@constCast("Unexpected Character.")));
 }

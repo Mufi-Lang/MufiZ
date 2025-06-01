@@ -1,0 +1,102 @@
+// Test script for undefined variable error handling
+// This file tests various undefined variable scenarios to verify
+// the enhanced error reporting system provides helpful suggestions
+
+fun testUndefinedVariable() {
+    // This should trigger undefined variable error with suggestions
+    print(unknownVar);
+}
+
+fun testTypo() {
+    var userName = "Alice";
+    // This should suggest "userName" when "usrName" is used
+    print(usrName);
+}
+
+fun testSimilarNames() {
+    var counter = 0;
+    var countMax = 10;
+    var countValue = 5;
+    
+    // This should suggest similar variable names
+    print(counte);  // Should suggest "counter"
+    print(countMx); // Should suggest "countMax"
+}
+
+fun testUndefinedInExpression() {
+    var x = 5;
+    // Undefined variable in arithmetic expression
+    var result = x + undefinedY;
+}
+
+fun testUndefinedAssignment() {
+    // Trying to assign to undefined variable should give suggestions
+    nonExistentVar = 42;
+}
+
+fun testGlobalUndefined() {
+    // Global variable that doesn't exist
+    return globalVar + 1;
+}
+
+fun testUndefinedInCondition() {
+    // Undefined variable in if condition
+    if (missingCondition) {
+        print("This won't work");
+    }
+}
+
+class TestClass {
+    fun testUndefinedInMethod() {
+        // Undefined variable inside method
+        return this.someProperty + undefinedLocal;
+    }
+}
+
+fun testMultipleUndefined() {
+    // Multiple undefined variables to test error recovery
+    print(first_undefined);
+    print(second_undefined);
+    var x = third_undefined + fourth_undefined;
+}
+
+// Define some variables for similarity testing
+var database = "test.db";
+var dataBase = "backup.db";  // Similar to database
+var username = "user123";
+var userAccount = "account456";
+
+fun testCloseSpelling() {
+    // These should suggest the correctly spelled variables above
+    print(databse);     // Should suggest "database"
+    print(usrname);     // Should suggest "username"
+    print(useraccount); // Should suggest "userAccount"
+}
+
+// Test undefined variables with different scopes
+var globalScope = "global";
+
+fun testScoping() {
+    var localScope = "local";
+    
+    {
+        var blockScope = "block";
+        // This should work
+        print(blockScope);
+        print(localScope);
+        print(globalScope);
+    }
+    
+    // This should be undefined (blockScope is out of scope)
+    print(blockScope);
+}
+
+// Test function calls with undefined variables
+fun someFunction(param) {
+    return param * 2;
+}
+
+fun testUndefinedInCall() {
+    // Undefined variable as function argument
+    var result = someFunction(undefinedArg);
+}

@@ -7,6 +7,7 @@ const debug_h = @import("debug.zig");
 const compiler_h = @import("compiler.zig");
 const memory_h = @import("memory.zig");
 const debug_opts = @import("debug");
+const errors = @import("errors.zig");
 const reallocate = memory_h.reallocate;
 // const memcpy = @cImport(@cInclude("string.h")).memcpy;
 // const strlen = @cImport(@cInclude("string.h")).strlen
@@ -386,7 +387,14 @@ pub fn invokeFromClass(klass: ?*ObjClass, name: *ObjString, argCount: i32) bool 
     var method: Value = undefined;
     if (!tableGet(&klass.?.methods, name, &method)) {
         const len: usize = @intCast(name.*.length);
-        runtimeError("Undefined property '{s}'.", .{name.*.chars[0..len]});
+        const propName = name.*.chars[0..len];
+        
+        // Enhanced error reporting for undefined properties
+        if (@import("compiler.zig").errorManagerInitialized) {
+            const errorInfo = errors.ErrorTemplates.undefinedMethod("class", propName, &[_][]const u8{});
+            @import("compiler.zig").globalErrorManager.reportError(errorInfo);
+        }
+        runtimeError("Undefined property '{s}'.", .{propName});
         return false;
     }
 
@@ -425,7 +433,13 @@ pub fn bindMethod(klass: *ObjClass, name: *ObjString) bool {
     var method: Value = undefined;
 
     if (!tableGet(&klass.*.methods, name, &method)) {
-        runtimeError("Undefined property '{s}'.", .{zstr(name)});
+        const propName = zstr(name);
+        // Enhanced error reporting for undefined properties in method binding
+        if (@import("compiler.zig").errorManagerInitialized) {
+            const errorInfo = errors.ErrorTemplates.undefinedMethod("class", propName, &[_][]const u8{});
+            @import("compiler.zig").globalErrorManager.reportError(errorInfo);
+        }
+        runtimeError("Undefined property '{s}'.", .{propName});
         return false;
     }
     const bound: *ObjBoundMethod = object_h.newBoundMethod(peek(0), @ptrCast(@alignCast(method.as.obj)));
@@ -576,7 +590,15 @@ pub fn run() InterpretResult {
                     ].as.obj));
                     var value: Value = undefined;
                     if (!tableGet(&vm.globals, name, &value)) {
-                        runtimeError("Undefined variable '{s}'.", .{zstr(name)});
+                        const varName = zstr(name);
+                        // Enhanced error reporting for undefined variables
+                        if (@import("compiler.zig").errorManagerInitialized) {
+                            @import("compiler.zig").populateKnownVariablesFromGlobals();
+                            const similar = @import("compiler.zig").findSimilarVariables(varName, std.heap.page_allocator);
+                            const errorInfo = errors.ErrorTemplates.undefinedVariable(varName, similar);
+                            @import("compiler.zig").globalErrorManager.reportError(errorInfo);
+                        }
+                        runtimeError("Undefined variable '{s}'.", .{varName});
                         return .INTERPRET_RUNTIME_ERROR;
                     }
                     push(value);
@@ -596,7 +618,15 @@ pub fn run() InterpretResult {
                     ].as.obj));
                     if (tableSet(&vm.globals, name, peek(0))) {
                         _ = tableDelete(&vm.globals, name);
-                        runtimeError("Undefined variable '{s}'.", .{zstr(name)});
+                        const varName = zstr(name);
+                        // Enhanced error reporting for undefined variables during assignment
+                        if (@import("compiler.zig").errorManagerInitialized) {
+                            @import("compiler.zig").populateKnownVariablesFromGlobals();
+                            const similar = @import("compiler.zig").findSimilarVariables(varName, std.heap.page_allocator);
+                            const errorInfo = errors.ErrorTemplates.undefinedVariable(varName, similar);
+                            @import("compiler.zig").globalErrorManager.reportError(errorInfo);
+                        }
+                        runtimeError("Undefined variable '{s}'.", .{varName});
                         return .INTERPRET_RUNTIME_ERROR;
                     }
                     continue;
