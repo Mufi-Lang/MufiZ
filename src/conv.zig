@@ -1,15 +1,16 @@
 const std = @import("std");
 const JValue = std.json.Value;
-const core = @import("core.zig");
-const Value = core.Value;
-const ValueType = core.ValueType;
-const Obj = core.Obj;
-const ObjType = core.ObjType;
-const ObjString = core.ObjString;
-const ObjClass = core.ObjClass;
-const ObjInstance = core.ObjInstance;
+const value_h = @import("value.zig");
+const obj_h = @import("object.zig");
+const Value = value_h.Value;
+const ValueType = value_h.ValueType;
+const Obj = obj_h.Obj;
+const ObjType = obj_h.ObjType;
+const ObjString = obj_h.ObjString;
+const ObjClass = obj_h.ObjClass;
+const ObjInstance = obj_h.ObjInstance;
 
-pub const Complex = core.Complex;
+pub const Complex = value_h.Complex;
 
 /// Returns the type of the given value
 pub fn what_is(val: Value) []const u8 {

@@ -1,22 +1,22 @@
 const std = @import("std");
-const Value = core.value_h.Value;
-const vm = @import("vm.zig");
-const conv = @import("conv.zig");
-const core = @import("core.zig");
-const enable_net = @import("features").enable_net;
+
 const enable_curl = @import("features").enable_curl;
 const enable_fs = @import("features").enable_fs;
-const net = if (enable_net) @import("net.zig") else {};
-const GlobalAlloc = @import("main.zig").GlobalAlloc;
-const cstd = core.cstd_h;
+const enable_net = @import("features").enable_net;
 
+const conv = @import("conv.zig");
+const cstd = @import("cstd.zig");
+const GlobalAlloc = @import("main.zig").GlobalAlloc;
+const NativeFn = @import("object.zig").NativeFn;
+pub const fs = @import("stdlib/fs.zig");
+pub const io = @import("stdlib/io.zig");
 pub const math = @import("stdlib/math.zig");
 pub const time = @import("stdlib/time.zig");
 pub const types = @import("stdlib/types.zig");
-pub const fs = @import("stdlib/fs.zig");
-pub const io = @import("stdlib/io.zig");
-const NativeFn = @import("object.zig").NativeFn;
+const Value = @import("value.zig").Value;
+const vm = @import("vm.zig");
 
+const net = if (enable_net) @import("net.zig") else {};
 fn defineNative(name: []const u8, fun: NativeFn) void {
     vm.defineNative(@ptrCast(@constCast(name)), @ptrCast(fun));
 }

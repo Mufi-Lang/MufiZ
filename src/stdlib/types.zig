@@ -1,8 +1,7 @@
 const std = @import("std");
-const core = @import("../core.zig");
 const conv = @import("../conv.zig");
 const stdlib_error = @import("../stdlib.zig").stdlib_error;
-const value_h = core.value_h;
+const value_h = @import("../value.zig");
 const Value = value_h.Value;
 const GlobalAlloc = @import("../main.zig").GlobalAlloc;
 

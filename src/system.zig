@@ -1,5 +1,5 @@
 const std = @import("std");
-const vm_h = @import("core.zig").vm_h;
+const vm_h = @import("vm.zig");
 const conv = @import("conv.zig");
 const GlobalAlloc = @import("main.zig").GlobalAlloc;
 

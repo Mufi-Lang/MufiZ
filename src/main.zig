@@ -3,17 +3,16 @@ const builtin = @import("builtin");
 const stdlib = @import("stdlib.zig");
 const system = @import("system.zig");
 const clap = @import("clap");
-const core = @import("core.zig");
 const features = @import("features");
 const conv = @import("conv.zig");
 const heap = std.heap;
-pub const vm_h = core.vm_h;
+pub const vm_h = @import("vm.zig");
 const fs = std.fs;
 const InterpreterError = system.InterpreterError;
 
-pub const OK: u8 = core.vm_h.INTERPRET_OK;
-pub const COMPILE_ERROR: u8 = core.vm_h.INTERPRET_COMPILE_ERROR;
-pub const RUNTIME_ERROR: u8 = core.vm_h.INTERPRET_RUNTIME_ERROR;
+pub const OK: u8 = vm_h.INTERPRET_OK;
+pub const COMPILE_ERROR: u8 = vm_h.INTERPRET_COMPILE_ERROR;
+pub const RUNTIME_ERROR: u8 = vm_h.INTERPRET_RUNTIME_ERROR;
 
 var Global = heap.GeneralPurposeAllocator(.{}){};
 pub const GlobalAlloc = Global.allocator();

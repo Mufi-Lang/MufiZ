@@ -3,7 +3,7 @@ const std = @import("std");
 const enable_net = @import("features").enable_net;
 const cURL = if (enable_net) @cImport(@cInclude("curl/curl.h")) else {};
 const conv = @import("conv.zig");
-const Value = @import("core.zig").Value;
+const Value = @import("value.zig").Value;
 
 pub fn get(url: []const u8) !Value {
     var arena = std.heap.ArenaAllocator.init(std.heap.c_allocator);
