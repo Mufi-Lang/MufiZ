@@ -4,34 +4,50 @@ const allocateObject = @import("../object.zig").allocateObject;
 const reallocate = @import("../memory.zig").reallocate;
 const std = @import("std");
 
+/// A dynamic vector implementation for floating point numbers.
+/// It provides automatic resizing when capacity is exhausted.
 pub const FloatVector = struct {
     obj: Obj,
-    size: usize,
-    count: usize,
-    pos: usize,
-    data: []f64,
-    sorted: bool,
+    size: usize,  // Current capacity
+    count: usize, // Current number of elements
+    pos: usize,   // Current position for iterator methods
+    data: []f64,  // Underlying data storage
+    sorted: bool, // Whether the vector is sorted
 
     const Self = *@This();
 
-    pub fn init(size: usize) Self {
+    /// Creates a new float vector with the specified initial capacity.
+    /// The vector will grow automatically as needed when elements are added.
+    /// @param initial_capacity The initial capacity of the vector. If 0, a default capacity of 8 will be used.
+    pub fn init(initial_capacity: usize) Self {
         const vector: Self = @ptrCast(@alignCast(allocateObject(@sizeOf(FloatVector), .OBJ_FVECTOR)));
-        vector.size = size;
+        // Default initial capacity if none specified
+        const capacity = if (initial_capacity == 0) 8 else initial_capacity;
+        vector.size = capacity;
         vector.count = 0;
         vector.pos = 0;
         vector.sorted = false;
-        if (size == 0) {
-            vector.data = &[_]f64{};
-        } else {
-            const byte_size = @sizeOf(f64) * size;
-            const raw_ptr = reallocate(null, 0, byte_size);
-            if (raw_ptr == null) {
-                std.debug.print("Failed to allocate memory for FloatVector data\n", .{});
-                std.process.exit(1);
-            }
-            vector.data = @as([*]f64, @ptrCast(@alignCast(raw_ptr.?)))[0..size];
+
+        const byte_size = @sizeOf(f64) * capacity;
+        const raw_ptr = reallocate(null, 0, byte_size);
+        if (raw_ptr == null) {
+            std.debug.print("Failed to reallocate memory for FloatVector data\n", .{});
+            std.process.exit(1);
         }
+        vector.data = @as([*]f64, @ptrCast(@alignCast(raw_ptr.?)))[0..capacity];
+
         return vector;
+    }
+
+    /// Creates a new float vector with the default capacity (8).
+    pub fn new() Self {
+        return FloatVector.init(8);
+    }
+
+    /// Creates an empty vector with minimal initial allocation.
+    /// The vector will still grow automatically when elements are added.
+    pub fn initEmpty() Self {
+        return FloatVector.init(0);
     }
 
     pub fn deinit(self: Self) void {
@@ -47,7 +63,7 @@ pub const FloatVector = struct {
             std.debug.print("{d:.2}", .{self.data[i]});
             if (i < self.count - 1) std.debug.print(", ", .{});
         }
-        std.debug.print("]\n", .{});
+        std.debug.print("]", .{});
     }
 
     fn write(self: Self, i: usize, val: f64) void {
@@ -74,9 +90,11 @@ pub const FloatVector = struct {
     }
 
     pub fn clone(self: Self) Self {
-        const result = FloatVector.init(self.size);
-        for (0..self.count) |i| {
-            result.data[i] = self.data[i];
+        // Allocate exactly what we need
+        const capacity = if (self.count > 0) self.count else 8;
+        const result = FloatVector.init(capacity);
+        if (self.count > 0) {
+            @memcpy(result.data[0..self.count], self.data[0..self.count]);
         }
         result.count = self.count;
         result.sorted = self.sorted;
@@ -89,21 +107,91 @@ pub const FloatVector = struct {
         self.sorted = false;
     }
 
+    /// Clears the vector and optionally shrinks its capacity.
+    /// @param shrink If true, capacity will be reduced to match count
+    pub fn clearAndShrink(self: Self, shrink: bool) void {
+        self.clear();
+        if (shrink) {
+            self.shrinkToFit(0);
+        }
+    }
+
+    /// Ensures the vector has at least the needed capacity.
+    /// This is called automatically by methods that add elements.
+    fn ensureCapacity(self: Self, needed_capacity: usize) void {
+        if (self.size >= needed_capacity) return;
+
+        const new_size = @max(needed_capacity, self.size * 2);
+        const new_byte_size = @sizeOf(f64) * new_size;
+        const old_byte_size = @sizeOf(f64) * self.size;
+        const raw_ptr = reallocate(@as(?*anyopaque, @ptrCast(self.data.ptr)), old_byte_size, new_byte_size);
+        if (raw_ptr == null) {
+            std.debug.print("Failed to reallocate memory for FloatVector data\n", .{});
+            std.process.exit(1);
+        }
+        self.data = @as([*]f64, @ptrCast(@alignCast(raw_ptr.?)))[0..new_size];
+        self.size = new_size;
+    }
+
+    /// Explicitly reserves capacity for the vector.
+    /// Use this to avoid multiple reallocations when you know how many elements you'll add.
+    /// @param new_capacity The minimum capacity to ensure
+    pub fn reserve(self: Self, new_capacity: usize) void {
+        if (new_capacity <= self.size) return;
+
+        self.ensureCapacity(new_capacity);
+    }
+
+    /// Shrinks the capacity to match the count plus an optional extra buffer.
+    /// Use this to reduce memory usage when the vector won't grow much.
+    /// @param extra_buffer Additional capacity to reserve beyond current count
+    pub fn shrinkToFit(self: Self, extra_buffer: usize) void {
+        if (self.count == 0) {
+            if (self.size > 0) {
+                _ = reallocate(@as(?*anyopaque, @ptrCast(self.data.ptr)), @sizeOf(f64) * self.size, 0);
+                self.data = &[_]f64{};
+                self.size = 0;
+            }
+            return;
+        }
+
+        const new_size = self.count + extra_buffer;
+        if (new_size >= self.size) return;
+
+        const new_byte_size = @sizeOf(f64) * new_size;
+        const old_byte_size = @sizeOf(f64) * self.size;
+        const raw_ptr = reallocate(@as(?*anyopaque, @ptrCast(self.data.ptr)), old_byte_size, new_byte_size);
+        if (raw_ptr == null) {
+            std.debug.print("Failed to reallocate memory for FloatVector data\n", .{});
+            std.process.exit(1);
+        }
+        self.data = @as([*]f64, @ptrCast(@alignCast(raw_ptr.?)))[0..new_size];
+        self.size = new_size;
+    }
+
     pub fn push(self: Self, value: f64) void {
         if (self.count >= self.size) {
-            const new_size = if (self.size == 0) 1 else self.size * 2;
-            const new_byte_size = @sizeOf(f64) * new_size;
-            const old_byte_size = @sizeOf(f64) * self.size;
-            const raw_ptr = reallocate(@as(?*anyopaque, @ptrCast(self.data.ptr)), old_byte_size, new_byte_size);
-            if (raw_ptr == null) {
-                std.debug.print("Failed to reallocate memory for FloatVector data\n", .{});
-                std.process.exit(1);
-            }
-            self.data = @as([*]f64, @ptrCast(@alignCast(raw_ptr.?)))[0..new_size];
-            self.size = new_size;
+            self.ensureCapacity(self.count + 1);
         }
         self.data[self.count] = value;
         self.count += 1;
+        self.sorted = false;
+    }
+
+    /// Adds multiple values to the vector in a single operation.
+    /// This is more efficient than calling push() multiple times.
+    /// @param values Slice of values to add to the vector
+    pub fn pushMany(self: Self, values: []const f64) void {
+        if (values.len == 0) return;
+
+        // Ensure we have enough space for all values
+        if (self.count + values.len > self.size) {
+            self.ensureCapacity(self.count + values.len);
+        }
+
+        // Copy all values at once
+        @memcpy(self.data[self.count..self.count + values.len], values);
+        self.count += values.len;
         self.sorted = false;
     }
 
@@ -111,16 +199,7 @@ pub const FloatVector = struct {
         if (index > self.count) return;
 
         if (self.count >= self.size) {
-            const new_size = if (self.size == 0) 1 else self.size * 2;
-            const new_byte_size = @sizeOf(f64) * new_size;
-            const old_byte_size = @sizeOf(f64) * self.size;
-            const raw_ptr = reallocate(@as(?*anyopaque, @ptrCast(self.data.ptr)), old_byte_size, new_byte_size);
-            if (raw_ptr == null) {
-                std.debug.print("Failed to reallocate memory for FloatVector data\n", .{});
-                std.process.exit(1);
-            }
-            self.data = @as([*]f64, @ptrCast(@alignCast(raw_ptr.?)))[0..new_size];
-            self.size = new_size;
+            self.ensureCapacity(self.count + 1);
         }
 
         var i = self.count;
@@ -164,13 +243,18 @@ pub const FloatVector = struct {
 
     pub fn merge(self: Self, other: Self) Self {
         const total_count = self.count + other.count;
-        const result = FloatVector.init(total_count);
+        // Start with a small capacity if both are empty
+        const initial_capacity = if (total_count > 0) total_count else 8;
+        const result = FloatVector.init(initial_capacity);
+
+        // Pre-reserve the capacity to avoid multiple resizes
+        result.ensureCapacity(total_count);
 
         for (0..self.count) |i| {
-            FloatVector.push(result, self.data[i]);
+            result.push(self.data[i]);
         }
         for (0..other.count) |i| {
-            FloatVector.push(result, other.data[i]);
+            result.push(other.data[i]);
         }
         return result;
     }
@@ -178,29 +262,35 @@ pub const FloatVector = struct {
     pub fn slice(self: Self, start: usize, end: usize) Self {
         if (start >= self.count or end >= self.count or start > end) {
             std.debug.print("Index out of bounds\n", .{});
-            return FloatVector.init(0);
+            return FloatVector.new();
         }
 
-        const result = FloatVector.init(end - start + 1);
-        for (start..end + 1) |i| {
-            FloatVector.push(result, self.data[i]);
-        }
+        const slice_size = end - start + 1;
+        const result = FloatVector.init(slice_size);
+        result.count = slice_size;
+
+        @memcpy(result.data[0..slice_size], self.data[start..end + 1]);
         return result;
     }
 
     pub fn splice(self: Self, start: usize, end: usize) Self {
         if (start >= self.count or end >= self.count or start > end) {
             std.debug.print("Index out of bounds\n", .{});
-            return FloatVector.init(0);
+            return FloatVector.new();
         }
 
-        const result = FloatVector.init(self.size);
-        for (0..start) |i| {
-            FloatVector.push(result, self.data[i]);
+        const splice_size = self.count - (end - start + 1);
+        const result = FloatVector.init(splice_size);
+
+        if (start > 0) {
+            @memcpy(result.data[0..start], self.data[0..start]);
         }
-        for (end + 1..self.count) |i| {
-            FloatVector.push(result, self.data[i]);
+
+        if (end + 1 < self.count) {
+            @memcpy(result.data[start..splice_size], self.data[end + 1..self.count]);
         }
+
+        result.count = splice_size;
         return result;
     }
 
