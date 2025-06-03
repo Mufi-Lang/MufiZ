@@ -372,6 +372,18 @@ pub const Value = struct {
     pub fn as_string(self: Self) *ObjString {
         return @ptrCast(@alignCast(self.as.obj));
     }
+    
+    pub fn as_linked_list(self: Self) *obj_h.ObjLinkedList {
+        return @ptrCast(@alignCast(self.as.obj));
+    }
+    
+    pub fn as_hash_table(self: Self) *obj_h.ObjHashTable {
+        return @ptrCast(@alignCast(self.as.obj));
+    }
+    
+    pub fn as_vector(self: Self) *obj_h.FloatVector {
+        return @ptrCast(@alignCast(self.as.obj));
+    }
 
     pub fn as_class(self: Self) *obj_h.ObjClass {
         return @ptrCast(@alignCast(self.as.obj));

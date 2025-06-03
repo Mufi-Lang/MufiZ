@@ -1,4 +1,4 @@
-pub const Obj = extern struct {
+pub const Obj = struct {
     type: ObjType,
     isMarked: bool = false,
     next: ?*Obj = null,

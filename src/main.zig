@@ -1,15 +1,16 @@
 const std = @import("std");
+const heap = std.heap;
+const fs = std.fs;
 const builtin = @import("builtin");
-const stdlib = @import("stdlib.zig");
-const system = @import("system.zig");
+
 const clap = @import("clap");
 const features = @import("features");
-const conv = @import("conv.zig");
-const heap = std.heap;
-pub const vm_h = @import("vm.zig");
-const fs = std.fs;
-const InterpreterError = system.InterpreterError;
 
+const conv = @import("conv.zig");
+const stdlib = @import("stdlib.zig");
+const system = @import("system.zig");
+const InterpreterError = system.InterpreterError;
+pub const vm_h = @import("vm.zig");
 pub const OK: u8 = vm_h.INTERPRET_OK;
 pub const COMPILE_ERROR: u8 = vm_h.INTERPRET_COMPILE_ERROR;
 pub const RUNTIME_ERROR: u8 = vm_h.INTERPRET_RUNTIME_ERROR;
@@ -23,7 +24,7 @@ const params = clap.parseParamsComptime(
     \\-r, --run <str>        Runs a Mufi Script
     \\-l, --link <str>       Link another Mufi Script when interpreting
     \\--repl                 Runs Mufi Repl system
-    \\
+    \\--docs                 Standard Library Documentation
 );
 /// Main function
 pub fn main() !void {
@@ -31,10 +32,11 @@ pub fn main() !void {
     defer vm_h.freeVM();
     stdlib.prelude();
     stdlib.addMath();
+    stdlib.addCollections();
     stdlib.addTime();
     stdlib.addFs();
+    stdlib.addUtils();
     stdlib.addNet();
-    vm_h.importCollections();
     defer {
         const check = Global.deinit();
         if (check == .leak) @panic("memory leak!");
@@ -64,6 +66,8 @@ pub fn main() !void {
             try runner.runFile();
         } else if (res.args.repl != 0) {
             try system.repl();
+        } else if (res.args.docs != 0) {
+            @import("stdlib.zig").printDocs();
         } else {
             system.version();
             system.usage();
