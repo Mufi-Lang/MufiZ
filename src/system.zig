@@ -59,7 +59,6 @@ pub fn repl() !void {
     std.debug.print("Welcome to MufiZ Interactive Shell\n", .{});
     version();
     std.debug.print("Type 'help' for more information or 'exit' to quit\n", .{});
-    std.debug.print("Input will not be displayed while typing for cleaner output\n", .{});
 
     while (true) {
         // Read a line with history support and no echo
