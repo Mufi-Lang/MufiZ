@@ -1,7 +1,12 @@
 const std = @import("std");
-const vm_h = @import("vm.zig");
+const fs = std.fs;
+const mem = std.mem;
+
 const conv = @import("conv.zig");
 const GlobalAlloc = @import("main.zig").GlobalAlloc;
+const SimpleLineEditor = @import("simple_line.zig").SimpleLineEditor;
+const syntax = @import("syntax_min.zig");
+const vm_h = @import("vm.zig");
 
 const MAJOR: u8 = 0;
 const MINOR: u8 = 10;
@@ -15,18 +20,76 @@ pub inline fn version() void {
 pub inline fn usage() void {
     std.debug.print("Usage: mufiz [OPTIONS] [ARGS]\n", .{});
     std.debug.print("Options:\n", .{});
+    std.debug.print("  --help         Show this help message\n", .{});
+    std.debug.print("  --version      Show version information\n", .{});
+}
+
+fn processSpecialCommand(command: []const u8) bool {
+    const cmd = std.mem.trim(u8, command, " \t\r\n");
+
+    if (std.mem.eql(u8, cmd, "help")) {
+        std.debug.print("MufiZ Interactive Help\n", .{});
+        std.debug.print("-----------------\n", .{});
+        std.debug.print("Special commands:\n", .{});
+        std.debug.print("  help       Display this help\n", .{});
+        std.debug.print("  exit/quit  Exit the interpreter\n", .{});
+        std.debug.print("  version    Show version information\n", .{});
+        return true;
+    } else if (std.mem.eql(u8, cmd, "version")) {
+        version();
+        return true;
+    } else if (std.mem.eql(u8, cmd, "exit") or std.mem.eql(u8, cmd, "quit")) {
+        std.process.exit(0);
+    }
+
+    return false;
 }
 
 pub fn repl() !void {
-    var buffer: [1024]u8 = undefined;
-    var streamer = std.io.FixedBufferStream([]u8){ .buffer = &buffer, .pos = 0 };
+    // Create arena allocator for the REPL session
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+
+    // Initialize our line editor with history support
+    var line_editor = try SimpleLineEditor.init(allocator, 1024);
+    defer line_editor.deinit();
+
+    // Display welcome message and version
+    std.debug.print("Welcome to MufiZ Interactive Shell\n", .{});
     version();
+    std.debug.print("Type 'help' for more information or 'exit' to quit\n", .{});
+    std.debug.print("Input will not be displayed while typing for cleaner output\n", .{});
+
     while (true) {
-        std.debug.print("(mufi) >> ", .{});
-        try std.io.getStdIn().reader().streamUntilDelimiter(streamer.writer(), '\n', 1024);
-        const input = streamer.getWritten();
-        _ = vm_h.interpret(conv.cstr(input));
-        streamer.reset();
+        // Read a line with history support and no echo
+        const input = (try line_editor.readLine("(mufi) >> ")) orelse {
+            std.debug.print("Exiting MufiZ\n", .{});
+            return;
+        };
+
+        // Skip empty lines
+        if (input.len == 0) continue;
+
+        // Check for special commands
+        if (processSpecialCommand(input)) {
+            continue;
+        }
+
+        // Copy to a mutable buffer for interpreter
+        var mutable_buffer: [1024]u8 = undefined;
+        const len = @min(input.len, mutable_buffer.len - 1);
+        @memcpy(mutable_buffer[0..len], input[0..len]);
+        mutable_buffer[len] = 0; // null terminate
+
+        // Execute the code
+        _ = vm_h.interpret(conv.cstr(mutable_buffer[0..len]));
+
+        // Print a new prompt on the same line
+        //std.debug.print("\n", .{});
+
+        // Add to history after execution (even if there was an error)
+        try line_editor.addHistory(input);
     }
 }
 

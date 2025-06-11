@@ -1,32 +1,31 @@
+const std = @import("std");
+const print = std.debug.print;
+const sqrt = std.math.sqrt;
+const atan2 = std.math.atan2;
+const cos = std.math.cos;
+const sin = std.math.sin;
+const tan = std.math.tan;
+
+const debug_opts = @import("debug");
+
 const chunk_h = @import("chunk.zig");
-const value_h = @import("value.zig");
-const table_h = @import("table.zig");
-const object_h = @import("object.zig");
+const Chunk = chunk_h.Chunk;
+const compiler_h = @import("compiler.zig");
 const cstd_h = @import("cstd.zig");
 const debug_h = @import("debug.zig");
-const compiler_h = @import("compiler.zig");
-const memory_h = @import("memory.zig");
-const debug_opts = @import("debug");
 const errors = @import("errors.zig");
-const reallocate = memory_h.reallocate;
-// const memcpy = @cImport(@cInclude("string.h")).memcpy;
-// const strlen = @cImport(@cInclude("string.h")).strlen
 const mem_utils = @import("mem_utils.zig");
 const memcpy = mem_utils.memcpyFast;
 const strlen = mem_utils.strlen;
+const memory_h = @import("memory.zig");
+const reallocate = memory_h.reallocate;
+const freeObjects = memory_h.freeObjects;
+const object_h = @import("object.zig");
 const ObjClosure = object_h.ObjClosure;
 const ObjString = object_h.ObjString;
 const ObjUpvalue = object_h.ObjUpvalue;
 const ObjFunction = object_h.ObjFunction;
 const ObjNative = object_h.ObjNative;
-const fvec = @import("objects/fvec.zig");
-
-const FloatVector = fvec.FloatVector;
-// printf replaced with print from std import
-const printValue = value_h.printValue;
-const tableGet = table_h.tableGet;
-const tableSet = table_h.tableSet;
-const tableDelete = table_h.tableDelete;
 const isObjType = object_h.isObjType;
 const newUpvalue = object_h.newUpvalue;
 const newBoundMethod = object_h.newBoundMethod;
@@ -35,23 +34,32 @@ const newInstance = object_h.newInstance;
 const takeString = object_h.takeString;
 const ObjLinkedList = object_h.ObjLinkedList;
 const equalLinkedList = object_h.equalLinkedList;
-const valuesEqual = value_h.valuesEqual;
-
 const Obj = object_h.Obj;
-const Value = value_h.Value;
-const Chunk = chunk_h.Chunk;
-const Table = table_h.Table;
 const NativeFn = object_h.NativeFn;
 const ObjBoundMethod = object_h.ObjBoundMethod;
 const ObjClass = object_h.ObjClass;
+const copyString = object_h.copyString;
+const fvec = @import("objects/fvec.zig");
+const FloatVector = fvec.FloatVector;
+const table_h = @import("table.zig");
+const tableGet = table_h.tableGet;
+const tableSet = table_h.tableSet;
+const tableDelete = table_h.tableDelete;
+const Table = table_h.Table;
+const initTable = table_h.initTable;
+const freeTable = table_h.freeTable;
+const value_h = @import("value.zig");
+const printValue = value_h.printValue;
+const valuesEqual = value_h.valuesEqual;
+const Value = value_h.Value;
 const Complex = value_h.Complex;
-const std = @import("std");
-const print = std.debug.print;
-const sqrt = std.math.sqrt;
-const atan2 = std.math.atan2;
-const cos = std.math.cos;
-const sin = std.math.sin;
 
+// const memcpy = @cImport(@cInclude("string.h")).memcpy;
+// const strlen = @cImport(@cInclude("string.h")).strlen
+// printf replaced with print from std import
+var echo_enabled: bool = false; // Always disable echo in REPL
+var suppress_output: bool = false; // Don't suppress output - we want to see results
+var repl_mode: bool = true; // Default to REPL mode
 pub const FRAMES_MAX = @as(i32, 64);
 pub const STACK_MAX = FRAMES_MAX * UINT8_COUNT;
 pub const UINT8_COUNT = UINT8_MAX + 1;
@@ -128,11 +136,6 @@ inline fn set_stack_top(argc: i32, value: Value) void {
     }
     ref[0] = value;
 }
-
-const initTable = table_h.initTable;
-const freeTable = table_h.freeTable;
-const copyString = object_h.copyString;
-const freeObjects = memory_h.freeObjects;
 
 pub fn runtimeError(comptime format: []const u8, args: anytype) void {
     const stderr = std.io.getStdErr().writer();
@@ -238,9 +241,29 @@ inline fn zstr(s: ?*ObjString) []u8 {
     }
 }
 
+/// Set whether the VM should echo input commands and control result printing
+/// Returns the previous value of echo_enabled
+/// Note: Terminal echo is now controlled by the SimpleLineEditor
+pub fn setEchoHook(echo: bool) bool {
+    const old_value = echo_enabled;
+    echo_enabled = echo;
+    // We no longer suppress output when echo is disabled
+    // The REPL should show results regardless of echo state
+    repl_mode = !echo;
+    return old_value;
+}
+
 pub fn interpret(source: [*]const u8) InterpretResult {
     const function: ?*ObjFunction = compiler_h.compile(source);
     if (function == null) return .INTERPRET_COMPILE_ERROR;
+
+    // Only echo in non-REPL mode or when explicitly enabled
+    if (echo_enabled and !repl_mode) {
+        var i: usize = 0;
+        while (source[i] != 0) : (i += 1) {}
+        print("{s}\n", .{source[0..i]});
+    }
+
     push(Value{
         .type = .VAL_OBJ,
         .as = .{ .obj = @ptrCast(@alignCast(function)) },
@@ -388,7 +411,7 @@ pub fn invokeFromClass(klass: ?*ObjClass, name: *ObjString, argCount: i32) bool 
     if (!tableGet(&klass.?.methods, name, &method)) {
         const len: usize = @intCast(name.*.length);
         const propName = name.*.chars[0..len];
-        
+
         // Enhanced error reporting for undefined properties
         if (@import("compiler.zig").errorManagerInitialized) {
             const errorInfo = errors.ErrorTemplates.undefinedMethod("class", propName, &[_][]const u8{});
@@ -861,8 +884,17 @@ pub fn run() InterpretResult {
                     continue;
                 },
                 .OP_PRINT => {
-                    printValue(pop());
-                    print("\n", .{});
+                    if (repl_mode) {
+                        // In REPL mode, always print values from print statements
+                        // This ensures "print x;" works as expected
+                        printValue(pop());
+                        print("\n", .{});
+                    } else if (!suppress_output) {
+                        printValue(pop());
+                        print("\n", .{});
+                    } else {
+                        _ = pop(); // Still pop the value but don't print it
+                    }
                     continue;
                 },
                 .OP_JUMP => {

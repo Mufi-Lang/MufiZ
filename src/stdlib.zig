@@ -13,6 +13,7 @@ pub const collections = @import("stdlib/collections.zig");
 pub const fs = @import("stdlib/fs.zig");
 pub const io = @import("stdlib/io.zig");
 pub const math = @import("stdlib/math.zig");
+pub const network = @import("stdlib/network.zig");
 pub const time = @import("stdlib/time.zig");
 pub const types = @import("stdlib/types.zig");
 pub const utils = @import("stdlib/utils.zig");
@@ -121,6 +122,19 @@ pub const UTIL_FUNCTIONS = [_]BuiltinDef{
     .{ .name = "panic", .func = utils.panic_fn, .params = "message?", .description = "Panics with message", .module = "utils" },
 };
 
+pub const NETWORK_FUNCTIONS = [_]BuiltinDef{
+    .{ .name = "http_get", .func = network.http_get, .params = "url", .description = "Performs HTTP GET request", .module = "network" },
+    .{ .name = "http_post", .func = network.http_post, .params = "url, data", .description = "Performs HTTP POST request", .module = "network" },
+    .{ .name = "http_put", .func = network.http_put, .params = "url, data", .description = "Performs HTTP PUT request", .module = "network" },
+    .{ .name = "http_delete", .func = network.http_delete, .params = "url", .description = "Performs HTTP DELETE request", .module = "network" },
+    .{ .name = "set_content_type", .func = network.set_content_type, .params = "type", .description = "Sets content type for requests", .module = "network" },
+    .{ .name = "set_auth", .func = network.set_auth, .params = "token", .description = "Sets authorization token", .module = "network" },
+    .{ .name = "parse_url", .func = network.parse_url, .params = "url", .description = "Parses URL into components", .module = "network" },
+    .{ .name = "url_encode", .func = network.url_encode, .params = "string", .description = "URL encodes a string", .module = "network" },
+    .{ .name = "url_decode", .func = network.url_decode, .params = "string", .description = "Decodes a URL encoded string", .module = "network" },
+    .{ .name = "open_url", .func = network.open_url, .params = "url", .description = "Opens URL in default browser", .module = "network" },
+};
+
 // Helper function to register functions
 fn defineNative(name: []const u8, func: NativeFn) void {
     vm.defineNative(@ptrCast(@constCast(name)), @ptrCast(func));
@@ -162,7 +176,11 @@ pub fn addUtils() void {
 }
 
 pub fn addNet() void {
-    std.log.warn("Network functions are disabled!", .{});
+    if (enable_net) {
+        registerFunctions(&NETWORK_FUNCTIONS);
+    } else {
+        std.log.warn("Network functions are disabled!", .{});
+    }
 }
 
 // Documentation functions
@@ -171,6 +189,7 @@ pub fn printDocs() void {
     printModuleDocs("Math", &MATH_FUNCTIONS);
     printModuleDocs("Collections", &COLLECTION_FUNCTIONS);
     if (enable_fs) printModuleDocs("Filesystem", &FILESYSTEM_FUNCTIONS);
+    if (enable_net) printModuleDocs("Network", &NETWORK_FUNCTIONS);
     printModuleDocs("Time", &TIME_FUNCTIONS);
     printModuleDocs("Utils", &UTIL_FUNCTIONS);
 }
@@ -189,6 +208,7 @@ fn printModuleDocs(module_name: []const u8, functions: []const BuiltinDef) void 
 pub fn getTotalFunctionCount() usize {
     var count: usize = CORE_FUNCTIONS.len + MATH_FUNCTIONS.len + COLLECTION_FUNCTIONS.len + TIME_FUNCTIONS.len + UTIL_FUNCTIONS.len;
     if (enable_fs) count += FILESYSTEM_FUNCTIONS.len;
+    if (enable_net) count += NETWORK_FUNCTIONS.len;
     return count;
 }
 
