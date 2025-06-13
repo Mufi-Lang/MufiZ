@@ -1,0 +1,4 @@
+// Simple test for single-line triple quotes
+var tripleString = """Triple quoted string but on a single line""";
+print(tripleString);
+print("Test completed!");

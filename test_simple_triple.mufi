@@ -1,0 +1,10 @@
+// Test with a very simple triple-quoted string
+var str = "Regular string";
+print(str);
+
+// Triple quoted string
+var triple = """Triple quoted
+ string""";
+print(triple);
+
+print("Test completed!");

@@ -1,0 +1,10 @@
+// Test file for multi-line features in Mufi
+
+// Regular string test
+var regularString = "Regular string";
+var multi = `hello 
+this is a multiline`;
+print(regularString);
+print multi;
+
+print("Test completed!");

@@ -1,7 +1,8 @@
 const std = @import("std");
+
+const errors = @import("errors.zig");
 pub const memcmp = @import("mem_utils.zig").memcmp;
 pub const strlen = @import("mem_utils.zig").strlen;
-const errors = @import("errors.zig");
 
 // HashMap for keyword lookup
 const KeywordMap = std.HashMap([]const u8, TokenType, std.hash_map.StringContext, std.hash_map.default_max_load_percentage);
@@ -107,6 +108,8 @@ pub const TokenType = enum(c_int) {
     TOKEN_RIGHT_SQPAREN = 55,
     TOKEN_COLON = 56,
     TOKEN_IMAGINARY = 57,
+    TOKEN_MULTILINE_STRING = 58,
+    TOKEN_BACKTICK_STRING = 59,
 };
 
 pub const Token = struct {
@@ -174,7 +177,7 @@ pub fn errorToken(message: [*]u8) Token {
     if (errorManagerInitialized and globalErrorManager != null) {
         const msg_len = strlen(message);
         const msg_slice = message[0..msg_len];
-        
+
         const errorInfo = errors.ErrorInfo{
             .code = .INVALID_CHARACTER,
             .category = .SYNTAX,
@@ -188,10 +191,10 @@ pub fn errorToken(message: [*]u8) Token {
                 .{ .message = "Check for non-ASCII characters or symbols" },
             },
         };
-        
+
         globalErrorManager.?.reportError(errorInfo);
     }
-    
+
     return .{
         .type = TokenType.TOKEN_ERROR,
         .start = @ptrCast(message),
@@ -211,7 +214,48 @@ pub fn skip_whitespace() void {
             },
             '/' => {
                 if (peekNext() == '/') {
+                    // Single-line comment
                     while (peek() != '\n' and !is_at_end()) _ = advance();
+                } else if (peekNext() == '#') {
+                    // Multi-line comment
+                    _ = advance(); // Consume '/'
+                    _ = advance(); // Consume '#'
+
+                    var nesting: u32 = 1;
+                    while (nesting > 0 and !is_at_end()) {
+                        if (peek() == '/' and peekNext() == '#') {
+                            // Nested comment start
+                            _ = advance(); // Consume '/'
+                            _ = advance(); // Consume '#'
+                            nesting += 1;
+                        } else if (peek() == '#' and peekNext() == '/') {
+                            // Comment end
+                            _ = advance(); // Consume '#'
+                            _ = advance(); // Consume '/'
+                            nesting -= 1;
+                        } else {
+                            if (peek() == '\n') scanner.line += 1;
+                            _ = advance();
+                        }
+                    }
+
+                    if (is_at_end() and nesting > 0) {
+                        if (errorManagerInitialized and globalErrorManager != null) {
+                            const errorInfo = errors.ErrorInfo{
+                                .code = .UNTERMINATED_COMMENT,
+                                .category = .SYNTAX,
+                                .severity = .ERROR,
+                                .line = @intCast(@as(u32, @bitCast(scanner.line))),
+                                .column = 1,
+                                .length = 2,
+                                .message = "Unterminated multi-line comment",
+                                .suggestions = &[_]errors.ErrorSuggestion{
+                                    .{ .message = "Add #/ to close the multi-line comment" },
+                                },
+                            };
+                            globalErrorManager.?.reportError(errorInfo);
+                        }
+                    }
                 } else {
                     return;
                 }
@@ -274,7 +318,7 @@ pub fn number() Token {
 pub fn peek_for_complex() bool {
     var i: usize = 0;
     const start_pos = scanner.current;
-    
+
     // Skip over first number
     while (start_pos[i] != 0 and is_digit(start_pos[i])) {
         i += 1;
@@ -285,16 +329,16 @@ pub fn peek_for_complex() bool {
             i += 1;
         }
     }
-    
+
     // Check for immediate 'i' (pure imaginary)
     if (start_pos[i] == 'i') {
         return true;
     }
-    
+
     // Look for operator
     if (start_pos[i] == '+' or start_pos[i] == '-') {
         i += 1;
-        
+
         // Skip optional digits for coefficient
         while (start_pos[i] != 0 and is_digit(start_pos[i])) {
             i += 1;
@@ -305,13 +349,13 @@ pub fn peek_for_complex() bool {
                 i += 1;
             }
         }
-        
+
         // Must end with 'i'
         if (start_pos[i] == 'i') {
             return true;
         }
     }
-    
+
     return false;
 }
 
@@ -324,17 +368,17 @@ pub fn parse_complex_token() Token {
         _ = advance();
         while (is_digit(peek())) _ = advance();
     }
-    
+
     // Check for 'i' (pure imaginary)
     if (peek() == 'i') {
         _ = advance();
         return make_token(.TOKEN_IMAGINARY);
     }
-    
+
     // Check for operator
     if (peek() == '+' or peek() == '-') {
         _ = advance();
-        
+
         // Parse second number (imaginary coefficient)
         while (is_digit(peek())) {
             _ = advance();
@@ -343,14 +387,14 @@ pub fn parse_complex_token() Token {
             _ = advance();
             while (is_digit(peek())) _ = advance();
         }
-        
+
         // Must end with 'i'
         if (peek() == 'i') {
             _ = advance();
             return make_token(.TOKEN_IMAGINARY);
         }
     }
-    
+
     // Enhanced error for complex numbers
     if (errorManagerInitialized and globalErrorManager != null) {
         const errorInfo = errors.ErrorInfo{
@@ -369,11 +413,12 @@ pub fn parse_complex_token() Token {
         };
         globalErrorManager.?.reportError(errorInfo);
     }
-    
+
     return errorToken(@ptrCast(@constCast("Invalid complex number.")));
 }
 
 pub fn string() Token {
+    // Regular string processing
     while (peek() != '"' and !is_at_end()) {
         if (peek() == '\n') {
             scanner.line += 1;
@@ -403,6 +448,43 @@ pub fn string() Token {
     }
     _ = advance();
     return make_token(.TOKEN_STRING);
+}
+
+pub fn processMultilineString() Token {
+    // Process multi-line string content
+    while (!is_at_end()) {
+        // Check for closing backtick
+        if (peek() == '`') {
+            // Found closing backtick
+            _ = advance(); // Consume `
+            return make_token(.TOKEN_BACKTICK_STRING);
+        }
+
+        if (peek() == '\n') {
+            scanner.line += 1;
+        }
+        _ = advance();
+    }
+
+    // Unterminated multi-line string
+    if (errorManagerInitialized and globalErrorManager != null) {
+        const errorInfo = errors.ErrorInfo{
+            .code = .UNTERMINATED_STRING,
+            .category = .SYNTAX,
+            .severity = .ERROR,
+            .line = @intCast(@as(u32, @bitCast(scanner.line))),
+            .column = 1,
+            .length = @intCast(@intFromPtr(scanner.current) - @intFromPtr(scanner.start)),
+            .message = "Unterminated multi-line string literal",
+            .suggestions = &[_]errors.ErrorSuggestion{
+                .{ .message = "Add closing backtick (`) to end the multi-line string" },
+                .{ .message = "Check that opening and closing backticks match" },
+                .{ .message = "Multi-line strings use backticks (`) not quotes (\")" },
+            },
+        };
+        globalErrorManager.?.reportError(errorInfo);
+    }
+    return errorToken(@ptrCast(@constCast("Unterminated backtick string.")));
 }
 
 pub fn scanToken() Token {
@@ -451,7 +533,13 @@ pub fn scanToken() Token {
             }
         },
         '/' => {
-            if (match('=')) return make_token(.TOKEN_SLASH_EQUAL) else return make_token(.TOKEN_SLASH);
+            if (match('=')) return make_token(.TOKEN_SLASH_EQUAL) else if (match('#')) {
+                // Handle multi-line comment start in token context
+                // We'll unread the '#' and let skip_whitespace handle it
+                scanner.current -= 1;
+                skip_whitespace();
+                return scanToken();
+            } else return make_token(.TOKEN_SLASH);
         },
         '*' => {
             if (match('=')) return make_token(.TOKEN_STAR_EQUAL) else return make_token(.TOKEN_STAR);
@@ -470,14 +558,19 @@ pub fn scanToken() Token {
         },
         '%' => return make_token(.TOKEN_PERCENT),
         '^' => return make_token(.TOKEN_HAT),
-        '"' => return string(),
+        '"' => {
+            return string();
+        },
+        '`' => {
+            return processMultilineString();
+        },
         else => {},
     }
     // Enhanced error for unexpected character
     if (errorManagerInitialized and globalErrorManager != null) {
         const current_char = if (@intFromPtr(scanner.current) > @intFromPtr(scanner.start)) (scanner.current - 1)[0] else scanner.current[0];
         const message = std.fmt.allocPrint(std.heap.page_allocator, "Unexpected character '{c}' (ASCII {d})", .{ current_char, current_char }) catch "Unexpected character";
-        
+
         const errorInfo = errors.ErrorInfo{
             .code = .UNEXPECTED_TOKEN,
             .category = .SYNTAX,
@@ -494,6 +587,6 @@ pub fn scanToken() Token {
         };
         globalErrorManager.?.reportError(errorInfo);
     }
-    
+
     return errorToken(@ptrCast(@constCast("Unexpected Character.")));
 }

@@ -1,0 +1,62 @@
+// Comprehensive test for multi-line features in MufiZ
+// Tests both multi-line strings (""" """) and multi-line comments (/# #/)
+
+print("MULTI-LINE FEATURES TEST");
+print("=======================");
+
+// Regular single-line comment
+// This is a regular comment
+
+/# This is a multi-line comment
+   that spans multiple lines
+   and can contain various characters */+-
+   without ending the comment
+#/
+
+print("1. Multi-line comment was parsed correctly");
+
+// Nested multi-line comments
+/# Outer comment
+   /# Nested comment
+      with multiple lines
+   #/
+   Still in outer comment
+#/
+
+print("2. Nested multi-line comments were parsed correctly");
+
+// Single-line string (for comparison)
+var singleLine = "This is a regular string";
+print("3. Regular string: " + singleLine);
+
+// Multi-line string on one line
+var oneLine = """This is a triple-quoted string on one line""";
+print("4. Triple-quoted string on one line: " + oneLine);
+
+// Multi-line string across multiple lines
+var multiLine = """This is a multi-line string
+that spans multiple lines
+and preserves all whitespace and newlines.""";
+print("5. Multi-line string:");
+print(multiLine);
+
+// Multi-line string with quotes inside
+var withQuotes = """This string contains "quotes" inside
+without needing to escape them "like this" which is nice.""";
+print("6. Multi-line string with quotes:");
+print(withQuotes);
+
+// Function using multi-line string
+fun getMessage() {
+    return """Welcome to MufiZ!
+    This language now supports:
+    - Multi-line strings with triple quotes
+    - Multi-line comments with /# #/ syntax
+
+    Enjoy using these features!""";
+}
+
+print("7. Function returning multi-line string:");
+print(getMessage());
+
+print("8. All tests completed successfully!");

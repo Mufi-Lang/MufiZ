@@ -473,10 +473,11 @@ pub fn getRule(type_: TokenType) ParseRule {
         // Literals
         .TOKEN_IDENTIFIER => ParseRule{ .prefix = &variable, .precedence = PREC_NONE },
         .TOKEN_STRING => ParseRule{ .prefix = &string, .precedence = PREC_NONE },
+        .TOKEN_MULTILINE_STRING => ParseRule{ .prefix = &string, .precedence = PREC_NONE },
+        .TOKEN_BACKTICK_STRING => ParseRule{ .prefix = &string, .precedence = PREC_NONE },
         .TOKEN_DOUBLE => ParseRule{ .prefix = &number, .precedence = PREC_NONE },
         .TOKEN_INT => ParseRule{ .prefix = &number, .precedence = PREC_NONE },
         .TOKEN_IMAGINARY => ParseRule{ .prefix = &imaginary_number, .precedence = PREC_NONE },
-
         // Keywords
         .TOKEN_AND => ParseRule{ .infix = &and_, .precedence = PREC_AND },
         .TOKEN_CLASS => ParseRule{ .precedence = PREC_NONE },
@@ -951,10 +952,18 @@ pub fn or_(canAssign: bool) void {
 }
 pub fn string(canAssign: bool) void {
     _ = &canAssign;
-    // Get the content between the quotes, skipping the first character and excluding the last
-    // Create a safe offset calculation
-    const start = parser.previous.start + 1; // Safely skip the opening quote
-    const length = if (parser.previous.length >= 2) parser.previous.length - 2 else 0;
+
+    var start = parser.previous.start + 1; // Skip opening quote
+    var length: i32 = if (parser.previous.length >= 2) parser.previous.length - 2 else 0;
+
+    // Handle triple-quoted strings differently
+    if (length >= 4 and start[0] == '"' and start[1] == '"') {
+        // For triple-quoted strings, skip the additional opening quotes and closing quotes
+        start += 2; // Skip the two additional opening quotes
+        if (length >= 4) {
+            length -= 4; // Remove two leading and two trailing quotes
+        }
+    }
 
     emitConstant(Value.init_obj(@ptrCast(object_h.copyString(start, @intCast(length)))));
 }
