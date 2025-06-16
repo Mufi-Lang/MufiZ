@@ -1,0 +1,117 @@
+// Test the 'end' keyword for array indexing
+// Similar to MATLAB, 'end' should represent the last element's index
+
+// Create test arrays
+var numbers = {1.0, 2.0, 3.0, 4.0, 5.0};
+print("Initial array: ");
+for (var i = 0; i < 5; i = i + 1) {
+  print("numbers[");
+  print(i);
+  print("] = ");
+  print(numbers[i]);
+}
+
+// Test accessing the last element with end
+print("\n--- Testing basic end functionality ---");
+var last_number = numbers[end];
+print("numbers[end] = ");
+print(last_number);
+
+if (last_number == 5.0) {
+  print("✓ Basic end test passed");
+} else {
+  print("✗ Basic end test failed! Expected 5.0, got ");
+  print(last_number);
+}
+
+// Test assigning to the last element
+print("\n--- Testing assignment to end ---");
+numbers[end] = 10.0;
+print("After numbers[end] = 10.0:");
+print("numbers[end] = ");
+print(numbers[end]);
+print("numbers[4] = ");
+print(numbers[4]);
+
+if (numbers[end] == 10.0 and numbers[4] == 10.0) {
+  print("✓ End assignment test passed");
+} else {
+  print("✗ End assignment test failed!");
+}
+
+// Test more complex end-relative indexing
+print("\n--- Testing end-n syntax ---");
+print("Original array:");
+for (var i = 0; i < 5; i = i + 1) {
+  print("numbers[");
+  print(i);
+  print("] = ");
+  print(numbers[i]);
+}
+
+// Test with explicit index first for comparison
+print("\nUsing explicit index 3 (second-to-last):");
+var explicitIdx = numbers[3];
+print("numbers[3] = ");
+print(explicitIdx);
+
+print("\nTrying end-1 (should be second-to-last):");
+var endVal = numbers[end];
+print("numbers[end] = ");
+print(endVal);
+
+// Use a simple constant for the offset
+print("\nTrying with simple constant offset:");
+var secondLast = numbers[end-1];
+print("numbers[end-1] = ");
+print(secondLast);
+if (secondLast == 4.0) {
+  print("✓ Second-to-last element test passed");
+} else {
+  print("✗ Second-to-last element test failed! Expected 4.0, got ");
+  print(secondLast);
+}
+
+print("\nTrying with another constant offset:");
+var thirdLast = numbers[end-2];
+print("numbers[end-2] = ");
+print(thirdLast);
+if (thirdLast == 3.0) {
+  print("✓ Third-to-last element test passed");
+} else {
+  print("✗ Third-to-last element test failed! Expected 3.0, got ");
+  print(thirdLast);
+}
+
+// Test array with more elements
+print("\n--- Testing with larger array ---");
+var bigArray = {10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 80.0, 90.0, 100.0};
+print("bigArray length = 10");
+
+print("bigArray[end] = ");
+print(bigArray[end]);
+if (bigArray[end] == 100.0) {
+  print("✓ Last element test passed");
+} else {
+  print("✗ Last element test failed!");
+}
+
+print("bigArray[end-1] = ");
+print(bigArray[end-1]);
+if (bigArray[end-1] == 90.0) {
+  print("✓ Second-to-last element test passed");
+} else {
+  print("✗ Second-to-last element test failed! Expected 90.0, got ");
+  print(bigArray[end-1]);
+}
+
+print("bigArray[end-5] = ");
+print(bigArray[end-5]);
+if (bigArray[end-5] == 50.0) {
+  print("✓ Fifth-from-end element test passed");
+} else {
+  print("✗ Fifth-from-end element test failed! Expected 50.0, got ");
+  print(bigArray[end-5]);
+}
+
+print("\nEnd keyword tests complete!");

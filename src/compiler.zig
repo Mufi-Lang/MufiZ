@@ -500,6 +500,7 @@ pub fn getRule(type_: TokenType) ParseRule {
         .TOKEN_ITEM => ParseRule{ .prefix = &literal, .precedence = PREC_NONE },
         .TOKEN_FOREACH => ParseRule{ .precedence = PREC_NONE },
         .TOKEN_IN => ParseRule{ .precedence = PREC_NONE },
+        .TOKEN_END => ParseRule{ .precedence = PREC_NONE },
 
         // Misc
         .TOKEN_ERROR => ParseRule{ .precedence = PREC_NONE },
@@ -1161,8 +1162,27 @@ pub fn item_(canAssign: bool) void {
     variable(false);
 }
 pub fn index_(canAssign: bool) void {
-    expression();
-    consume(.TOKEN_RIGHT_SQPAREN, "Expect ']' after index.");
+    // Check if we have an 'end' keyword
+    if (check(.TOKEN_END)) {
+        advance(); // consume 'end'
+
+        if (match(.TOKEN_MINUS)) {
+            // Parse the offset value for 'end - offset'
+            // Emit -1 first, then parse offset, then subtract
+            emitConstant(Value.init_int(-1));
+            parsePrecedence(@as(c_uint, @bitCast(PREC_UNARY)));
+            emitByte(@intCast(@intFromEnum(OpCode.OP_SUBTRACT)));
+            consume(.TOKEN_RIGHT_SQPAREN, "Expect ']' after 'end-n' expression.");
+        } else {
+            // Simple 'end', use -1 as sentinel value
+            emitConstant(Value.init_int(-1));
+            consume(.TOKEN_RIGHT_SQPAREN, "Expect ']' after 'end'.");
+        }
+    } else {
+        // Regular index expression
+        expression();
+        consume(.TOKEN_RIGHT_SQPAREN, "Expect ']' after index.");
+    }
 
     if (canAssign and match(.TOKEN_EQUAL)) {
         expression();

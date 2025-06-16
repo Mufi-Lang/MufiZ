@@ -1124,6 +1124,14 @@ pub fn run() InterpretResult {
 
                             const vector = @as(*fvec.FloatVector, @ptrCast(@alignCast(object.as.obj.?)));
 
+                            // Handle 'end' keyword (represented by -1)
+                            if (idx == -1) {
+                                idx = @as(i32, @intCast(vector.count)) - 1;
+                            } else if (idx < -1) {
+                                // Handle 'end-n' expressions (idx = -1 - n, so actual_idx = count + idx + 1)
+                                idx = @as(i32, @intCast(vector.count)) + idx;
+                            }
+
                             if (idx < 0 or idx >= vector.count) {
                                 runtimeError("Index out of bounds: {} (count: {})", .{ idx, vector.count });
                                 return .INTERPRET_RUNTIME_ERROR;
@@ -1137,7 +1145,16 @@ pub fn run() InterpretResult {
                                 return .INTERPRET_RUNTIME_ERROR;
                             }
                             const string = @as(*ObjString, @ptrCast(@alignCast(object.as.obj.?)));
-                            const idx = index.as_num_int();
+                            var idx = index.as_num_int();
+
+                            // Handle 'end' keyword (represented by -1)
+                            if (idx == -1) {
+                                idx = @as(i32, @intCast(string.length)) - 1;
+                            } else if (idx < -1) {
+                                // Handle 'end-n' expressions
+                                idx = @as(i32, @intCast(string.length)) + idx;
+                            }
+
                             if (idx < 0 or idx >= string.length) {
                                 runtimeError("Index out of bounds.", .{});
                                 return .INTERPRET_RUNTIME_ERROR;
@@ -1152,7 +1169,16 @@ pub fn run() InterpretResult {
                                 return .INTERPRET_RUNTIME_ERROR;
                             }
                             const list = @as(*ObjLinkedList, @ptrCast(@alignCast(object.as.obj.?)));
-                            const idx = index.as_num_int();
+                            var idx = index.as_num_int();
+
+                            // Handle 'end' keyword (represented by -1)
+                            if (idx == -1) {
+                                idx = list.count - 1;
+                            } else if (idx < -1) {
+                                // Handle 'end-n' expressions
+                                idx = list.count + idx;
+                            }
+
                             if (idx < 0 or idx >= list.count) {
                                 runtimeError("Index out of bounds.", .{});
                                 return .INTERPRET_RUNTIME_ERROR;
@@ -1197,7 +1223,15 @@ pub fn run() InterpretResult {
                                     return .INTERPRET_RUNTIME_ERROR;
                                 }
                                 const vector = @as(*fvec.FloatVector, @ptrCast(@alignCast(object.as.obj.?)));
-                                const idx = index.as_num_int();
+                                var idx = index.as_num_int();
+
+                                // Handle 'end' keyword (represented by -1)
+                                if (idx == -1) {
+                                    idx = @as(i32, @intCast(vector.count)) - 1;
+                                } else if (idx < -1) {
+                                    // Handle 'end-n' expressions
+                                    idx = @as(i32, @intCast(vector.count)) + idx;
+                                }
                                 if (idx < 0 or idx >= vector.count) {
                                     runtimeError("Index out of bounds.", .{});
                                     return .INTERPRET_RUNTIME_ERROR;
