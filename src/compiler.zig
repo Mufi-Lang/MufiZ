@@ -101,6 +101,7 @@ pub const Local = struct {
     name: Token,
     depth: i32,
     isCaptured: bool,
+    isConst: bool = false,
 };
 pub const Upvalue = struct {
     index: u8,
@@ -437,6 +438,8 @@ pub fn declaration() void {
         funDeclaration();
     } else if (match(.TOKEN_VAR)) {
         varDeclaration();
+    } else if (match(.TOKEN_CONST)) {
+        constDeclaration();
     } else {
         statement();
     }
@@ -501,6 +504,7 @@ pub fn getRule(type_: TokenType) ParseRule {
         .TOKEN_FOREACH => ParseRule{ .precedence = PREC_NONE },
         .TOKEN_IN => ParseRule{ .precedence = PREC_NONE },
         .TOKEN_END => ParseRule{ .precedence = PREC_NONE },
+        .TOKEN_CONST => ParseRule{ .precedence = PREC_NONE },
 
         // Misc
         .TOKEN_ERROR => ParseRule{ .precedence = PREC_NONE },
@@ -623,6 +627,14 @@ pub fn resolveUpvalue(compiler: *Compiler, name: *Token) i32 {
     return -1;
 }
 pub fn addLocal(name: Token) void {
+    addLocalWithConst(name, false);
+}
+
+pub fn addConstLocal(name: Token) void {
+    addLocalWithConst(name, true);
+}
+
+fn addLocalWithConst(name: Token, isConst: bool) void {
     if (current.?.localCount == (255 + 1)) {
         const errorInfo = errors.ErrorTemplates.tooManyLocals();
         if (errorManagerInitialized) {
@@ -644,6 +656,7 @@ pub fn addLocal(name: Token) void {
     local.*.name = name;
     local.*.depth = -1;
     local.*.isCaptured = false;
+    local.*.isConst = isConst;
 
     // Track this variable for suggestion system
     const varName = name.start[0..@intCast(name.length)];
@@ -675,9 +688,44 @@ pub fn declareVariable() void {
     }
     addLocal(name.*);
 }
+
+pub fn declareConstVariable() void {
+    if (current.?.scopeDepth == 0) return;
+    const name: *Token = &parser.previous;
+    {
+        var i: i32 = current.?.localCount - 1;
+        _ = &i;
+        while (i >= 0) : (i -= 1) {
+            var local: *Local = &current.?.locals[@as(c_uint, @intCast(i))];
+            _ = &local;
+            if ((local.*.depth != -1) and (local.*.depth < current.?.scopeDepth)) {
+                break;
+            }
+            if (identifiersEqual(name, &local.*.name)) {
+                const varName = name.start[0..@intCast(name.length)];
+                const suggestions = [_]errors.ErrorSuggestion{
+                    .{ .message = "Use a different constant name" },
+                    .{ .message = "Constants in the same scope must have unique names" },
+                    .{ .message = "Try alternative names", .example = std.fmt.allocPrint(std.heap.page_allocator, "{s}2, new{s}, {s}Value", .{ varName, varName, varName }) catch "newName, value2" },
+                };
+                errorWithSuggestions(&parser.previous, .REDEFINED_VARIABLE, std.fmt.allocPrint(std.heap.page_allocator, "Constant '{s}' already declared in this scope", .{varName}) catch "Constant already declared", &suggestions);
+                return;
+            }
+        }
+    }
+    addConstLocal(name.*);
+}
+
 pub fn parseVariable(message: [*]const u8) u8 {
     consume(.TOKEN_IDENTIFIER, message);
     declareVariable();
+    if (current.?.scopeDepth > 0) return 0;
+    return identifierConstant(&parser.previous);
+}
+
+pub fn parseConstVariable(message: [*]const u8) u8 {
+    consume(.TOKEN_IDENTIFIER, message);
+    declareConstVariable();
     if (current.?.scopeDepth > 0) return 0;
     return identifierConstant(&parser.previous);
 }
@@ -703,6 +751,26 @@ pub fn defineVariable(global: u8) void {
 
     emitBytes(@intCast(@intFromEnum(OpCode.OP_DEFINE_GLOBAL)), global);
 }
+
+pub fn defineConstVariable(global: u8) void {
+    if (current.?.scopeDepth > 0) {
+        markInitialized();
+        return;
+    }
+
+    // Track global constant for suggestion system
+    if (errorManagerInitialized and global < currentChunk().*.constants.count) {
+        const constant = currentChunk().*.constants.values[@intCast(global)];
+        if (constant.type == .VAL_OBJ and object_h.isObjType(constant, .OBJ_STRING)) {
+            const objString = @as(*object_h.ObjString, @ptrCast(@alignCast(constant.as.obj)));
+            const varName = objString.chars[0..@intCast(objString.length)];
+            addKnownVariable(varName);
+        }
+    }
+
+    emitBytes(@intCast(@intFromEnum(OpCode.OP_DEFINE_GLOBAL)), global);
+}
+
 pub fn argumentList() u8 {
     var argCount: u8 = 0;
     if (!check(.TOKEN_RIGHT_PAREN)) {
@@ -1029,9 +1097,31 @@ pub fn namedVariable(name: Token, canAssign: bool) void {
         setOp = @intCast(@intFromEnum(OpCode.OP_SET_GLOBAL));
     }
     if ((@as(i32, @intFromBool(canAssign)) != 0) and (@as(i32, @intFromBool(match(.TOKEN_EQUAL))) != 0)) {
+        // Check if trying to assign to a const local variable
+        if (arg != -1 and current.?.locals[@intCast(arg)].isConst) {
+            const varName = name.start[0..@intCast(name.length)];
+            const suggestions = [_]errors.ErrorSuggestion{
+                .{ .message = "Use 'var' instead of 'const' if you need to modify this variable" },
+                .{ .message = "Constants cannot be modified after declaration" },
+                .{ .message = "Declare as mutable", .example = "var myVariable = value;" },
+            };
+            errorWithSuggestions(&parser.previous, .INVALID_ASSIGNMENT, std.fmt.allocPrint(std.heap.page_allocator, "Cannot assign to constant variable '{s}'", .{varName}) catch "Cannot assign to constant variable", &suggestions);
+            return;
+        }
         expression();
         emitBytes(setOp, @as(u8, @bitCast(@as(i8, @truncate(arg)))));
     } else if ((((@as(i32, @intFromBool(match(.TOKEN_PLUS_EQUAL))) != 0) or (@as(i32, @intFromBool(match(.TOKEN_MINUS_EQUAL))) != 0)) or (@as(i32, @intFromBool(match(.TOKEN_STAR_EQUAL))) != 0)) or (@as(i32, @intFromBool(match(.TOKEN_SLASH_EQUAL))) != 0)) {
+        // Check if trying to assign to a const local variable
+        if (arg != -1 and current.?.locals[@intCast(arg)].isConst) {
+            const varName = name.start[0..@intCast(name.length)];
+            const suggestions = [_]errors.ErrorSuggestion{
+                .{ .message = "Use 'var' instead of 'const' if you need to modify this variable" },
+                .{ .message = "Constants cannot be modified with assignment operators" },
+                .{ .message = "Declare as mutable", .example = "var myVariable = value;" },
+            };
+            errorWithSuggestions(&parser.previous, .INVALID_ASSIGNMENT, std.fmt.allocPrint(std.heap.page_allocator, "Cannot assign to constant variable '{s}'", .{varName}) catch "Cannot assign to constant variable", &suggestions);
+            return;
+        }
         emitBytes(getOp, @as(u8, @bitCast(@as(i8, @truncate(arg)))));
         expression();
         while (true) {
@@ -1058,6 +1148,17 @@ pub fn namedVariable(name: Token, canAssign: bool) void {
         }
         emitBytes(setOp, @as(u8, @bitCast(@as(i8, @truncate(arg)))));
     } else if (match(.TOKEN_PLUS_PLUS)) {
+        // Check if trying to increment a const local variable
+        if (arg != -1 and current.?.locals[@intCast(arg)].isConst) {
+            const varName = name.start[0..@intCast(name.length)];
+            const suggestions = [_]errors.ErrorSuggestion{
+                .{ .message = "Use 'var' instead of 'const' if you need to modify this variable" },
+                .{ .message = "Constants cannot be incremented" },
+                .{ .message = "Declare as mutable", .example = "var myVariable = value;" },
+            };
+            errorWithSuggestions(&parser.previous, .INVALID_ASSIGNMENT, std.fmt.allocPrint(std.heap.page_allocator, "Cannot assign to constant variable '{s}'", .{varName}) catch "Cannot assign to constant variable", &suggestions);
+            return;
+        }
         emitBytes(getOp, @as(u8, @bitCast(@as(i8, @truncate(arg)))));
         emitByte(@intCast(@intFromEnum(OpCode.OP_CONSTANT)));
         emitByte(makeConstant(Value{
@@ -1069,6 +1170,17 @@ pub fn namedVariable(name: Token, canAssign: bool) void {
         emitByte(@intCast(@intFromEnum(OpCode.OP_ADD)));
         emitBytes(setOp, @as(u8, @bitCast(@as(i8, @truncate(arg)))));
     } else if (match(.TOKEN_MINUS_MINUS)) {
+        // Check if trying to decrement a const local variable
+        if (arg != -1 and current.?.locals[@intCast(arg)].isConst) {
+            const varName = name.start[0..@intCast(name.length)];
+            const suggestions = [_]errors.ErrorSuggestion{
+                .{ .message = "Use 'var' instead of 'const' if you need to modify this variable" },
+                .{ .message = "Constants cannot be decremented" },
+                .{ .message = "Declare as mutable", .example = "var myVariable = value;" },
+            };
+            errorWithSuggestions(&parser.previous, .INVALID_ASSIGNMENT, std.fmt.allocPrint(std.heap.page_allocator, "Cannot assign to constant variable '{s}'", .{varName}) catch "Cannot assign to constant variable", &suggestions);
+            return;
+        }
         emitBytes(getOp, @as(u8, @bitCast(@as(i8, @truncate(arg)))));
         emitByte(@intCast(@intFromEnum(OpCode.OP_CONSTANT)));
         emitByte(makeConstant(Value{
@@ -1342,6 +1454,26 @@ pub fn varDeclaration() void {
     }
     consume(.TOKEN_SEMICOLON, "Expect ';' after variable declaration.");
     defineVariable(global);
+}
+
+pub fn constDeclaration() void {
+    var global: u8 = parseConstVariable("Expect constant name.");
+    _ = &global;
+
+    // Constants MUST be initialized
+    if (!match(.TOKEN_EQUAL)) {
+        const suggestions = [_]errors.ErrorSuggestion{
+            .{ .message = "Add an initialization value after '='" },
+            .{ .message = "Constants must be given a value when declared" },
+            .{ .message = "Initialize the constant", .example = "const PI = 3.14159;" },
+        };
+        errorWithSuggestions(&parser.current, .EXPECTED_EXPRESSION, "Constants must be initialized.", &suggestions);
+        return;
+    }
+
+    expression();
+    consume(.TOKEN_SEMICOLON, "Expect ';' after constant declaration.");
+    defineConstVariable(global);
 }
 pub fn expressionStatement() void {
     expression();

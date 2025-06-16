@@ -41,6 +41,7 @@ fn initKeywordMap() void {
     keyword_map.put("foreach", .TOKEN_FOREACH) catch unreachable;
     keyword_map.put("in", .TOKEN_IN) catch unreachable;
     keyword_map.put("end", .TOKEN_END) catch unreachable;
+    keyword_map.put("const", .TOKEN_CONST) catch unreachable;
 
     keyword_map_initialized = true;
 }
@@ -96,22 +97,23 @@ pub const TokenType = enum(c_int) {
     TOKEN_FOREACH = 43,
     TOKEN_IN = 44,
     TOKEN_END = 45,
+    TOKEN_CONST = 46,
     // Misc
-    TOKEN_ERROR = 46,
-    TOKEN_EOF = 47,
-    TOKEN_PLUS_EQUAL = 48,
-    TOKEN_MINUS_EQUAL = 49,
-    TOKEN_STAR_EQUAL = 50,
-    TOKEN_SLASH_EQUAL = 51,
-    TOKEN_PLUS_PLUS = 52,
-    TOKEN_MINUS_MINUS = 53,
-    TOKEN_HAT = 54,
-    TOKEN_LEFT_SQPAREN = 55,
-    TOKEN_RIGHT_SQPAREN = 56,
-    TOKEN_COLON = 57,
-    TOKEN_IMAGINARY = 58,
-    TOKEN_MULTILINE_STRING = 59,
-    TOKEN_BACKTICK_STRING = 60,
+    TOKEN_ERROR = 47,
+    TOKEN_EOF = 48,
+    TOKEN_PLUS_EQUAL = 49,
+    TOKEN_MINUS_EQUAL = 50,
+    TOKEN_STAR_EQUAL = 51,
+    TOKEN_SLASH_EQUAL = 52,
+    TOKEN_PLUS_PLUS = 53,
+    TOKEN_MINUS_MINUS = 54,
+    TOKEN_HAT = 55,
+    TOKEN_LEFT_SQPAREN = 56,
+    TOKEN_RIGHT_SQPAREN = 57,
+    TOKEN_COLON = 58,
+    TOKEN_IMAGINARY = 59,
+    TOKEN_MULTILINE_STRING = 60,
+    TOKEN_BACKTICK_STRING = 61,
 };
 
 pub const Token = struct {
