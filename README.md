@@ -1,6 +1,6 @@
 # MufiZ
 
-> This project uses the Zig `v0.13.0`
+> This project uses the Zig `v0.14.0`
 
 🌐 [mufi-lang.mokareads.org](https://mufi-lang.mokareads.org)
 
@@ -12,7 +12,6 @@ we can ensure more memory safety.
 ## Recent Updates
 
 - **Improved REPL Experience**: The interactive shell now provides a cleaner experience by not echoing characters while typing
-- **Simplified Input Handling**: Input is shown after command execution for better readability
 
 ## Usage:
 
@@ -54,7 +53,7 @@ $ mufiz --help
 | 0.6.0   | [Mars](https://github.com/Mustafif/MufiZ/releases/tag/v0.6.0)            | Released    |
 | 0.7.0   | [Jade](https://github.com/Mustafif/MufiZ/releases/tag/v0.7.0)            | Released    |
 | 0.8.0   | [Ruby](https://github.com/Mustafif/MufiZ/releases/tag/v0.8.0)            | Released    |
-| 0.9.0   | [Kova](https://github.com/Mustafif/MufiZ/releases/tag/next-experimental) | In Progress |
+| 0.9.0   | [Kova](https://github.com/Mustafif/MufiZ/releases/tag/v0.9.0) | Released |
 | 0.10.0  | [Echo](https://github.com/Mustafif/MufiZ/releases/tag/next-experimental) | In Progress |
 
 ---
