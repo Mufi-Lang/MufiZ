@@ -1,28 +1,36 @@
-    94 build.zig
+    96 build.zig
     90 src/objects/array.zig
-   798 src/objects/fvec.zig
+   888 src/objects/fvec.zig
     43 src/objects/obj.zig
-    98 src/chunk.zig
-  1137 src/compiler.zig
-    64 src/conv.zig
-   154 src/core.zig
+   101 src/chunk.zig
+  1701 src/compiler.zig
+    65 src/conv.zig
   1481 src/cstd.zig
-   166 src/debug.zig
-    74 src/main.zig
+   169 src/debug.zig
+   562 src/errors.zig
+    53 src/keep_alive.zig
+    77 src/main.zig
    830 src/memory.zig
    543 src/mem_utils.zig
    155 src/net_curl.zig
    173 src/net.zig
    827 src/object.zig
-   306 src/scanner.zig
-   217 src/stdlib.zig
-    98 src/system.zig
-   263 src/table.zig
-   557 src/value.zig
-  1086 src/vm.zig
+   233 src/repl_error.zig
+   596 src/scanner.zig
+   106 src/simple_line.zig
+   239 src/stdlib.zig
+   151 src/syntax_min.zig
+   184 src/syntax.zig
+   160 src/system.zig
+   324 src/table.zig
+   569 src/value.zig
+  1292 src/vm.zig
+   920 src/stdlib/collections.zig
     66 src/stdlib/fs.zig
     20 src/stdlib/io.zig
-   207 src/stdlib/math.zig
-    28 src/stdlib/time.zig
-    78 src/stdlib/types.zig
-  9653 total
+   208 src/stdlib/math.zig
+   357 src/stdlib/network.zig
+    29 src/stdlib/time.zig
+    77 src/stdlib/types.zig
+   161 src/stdlib/utils.zig
+ 13546 total
