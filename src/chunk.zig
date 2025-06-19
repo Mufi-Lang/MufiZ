@@ -49,6 +49,8 @@ pub const OpCode = enum(i32) {
     OP_DUP = 43,
     OP_INT = 44,
     OP_TO_STRING = 45,
+    OP_HASH_TABLE = 46,
+    OP_ADD_ENTRY = 47,
 };
 
 pub const Chunk = struct {

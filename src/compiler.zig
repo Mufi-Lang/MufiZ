@@ -457,7 +457,7 @@ pub fn getRule(type_: TokenType) ParseRule {
         // Single character tokens
         .TOKEN_LEFT_PAREN => ParseRule{ .prefix = &grouping, .infix = &call, .precedence = PREC_CALL },
         .TOKEN_RIGHT_PAREN => ParseRule{ .precedence = PREC_NONE },
-        .TOKEN_LEFT_BRACE => ParseRule{ .prefix = &fvector, .precedence = PREC_NONE },
+        .TOKEN_LEFT_BRACE => ParseRule{ .prefix = &objectLiteral, .precedence = PREC_NONE },
         .TOKEN_RIGHT_BRACE => ParseRule{ .precedence = PREC_NONE },
         .TOKEN_COMMA => ParseRule{ .precedence = PREC_NONE },
         .TOKEN_DOT => ParseRule{ .prefix = &item_, .infix = &dot, .precedence = PREC_CALL },
@@ -1077,12 +1077,86 @@ pub fn fstring(canAssign: bool) void {
 //     }
 //     consume(.TOKEN_RIGHT_SQPAREN, "Expect ']' after array elements.");
 //     emitBytes(@intCast(@intFromEnum(OpCode.OP_ARRAY)), argCount);
-// }
+// Handle either dictionary or fvector literals
+pub fn objectLiteral(canAssign: bool) void {
+    _ = canAssign;
+
+    // Check if this is a dictionary or float vector
+    // A dictionary is indicated by the pattern: { string/identifier : value }
+    var isDict = false;
+
+    // Always treat `{key: value}` syntax as a dictionary for now
+    // In the future, we might want to detect this more carefully
+    isDict = true;
+
+    if (isDict) {
+        // It's a dictionary (hash table)
+        emitByte(@intCast(@intFromEnum(OpCode.OP_HASH_TABLE)));
+
+        if (!check(.TOKEN_RIGHT_BRACE)) {
+            while (true) {
+                // Parse key - either a string literal or an identifier
+                if (match(.TOKEN_STRING)) {
+                    // String literal is already parsed and on stack as a string
+                    emitConstant(Value.init_obj(@ptrCast(object_h.copyString(parser.previous.start + 1, // Skip opening quote
+                        @intCast(parser.previous.length - 2) // Skip both quotes
+                    ))));
+                } else if (match(.TOKEN_IDENTIFIER)) {
+                    // Convert identifier to string literal
+                    const name = parser.previous.start[0..@intCast(parser.previous.length)];
+                    emitConstant(Value.init_obj(@ptrCast(object_h.copyString(name.ptr, name.len))));
+                } else {
+                    errorAtCurrent(@ptrCast(@constCast("Dictionary key must be a string or identifier")));
+                    return;
+                }
+
+                consume(.TOKEN_COLON, "Expect ':' after dictionary key");
+
+                // Parse the value
+                expression();
+
+                // Emit instruction to add entry to hash table
+                emitByte(@intCast(@intFromEnum(OpCode.OP_ADD_ENTRY)));
+
+                if (!match(.TOKEN_COMMA)) break;
+
+                // Error if trailing comma followed by closing brace
+                if (check(.TOKEN_RIGHT_BRACE)) break;
+            }
+        }
+    } else {
+        // It's a float vector
+        var argCount: u8 = 0;
+
+        if (!check(.TOKEN_RIGHT_BRACE)) {
+            while (true) {
+                expression();
+                argCount +%= 1;
+
+                if (@as(i32, @bitCast(@as(c_uint, argCount))) > 255) {
+                    const suggestions = [_]errors.ErrorSuggestion{
+                        .{ .message = "Break large vectors into smaller ones" },
+                        .{ .message = "Use arrays or other data structures for large collections" },
+                        .{ .message = "Maximum vector size is 255 elements" },
+                    };
+                    errorWithSuggestions(&parser.previous, .TOO_MANY_ARGUMENTS, "Cannot have more than 255 elements in a vector", &suggestions);
+                }
+
+                if (!match(.TOKEN_COMMA)) break;
+            }
+        }
+
+        emitBytes(@intCast(@intFromEnum(OpCode.OP_FVECTOR)), argCount);
+    }
+
+    consume(.TOKEN_RIGHT_BRACE, "Expect '}' after object literal");
+}
+
 pub fn fvector(canAssign: bool) void {
-    _ = &canAssign;
+    _ = canAssign;
+
     var argCount: u8 = 0;
-    _ = &argCount;
-    if (!check(.TOKEN_RIGHT_BRACE)) {
+    if (!check(.TOKEN_RIGHT_SQPAREN)) {
         while (true) {
             expression();
             argCount +%= 1;

@@ -1,6 +1,9 @@
 const std = @import("std");
+const print = std.debug.print;
+
+const memcpy = @import("mem_utils.zig").memcpyFast;
+const memory_h = @import("memory.zig");
 const obj_h = @import("object.zig");
-const scanner_h = @import("scanner.zig");
 const Obj = obj_h.Obj;
 const ObjString = obj_h.ObjString;
 const ObjArray = obj_h.ObjArray;
@@ -10,9 +13,7 @@ const Node = obj_h.Node;
 const FloatVector = obj_h.FloatVector;
 const fvec = @import("objects/fvec.zig");
 const reallocate = @import("memory.zig").reallocate;
-const memory_h = @import("memory.zig");
-const print = std.debug.print;
-const memcpy = @import("mem_utils.zig").memcpyFast;
+const scanner_h = @import("scanner.zig");
 
 pub const ValueType = enum(i32) { VAL_BOOL = 0, VAL_NIL = 1, VAL_INT = 2, VAL_DOUBLE = 3, VAL_OBJ = 4, VAL_COMPLEX = 5 };
 
@@ -79,13 +80,13 @@ pub const Value = struct {
 
     pub fn assign(self: *Self, other: Value) void {
         const old = self.*;
-        
+
         // Increment the reference count of the new value first
         other.retain();
-        
+
         // Assign the new value
         self.* = other;
-        
+
         // Release the old value after assignment is complete
         old.release();
     }
@@ -158,7 +159,25 @@ pub const Value = struct {
                     const result = a.single_add(scalar);
                     return Value.init_obj(@ptrCast(result));
                 } else {
-                    @panic("Cannot add non-string object values");
+                    // Handle hash table or any object + string concatenation
+                    // Convert object to string representation and concatenate
+                    const self_str = if (self.is_string())
+                        self.as_zstring()
+                    else
+                        objToString(self);
+
+                    const other_str = if (other.is_string())
+                        other.as_zstring()
+                    else
+                        valueToString(other);
+
+                    const length: usize = self_str.len + other_str.len;
+                    const chars: [*]u8 = @as([*]u8, @ptrCast(@alignCast(reallocate(null, 0, @intCast(@sizeOf(u8) *% length + 1)))));
+                    _ = memcpy(@ptrCast(chars), @ptrCast(self_str.ptr), @intCast(self_str.len));
+                    _ = memcpy(@ptrCast(chars + @as(usize, @intCast(self_str.len))), @ptrCast(other_str.ptr), @intCast(other_str.len));
+                    chars[@intCast(length)] = '\x00';
+                    const result = obj_h.takeString(chars, length);
+                    return Value.init_obj(@ptrCast(@alignCast(result)));
                 }
             },
             else => {},
@@ -372,15 +391,15 @@ pub const Value = struct {
     pub fn as_string(self: Self) *ObjString {
         return @ptrCast(@alignCast(self.as.obj));
     }
-    
+
     pub fn as_linked_list(self: Self) *obj_h.ObjLinkedList {
         return @ptrCast(@alignCast(self.as.obj));
     }
-    
+
     pub fn as_hash_table(self: Self) *obj_h.ObjHashTable {
         return @ptrCast(@alignCast(self.as.obj));
     }
-    
+
     pub fn as_vector(self: Self) *obj_h.FloatVector {
         return @ptrCast(@alignCast(self.as.obj));
     }
@@ -544,6 +563,56 @@ pub fn printValue(value: Value) void {
     }
 }
 
+// Convert object to string
+fn objToString(value: Value) []const u8 {
+    if (value.as.obj == null) return "null";
+
+    switch (value.as.obj.?.type) {
+        .OBJ_STRING => return value.as_zstring(),
+        .OBJ_FUNCTION => {
+            const function = @as(*obj_h.ObjFunction, @ptrCast(@alignCast(value.as.obj)));
+            if (function.*.name) |name| {
+                return std.fmt.allocPrint(std.heap.page_allocator, "<fn {s}>", .{name.*.chars[0..@intCast(name.*.length)]}) catch unreachable;
+            } else {
+                return "<fn script>";
+            }
+        },
+        .OBJ_HASH_TABLE => {
+            const ht = @as(*obj_h.ObjHashTable, @ptrCast(@alignCast(value.as.obj)));
+            var result = std.fmt.allocPrint(std.heap.page_allocator, "{{", .{}) catch unreachable;
+
+            if (ht.*.table.entries) |entries| {
+                var count: i32 = 0;
+
+                for (0..@intCast(ht.*.table.capacity)) |i| {
+                    if (entries[i].key != null) {
+                        if (count > 0) {
+                            const temp = result;
+                            result = std.fmt.allocPrint(std.heap.page_allocator, "{s}, ", .{temp}) catch unreachable;
+                        }
+
+                        const key = entries[i].key.?.chars[0..@intCast(entries[i].key.?.length)];
+                        const keyStr = std.fmt.allocPrint(std.heap.page_allocator, "\"{s}\": ", .{key}) catch unreachable;
+
+                        const valStr = valueToString(entries[i].value);
+
+                        const temp = result;
+                        result = std.fmt.allocPrint(std.heap.page_allocator, "{s}{s}{s}", .{ temp, keyStr, valStr }) catch unreachable;
+                        count += 1;
+                    }
+                }
+            }
+
+            const temp = result;
+            result = std.fmt.allocPrint(std.heap.page_allocator, "{s}}}", .{temp}) catch unreachable;
+            return result;
+        },
+        .OBJ_FVECTOR => return "<vector>",
+        .OBJ_LINKED_LIST => return "<list>",
+        else => return "<object>",
+    }
+}
+
 pub fn valueToString(value: Value) []const u8 {
     switch (value.type) {
         .VAL_BOOL => return if (value.as_bool()) "true" else "false",
@@ -562,7 +631,7 @@ pub fn valueToString(value: Value) []const u8 {
             return s;
         },
         .VAL_OBJ => {
-            return "object";
+            return objToString(value);
         },
     }
     return null;

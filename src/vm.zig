@@ -1110,6 +1110,18 @@ pub fn run() InterpretResult {
                     }
 
                     switch (object.as.obj.?.type) {
+                        .OBJ_HASH_TABLE => {
+                            // Hash table lookup requires a string key
+                            if (!index.is_string()) {
+                                runtimeError("Hash table key must be a string.", .{});
+                                return .INTERPRET_RUNTIME_ERROR;
+                            }
+
+                            const hashTable = @as(*object_h.ObjHashTable, @ptrCast(@alignCast(object.as.obj.?)));
+                            const key = @as(*ObjString, @ptrCast(@alignCast(index.as.obj.?)));
+                            const value = object_h.getHashTable(hashTable, key);
+                            push(value);
+                        },
                         .OBJ_FVECTOR => {
                             // Convert index to integer if possible
                             var idx: i32 = 0;
@@ -1213,6 +1225,20 @@ pub fn run() InterpretResult {
 
                     if (object.type == .VAL_OBJ and object.as.obj != null) {
                         switch (object.as.obj.?.type) {
+                            .OBJ_HASH_TABLE => {
+                                if (!index.is_string()) {
+                                    runtimeError("Hash table key must be a string.", .{});
+                                    return .INTERPRET_RUNTIME_ERROR;
+                                }
+
+                                const hashTable = @as(*object_h.ObjHashTable, @ptrCast(@alignCast(object.as.obj.?)));
+                                const key = @as(*ObjString, @ptrCast(@alignCast(index.as.obj.?)));
+                                _ = object_h.putHashTable(hashTable, key, value);
+
+                                // Leave object on stack (it's the result of assignment)
+                                _ = pop(); // Remove object
+                                push(value); // Put value back on stack as the result
+                            },
                             .OBJ_FVECTOR => {
                                 if (!index.is_int()) {
                                     runtimeError("Index must be an integer.", .{});
@@ -1275,13 +1301,42 @@ pub fn run() InterpretResult {
                         if (value.as.obj != null and value.as.obj.?.type == .OBJ_FVECTOR) {
                             const vector = @as(*fvec.FloatVector, @ptrCast(@alignCast(value.as.obj.?)));
                             push(Value.init_int(@intCast(vector.count)));
+                        } else if (value.as.obj != null and value.as.obj.?.type == .OBJ_HASH_TABLE) {
+                            const hashTable = @as(*object_h.ObjHashTable, @ptrCast(@alignCast(value.as.obj.?)));
+                            push(Value.init_int(@intCast(hashTable.*.table.count)));
                         } else {
-                            // Default to 0 for other objects
                             push(Value.init_int(0));
                         }
                     } else {
                         push(Value.init_int(0));
                     }
+                    continue;
+                },
+                .OP_HASH_TABLE => {
+                    // Create a new hash table
+                    const hashTable = object_h.newHashTable();
+                    push(Value.init_obj(@ptrCast(hashTable)));
+                    continue;
+                },
+                .OP_ADD_ENTRY => {
+                    // Stack has: value, key, hash table
+                    const value = pop();
+                    const key = pop();
+                    const table = peek(0); // Leave on stack
+
+                    if (table.type != .VAL_OBJ or table.as.obj == null or table.as.obj.?.type != .OBJ_HASH_TABLE) {
+                        runtimeError("Expected hash table for dictionary entry.", .{});
+                        return .INTERPRET_RUNTIME_ERROR;
+                    }
+
+                    if (!key.is_string()) {
+                        runtimeError("Hash table key must be a string.", .{});
+                        return .INTERPRET_RUNTIME_ERROR;
+                    }
+
+                    const hashTable = @as(*object_h.ObjHashTable, @ptrCast(@alignCast(table.as.obj.?)));
+                    const keyString = @as(*ObjString, @ptrCast(@alignCast(key.as.obj.?)));
+                    _ = object_h.putHashTable(hashTable, keyString, value);
                     continue;
                 },
                 .OP_TO_STRING => {
