@@ -1280,8 +1280,88 @@ pub fn run() InterpretResult {
                             push(Value.init_int(0));
                         }
                     } else {
-                        // For other types, convert to 0
                         push(Value.init_int(0));
+                    }
+                    continue;
+                },
+                .OP_TO_STRING => {
+                    const value = pop();
+                    var result: ?*ObjString = null;
+
+                    if (value.is_string()) {
+                        // Already a string, just push it back
+                        push(value);
+                    } else if (value.is_int()) {
+                        // Convert int to string
+                        const str = std.fmt.allocPrint(std.heap.page_allocator, "{d}", .{value.as_int()}) catch "";
+                        result = object_h.copyString(str.ptr, @intCast(str.len));
+                        push(Value.init_obj(@ptrCast(result)));
+                    } else if (value.is_double()) {
+                        // Convert double to string
+                        const str = std.fmt.allocPrint(std.heap.page_allocator, "{d}", .{value.as_double()}) catch "";
+                        result = object_h.copyString(str.ptr, @intCast(str.len));
+                        push(Value.init_obj(@ptrCast(result)));
+                    } else if (value.is_bool()) {
+                        // Convert bool to string
+                        const str = if (value.as_bool()) "true" else "false";
+                        result = object_h.copyString(str.ptr, @intCast(str.len));
+                        push(Value.init_obj(@ptrCast(result)));
+                    } else if (value.is_nil()) {
+                        // Convert nil to string "nil"
+                        result = object_h.copyString("nil".ptr, 3);
+                        push(Value.init_obj(@ptrCast(result)));
+                    } else if (value.is_complex()) {
+                        // Convert complex to string
+                        const c = value.as_complex();
+                        const str = std.fmt.allocPrint(std.heap.page_allocator, "{d} + {d}i", .{ c.r, c.i }) catch "";
+                        result = object_h.copyString(str.ptr, @intCast(str.len));
+                        push(Value.init_obj(@ptrCast(result)));
+                    } else if (value.is_obj()) {
+                        if (value.as.obj != null) {
+                            // Handle different object types
+                            switch (value.as.obj.?.type) {
+                                .OBJ_STRING => {
+                                    // Already a string
+                                    push(value);
+                                    continue;
+                                },
+                                .OBJ_LINKED_LIST => {
+                                    // Handle linked list as array
+                                    const list = @as(*object_h.ObjLinkedList, @ptrCast(@alignCast(value.as.obj)));
+                                    const str = std.fmt.allocPrint(std.heap.page_allocator, "[List with {d} items]", .{list.count}) catch "";
+                                    result = object_h.copyString(str.ptr, @intCast(str.len));
+                                },
+                                .OBJ_FVECTOR => {
+                                    const vector = @as(*fvec.FloatVector, @ptrCast(@alignCast(value.as.obj)));
+                                    const str = std.fmt.allocPrint(std.heap.page_allocator, "FloatVector[{d}]", .{vector.count}) catch "";
+                                    result = object_h.copyString(str.ptr, @intCast(str.len));
+                                },
+                                .OBJ_FUNCTION => {
+                                    const function = @as(*ObjFunction, @ptrCast(@alignCast(value.as.obj)));
+                                    const str = std.fmt.allocPrint(std.heap.page_allocator, "<fn {s}>", .{
+                                        if (function.*.name) |name| zstr(name) else "script",
+                                    }) catch "";
+                                    result = object_h.copyString(str.ptr, @intCast(str.len));
+                                },
+                                else => {
+                                    // Generic representation for other object types
+                                    const str = std.fmt.allocPrint(std.heap.page_allocator, "<{s}>", .{
+                                        @tagName(value.as.obj.?.type),
+                                    }) catch "";
+                                    result = object_h.copyString(str.ptr, @intCast(str.len));
+                                },
+                            }
+                            push(Value.init_obj(@ptrCast(result)));
+                        } else {
+                            // Handle null object
+                            result = object_h.copyString("null", 4);
+                            push(Value.init_obj(@ptrCast(result)));
+                        }
+                    } else {
+                        // For any other type we missed
+                        const str = "unknown";
+                        result = object_h.copyString(str.ptr, @intCast(str.len));
+                        push(Value.init_obj(@ptrCast(result)));
                     }
                     continue;
                 },

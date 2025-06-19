@@ -114,6 +114,7 @@ pub const TokenType = enum(c_int) {
     TOKEN_IMAGINARY = 59,
     TOKEN_MULTILINE_STRING = 60,
     TOKEN_BACKTICK_STRING = 61,
+    TOKEN_F_STRING = 62,
 };
 
 pub const Token = struct {
@@ -454,6 +455,9 @@ pub fn string() Token {
     return make_token(.TOKEN_STRING);
 }
 
+// f-string functionality moved to the 'f' case in scanToken
+// and uses the string() function with a modified token type
+
 pub fn processMultilineString() Token {
     // Process multi-line string content
     while (!is_at_end()) {
@@ -562,6 +566,19 @@ pub fn scanToken() Token {
         },
         '%' => return make_token(.TOKEN_PERCENT),
         '^' => return make_token(.TOKEN_HAT),
+        'f' => {
+            // Check for f-string pattern (f followed immediately by ")
+            if (peek() == '"') {
+                _ = advance(); // Consume the quote character
+                // Create a string token but mark it as f-string
+                var token = string();
+                // Change the token type to F_STRING
+                token.type = .TOKEN_F_STRING;
+                return token;
+            } else {
+                return identifier();
+            }
+        },
         '"' => {
             return string();
         },

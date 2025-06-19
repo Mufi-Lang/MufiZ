@@ -294,6 +294,11 @@ pub fn emitConstant(value: Value) void {
     emitBytes(@intFromEnum(OpCode.OP_CONSTANT), makeConstant(value));
 }
 
+// Emit a single byte opcode
+pub fn emitSingleByte(byte: u8) void {
+    chunk_h.writeChunk(currentChunk(), byte, parser.previous.line);
+}
+
 pub fn patchJump(offset: i32) void {
     const jump: i32 = (currentChunk().*.count - offset) - 2;
     if (jump > 65535) {
@@ -478,6 +483,7 @@ pub fn getRule(type_: TokenType) ParseRule {
         .TOKEN_STRING => ParseRule{ .prefix = &string, .precedence = PREC_NONE },
         .TOKEN_MULTILINE_STRING => ParseRule{ .prefix = &string, .precedence = PREC_NONE },
         .TOKEN_BACKTICK_STRING => ParseRule{ .prefix = &string, .precedence = PREC_NONE },
+        .TOKEN_F_STRING => ParseRule{ .prefix = &fstring, .precedence = PREC_NONE },
         .TOKEN_DOUBLE => ParseRule{ .prefix = &number, .precedence = PREC_NONE },
         .TOKEN_INT => ParseRule{ .prefix = &number, .precedence = PREC_NONE },
         .TOKEN_IMAGINARY => ParseRule{ .prefix = &imaginary_number, .precedence = PREC_NONE },
@@ -1035,6 +1041,25 @@ pub fn string(canAssign: bool) void {
     }
 
     emitConstant(Value.init_obj(@ptrCast(object_h.copyString(start, @intCast(length)))));
+}
+
+pub fn fstring(canAssign: bool) void {
+    _ = canAssign;
+
+    // The token includes the quotes but not the 'f'
+    // For f-string, we'll create a normal string instead
+    // but mark it specially in the compiler so the VM understands it's an f-string
+
+    // Create a normal string literal and emit it
+    string(false);
+
+    // For our basic implementation, we'll leave the string as is
+    // A more complete implementation would parse expressions in {}
+    // and replace them with their values
+
+    // For now, we'll just be emitting the string to the VM
+    // The proper implementation would require parsing the expressions
+    // within {} and evaluating them at runtime
 }
 // pub fn array(canAssign: bool)  void {
 //     _ = &canAssign;

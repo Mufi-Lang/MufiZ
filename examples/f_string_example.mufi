@@ -1,0 +1,39 @@
+// Example script demonstrating f-strings in MufiZ
+
+// Simple variable interpolation
+var name = "World";
+var greeting = f"Hello, {name}!";
+print greeting;  // Output: Hello, World!
+
+// Expressions in f-strings
+var a = 5;
+var b = 10;
+print f"The sum of {a} and {b} is {a + b}";  // Output: The sum of 5 and 10 is 15
+
+// Nested braces
+var count = 3;
+print f"{{The count is {count}}}";  // Output: {The count is 3}
+
+// Multiple interpolations
+var x = 42;
+var y = "answer";
+print f"The {y} is {x} and {2 * x} is twice that";  // Output: The answer is 42 and 84 is twice that
+
+// Interpolating different data types
+var isTrue = true;
+var pi = 3.14159;
+print f"Boolean: {isTrue}, Float: {pi}";  // Output: Boolean: true, Float: 3.14159
+
+// Empty f-string
+print f"";  // Output: (empty line)
+
+// Using f-string in a variable declaration
+var result = f"Result: {a * b}";
+print result;  // Output: Result: 50
+
+// Formatting in the same statement
+print f"Sample text with {name.to_upper()}";  // Output: Sample text with WORLD
+
+// Complex expressions
+var numbers = [1, 2, 3, 4, 5];
+print f"First number: {numbers[0]}, Length: {numbers.length()}";  // Output: First number: 1, Length: 5

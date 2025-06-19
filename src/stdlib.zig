@@ -4,11 +4,8 @@ const enable_curl = @import("features").enable_curl;
 const enable_fs = @import("features").enable_fs;
 const enable_net = @import("features").enable_net;
 
-const Value = @import("value.zig").Value;
 const NativeFn = @import("object.zig").NativeFn;
-const vm = @import("vm.zig");
-
-// Import all stdlib modules
+const object_h = @import("object.zig");
 pub const collections = @import("stdlib/collections.zig");
 pub const fs = @import("stdlib/fs.zig");
 pub const io = @import("stdlib/io.zig");
@@ -17,7 +14,10 @@ pub const network = @import("stdlib/network.zig");
 pub const time = @import("stdlib/time.zig");
 pub const types = @import("stdlib/types.zig");
 pub const utils = @import("stdlib/utils.zig");
+const Value = @import("value.zig").Value;
+const vm = @import("vm.zig");
 
+// Import all stdlib modules
 // Builtin function definition
 pub const BuiltinDef = struct {
     name: []const u8,
@@ -120,6 +120,8 @@ pub const UTIL_FUNCTIONS = [_]BuiltinDef{
     .{ .name = "exit", .func = utils.exit, .params = "code?", .description = "Exits program with code", .module = "utils" },
     .{ .name = "sleep", .func = utils.sleep, .params = "seconds", .description = "Sleeps for given seconds", .module = "utils" },
     .{ .name = "panic", .func = utils.panic_fn, .params = "message?", .description = "Panics with message", .module = "utils" },
+    .{ .name = "format", .func = utils.format_str, .params = "template, values...", .description = "Formats string with placeholders {}", .module = "utils" },
+    .{ .name = "f", .func = utils.format_str, .params = "template, values...", .description = "Alias for format: f-string syntax", .module = "utils" },
 };
 
 pub const NETWORK_FUNCTIONS = [_]BuiltinDef{
@@ -215,7 +217,7 @@ pub fn getTotalFunctionCount() usize {
 // Legacy compatibility
 pub fn what_is(argc: i32, args: [*]Value) Value {
     if (argc != 1) return stdlib_error("what_is() expects 1 argument!", .{ .argn = argc });
-    
+
     const conv = @import("conv.zig");
     const str = conv.what_is(args[0]);
     std.debug.print("Type: {s}\n", .{str});

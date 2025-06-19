@@ -1,0 +1,4 @@
+// Minimal f-string test
+var name = "World";
+print("Regular string: Hello, World!");
+print("F-string test: " + f"Hello, {name}!");

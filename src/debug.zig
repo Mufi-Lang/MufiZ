@@ -1,9 +1,10 @@
-const Chunk = @import("chunk.zig").Chunk;
 const std = @import("std");
 const print = std.debug.print;
-const printValue = @import("value.zig").printValue;
+
+const Chunk = @import("chunk.zig").Chunk;
 const obj_h = @import("object.zig");
 const ObjFunction = obj_h.ObjFunction;
+const printValue = @import("value.zig").printValue;
 
 pub fn disassembleChunk(chunk: *Chunk, name: [*]const u8) void {
     // Create a slice from the pointer to handle string formatting properly
@@ -118,6 +119,7 @@ pub fn disassembleInstruction(chunk: *Chunk, offset: i32) i32 {
         42 => return simpleInstruction("OP_LENGTH", offset),
         43 => return simpleInstruction("OP_DUP", offset),
         44 => return simpleInstruction("OP_INT", offset),
+        45 => return simpleInstruction("OP_TO_STRING", offset),
         else => {
             print("Unknown opcode {d}\n", .{instruction});
             return offset + 1;
