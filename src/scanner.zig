@@ -42,6 +42,7 @@ fn initKeywordMap() void {
     keyword_map.put("in", .TOKEN_IN) catch unreachable;
     keyword_map.put("end", .TOKEN_END) catch unreachable;
     keyword_map.put("const", .TOKEN_CONST) catch unreachable;
+    keyword_map.put("switch", .TOKEN_SWITCH) catch unreachable;
 
     keyword_map_initialized = true;
 }
@@ -98,23 +99,26 @@ pub const TokenType = enum(c_int) {
     TOKEN_IN = 44,
     TOKEN_END = 45,
     TOKEN_CONST = 46,
+    TOKEN_SWITCH = 47,
     // Misc
-    TOKEN_ERROR = 47,
-    TOKEN_EOF = 48,
-    TOKEN_PLUS_EQUAL = 49,
-    TOKEN_MINUS_EQUAL = 50,
-    TOKEN_STAR_EQUAL = 51,
-    TOKEN_SLASH_EQUAL = 52,
-    TOKEN_PLUS_PLUS = 53,
-    TOKEN_MINUS_MINUS = 54,
-    TOKEN_HAT = 55,
-    TOKEN_LEFT_SQPAREN = 56,
-    TOKEN_RIGHT_SQPAREN = 57,
-    TOKEN_COLON = 58,
-    TOKEN_IMAGINARY = 59,
-    TOKEN_MULTILINE_STRING = 60,
-    TOKEN_BACKTICK_STRING = 61,
-    TOKEN_F_STRING = 62,
+    TOKEN_ERROR = 48,
+    TOKEN_EOF = 49,
+    TOKEN_PLUS_EQUAL = 50,
+    TOKEN_MINUS_EQUAL = 51,
+    TOKEN_STAR_EQUAL = 52,
+    TOKEN_SLASH_EQUAL = 53,
+    TOKEN_PLUS_PLUS = 54,
+    TOKEN_MINUS_MINUS = 55,
+    TOKEN_HAT = 56,
+    TOKEN_LEFT_SQPAREN = 57,
+    TOKEN_RIGHT_SQPAREN = 58,
+    TOKEN_COLON = 59,
+    TOKEN_IMAGINARY = 60,
+    TOKEN_MULTILINE_STRING = 61,
+    TOKEN_BACKTICK_STRING = 62,
+    TOKEN_F_STRING = 63,
+    TOKEN_ARROW = 64,
+    TOKEN_HASH = 65, // Hash symbol '#' used as prefix for hashtable literals
 };
 
 pub const Token = struct {
@@ -556,7 +560,7 @@ pub fn scanToken() Token {
             if (match('=')) return make_token(.TOKEN_BANG_EQUAL) else return make_token(.TOKEN_BANG);
         },
         '=' => {
-            if (match('=')) return make_token(.TOKEN_EQUAL_EQUAL) else return make_token(.TOKEN_EQUAL);
+            if (match('=')) return make_token(.TOKEN_EQUAL_EQUAL) else if (match('>')) return make_token(.TOKEN_ARROW) else return make_token(.TOKEN_EQUAL);
         },
         '<' => {
             if (match('=')) return make_token(.TOKEN_LESS_EQUAL) else return make_token(.TOKEN_LESS);
@@ -566,6 +570,7 @@ pub fn scanToken() Token {
         },
         '%' => return make_token(.TOKEN_PERCENT),
         '^' => return make_token(.TOKEN_HAT),
+        '#' => return make_token(.TOKEN_HASH), // Used as a prefix for hashtable literals (#{})
         'f' => {
             // Check for f-string pattern (f followed immediately by ")
             if (peek() == '"') {

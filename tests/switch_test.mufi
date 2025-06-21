@@ -1,0 +1,17 @@
+// Basic switch test
+
+var choice = 2;
+
+print "Testing switch statement:";
+if (choice == 1) {
+  print "One";
+} else if (choice == 2) {
+  print "Two";
+} else if (choice == 3) {
+  print "Three";
+} else {
+  print "Other";
+}
+
+// We will implement switch statements soon!
+print "Switch implementation to be added";

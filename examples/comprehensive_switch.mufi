@@ -1,0 +1,35 @@
+// Comprehensive switch statement test
+var choice = 2;
+
+print "Testing switch statement:";
+
+// Test with blocks
+switch (choice) {
+  1 => { print "Selected One"; },
+  2 => { print "Selected Two"; },
+  3 => { print "Selected Three"; },
+  _ => { print "Invalid selection"; }
+}
+
+// Test with different value
+var day = 5;
+switch (day) {
+  1 => { print "Monday"; },
+  2 => { print "Tuesday"; },
+  3 => { print "Wednesday"; },
+  4 => { print "Thursday"; },
+  5 => { print "Friday"; },
+  6 => { print "Saturday"; },
+  7 => { print "Sunday"; },
+  _ => { print "Invalid day"; }
+}
+
+// Test default case
+var unknown = 999;
+switch (unknown) {
+  1 => { print "One"; },
+  2 => { print "Two"; },
+  _ => { print "Default case executed"; }
+}
+
+print "Switch tests completed successfully!";

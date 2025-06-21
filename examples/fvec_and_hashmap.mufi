@@ -1,0 +1,71 @@
+// Example demonstrating the difference between Float Vectors and Hash Tables in MufiZ
+
+// Float Vectors use {} syntax
+var vector1 = {1, 2, 3, 4, 5};
+print("Float Vector: " + vector1);
+
+// Basic vector operations
+print("Vector length: " + len(vector1));
+print("Vector sum: " + sum(vector1));
+print("Vector mean: " + mean(vector1));
+
+// Creating another vector
+var vector2 = {10, 20, 30, 40, 50};
+print("Second vector: " + vector2);
+
+// Vector math operations
+var added = vector1.add(vector2);
+print("Vector addition: " + added);
+
+var multiplied = vector1.mul(vector2);
+print("Vector multiplication: " + multiplied);
+
+// Creating an empty vector and pushing values
+var emptyVec = {};
+push(emptyVec, 100);
+push(emptyVec, 200);
+print("After pushing values: " + emptyVec);
+
+// Hash Tables use #{} syntax
+var person = #{"name": "John", "age": 30, "city": "New York"};
+print("\nHash Table: " + person);
+
+// Accessing hash table values
+print("Name: " + person["name"]);
+print("Age: " + person["age"]);
+
+// Adding new entries to hash table
+person["occupation"] = "Developer";
+print("Added occupation: " + person["occupation"]);
+
+// Nested hash tables
+var company = #{
+    "name": "Tech Corp",
+    "employees": #{
+        "dev_team": #{
+            "count": 10,
+            "manager": "Alice"
+        },
+        "design_team": #{
+            "count": 5,
+            "manager": "Bob"
+        }
+    },
+    "location": "San Francisco"
+};
+
+print("\nCompany name: " + company["name"]);
+print("Dev team count: " + company["employees"]["dev_team"]["count"]);
+print("Design team manager: " + company["employees"]["design_team"]["manager"]);
+
+// Mixed data structures - hash table with vector values
+var data = #{
+    "temperatures": {72.5, 73.2, 69.8, 71.9, 76.0},
+    "humidity": {45, 48, 52, 50, 47}
+};
+
+print("\nTemperatures: " + data["temperatures"]);
+print("First temperature: " + data["temperatures"][0]);
+print("Average temperature: " + mean(data["temperatures"]));
+
+print("\nSyntax demonstration completed");

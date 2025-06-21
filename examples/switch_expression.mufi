@@ -1,0 +1,74 @@
+// Switch Expression Test - demonstrates switch used as expressions
+
+print "Testing switch expressions:";
+
+// Basic switch expression
+var day = 3;
+var dayName = switch (day) {
+  1 => { "Monday" },
+  2 => { "Tuesday" },
+  3 => { "Wednesday" },
+  4 => { "Thursday" },
+  5 => { "Friday" },
+  6 => { "Saturday" },
+  7 => { "Sunday" },
+  _ => { "Invalid day" }
+};
+
+print "Day " + day + " is: " + dayName;
+
+// Switch expression in variable assignment
+var score = 85;
+var grade = switch (score) {
+  90 => { "A" },
+  80 => { "B" },
+  70 => { "C" },
+  60 => { "D" },
+  _ => { "F" }
+};
+
+print "Score " + score + " gets grade: " + grade;
+
+// Switch expression with function calls
+fun getStatusMessage(code) {
+  return switch (code) {
+    200 => { "OK" },
+    404 => { "Not Found" },
+    500 => { "Internal Server Error" },
+    _ => { "Unknown Status" }
+  };
+}
+
+print "Status 200: " + getStatusMessage(200);
+print "Status 404: " + getStatusMessage(404);
+print "Status 999: " + getStatusMessage(999);
+
+// Nested switch expressions
+var category = 1;
+var subcategory = 2;
+var description = switch (category) {
+  1 => {
+    switch (subcategory) {
+      1 => { "Electronics - Computers" },
+      2 => { "Electronics - Mobile" },
+      _ => { "Electronics - Other" }
+    }
+  },
+  2 => { "Books" },
+  3 => { "Clothing" },
+  _ => { "Unknown Category" }
+};
+
+print "Category description: " + description;
+
+// Switch with boolean expressions
+var isActive = true;
+var status = switch (isActive) {
+  true => { "Active" },
+  false => { "Inactive" },
+  _ => { "Unknown" }
+};
+
+print "User status: " + status;
+
+print "Switch expression tests completed!";

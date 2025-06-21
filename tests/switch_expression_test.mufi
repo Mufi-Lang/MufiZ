@@ -1,0 +1,75 @@
+// Switch Expression Test
+
+// Test 1: Basic switch expression
+var day = 3;
+var dayName = switch (day) {
+  1 => "Monday",
+  2 => "Tuesday",
+  3 => "Wednesday",
+  4 => "Thursday",
+  5 => "Friday",
+  6 => "Saturday",
+  7 => "Sunday",
+  _ => "Invalid day",
+};
+print "Day number: " + day;
+print "Day name: " + dayName;
+
+// Test 2: Expressions as cases
+var x = 10;
+var y = 5;
+var result = switch (x - y) {
+  5 => "Equal to 5",
+  10 => "Equal to 10",
+  x + y => "Equal to sum of x and y: " + (x + y),
+  _ => "Something else",
+};
+print "\nExpression result: " + result;
+
+// Test 3: Using switch expressions in larger expressions
+var score = 85;
+var message = "Your grade is " + switch (score) {
+  90 => "A (Excellent)",
+  80 => "B (Good)",
+  70 => "C (Average)",
+  60 => "D (Below Average)",
+  _ => "F (Failing)",
+};
+print "\n" + message;
+
+// Test 4: Nested switch expressions
+var outer = 1;
+var inner = 2;
+var value = switch (outer) {
+  1 => switch (inner) {
+    1 => "Inner 1",
+    2 => "Inner 2",
+    _ => "Other inner",
+  },
+  2 => "Outer 2",
+  _ => "Other outer",
+};
+print "\nNested result: " + value;
+
+// Test 5: Boolean conditions
+var isActive = true;
+var status = switch (isActive) {
+  true => "Active",
+  false => "Inactive",
+  _ => "Unknown",
+};
+print "\nStatus: " + status;
+
+// Test 6: Function calls in switch expressions
+fun getMessage(id) {
+  return "Message " + id;
+}
+
+var messageId = 3;
+var message = switch (messageId) {
+  1 => getMessage(1),
+  2 => getMessage(2),
+  3 => getMessage(3),
+  _ => "No message available",
+};
+print "\nMessage: " + message;

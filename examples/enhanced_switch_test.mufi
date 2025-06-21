@@ -1,0 +1,75 @@
+// Enhanced Switch Test
+// Tests the implementation of the switch statement with enhanced opcodes
+
+print "=== Enhanced Switch Opcode Test ===";
+
+// Basic switch test with OP_SWITCH opcode
+print "\nTest 1: Basic switch statement (uses OP_SWITCH)";
+var choice = 2;
+switch (choice) {
+  1 => { print "Selected: One"; },
+  2 => { print "Selected: Two"; },
+  3 => { print "Selected: Three"; },
+  _ => { print "Selected: Other"; }
+}
+
+// Test switch with strings
+print "\nTest 2: Switch with strings";
+var command = "start";
+switch (command) {
+  "start" => { print "Command: Starting application"; },
+  "stop" => { print "Command: Stopping application"; },
+  "restart" => { print "Command: Restarting application"; },
+  _ => { print "Command: Unknown"; }
+}
+
+// Test default case
+print "\nTest 3: Default case test";
+var unknown = 999;
+switch (unknown) {
+  1 => { print "Value: 1"; },
+  2 => { print "Value: 2"; },
+  _ => { print "Value: Default case used"; }
+}
+
+// Test complex expressions
+print "\nTest 4: Complex expressions in switch";
+var x = 10;
+var y = 5;
+switch (x + y) {
+  10 => { print "Result: 10"; },
+  15 => { print "Result: 15 (x + y)"; },
+  x => { print "Result: Equals x"; },
+  _ => { print "Result: Something else"; }
+}
+
+// Test boolean values
+print "\nTest 5: Boolean switch";
+var isActive = true;
+switch (isActive) {
+  true => { print "Status: Active"; },
+  false => { print "Status: Inactive"; },
+  _ => { print "Status: Unknown"; }
+}
+
+// Test case with variables
+print "\nTest 6: Variable as case value";
+var testValue = 42;
+var matchValue = 42;
+switch (testValue) {
+  matchValue => { print "Match: Values are equal"; },
+  _ => { print "Match: Values are different"; }
+}
+
+print "\n=== Enhanced Opcode Implementation Details ===";
+print "✓ OP_SWITCH - Marks switch statement and prepares stack";
+print "✓ OP_SWITCH_CASE - Handles case type identification";
+print "✓ OP_SWITCH_END - Finalizes switch execution";
+
+print "\nThe enhanced opcodes provide a foundation for:";
+print "- Switch expressions (returning values)";
+print "- Range syntax (1..5 => {})";
+print "- Multiple value cases (1|2|3 => {})";
+print "- Pattern matching and guards";
+
+print "\nTest completed successfully!";

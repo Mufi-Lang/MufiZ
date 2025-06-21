@@ -8,6 +8,8 @@ const Chunk = chunk_h.Chunk;
 const OpCode = chunk_h.OpCode;
 const debug_h = @import("debug.zig");
 const errors = @import("errors.zig");
+const mem_utils = @import("mem_utils.zig");
+const memcmp = mem_utils.memcmp;
 const object_h = @import("object.zig");
 const ObjFunction = object_h.ObjFunction;
 const scanner_h = @import("scanner.zig");
@@ -423,6 +425,10 @@ pub fn statement() void {
             advance();
             returnStatement();
         },
+        .TOKEN_SWITCH => {
+            advance();
+            switchStatement();
+        },
         .TOKEN_WHILE => {
             advance();
             whileStatement();
@@ -459,6 +465,7 @@ pub fn getRule(type_: TokenType) ParseRule {
         .TOKEN_RIGHT_PAREN => ParseRule{ .precedence = PREC_NONE },
         .TOKEN_LEFT_BRACE => ParseRule{ .prefix = &objectLiteral, .precedence = PREC_NONE },
         .TOKEN_RIGHT_BRACE => ParseRule{ .precedence = PREC_NONE },
+        .TOKEN_HASH => ParseRule{ .prefix = &hashTable, .precedence = PREC_NONE },
         .TOKEN_COMMA => ParseRule{ .precedence = PREC_NONE },
         .TOKEN_DOT => ParseRule{ .prefix = &item_, .infix = &dot, .precedence = PREC_CALL },
         .TOKEN_MINUS => ParseRule{ .prefix = &unary, .infix = &binary, .precedence = PREC_TERM },
@@ -477,9 +484,11 @@ pub fn getRule(type_: TokenType) ParseRule {
         .TOKEN_GREATER_EQUAL => ParseRule{ .infix = &binary, .precedence = PREC_COMPARISON },
         .TOKEN_LESS => ParseRule{ .infix = &binary, .precedence = PREC_COMPARISON },
         .TOKEN_LESS_EQUAL => ParseRule{ .infix = &binary, .precedence = PREC_COMPARISON },
+        .TOKEN_ARROW => ParseRule{ .precedence = PREC_NONE },
 
         // Literals
         .TOKEN_IDENTIFIER => ParseRule{ .prefix = &variable, .precedence = PREC_NONE },
+        .TOKEN_SWITCH => ParseRule{ .precedence = PREC_NONE },
         .TOKEN_STRING => ParseRule{ .prefix = &string, .precedence = PREC_NONE },
         .TOKEN_MULTILINE_STRING => ParseRule{ .prefix = &string, .precedence = PREC_NONE },
         .TOKEN_BACKTICK_STRING => ParseRule{ .prefix = &string, .precedence = PREC_NONE },
@@ -903,9 +912,18 @@ pub fn literal(canAssign: bool) void {
     }
 }
 pub fn grouping(canAssign: bool) void {
-    _ = &canAssign;
+    _ = canAssign;
     expression();
     consume(.TOKEN_RIGHT_PAREN, "Expect ')' after expression.");
+}
+
+// Process hashtable literal
+pub fn hashTable(canAssign: bool) void {
+    // Expecting '{' next
+    consume(.TOKEN_LEFT_BRACE, "Expect '{' after '#' for hashtable");
+    // Set isDict to true and pass it to objectLiteral
+    parser.previous.type = .TOKEN_HASH; // Mark that we came from hash
+    objectLiteral(canAssign);
 }
 pub fn number(canAssign: bool) void {
     _ = canAssign;
@@ -1085,9 +1103,13 @@ pub fn objectLiteral(canAssign: bool) void {
     // A dictionary is indicated by the pattern: { string/identifier : value }
     var isDict = false;
 
-    // Always treat `{key: value}` syntax as a dictionary for now
-    // In the future, we might want to detect this more carefully
-    isDict = true;
+    // Check if we came from a # token for hashtable
+    if (parser.previous.type == .TOKEN_HASH) {
+        isDict = true;
+    } else {
+        // If no # prefix, it's a float vector
+        isDict = false;
+    }
 
     if (isDict) {
         // It's a dictionary (hash table)
@@ -1152,11 +1174,13 @@ pub fn objectLiteral(canAssign: bool) void {
     consume(.TOKEN_RIGHT_BRACE, "Expect '}' after object literal");
 }
 
+// Note: This function appears to be unused but is left for historical reference
+// Float vectors are now handled by objectLiteral when isDict is false
 pub fn fvector(canAssign: bool) void {
     _ = canAssign;
 
     var argCount: u8 = 0;
-    if (!check(.TOKEN_RIGHT_SQPAREN)) {
+    if (!check(.TOKEN_RIGHT_BRACE)) {
         while (true) {
             expression();
             argCount +%= 1;
@@ -1741,7 +1765,7 @@ pub fn returnStatement() void {
     }
 }
 pub fn whileStatement() void {
-    var loopStart: i32 = currentChunk().*.count;
+    var loopStart: i32 = @intCast(currentChunk().*.count);
     _ = &loopStart;
     consume(.TOKEN_LEFT_PAREN, "Expect '(' after 'while'.");
     expression();
@@ -1754,6 +1778,172 @@ pub fn whileStatement() void {
     patchJump(exitJump);
     emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
 }
+
+pub fn switchStatement() void {
+    consume(.TOKEN_LEFT_PAREN, "Expect '(' after 'switch'.");
+    expression(); // Parse the switch expression
+    consume(.TOKEN_RIGHT_PAREN, "Expect ')' after switch condition.");
+    consume(.TOKEN_LEFT_BRACE, "Expect '{' before switch cases.");
+
+    // Keep track of all end jumps - we'll patch these at the end
+    var endJumps = std.ArrayList(i32).init(std.heap.page_allocator);
+    defer endJumps.deinit();
+
+    // Track default case location and whether we've seen one
+    var hasDefault = false;
+    var defaultJump: i32 = -1;
+
+    // Process each case until we reach the end of the switch block
+    while (!check(.TOKEN_RIGHT_BRACE) and !check(.TOKEN_EOF)) {
+        if (check(.TOKEN_IDENTIFIER) and parser.current.length == 1 and parser.current.start[0] == '_') {
+            // Handle default case: _ => ...
+            advance(); // consume '_'
+            consume(.TOKEN_ARROW, "Expect '=>' after default case.");
+
+            if (hasDefault) {
+                @"error"("Cannot have more than one default case in a switch statement.");
+            }
+            hasDefault = true;
+
+            // Remember where the default case starts
+            defaultJump = @intCast(currentChunk().*.count);
+
+            // Parse the default case body
+            if (match(.TOKEN_LEFT_BRACE)) {
+                beginScope();
+                block();
+                endScope();
+            } else {
+                expression();
+                emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+            }
+
+            // After the default case, jump to the end
+            const endJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+            endJumps.append(endJump) catch unreachable;
+        } else {
+            // Regular case: expr => ...
+
+            // Evaluate the case expression
+            expression();
+            consume(.TOKEN_ARROW, "Expect '=>' after case value.");
+
+            // Make a copy of the switch value for comparison
+            emitByte(@intCast(@intFromEnum(OpCode.OP_DUP)));
+
+            // Compare the switch value with the case value
+            emitByte(@intCast(@intFromEnum(OpCode.OP_EQUAL)));
+
+            // If they're not equal, skip this case
+            const skipCaseJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
+
+            // Pop the comparison result
+            emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+
+            // Parse case body
+            if (match(.TOKEN_LEFT_BRACE)) {
+                beginScope();
+                block();
+                endScope();
+            } else {
+                expression();
+                emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+            }
+
+            // After case body, jump to the end of the switch
+            const endJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+            endJumps.append(endJump) catch unreachable;
+
+            // If comparison was false, skip to here (next case)
+            patchJump(skipCaseJump);
+
+            // Pop the switch value copy before trying the next case
+            emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+        }
+
+        // Optional comma between cases
+        _ = match(.TOKEN_COMMA);
+    }
+
+    // If no case matched and we have a default case, jump to it
+    if (hasDefault) {
+        emitLoop(defaultJump);
+    } else {
+        // No default case, just pop the switch value
+        emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+    }
+
+    // Patch all the end jumps to point to here
+    for (endJumps.items) |endJump| {
+        patchJump(endJump);
+    }
+
+    consume(.TOKEN_RIGHT_BRACE, "Expect '}' after switch cases.");
+}
+
+// Future enhancement: Parse range cases like 1..5 =>
+fn parseRangeCase() void {
+    // Parse start expression
+    expression();
+
+    // Expect .. token (would need to add TOKEN_DOT_DOT to scanner)
+    // consume(.TOKEN_DOT_DOT, "Expect '..' in range case.");
+
+    // Parse end expression
+    expression();
+
+    consume(.TOKEN_ARROW, "Expect '=>' after range case.");
+
+    // Emit OP_SWITCH_CASE with range type (1)
+    emitBytes(@intCast(@intFromEnum(OpCode.OP_SWITCH_CASE)), 1);
+
+    // Range comparison logic would be handled in VM
+}
+
+// Future enhancement: Parse multiple value cases like 1 | 2 | 3 =>
+fn parseMultipleValueCase() void {
+    var valueCount: u8 = 1;
+
+    // Parse first value
+    expression();
+
+    // Parse additional values separated by |
+    while (match(.TOKEN_OR)) { // TOKEN_OR is |
+        if (valueCount >= 255) {
+            @"error"("Too many values in case (max 255).");
+        }
+        expression();
+        valueCount += 1;
+    }
+
+    consume(.TOKEN_ARROW, "Expect '=>' after case values.");
+
+    // Emit OP_SWITCH_CASE with multiple value type (2) and count
+    emitBytes(@intCast(@intFromEnum(OpCode.OP_SWITCH_CASE)), 2);
+    emitByte(valueCount);
+
+    // Multiple value comparison logic would be handled in VM
+}
+
+// Future enhancement: Parse guard clauses like value when condition =>
+fn parseGuardCase() void {
+    // Parse case value
+    expression();
+
+    // Expect 'when' keyword (would need to add TOKEN_WHEN)
+    // consume(.TOKEN_WHEN, "Expect 'when' in guard case.");
+
+    // Parse guard condition
+    expression();
+
+    consume(.TOKEN_ARROW, "Expect '=>' after guard case.");
+
+    // Emit OP_SWITCH_CASE with guard type (3)
+    emitBytes(@intCast(@intFromEnum(OpCode.OP_SWITCH_CASE)), 3);
+
+    // Guard evaluation logic would be handled in VM
+}
+
 pub fn synchronize() void {
     parser.panicMode = false;
     while (parser.current.type != .TOKEN_EOF) {

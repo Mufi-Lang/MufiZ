@@ -12,6 +12,12 @@ we can ensure more memory safety.
 ## Recent Updates
 
 - **Improved REPL Experience**: The interactive shell now provides a cleaner experience by not echoing characters while typing
+- **Hash Table Syntax Change**: Hash tables now use `#{}` syntax to differentiate from float vectors (`{}`)
+
+## Data Structures Syntax:
+
+- **Float Vectors**: Use curly braces `{}` - Example: `var vector = {1, 2, 3, 4, 5}`
+- **Hash Tables**: Use hash-prefixed curly braces `#{}` - Example: `var dict = #{"key": "value", "name": "John"}`
 
 ## Usage:
 

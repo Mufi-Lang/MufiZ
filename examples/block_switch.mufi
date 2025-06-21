@@ -1,0 +1,6 @@
+// Very simple switch test with blocks
+var x = 1;
+
+switch (x) {
+  1 => { print "One"; }
+}

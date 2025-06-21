@@ -1,0 +1,80 @@
+// Final Switch Statement Implementation Test
+// This demonstrates the successfully implemented switch statement features
+
+print "=== MufiZ Switch Statement Demo ===";
+
+// Test 1: Basic switch statement
+print "\nTest 1: Basic switch with numeric values";
+var choice = 2;
+switch (choice) {
+  1 => { print "Selected: Option One"; },
+  2 => { print "Selected: Option Two"; },
+  3 => { print "Selected: Option Three"; },
+  _ => { print "Selected: Invalid option"; }
+}
+
+// Test 2: Switch with different data types
+print "\nTest 2: Switch with string values";
+var command = "start";
+switch (command) {
+  "start" => { print "Starting the application..."; },
+  "stop" => { print "Stopping the application..."; },
+  "restart" => { print "Restarting the application..."; },
+  _ => { print "Unknown command"; }
+}
+
+// Test 3: Default case testing
+print "\nTest 3: Testing default case";
+var unknownValue = 999;
+switch (unknownValue) {
+  1 => { print "Value is one"; },
+  2 => { print "Value is two"; },
+  _ => { print "Value is unknown - default case executed"; }
+}
+
+// Test 4: Multiple cases
+print "\nTest 4: Day of the week";
+var dayOfWeek = 5;
+switch (dayOfWeek) {
+  1 => { print "Monday - Start of work week"; },
+  2 => { print "Tuesday - Getting into the groove"; },
+  3 => { print "Wednesday - Hump day"; },
+  4 => { print "Thursday - Almost there"; },
+  5 => { print "Friday - TGIF!"; },
+  6 => { print "Saturday - Weekend!"; },
+  7 => { print "Sunday - Rest day"; },
+  _ => { print "Invalid day number"; }
+}
+
+// Test 5: Boolean switch
+print "\nTest 5: Boolean switch";
+var isLoggedIn = true;
+switch (isLoggedIn) {
+  true => { print "User is logged in - showing dashboard"; },
+  false => { print "User is not logged in - showing login form"; },
+  _ => { print "Authentication status unknown"; }
+}
+
+// Test 6: Complex expressions as case values
+print "\nTest 6: Complex expressions";
+var x = 10;
+var y = 5;
+var result = x + y;
+switch (result) {
+  x => { print "Result equals x"; },
+  y => { print "Result equals y"; },
+  15 => { print "Result is 15 (x + y)"; },
+  _ => { print "Result is something else"; }
+}
+
+print "\n=== All switch statement tests completed successfully! ===";
+print "Modern switch statement implementation is working correctly.";
+
+// Features implemented:
+// ✓ Switch statements with => arrow syntax
+// ✓ Block syntax for case bodies: case => { statements }
+// ✓ Default case with _ wildcard
+// ✓ Multiple data types (numbers, strings, booleans)
+// ✓ Complex expressions as case values
+// ✓ No fall-through behavior (safe by default)
+// ✓ Proper jump patching and control flow

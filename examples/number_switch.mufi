@@ -1,0 +1,37 @@
+// Simple switch test with proper syntax
+
+var x = 2;
+
+print "Testing switch with x = " + x + ":";
+
+// Basic switch statement
+switch (x) {
+  1 => { print "One"; },
+  2 => { print "Two"; },
+  3 => { print "Three"; },
+  _ => { print "Other"; }
+}
+
+// Test with different value
+var y = 5;
+print "Testing switch with y = " + y + ":";
+
+switch (y) {
+  1 => { print "One"; },
+  2 => { print "Two"; },
+  3 => { print "Three"; },
+  _ => { print "Other"; }
+}
+
+// Test with string comparison
+var fruit = "apple";
+print "Testing switch with fruit = " + fruit + ":";
+
+switch (fruit) {
+  "banana" => { print "Yellow fruit"; },
+  "apple" => { print "Red fruit"; },
+  "grape" => { print "Purple fruit"; },
+  _ => { print "Unknown fruit"; }
+}
+
+print "Switch test completed!";

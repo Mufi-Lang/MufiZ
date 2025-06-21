@@ -1,0 +1,10 @@
+// Test for arrow token => parsing
+print("Testing arrow token");
+
+// Using arrow token in a simple context
+var x = 5;
+var result = x == 5 => "yes" : "no";
+print(result);
+
+// This commented line would test the switch syntax once implemented:
+// switch (x) { 1 => print("One"); }
