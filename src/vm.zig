@@ -299,6 +299,52 @@ pub fn defineNative(name: [*]const u8, function: NativeFn) void {
     _ = pop();
 }
 
+// Helper function to append a value's string representation to a buffer
+fn valueToString(value: Value, buffer: *std.ArrayList(u8)) void {
+    switch (value.type) {
+        .VAL_BOOL => {
+            if (value.as.boolean) {
+                buffer.appendSlice("true") catch return;
+            } else {
+                buffer.appendSlice("false") catch return;
+            }
+        },
+        .VAL_NIL => {
+            buffer.appendSlice("nil") catch return;
+        },
+        .VAL_DOUBLE => {
+            const str = std.fmt.allocPrint(std.heap.page_allocator, "{d}", .{value.as.num_double}) catch return;
+            defer std.heap.page_allocator.free(str);
+            buffer.appendSlice(str) catch return;
+        },
+        .VAL_INT => {
+            const str = std.fmt.allocPrint(std.heap.page_allocator, "{d}", .{value.as.num_int}) catch return;
+            defer std.heap.page_allocator.free(str);
+            buffer.appendSlice(str) catch return;
+        },
+        .VAL_OBJ => {
+            if (value.as.obj) |obj| {
+                switch (obj.type) {
+                    .OBJ_STRING => {
+                        const string = @as(*ObjString, @ptrCast(@alignCast(obj)));
+                        buffer.appendSlice(string.*.chars[0..string.*.length]) catch return;
+                    },
+                    else => {
+                        const str = std.fmt.allocPrint(std.heap.page_allocator, "[object]", .{}) catch return;
+                        defer std.heap.page_allocator.free(str);
+                        buffer.appendSlice(str) catch return;
+                    },
+                }
+            }
+        },
+        .VAL_COMPLEX => {
+            const str = std.fmt.allocPrint(std.heap.page_allocator, "{d}{s}{d}i", .{ value.as.complex.r, if (value.as.complex.i >= 0) "+" else "", value.as.complex.i }) catch return;
+            defer std.heap.page_allocator.free(str);
+            buffer.appendSlice(str) catch return;
+        },
+    }
+}
+
 pub fn resetStack() void {
     vm.stackTop = @ptrCast(&vm.stack);
     vm.frameCount = 0;
@@ -353,7 +399,7 @@ pub fn callValue(callee: Value, argCount: i32) bool {
                 // Calculate where 'self' should go on the stack (below the arguments)
                 const selfSlot = vm.stackTop - @as(usize, @intCast(argCount + 1));
 
-                // Set the selfSlot to the instance value - this ensures 'self' is available in methods
+                // Replace that slot with the instance
                 selfSlot[0] = instanceValue;
 
                 // Call initializer if it exists
@@ -391,6 +437,61 @@ pub fn callValue(callee: Value, argCount: i32) bool {
                 const result: Value = native.?(argCount, vm.stackTop - @as(usize, @intCast(argCount)));
                 vm.stackTop -= @as(usize, @intCast(argCount + 1));
                 push(result);
+                return true;
+            },
+            .OBJ_STRING => {
+                // Format a string with placeholders
+                if (argCount < 1) {
+                    runtimeError("String format requires at least one argument.", .{});
+                    return false;
+                }
+
+                // Get the string to be formatted
+                const formatStr = @as(*ObjString, @ptrCast(@alignCast(callee.as.obj)));
+                const format = formatStr.*.chars[0..formatStr.*.length];
+
+                // Allocate a buffer for the result
+                var result = std.ArrayList(u8).init(std.heap.page_allocator);
+                defer result.deinit();
+
+                // Process format string looking for {} placeholders
+                var i: usize = 0;
+                var arg_index: i32 = 0;
+
+                while (i < format.len) {
+                    // Look for opening brace
+                    if (i + 1 < format.len and format[i] == '{' and format[i + 1] == '}') {
+                        // Found a placeholder
+                        if (arg_index < argCount) {
+                            // Get the argument from stack
+                            const arg = peek(argCount - arg_index - 1);
+
+                            // Convert the argument to string and append it
+                            valueToString(arg, &result);
+                            arg_index += 1;
+                            i += 2; // Skip over {}
+                        } else {
+                            // More placeholders than arguments
+                            runtimeError("Not enough arguments for format string.", .{});
+                            return false;
+                        }
+                    } else {
+                        // Regular character, just append it
+                        result.append(format[i]) catch {
+                            runtimeError("Failed to format string.", .{});
+                            return false;
+                        };
+                        i += 1;
+                    }
+                }
+
+                // Create a new string with the result
+                const resultString = object_h.copyString(result.items.ptr, @intCast(result.items.len));
+
+                // Replace the callee and arguments with the result
+                vm.stackTop -= @as(usize, @intCast(argCount + 1));
+                push(Value.init_obj(@ptrCast(@alignCast(resultString))));
+
                 return true;
             },
             else => {},

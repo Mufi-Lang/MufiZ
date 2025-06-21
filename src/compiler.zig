@@ -87,10 +87,11 @@ pub const PREC_EQUALITY: i32 = 4;
 pub const PREC_COMPARISON: i32 = 5;
 pub const PREC_TERM: i32 = 6;
 pub const PREC_FACTOR: i32 = 7;
-pub const PREC_UNARY: i32 = 8;
-pub const PREC_CALL: i32 = 9;
-pub const PREC_INDEX: i32 = 10;
-pub const PREC_PRIMARY: i32 = 11;
+pub const PREC_EXPONENT: i32 = 8;
+pub const PREC_UNARY: i32 = 9;
+pub const PREC_CALL: i32 = 10;
+pub const PREC_INDEX: i32 = 11;
+pub const PREC_PRIMARY: i32 = 12;
 pub const Precedence = u32;
 
 pub const ParseFn = ?*const fn (bool) void;
@@ -425,6 +426,10 @@ pub fn statement() void {
             advance();
             returnStatement();
         },
+        .TOKEN_BREAK => {
+            @"error"("'break' statement must be inside a switch case block.");
+            advance();
+        },
         .TOKEN_SWITCH => {
             advance();
             switchStatement();
@@ -473,8 +478,11 @@ pub fn getRule(type_: TokenType) ParseRule {
         .TOKEN_SEMICOLON => ParseRule{ .precedence = PREC_NONE },
         .TOKEN_SLASH => ParseRule{ .infix = &binary, .precedence = PREC_FACTOR },
         .TOKEN_STAR => ParseRule{ .infix = &binary, .precedence = PREC_FACTOR },
+        .TOKEN_HAT => ParseRule{ .infix = &binary, .precedence = PREC_EXPONENT },
+        .TOKEN_LEFT_SQPAREN => ParseRule{ .prefix = &fvector, .infix = &index_, .precedence = PREC_CALL },
+        .TOKEN_RIGHT_SQPAREN => ParseRule{ .precedence = PREC_NONE },
+        .TOKEN_COLON => ParseRule{ .precedence = PREC_NONE },
         .TOKEN_PERCENT => ParseRule{ .infix = &binary, .precedence = PREC_FACTOR },
-
         // One or more character tokens
         .TOKEN_BANG => ParseRule{ .prefix = &unary, .precedence = PREC_NONE },
         .TOKEN_BANG_EQUAL => ParseRule{ .infix = &binary, .precedence = PREC_EQUALITY },
@@ -484,11 +492,17 @@ pub fn getRule(type_: TokenType) ParseRule {
         .TOKEN_GREATER_EQUAL => ParseRule{ .infix = &binary, .precedence = PREC_COMPARISON },
         .TOKEN_LESS => ParseRule{ .infix = &binary, .precedence = PREC_COMPARISON },
         .TOKEN_LESS_EQUAL => ParseRule{ .infix = &binary, .precedence = PREC_COMPARISON },
-        .TOKEN_ARROW => ParseRule{ .precedence = PREC_NONE },
-
+        .TOKEN_PLUS_EQUAL => ParseRule{ .precedence = PREC_NONE },
+        .TOKEN_MINUS_EQUAL => ParseRule{ .precedence = PREC_NONE },
+        .TOKEN_STAR_EQUAL => ParseRule{ .precedence = PREC_NONE },
+        .TOKEN_SLASH_EQUAL => ParseRule{ .precedence = PREC_NONE },
+        .TOKEN_PLUS_PLUS => ParseRule{ .precedence = PREC_CALL },
+        .TOKEN_MINUS_MINUS => ParseRule{ .precedence = PREC_CALL },
         // Literals
         .TOKEN_IDENTIFIER => ParseRule{ .prefix = &variable, .precedence = PREC_NONE },
         .TOKEN_SWITCH => ParseRule{ .precedence = PREC_NONE },
+        .TOKEN_CASE => ParseRule{ .precedence = PREC_NONE },
+        .TOKEN_BREAK => ParseRule{ .precedence = PREC_NONE },
         .TOKEN_STRING => ParseRule{ .prefix = &string, .precedence = PREC_NONE },
         .TOKEN_MULTILINE_STRING => ParseRule{ .prefix = &string, .precedence = PREC_NONE },
         .TOKEN_BACKTICK_STRING => ParseRule{ .prefix = &string, .precedence = PREC_NONE },
@@ -505,7 +519,6 @@ pub fn getRule(type_: TokenType) ParseRule {
         .TOKEN_EACH => ParseRule{ .precedence = PREC_NONE },
         .TOKEN_FUN => ParseRule{ .precedence = PREC_NONE },
         .TOKEN_IF => ParseRule{ .precedence = PREC_NONE },
-        .TOKEN_LET => ParseRule{ .precedence = PREC_NONE },
         .TOKEN_NIL => ParseRule{ .prefix = &literal, .precedence = PREC_NONE },
         .TOKEN_OR => ParseRule{ .infix = &or_, .precedence = PREC_OR },
         .TOKEN_PRINT => ParseRule{ .precedence = PREC_NONE },
@@ -515,25 +528,13 @@ pub fn getRule(type_: TokenType) ParseRule {
         .TOKEN_TRUE => ParseRule{ .prefix = &literal, .precedence = PREC_NONE },
         .TOKEN_VAR => ParseRule{ .precedence = PREC_NONE },
         .TOKEN_WHILE => ParseRule{ .precedence = PREC_NONE },
-        .TOKEN_ITEM => ParseRule{ .prefix = &literal, .precedence = PREC_NONE },
+        .TOKEN_ITEM => ParseRule{ .precedence = PREC_NONE },
         .TOKEN_FOREACH => ParseRule{ .precedence = PREC_NONE },
         .TOKEN_IN => ParseRule{ .precedence = PREC_NONE },
         .TOKEN_END => ParseRule{ .precedence = PREC_NONE },
         .TOKEN_CONST => ParseRule{ .precedence = PREC_NONE },
-
-        // Misc
-        .TOKEN_ERROR => ParseRule{ .precedence = PREC_NONE },
-        .TOKEN_EOF => ParseRule{ .precedence = PREC_NONE },
-        .TOKEN_PLUS_EQUAL => ParseRule{ .precedence = PREC_NONE },
-        .TOKEN_MINUS_EQUAL => ParseRule{ .precedence = PREC_NONE },
-        .TOKEN_STAR_EQUAL => ParseRule{ .precedence = PREC_NONE },
-        .TOKEN_SLASH_EQUAL => ParseRule{ .precedence = PREC_NONE },
-        .TOKEN_PLUS_PLUS => ParseRule{ .precedence = PREC_NONE },
-        .TOKEN_MINUS_MINUS => ParseRule{ .precedence = PREC_NONE },
-        .TOKEN_HAT => ParseRule{ .infix = &binary, .precedence = PREC_FACTOR },
-        .TOKEN_LEFT_SQPAREN => ParseRule{ .infix = &index_, .precedence = PREC_INDEX },
-        .TOKEN_RIGHT_SQPAREN => ParseRule{ .precedence = PREC_NONE },
-        .TOKEN_COLON => ParseRule{ .precedence = PREC_NONE },
+        .TOKEN_ARROW => ParseRule{ .precedence = PREC_NONE },
+        else => ParseRule{ .precedence = PREC_NONE },
     };
 }
 
@@ -1785,6 +1786,14 @@ pub fn switchStatement() void {
     consume(.TOKEN_RIGHT_PAREN, "Expect ')' after switch condition.");
     consume(.TOKEN_LEFT_BRACE, "Expect '{' before switch cases.");
 
+    // Store the switch expression value in a local variable
+    beginScope();
+    const switchVarSlot = current.?.localCount;
+    addLocal(syntheticToken("__switch_value"));
+    markInitialized();
+    emitByte(@intCast(@intFromEnum(OpCode.OP_SET_LOCAL)));
+    emitByte(@intCast(switchVarSlot));
+
     // Keep track of all end jumps - we'll patch these at the end
     var endJumps = std.ArrayList(i32).init(std.heap.page_allocator);
     defer endJumps.deinit();
@@ -1792,6 +1801,10 @@ pub fn switchStatement() void {
     // Track default case location and whether we've seen one
     var hasDefault = false;
     var defaultJump: i32 = -1;
+
+    // Track if we're in a case block for break statement handling
+    var inCaseBlock = false;
+    var breakJumpPos: i32 = -1;
 
     // Process each case until we reach the end of the switch block
     while (!check(.TOKEN_RIGHT_BRACE) and !check(.TOKEN_EOF)) {
@@ -1810,8 +1823,19 @@ pub fn switchStatement() void {
 
             // Parse the default case body
             if (match(.TOKEN_LEFT_BRACE)) {
+                inCaseBlock = true;
                 beginScope();
+
+                // Capture current position for break statements
+                breakJumpPos = @intCast(currentChunk().*.count);
+
                 block();
+
+                // Check for unconsumed break statements and handle them
+                if (inCaseBlock) {
+                    inCaseBlock = false;
+                }
+
                 endScope();
             } else {
                 expression();
@@ -1821,17 +1845,20 @@ pub fn switchStatement() void {
             // After the default case, jump to the end
             const endJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
             endJumps.append(endJump) catch unreachable;
-        } else {
-            // Regular case: expr => ...
+        } else if (check(.TOKEN_CASE)) {
+            // Handle case statement: case expr => ...
+            advance(); // consume 'case'
 
             // Evaluate the case expression
             expression();
+
+            // Get the switch value for comparison (gets the value we stored in the local)
+            emitByte(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)));
+            emitByte(@intCast(switchVarSlot));
+
             consume(.TOKEN_ARROW, "Expect '=>' after case value.");
 
-            // Make a copy of the switch value for comparison
-            emitByte(@intCast(@intFromEnum(OpCode.OP_DUP)));
-
-            // Compare the switch value with the case value
+            // Compare the case value with the switch value (on stack as: case_value, switch_value)
             emitByte(@intCast(@intFromEnum(OpCode.OP_EQUAL)));
 
             // If they're not equal, skip this case
@@ -1842,12 +1869,117 @@ pub fn switchStatement() void {
 
             // Parse case body
             if (match(.TOKEN_LEFT_BRACE)) {
+                inCaseBlock = true;
                 beginScope();
-                block();
+
+                // Capture current position for break statements
+                breakJumpPos = @intCast(currentChunk().*.count);
+
+                // Parse statements until we hit a break or the end of the block
+                while (!check(.TOKEN_RIGHT_BRACE) and !check(.TOKEN_EOF)) {
+                    if (match(.TOKEN_BREAK)) {
+                        consume(.TOKEN_SEMICOLON, "Expect ';' after break.");
+
+                        // Jump to the end of the switch statement
+                        const breakJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+                        endJumps.append(breakJump) catch unreachable;
+
+                        // No need to continue parsing this block
+                        break;
+                    } else {
+                        statement();
+                    }
+                }
+
+                // Reset case block tracking
+                inCaseBlock = false;
+
+                consume(.TOKEN_RIGHT_BRACE, "Expect '}' after case body.");
                 endScope();
             } else {
                 expression();
                 emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+
+                // Handle single-statement break
+                if (match(.TOKEN_BREAK)) {
+                    consume(.TOKEN_SEMICOLON, "Expect ';' after break.");
+
+                    // Jump to the end of the switch statement
+                    const breakJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+                    endJumps.append(breakJump) catch unreachable;
+                }
+            }
+
+            // After case body, jump to the end of the switch (if no break was encountered)
+            const endJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+            endJumps.append(endJump) catch unreachable;
+
+            // If comparison was false, skip to here (next case)
+            patchJump(skipCaseJump);
+
+            // No need to pop the switch value as we're using a local variable
+        } else {
+            // Original syntax: expr => ...
+
+            // Evaluate the case expression
+            expression();
+
+            // Get the switch value for comparison
+            emitByte(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)));
+            emitByte(@intCast(switchVarSlot));
+
+            consume(.TOKEN_ARROW, "Expect '=>' after case value.");
+
+            // Compare the case value with the switch value
+            emitByte(@intCast(@intFromEnum(OpCode.OP_EQUAL)));
+
+            // If they're not equal, skip this case
+            const skipCaseJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
+
+            // Pop the comparison result
+            emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+
+            // Parse case body
+            if (match(.TOKEN_LEFT_BRACE)) {
+                inCaseBlock = true;
+                beginScope();
+
+                // Capture current position for break statements
+                breakJumpPos = @intCast(currentChunk().*.count);
+
+                // Parse statements until we hit a break or the end of the block
+                while (!check(.TOKEN_RIGHT_BRACE) and !check(.TOKEN_EOF)) {
+                    if (match(.TOKEN_BREAK)) {
+                        consume(.TOKEN_SEMICOLON, "Expect ';' after break.");
+
+                        // Jump to the end of the switch statement
+                        const breakJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+                        endJumps.append(breakJump) catch unreachable;
+
+                        // No need to continue parsing this block
+                        break;
+                    } else {
+                        statement();
+                    }
+                }
+
+                // Reset case block tracking
+                inCaseBlock = false;
+
+                consume(.TOKEN_RIGHT_BRACE, "Expect '}' after case body.");
+                endScope();
+            } else {
+                expression();
+                emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+
+                // Handle single-statement break
+                if (match(.TOKEN_BREAK)) {
+                    consume(.TOKEN_SEMICOLON, "Expect ';' after break.");
+
+                    // Jump to the end of the switch statement
+                    const breakJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+                    endJumps.append(breakJump) catch unreachable;
+                }
             }
 
             // After case body, jump to the end of the switch
@@ -1857,8 +1989,7 @@ pub fn switchStatement() void {
             // If comparison was false, skip to here (next case)
             patchJump(skipCaseJump);
 
-            // Pop the switch value copy before trying the next case
-            emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+            // No need to pop the switch value as we're using a local variable
         }
 
         // Optional comma between cases
@@ -1868,15 +1999,15 @@ pub fn switchStatement() void {
     // If no case matched and we have a default case, jump to it
     if (hasDefault) {
         emitLoop(defaultJump);
-    } else {
-        // No default case, just pop the switch value
-        emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
     }
 
     // Patch all the end jumps to point to here
     for (endJumps.items) |endJump| {
         patchJump(endJump);
     }
+
+    // End the scope we created for the switch value
+    endScope();
 
     consume(.TOKEN_RIGHT_BRACE, "Expect '}' after switch cases.");
 }

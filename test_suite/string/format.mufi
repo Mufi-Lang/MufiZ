@@ -1,0 +1,4 @@
+var f = "hello bob!";
+var bob = "bob";
+var f2 = f("hello {}!", bob);
+assert(f, f2);

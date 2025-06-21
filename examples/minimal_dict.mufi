@@ -1,3 +1,0 @@
-// Minimal dictionary literal test
-var dict = {"key": "value"};
-print(dict["key"]);

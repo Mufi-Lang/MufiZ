@@ -1,5 +1,0 @@
-// Ultra minimal switch test
-var x = 1;
-switch (x) {
-  1 => print "One";
-}
