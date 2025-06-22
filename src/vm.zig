@@ -1319,6 +1319,89 @@ pub fn run() InterpretResult {
                     }
                     continue;
                 },
+                .OP_SLICE => {
+                    const end_index = pop();
+                    const start_index = pop();
+                    const object = pop();
+
+                    // For non-objects, return an error
+                    if (object.type != .VAL_OBJ or object.as.obj == null) {
+                        runtimeError("Cannot slice non-object value.", .{});
+                        return .INTERPRET_RUNTIME_ERROR;
+                    }
+
+                    // Currently only support slicing for float vectors
+                    if (object.as.obj.?.type != .OBJ_FVECTOR) {
+                        runtimeError("Slice operation only supported for float vectors.", .{});
+                        return .INTERPRET_RUNTIME_ERROR;
+                    }
+
+                    // Convert indices to integers if possible
+                    var start_idx: i32 = 0;
+                    var end_idx: i32 = 0;
+
+                    if (start_index.is_int()) {
+                        start_idx = start_index.as_num_int();
+                    } else if (start_index.is_double()) {
+                        start_idx = @as(i32, @intFromFloat(start_index.as_num_double()));
+                    } else {
+                        runtimeError("Start index must be a number.", .{});
+                        return .INTERPRET_RUNTIME_ERROR;
+                    }
+
+                    if (end_index.is_int()) {
+                        end_idx = end_index.as_num_int();
+                    } else if (end_index.is_double()) {
+                        end_idx = @as(i32, @intFromFloat(end_index.as_num_double()));
+                    } else {
+                        runtimeError("End index must be a number.", .{});
+                        return .INTERPRET_RUNTIME_ERROR;
+                    }
+
+                    const vector = @as(*fvec.FloatVector, @ptrCast(@alignCast(object.as.obj.?)));
+
+                    // Handle 'end' keyword (represented by -1)
+                    if (start_idx == -1) {
+                        start_idx = @as(i32, @intCast(vector.count)) - 1;
+                    } else if (start_idx < -1) {
+                        // Handle 'end-n' expressions
+                        start_idx = @as(i32, @intCast(vector.count)) + start_idx;
+                    }
+
+                    if (end_idx == -1) {
+                        end_idx = @as(i32, @intCast(vector.count)) - 1;
+                    } else if (end_idx < -1) {
+                        // Handle 'end-n' expressions
+                        end_idx = @as(i32, @intCast(vector.count)) + end_idx;
+                    }
+
+                    // Validate indices
+                    if (start_idx < 0 or start_idx >= vector.count) {
+                        runtimeError("Start index out of bounds: {} (count: {})", .{ start_idx, vector.count });
+                        return .INTERPRET_RUNTIME_ERROR;
+                    }
+
+                    if (end_idx < 0 or end_idx >= vector.count) {
+                        runtimeError("End index out of bounds: {} (count: {})", .{ end_idx, vector.count });
+                        return .INTERPRET_RUNTIME_ERROR;
+                    }
+
+                    // Ensure start <= end
+                    if (start_idx > end_idx) {
+                        runtimeError("Start index ({}) must be less than or equal to end index ({})", .{ start_idx, end_idx });
+                        return .INTERPRET_RUNTIME_ERROR;
+                    }
+
+                    // Create a new vector with the sliced elements
+                    const slice_size: usize = @intCast(end_idx - start_idx + 1);
+                    const result = fvec.FloatVector.init(slice_size);
+                    result.count = slice_size;
+
+                    @memcpy(result.data[0..slice_size], vector.data[@intCast(start_idx)..@intCast(end_idx + 1)]);
+
+                    push(Value.init_obj(@ptrCast(@alignCast(result))));
+                    continue;
+                },
                 .OP_SET_INDEX => {
                     const value = pop();
                     const index = pop();

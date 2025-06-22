@@ -2,7 +2,7 @@
    888 src/objects/fvec.zig
     43 src/objects/obj.zig
    104 src/chunk.zig
-  1800 src/compiler.zig
+  2121 src/compiler.zig
     65 src/conv.zig
   1481 src/cstd.zig
    173 src/debug.zig
@@ -15,7 +15,7 @@
    173 src/net.zig
    827 src/object.zig
    233 src/repl_error.zig
-   613 src/scanner.zig
+   622 src/scanner.zig
    106 src/simple_line.zig
    242 src/stdlib.zig
    151 src/syntax_min.zig
@@ -23,7 +23,7 @@
    160 src/system.zig
    324 src/table.zig
    638 src/value.zig
-  1427 src/vm.zig
+  1528 src/vm.zig
    920 src/stdlib/collections.zig
     66 src/stdlib/fs.zig
     20 src/stdlib/io.zig
@@ -32,4 +32,4 @@
     29 src/stdlib/time.zig
     77 src/stdlib/types.zig
    232 src/stdlib/utils.zig
- 13857 total
+ 14288 total

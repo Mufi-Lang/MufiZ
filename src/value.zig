@@ -461,7 +461,7 @@ pub fn valuesEqual(a: Value, b: Value) bool {
                         }
                     },
                     .OBJ_FVECTOR => {
-                        {
+                        
                             const vec_a: *FloatVector = @as(*FloatVector, @ptrCast(@alignCast(a.as.obj)));
                             const vec_b: *FloatVector = @as(*FloatVector, @ptrCast(@alignCast(b.as.obj)));
                             if (vec_a.*.count != vec_b.*.count) return false;
@@ -472,7 +472,7 @@ pub fn valuesEqual(a: Value, b: Value) bool {
                             }
 
                             return true;
-                        }
+                        
                     },
                     else => return false,
                 }

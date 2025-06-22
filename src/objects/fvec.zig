@@ -1,17 +1,18 @@
+const std = @import("std");
+
+const reallocate = @import("../memory.zig").reallocate;
+const allocateObject = @import("../object.zig").allocateObject;
 const obj_h = @import("obj.zig");
 const Obj = obj_h.Obj;
-const allocateObject = @import("../object.zig").allocateObject;
-const reallocate = @import("../memory.zig").reallocate;
-const std = @import("std");
 
 /// A dynamic vector implementation for floating point numbers.
 /// It provides automatic resizing when capacity is exhausted.
 pub const FloatVector = struct {
     obj: Obj,
-    size: usize,  // Current capacity
+    size: usize, // Current capacity
     count: usize, // Current number of elements
-    pos: usize,   // Current position for iterator methods
-    data: []f64,  // Underlying data storage
+    pos: usize, // Current position for iterator methods
+    data: []f64, // Underlying data storage
     sorted: bool, // Whether the vector is sorted
 
     const Self = *@This();
@@ -190,7 +191,7 @@ pub const FloatVector = struct {
         }
 
         // Copy all values at once
-        @memcpy(self.data[self.count..self.count + values.len], values);
+        @memcpy(self.data[self.count .. self.count + values.len], values);
         self.count += values.len;
         self.sorted = false;
     }
@@ -269,7 +270,7 @@ pub const FloatVector = struct {
         const result = FloatVector.init(slice_size);
         result.count = slice_size;
 
-        @memcpy(result.data[0..slice_size], self.data[start..end + 1]);
+        @memcpy(result.data[0..slice_size], self.data[start .. end + 1]);
         return result;
     }
 
@@ -287,7 +288,7 @@ pub const FloatVector = struct {
         }
 
         if (end + 1 < self.count) {
-            @memcpy(result.data[start..splice_size], self.data[end + 1..self.count]);
+            @memcpy(result.data[start..splice_size], self.data[end + 1 .. self.count]);
         }
 
         result.count = splice_size;

@@ -1398,7 +1398,10 @@ pub fn item_(canAssign: bool) void {
     variable(false);
 }
 pub fn index_(canAssign: bool) void {
-    // Check if we have an 'end' keyword
+    // Check if we're doing a slice operation or a regular index
+    var isSlice = false;
+
+    // Parse the start index
     if (check(.TOKEN_END)) {
         advance(); // consume 'end'
 
@@ -1408,22 +1411,50 @@ pub fn index_(canAssign: bool) void {
             emitConstant(Value.init_int(-1));
             parsePrecedence(@as(c_uint, @bitCast(PREC_UNARY)));
             emitByte(@intCast(@intFromEnum(OpCode.OP_SUBTRACT)));
-            consume(.TOKEN_RIGHT_SQPAREN, "Expect ']' after 'end-n' expression.");
         } else {
             // Simple 'end', use -1 as sentinel value
             emitConstant(Value.init_int(-1));
-            consume(.TOKEN_RIGHT_SQPAREN, "Expect ']' after 'end'.");
         }
     } else {
         // Regular index expression
         expression();
-        consume(.TOKEN_RIGHT_SQPAREN, "Expect ']' after index.");
     }
 
-    if (canAssign and match(.TOKEN_EQUAL)) {
+    // Check if we have a slice with colon
+    if (match(.TOKEN_COLON)) {
+        isSlice = true;
+
+        // Parse the end index
+        if (check(.TOKEN_END)) {
+            advance(); // consume 'end'
+
+            if (match(.TOKEN_MINUS)) {
+                // Parse the offset value for 'end - offset'
+                // Emit -1 first, then parse offset, then subtract
+                emitConstant(Value.init_int(-1));
+                parsePrecedence(@as(c_uint, @bitCast(PREC_UNARY)));
+                emitByte(@intCast(@intFromEnum(OpCode.OP_SUBTRACT)));
+            } else {
+                // Simple 'end', use -1 as sentinel value
+                emitConstant(Value.init_int(-1));
+            }
+        } else {
+            // Regular end index
+            expression();
+        }
+    }
+
+    consume(.TOKEN_RIGHT_SQPAREN, "Expect ']' after index expression.");
+
+    if (isSlice) {
+        // Handle slice operation
+        emitByte(@intCast(@intFromEnum(OpCode.OP_SLICE)));
+    } else if (canAssign and match(.TOKEN_EQUAL)) {
+        // Handle assignment to index
         expression();
         emitByte(@intCast(@intFromEnum(OpCode.OP_SET_INDEX)));
     } else {
+        // Handle regular indexing
         emitByte(@intCast(@intFromEnum(OpCode.OP_GET_INDEX)));
     }
 }
