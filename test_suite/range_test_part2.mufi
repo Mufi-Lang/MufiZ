@@ -1,0 +1,50 @@
+// Range Test Part 2: Range in Switch Statements
+// This file tests range patterns in switch statements in MufiZ
+// Created to test just the working parts of range features
+
+// --- Part 1: Range in Switch Statements with Literals ---
+print("--- Part 1: Range in Switch Statements with Literals ---");
+// Test literal values in switch with range patterns
+print("Testing switch with different values:");
+
+// Test with value in exclusive range
+var testValue = 3;
+print("\nValue: " + testValue);
+switch(testValue) {
+    case 1 => { print("Case: Exactly 1"); },
+    case 2..5 => { print("Case: In range 2..5 (exclusive)"); },
+    case 5..=10 => { print("Case: In range 5..=10 (inclusive)"); },
+    _ => { print("Case: Default"); }
+}
+
+// Test with value at boundary
+testValue = 5;
+print("\nValue: " + testValue);
+switch(testValue) {
+    case 1 => { print("Case: Exactly 1"); },
+    case 2..5 => { print("Case: In range 2..5 (exclusive)"); },
+    case 5..=10 => { print("Case: In range 5..=10 (inclusive)"); },
+    _ => { print("Case: Default"); }
+}
+
+// Test with value in inclusive range
+testValue = 7;
+print("\nValue: " + testValue);
+switch(testValue) {
+    case 1 => { print("Case: Exactly 1"); },
+    case 2..5 => { print("Case: In range 2..5 (exclusive)"); },
+    case 5..=10 => { print("Case: In range 5..=10 (inclusive)"); },
+    _ => { print("Case: Default"); }
+}
+
+// Test with value outside all ranges
+testValue = 20;
+print("\nValue: " + testValue);
+switch(testValue) {
+    case 1 => { print("Case: Exactly 1"); },
+    case 2..5 => { print("Case: In range 2..5 (exclusive)"); },
+    case 5..=10 => { print("Case: In range 5..=10 (inclusive)"); },
+    _ => { print("Case: Default"); }
+}
+
+print("\nRange Test Part 2 Completed!");

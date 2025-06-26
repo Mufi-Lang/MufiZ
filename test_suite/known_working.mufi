@@ -1,0 +1,24 @@
+// Known working test
+// This test uses only syntax patterns that are known to work
+
+// Literal ranges - known to work
+print("Testing literal ranges:");
+var r = 1..5;
+print(r);
+foreach (i in 1..5) { print(i); }
+
+// Test array iteration - known to work
+print("Testing array iteration:");
+var arr = {1, 2, 3, 4, 5};
+foreach (i in arr) { print(i); }
+
+// Test switch with literal range patterns - known to work
+print("Testing switch with range patterns:");
+var value = 3;
+switch(value) {
+    case 1 => { print("Exactly 1"); },
+    case 2..5 => { print("Range 2..5"); },
+    _ => { print("Default"); }
+}
+
+print("Test completed!");

@@ -1,0 +1,126 @@
+// Manual simulation of what foreach does internally
+// This should help identify where the issue occurs
+
+print("=== Manual Foreach Simulation Test ===");
+
+print("Creating test array...");
+var test_values = {0, 5, 10, 15, 20};
+print("Array created successfully");
+
+print("Manual indexing verification:");
+print("test_values[0] = " + test_values[0]);
+print("test_values[1] = " + test_values[1]);
+print("test_values[2] = " + test_values[2]);
+print("test_values[3] = " + test_values[3]);
+print("test_values[4] = " + test_values[4]);
+
+print("Starting manual foreach simulation...");
+
+// Step 1: Store collection (this is what foreach does internally)
+var __collection = test_values;
+print("Collection stored");
+
+// Step 2: Initialize index to 0
+var __index = 0;
+print("Index initialized to: " + __index);
+
+// Step 3: Check if we can determine collection length
+// Since we can't call .length directly, we'll use a manual approach
+print("Testing collection access at different indices:");
+
+// Step 4: Manual loop simulation
+print("=== Starting manual loop ===");
+
+// Iteration 0
+print("Iteration 0:");
+print("Current index: " + __index);
+print("Accessing __collection[" + __index + "]");
+var test_val = __collection[__index];
+print("Retrieved value: " + test_val);
+print("Executing 'loop body' for value: " + test_val);
+
+switch (test_val) {
+    case 0 => { print("Case: Exactly 0"); },
+    case 1..5 => { print("Case: Between 1 and 4"); },
+    case 5..=10 => { print("Case: Between 5 and 10 (inclusive)"); },
+    case 11..20 => { print("Case: Between 11 and 19"); },
+    _ => { print("Case: Default (20 or higher)"); }
+}
+
+__index = __index + 1;
+print("Incremented index to: " + __index);
+
+// Iteration 1
+print("\nIteration 1:");
+print("Current index: " + __index);
+print("Accessing __collection[" + __index + "]");
+test_val = __collection[__index];
+print("Retrieved value: " + test_val);
+print("Executing 'loop body' for value: " + test_val);
+
+switch (test_val) {
+    case 0 => { print("Case: Exactly 0"); },
+    case 1..5 => { print("Case: Between 1 and 4"); },
+    case 5..=10 => { print("Case: Between 5 and 10 (inclusive)"); },
+    case 11..20 => { print("Case: Between 11 and 19"); },
+    _ => { print("Case: Default (20 or higher)"); }
+}
+
+__index = __index + 1;
+print("Incremented index to: " + __index);
+
+// Iteration 2
+print("\nIteration 2:");
+print("Current index: " + __index);
+print("Accessing __collection[" + __index + "]");
+test_val = __collection[__index];
+print("Retrieved value: " + test_val);
+print("Executing 'loop body' for value: " + test_val);
+
+switch (test_val) {
+    case 0 => { print("Case: Exactly 0"); },
+    case 1..5 => { print("Case: Between 1 and 4"); },
+    case 5..=10 => { print("Case: Between 5 and 10 (inclusive)"); },
+    case 11..20 => { print("Case: Between 11 and 19"); },
+    _ => { print("Case: Default (20 or higher)"); }
+}
+
+__index = __index + 1;
+print("Incremented index to: " + __index);
+
+// Iteration 3 - This is where the error might occur
+print("\nIteration 3 (this might be where the error occurs):");
+print("Current index: " + __index);
+print("Accessing __collection[" + __index + "]");
+test_val = __collection[__index];
+print("Retrieved value: " + test_val);
+print("Executing 'loop body' for value: " + test_val);
+
+switch (test_val) {
+    case 0 => { print("Case: Exactly 0"); },
+    case 1..5 => { print("Case: Between 1 and 4"); },
+    case 5..=10 => { print("Case: Between 5 and 10 (inclusive)"); },
+    case 11..20 => { print("Case: Between 11 and 19"); },
+    _ => { print("Case: Default (20 or higher)"); }
+}
+
+__index = __index + 1;
+print("Incremented index to: " + __index);
+
+// Iteration 4
+print("\nIteration 4:");
+print("Current index: " + __index);
+print("Accessing __collection[" + __index + "]");
+test_val = __collection[__index];
+print("Retrieved value: " + test_val);
+print("Executing 'loop body' for value: " + test_val);
+
+switch (test_val) {
+    case 0 => { print("Case: Exactly 0"); },
+    case 1..5 => { print("Case: Between 1 and 4"); },
+    case 5..=10 => { print("Case: Between 5 and 10 (inclusive)"); },
+    case 11..20 => { print("Case: Between 11 and 19"); },
+    _ => { print("Case: Default (20 or higher)"); }
+}
+
+print("\n=== Manual simulation complete ===");

@@ -1,0 +1,48 @@
+// Range pattern switch test
+// This tests switch statements with range patterns
+
+// Test with value that falls within an exclusive range pattern
+var value = 3;
+print("Testing with value: " + value);
+
+switch(value){
+    case 1 => { print("Entered case 1"); },
+    case 2..5 => { print("Range 2..5 (exclusive): 2, 3, 4"); },
+    case 5..=10 => { print("Range 5..=10 (inclusive): 5, 6, 7, 8, 9, 10"); },
+    _ => { print("Default case"); }
+}
+
+// Test with value at boundary of exclusive and inclusive ranges
+value = 5;
+print("\nTesting with value: " + value);
+
+switch(value){
+    case 1 => { print("Entered case 1"); },
+    case 2..5 => { print("Range 2..5 (exclusive): 2, 3, 4"); },
+    case 5..=10 => { print("Range 5..=10 (inclusive): 5, 6, 7, 8, 9, 10"); },
+    _ => { print("Default case"); }
+}
+
+// Test with value in inclusive range
+value = 7;
+print("\nTesting with value: " + value);
+
+switch(value){
+    case 1 => { print("Entered case 1"); },
+    case 2..5 => { print("Range 2..5 (exclusive): 2, 3, 4"); },
+    case 5..=10 => { print("Range 5..=10 (inclusive): 5, 6, 7, 8, 9, 10"); },
+    _ => { print("Default case"); }
+}
+
+// Test with value that should hit default case
+value = 20;
+print("\nTesting with value: " + value);
+
+switch(value){
+    case 1 => { print("Entered case 1"); },
+    case 2..5 => { print("Range 2..5 (exclusive): 2, 3, 4"); },
+    case 5..=10 => { print("Range 5..=10 (inclusive): 5, 6, 7, 8, 9, 10"); },
+    _ => { print("Default case"); }
+}
+
+print("\nTest completed!");

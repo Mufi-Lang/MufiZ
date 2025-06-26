@@ -1,0 +1,32 @@
+// Basic range test - testing only the simplest range functionality
+
+// Literal ranges - known to work
+print("Literal range (1..5):");
+foreach (i in 1..5) {
+    print(i);  // Should print 1, 2, 3, 4
+}
+
+print("\nLiteral inclusive range (1..=5):");
+foreach (i in 1..=5) {
+    print(i);  // Should print 1, 2, 3, 4, 5
+}
+
+// Variable ranges
+print("\nVariable ranges:");
+var start = 10;
+var finish = 15;
+
+// Direct range creation and iteration
+print("\nDirect variable range (start..finish):");
+foreach (i in start..finish) {
+    print(i);  // Should print 10, 11, 12, 13, 14
+}
+
+// First create range as variable, then use in foreach
+print("\nRange stored in variable then used in foreach:");
+var range = 20..25;
+foreach (i in range) {
+    print(i);  // Should print 20, 21, 22, 23, 24
+}
+
+print("\nTest completed successfully!");

@@ -100,7 +100,9 @@ pub fn assert(argc: i32, args: [*]Value) Value {
         if (!valuesEqual(args[0], args[1])) {
             const value_type = conv.what_is(args[0]);
             const expected_type = conv.what_is(args[1]);
-            vm.runtimeError("Assertion failed: Expected '{s}', got '{s}'", .{ expected_type, value_type });
+            const actual_str = value_h.valueToString(args[0]);
+            const expected_str = value_h.valueToString(args[1]);
+            vm.runtimeError("Assertion failed: Expected value '{s}' ({s}), got '{s}' ({s})", .{ expected_str, expected_type, actual_str, value_type });
             return Value.init_nil();
         }
     } else {

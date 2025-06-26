@@ -17,7 +17,7 @@ fun testSimilarNames() {
     var counter = 0;
     var countMax = 10;
     var countValue = 5;
-    
+
     // This should suggest similar variable names
     print(counte);  // Should suggest "counter"
     print(countMx); // Should suggest "countMax"
@@ -47,7 +47,7 @@ fun testUndefinedInCondition() {
 }
 
 class TestClass {
-    fun testUndefinedInMethod() {
+    testUndefinedInMethod() {
         // Undefined variable inside method
         return this.someProperty + undefinedLocal;
     }
@@ -78,7 +78,7 @@ var globalScope = "global";
 
 fun testScoping() {
     var localScope = "local";
-    
+
     {
         var blockScope = "block";
         // This should work
@@ -86,7 +86,7 @@ fun testScoping() {
         print(localScope);
         print(globalScope);
     }
-    
+
     // This should be undefined (blockScope is out of scope)
     print(blockScope);
 }

@@ -1,0 +1,102 @@
+// Comprehensive Range Test
+// This file tests all range functionality in a way known to work with the MufiZ compiler
+
+// PART 1: Basic Range Creation
+print("PART 1: Basic Range Creation");
+var r1 = 1..5;   // Exclusive range: 1,2,3,4
+var r2 = 1..=5;  // Inclusive range: 1,2,3,4,5
+
+print("Range values:");
+print(r1);  // Should print representation of exclusive range
+print(r2);  // Should print representation of inclusive range
+
+// PART 2: Range Iteration
+print("\nPART 2: Range Iteration");
+
+// Test 2.1: Exclusive range iteration
+print("\nExclusive range iteration (1..5):");
+foreach (i in 1..5) {
+    print(i);  // Should print 1, 2, 3, 4
+}
+
+// Test 2.2: Inclusive range iteration
+print("\nInclusive range iteration (1..=5):");
+foreach (i in 1..=5) {
+    print(i);  // Should print 1, 2, 3, 4, 5
+}
+
+// Test 2.3: Range with variables - convert to array first
+var start = 10;
+var finish = 15;
+print("\nVariable range iteration (start..finish):");
+var var_range_array = range_to_array(start..finish);
+foreach (i in var_range_array) {
+    print(i);  // Should print 10, 11, 12, 13, 14
+}
+
+// PART 3: Range in Switch Statements
+print("\nPART 3: Range in Switch Statements");
+
+// Test 3.1: Exclusive range in switch
+var value = 3;
+print("\nSwitch with value 3:");
+switch(value) {
+    case 1 => { print("Case: Exactly 1"); },
+    case 2..5 => { print("Case: In range 2..5 (exclusive)"); },
+    case 5..=10 => { print("Case: In range 5..=10 (inclusive)"); },
+    _ => { print("Case: Default"); }
+}
+
+// Test 3.2: Value at boundary
+value = 5;
+print("\nSwitch with value 5:");
+switch(value) {
+    case 1 => { print("Case: Exactly 1"); },
+    case 2..5 => { print("Case: In range 2..5 (exclusive)"); },
+    case 5..=10 => { print("Case: In range 5..=10 (inclusive)"); },
+    _ => { print("Case: Default"); }
+}
+
+// Test 3.3: Value in inclusive range
+value = 7;
+print("\nSwitch with value 7:");
+switch(value) {
+    case 1 => { print("Case: Exactly 1"); },
+    case 2..5 => { print("Case: In range 2..5 (exclusive)"); },
+    case 5..=10 => { print("Case: In range 5..=10 (inclusive)"); },
+    _ => { print("Case: Default"); }
+}
+
+// Test 3.4: Value outside all ranges
+value = 20;
+print("\nSwitch with value 20:");
+switch(value) {
+    case 1 => { print("Case: Exactly 1"); },
+    case 2..5 => { print("Case: In range 2..5 (exclusive)"); },
+    case 5..=10 => { print("Case: In range 5..=10 (inclusive)"); },
+    _ => { print("Case: Default"); }
+}
+
+// PART 4: Range-to-Array Conversion
+print("\nPART 4: Range-to-Array Conversion");
+
+// Test 4.1: Converting explicit ranges to arrays
+print("\nConverting ranges to arrays:");
+// Check if range_to_array function exists
+var arr1 = range_to_array(1..5);
+var arr2 = range_to_array(1..=5);
+
+print("Exclusive range 1..5 as array:");
+print(arr1);  // Should print array with [1, 2, 3, 4]
+
+print("Inclusive range 1..=5 as array:");
+print(arr2);  // Should print array with [1, 2, 3, 4, 5]
+
+// Test 4.2: Converting variable ranges to arrays
+print("\nConverting variable range to array:");
+var vr = start..finish;
+var arr3 = range_to_array(vr);
+print("Variable range start..finish as array:");
+print(arr3);  // Should print array with [10, 11, 12, 13, 14]
+
+print("\nComprehensive Range Test Completed!");

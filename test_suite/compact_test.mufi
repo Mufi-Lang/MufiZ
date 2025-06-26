@@ -1,0 +1,6 @@
+// Compact range test
+print("Testing ranges:");
+var r1 = 1..5;
+print(r1); // Should return an array
+foreach (i in 1..5) { print(i); }
+print("Done testing ranges!");

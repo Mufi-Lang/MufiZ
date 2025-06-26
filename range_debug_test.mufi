@@ -1,0 +1,118 @@
+// Debug test for exclusive range iteration issues
+// This test focuses on the specific issue where exclusive ranges don't work in foreach loops
+
+print("=== Range Debug Test ===");
+
+print("Testing range creation and basic properties...");
+
+// Test 1: Create ranges and verify they exist
+print("\n--- Test 1: Range Creation ---");
+var exclusive_range = 1..5;   // Should be 1, 2, 3, 4
+var inclusive_range = 1..=5;  // Should be 1, 2, 3, 4, 5
+
+print("Exclusive range created: " + exclusive_range);
+print("Inclusive range created: " + inclusive_range);
+
+// Test 2: Manual indexing to verify range contents
+print("\n--- Test 2: Manual Indexing ---");
+print("Exclusive range manual access:");
+print("exclusive_range[0] = " + exclusive_range[0]);
+print("exclusive_range[1] = " + exclusive_range[1]);
+print("exclusive_range[2] = " + exclusive_range[2]);
+print("exclusive_range[3] = " + exclusive_range[3]);
+
+print("Inclusive range manual access:");
+print("inclusive_range[0] = " + inclusive_range[0]);
+print("inclusive_range[1] = " + inclusive_range[1]);
+print("inclusive_range[2] = " + inclusive_range[2]);
+print("inclusive_range[3] = " + inclusive_range[3]);
+print("inclusive_range[4] = " + inclusive_range[4]);
+
+// Test 3: Foreach with exclusive range (the problematic case)
+print("\n--- Test 3: Foreach with Exclusive Range ---");
+print("Starting foreach with exclusive range 1..5:");
+var exclusive_count = 0;
+foreach (val in exclusive_range) {
+    print("Exclusive foreach - value: " + val);
+    exclusive_count = exclusive_count + 1;
+}
+print("Exclusive range foreach iterations: " + exclusive_count);
+
+// Test 4: Foreach with inclusive range (should work)
+print("\n--- Test 4: Foreach with Inclusive Range ---");
+print("Starting foreach with inclusive range 1..=5:");
+var inclusive_count = 0;
+foreach (val in inclusive_range) {
+    print("Inclusive foreach - value: " + val);
+    inclusive_count = inclusive_count + 1;
+}
+print("Inclusive range foreach iterations: " + inclusive_count);
+
+// Test 5: Different exclusive ranges
+print("\n--- Test 5: Different Exclusive Ranges ---");
+
+print("Testing 0..3:");
+var range_0_3 = 0..3;
+var count_0_3 = 0;
+foreach (val in range_0_3) {
+    print("0..3 - value: " + val);
+    count_0_3 = count_0_3 + 1;
+}
+print("0..3 iterations: " + count_0_3);
+
+print("Testing 5..8:");
+var range_5_8 = 5..8;
+var count_5_8 = 0;
+foreach (val in range_5_8) {
+    print("5..8 - value: " + val);
+    count_5_8 = count_5_8 + 1;
+}
+print("5..8 iterations: " + count_5_8);
+
+// Test 6: Variable ranges
+print("\n--- Test 6: Variable Ranges ---");
+var start = 10;
+var end = 13;
+
+print("Testing variable exclusive range (start..end):");
+var var_excl_range = start..end;
+var var_exclusive_count = 0;
+foreach (val in var_excl_range) {
+    print("Variable exclusive - value: " + val);
+    var_exclusive_count = var_exclusive_count + 1;
+}
+print("Variable exclusive iterations: " + var_exclusive_count);
+
+print("Testing variable inclusive range (start..=end):");
+var var_incl_range = start..=end;
+var var_inclusive_count = 0;
+foreach (val in var_incl_range) {
+    print("Variable inclusive - value: " + val);
+    var_inclusive_count = var_inclusive_count + 1;
+}
+print("Variable inclusive iterations: " + var_inclusive_count);
+
+print("\n=== Summary ===");
+print("Exclusive 1..5 iterations: " + exclusive_count + " (expected: 4)");
+print("Inclusive 1..=5 iterations: " + inclusive_count + " (expected: 5)");
+print("Exclusive 0..3 iterations: " + count_0_3 + " (expected: 3)");
+print("Exclusive 5..8 iterations: " + count_5_8 + " (expected: 3)");
+print("Variable exclusive iterations: " + var_exclusive_count + " (expected: 3)");
+print("Variable inclusive iterations: " + var_inclusive_count + " (expected: 4)");
+
+print("\n=== Analysis ===");
+if (exclusive_count == 0) {
+    print("BUG CONFIRMED: Exclusive ranges don't work in foreach loops");
+} else if (exclusive_count != 4) {
+    print("BUG: Exclusive range has wrong iteration count");
+} else {
+    print("GOOD: Exclusive ranges work correctly");
+}
+
+if (inclusive_count == 5) {
+    print("GOOD: Inclusive ranges work correctly");
+} else {
+    print("BUG: Inclusive ranges have wrong iteration count");
+}
+
+print("\n=== Range Debug Test Complete ===");

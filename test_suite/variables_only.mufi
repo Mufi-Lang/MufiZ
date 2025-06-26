@@ -1,0 +1,26 @@
+// Variables-only test
+// This file tests only variable declarations without ranges
+
+// Define some variables
+var a = 1;
+var b = 2;
+var c = 3;
+
+// Print the variables
+print a;
+print b;
+print c;
+
+// Do some operations
+var sum = a + b + c;
+print "Sum:";
+print sum;
+
+// Create an array and iterate
+var arr = {1, 2, 3, 4, 5};
+print "Array:";
+foreach (x in arr) {
+    print x;
+}
+
+print "Test completed";

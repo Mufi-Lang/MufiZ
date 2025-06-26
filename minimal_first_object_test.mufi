@@ -1,0 +1,22 @@
+// Minimal test to isolate the "first object" issue
+// This test creates only one object and tries to iterate over it
+
+print("=== Minimal First Object Test ===");
+
+print("Test 1: First range only");
+var first_range = 1..5;
+print("Range created: " + first_range);
+
+var count = 0;
+foreach (val in first_range) {
+    print("Value: " + val);
+    count = count + 1;
+}
+print("Total iterations: " + count);
+
+print("Expected: 4, Actual: " + count);
+if (count == 4) {
+    print("PASS: First range works correctly");
+} else {
+    print("FAIL: First range does not work");
+}

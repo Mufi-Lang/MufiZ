@@ -1,21 +1,26 @@
 const std = @import("std");
 const print = std.debug.print;
+const exit = std.process.exit;
 
-const obj_h = @import("object.zig");
-const __obj = @import("objects/obj.zig");
 const debug_opts = @import("debug");
-const Obj = obj_h.Obj;
-const vm_h = @import("vm.zig");
-const value_h = @import("value.zig");
-const Value = value_h.Value;
-const table_h = @import("table.zig");
+
 const chunk_h = @import("chunk.zig");
+const mem_utils = @import("mem_utils.zig");
+const realloc = mem_utils.realloc;
+const free = mem_utils.free;
+const obj_h = @import("object.zig");
+const Obj = obj_h.Obj;
 const Node = obj_h.Node;
 const ObjHashTable = obj_h.ObjHashTable;
 const ObjMatrix = obj_h.ObjMatrix;
+const fvec = @import("objects/fvec.zig");
+const __obj = @import("objects/obj.zig");
+const table_h = @import("table.zig");
 const markTable = table_h.markTable;
 const freeTable = table_h.freeTable;
-const fvec = @import("objects/fvec.zig");
+const value_h = @import("value.zig");
+const Value = value_h.Value;
+const vm_h = @import("vm.zig");
 
 pub const GC_HEAP_GROW_FACTOR = 2;
 
@@ -30,15 +35,15 @@ pub const GCData = struct {
     state: GCState = .GC_IDLE,
     rootIndex: usize = 0,
     sweepingObject: ?*Obj = null,
-    
+
     // Generational GC data
     youngGen: ObjectList = .{},
     middleGen: ObjectList = .{},
     oldGen: ObjectList = .{},
-    
+
     // Cycle detection
     cycleRoots: ObjectList = .{},
-    
+
     // Collection counters
     youngCollections: u32 = 0,
     middleCollections: u32 = 0,
@@ -48,20 +53,20 @@ pub const GCData = struct {
 pub const ObjectList = struct {
     head: ?*Obj = null,
     count: usize = 0,
-    
+
     pub fn add(self: *ObjectList, obj: *Obj) void {
         obj.next = self.head;
         self.head = obj;
         self.count += 1;
     }
-    
+
     pub fn remove(self: *ObjectList, obj: *Obj) void {
         if (self.head == obj) {
             self.head = obj.next;
             self.count -= 1;
             return;
         }
-        
+
         var current = self.head;
         while (current) |curr| {
             if (curr.next == obj) {
@@ -75,12 +80,6 @@ pub const ObjectList = struct {
 };
 
 pub var gcData: GCData = .{};
-const exit = std.process.exit;
-
-const mem_utils = @import("mem_utils.zig");
-const realloc = mem_utils.realloc;
-const free = mem_utils.free;
-
 // Debug functions for monitoring GC activity
 pub fn printGCStats() void {
     if (debug_opts.log_gc) {
@@ -100,9 +99,7 @@ pub fn printGCStats() void {
 
 pub fn debugObjectGeneration(obj: *Obj, action: []const u8) void {
     if (debug_opts.log_gc) {
-        print("[{s}] Object {p} - Gen: {any}, Age: {d}, RefCount: {d}\n", .{
-            action, @as(*anyopaque, @ptrCast(obj)), obj.generation, obj.age, obj.refCount
-        });
+        print("[{s}] Object {p} - Gen: {any}, Age: {d}, RefCount: {d}\n", .{ action, @as(*anyopaque, @ptrCast(obj)), obj.generation, obj.age, obj.refCount });
     }
 }
 
@@ -150,23 +147,23 @@ pub fn incRef(object: ?*Obj) void {
     if (object == null) return;
     const obj = object.?;
     obj.refCount += 1;
-    
+
     if (debug_opts.log_gc) {
-        print("{p} inc ref to {d}\n", .{@as(*anyopaque, @ptrCast(obj)), obj.refCount});
+        print("{p} inc ref to {d}\n", .{ @as(*anyopaque, @ptrCast(obj)), obj.refCount });
     }
 }
 
 pub fn decRef(object: ?*Obj) void {
     if (object == null) return;
     const obj = object.?;
-    
+
     if (obj.refCount == 0) return;
     obj.refCount -= 1;
-    
+
     if (debug_opts.log_gc) {
-        print("{p} dec ref to {d}\n", .{@as(*anyopaque, @ptrCast(obj)), obj.refCount});
+        print("{p} dec ref to {d}\n", .{ @as(*anyopaque, @ptrCast(obj)), obj.refCount });
     }
-    
+
     // If ref count hits zero, immediately free (unless it might be in a cycle)
     if (obj.refCount == 0) {
         if (obj.cycleColor == .Purple) {
@@ -186,7 +183,7 @@ pub fn addToCycleRoots(obj: *Obj) void {
 
 pub fn markObject(object: ?*Obj) void {
     if (object == null) return;
-    
+
     const obj = object.?;
     if (obj.isMarked) return;
 
@@ -215,23 +212,23 @@ pub fn markValue(value: Value) void {
 pub fn collectGarbage() void {
     // First try cycle collection
     collectCycles();
-    
+
     // Then do generational collection based on allocation pressure
     if (shouldCollectYoung()) {
         collectGeneration(.Young);
         gcData.youngCollections += 1;
     }
-    
+
     if (shouldCollectMiddle()) {
         collectGeneration(.Middle);
         gcData.middleCollections += 1;
     }
-    
+
     if (shouldCollectOld()) {
         collectGeneration(.Old);
         gcData.oldCollections += 1;
     }
-    
+
     // Fallback to traditional GC if needed
     while (gcData.state != .GC_IDLE) {
         incrementalGC();
@@ -255,27 +252,27 @@ pub fn collectGeneration(gen: __obj.Generation) void {
         print("Starting collection for generation {any}\n", .{gen});
         printGCStats();
     }
-    
+
     const list = switch (gen) {
         .Young => &gcData.youngGen,
         .Middle => &gcData.middleGen,
         .Old => &gcData.oldGen,
     };
-    
+
     const startTime = std.time.milliTimestamp();
     const initialCount = list.count;
-    
+
     // Mark phase - mark all reachable objects
     markRootsForGeneration(gen);
-    
+
     // Sweep phase - free unmarked objects and age survivors
     sweepGeneration(list, gen);
-    
+
     if (debug_opts.log_gc) {
         const endTime = std.time.milliTimestamp();
         const collected = initialCount - list.count;
-        print("Generation {any} collection completed in {d}ms\n", .{gen, endTime - startTime});
-        print("Collected {d} objects, {d} remaining\n", .{collected, list.count});
+        print("Generation {any} collection completed in {d}ms\n", .{ gen, endTime - startTime });
+        print("Collected {d} objects, {d} remaining\n", .{ collected, list.count });
         printGCStats();
     }
 }
@@ -287,12 +284,12 @@ pub fn markRootsForGeneration(gen: __obj.Generation) void {
     for (0..stackItemCount) |i| {
         markValueForGeneration(vm_h.vm.stack[i], gen);
     }
-    
+
     // Mark frame roots
     for (0..@intCast(vm_h.vm.frameCount)) |i| {
         markObjectForGeneration(@ptrCast(@alignCast(vm_h.vm.frames[i].closure)), gen);
     }
-    
+
     // Mark global roots
     markTableForGeneration(&vm_h.vm.globals, gen);
     markObjectForGeneration(@ptrCast(@alignCast(vm_h.vm.initString)), gen);
@@ -307,13 +304,13 @@ pub fn markValueForGeneration(value: Value, gen: __obj.Generation) void {
 pub fn markObjectForGeneration(object: ?*Obj, gen: __obj.Generation) void {
     if (object == null) return;
     const obj = object.?;
-    
+
     // Only mark objects in this generation or younger
     if (@intFromEnum(obj.generation) > @intFromEnum(gen)) return;
-    
+
     if (obj.isMarked) return;
     obj.isMarked = true;
-    
+
     // Add to gray stack for processing
     if (vm_h.vm.grayCapacity < (vm_h.vm.grayCount + 1)) {
         vm_h.vm.grayCapacity = if (vm_h.vm.grayCapacity < 8) 8 else vm_h.vm.grayCapacity * 2;
@@ -338,15 +335,15 @@ pub fn markTableForGeneration(table: *table_h.Table, gen: __obj.Generation) void
 pub fn sweepGeneration(list: *ObjectList, gen: __obj.Generation) void {
     var current = list.head;
     var prev: ?*Obj = null;
-    
+
     while (current) |obj| {
         const next = obj.next;
-        
+
         if (obj.isMarked) {
             // Object survived - age it and potentially promote
             obj.isMarked = false;
             obj.age += 1;
-            
+
             if (shouldPromote(obj, gen)) {
                 promoteObject(obj, gen);
                 // Remove from current list
@@ -369,7 +366,7 @@ pub fn sweepGeneration(list: *ObjectList, gen: __obj.Generation) void {
             list.count -= 1;
             freeObject(obj);
         }
-        
+
         current = next;
     }
 }
@@ -388,18 +385,18 @@ pub fn promoteObject(obj: *Obj, fromGen: __obj.Generation) void {
         .Middle => .Old,
         .Old => .Old,
     };
-    
+
     obj.generation = newGen;
     obj.age = 0;
-    
+
     const targetList = switch (newGen) {
         .Young => &gcData.youngGen,
         .Middle => &gcData.middleGen,
         .Old => &gcData.oldGen,
     };
-    
+
     targetList.add(obj);
-    
+
     debugObjectGeneration(obj, "PROMOTE");
 }
 
@@ -408,11 +405,11 @@ pub fn collectCycles() void {
     if (debug_opts.log_gc) {
         print("Starting cycle collection with {d} roots\n", .{gcData.cycleRoots.count});
     }
-    
+
     const startTime = std.time.milliTimestamp();
     const initialRoots = gcData.cycleRoots.count;
     var cyclesCollected: u32 = 0;
-    
+
     // Mark possible cycle roots
     var current = gcData.cycleRoots.head;
     while (current) |obj| {
@@ -421,7 +418,7 @@ pub fn collectCycles() void {
         }
         current = obj.next;
     }
-    
+
     // Scan for cycles
     current = gcData.cycleRoots.head;
     while (current) |obj| {
@@ -430,13 +427,13 @@ pub fn collectCycles() void {
         }
         current = obj.next;
     }
-    
+
     // Collect white objects (garbage cycles)
     current = gcData.cycleRoots.head;
     var prev: ?*Obj = null;
     while (current) |obj| {
         const next = obj.next;
-        
+
         if (obj.cycleColor == .White) {
             collectWhite(obj);
             cyclesCollected += 1;
@@ -452,31 +449,31 @@ pub fn collectCycles() void {
             obj.inCycleDetection = false;
             prev = obj;
         }
-        
+
         current = next;
     }
-    
+
     if (debug_opts.log_gc) {
         const endTime = std.time.milliTimestamp();
         print("Cycle collection completed in {d}ms\n", .{endTime - startTime});
-        print("Processed {d} roots, collected {d} cycles\n", .{initialRoots, cyclesCollected});
+        print("Processed {d} roots, collected {d} cycles\n", .{ initialRoots, cyclesCollected });
     }
 }
 
 pub fn markCycleRoots(obj: *Obj) void {
     if (obj.cycleColor != .Purple) return;
     obj.cycleColor = .Gray;
-    
+
     // Decrement ref count of children
     decrementChildren(obj);
-    
+
     // Add children to processing queue
     addChildrenToCycleDetection(obj);
 }
 
 pub fn scanCycles(obj: *Obj) void {
     if (obj.cycleColor != .Gray) return;
-    
+
     if (obj.refCount > 0) {
         // Object is still reachable
         scanBlack(obj);
@@ -602,7 +599,7 @@ pub fn freeObjects() void {
         freeObject(@ptrCast(@alignCast(current)));
         object = next;
     }
-    
+
     // Clear hybrid GC lists without freeing (objects already freed above)
     gcData.youngGen.head = null;
     gcData.youngGen.count = 0;
@@ -612,7 +609,7 @@ pub fn freeObjects() void {
     gcData.oldGen.count = 0;
     gcData.cycleRoots.head = null;
     gcData.cycleRoots.count = 0;
-    
+
     if (vm_h.vm.grayStack) |stack| {
         free(@ptrCast(stack));
     }
@@ -676,6 +673,9 @@ pub fn freeObject(object: *Obj) void {
             const fvector: *obj_h.FloatVector = @ptrCast(@alignCast(object));
             fvec.FloatVector.deinit(fvector);
         },
+        .OBJ_RANGE => {
+            _ = reallocate(@ptrCast(object), @sizeOf(obj_h.ObjRange), 0);
+        },
     }
 }
 
@@ -691,6 +691,9 @@ pub fn blackenObject(object: *Obj) void {
             const bound: *obj_h.ObjBoundMethod = @ptrCast(@alignCast(object));
             markValue(bound.*.receiver);
             markObject(@ptrCast(@alignCast(bound.*.method)));
+        },
+        .OBJ_RANGE => {
+            // ObjRange has no GC-managed fields to mark
         },
         .OBJ_CLASS => {
             var klass: *obj_h.ObjClass = @ptrCast(@alignCast(object));

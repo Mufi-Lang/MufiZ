@@ -1,0 +1,18 @@
+// Fixed Variable Declarations Test
+// This file tests basic variable declarations and printing their values
+
+// Declare variables
+var a = 10;
+var b = 20;
+var c = 30;
+
+// Print variables
+print("Variable a: " + a);
+print("Variable b: " + b);
+print("Variable c: " + c);
+
+// Perform basic operations
+var sum = a + b + c;
+print("Sum of a, b, and c: " + sum);
+
+print("Test completed!");

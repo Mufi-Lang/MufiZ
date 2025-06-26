@@ -1,0 +1,41 @@
+// Simple range test file for MufiZ
+// Tests basic range functionality
+
+// Create some ranges
+var r1 = 1..5;   // Exclusive range: 1,2,3,4
+var r2 = 1..=5;  // Inclusive range: 1,2,3,4,5
+
+// Print the ranges
+print("Range representation:");
+print(r1);
+print(r2);
+
+// Convert ranges to arrays
+var arr1 = range_to_array(1..5);    // Using range_to_array() function: [1,2,3,4]
+var arr2 = range_to_array(1..=5); // Using range_to_array() with inclusive range: [1,2,3,4,5]
+
+print("\nRanges as arrays:");
+print(arr1);
+print(arr2);
+
+// Test range iteration
+print("\nExclusive range iteration (1..5):");
+foreach (i in 1..5) {
+  print(i);
+}
+
+print("\nInclusive range iteration (1..=5):");
+foreach (i in 1..=5) {
+  print(i);
+}
+
+// Test range with variables - convert to array first
+var start = 10;
+var finish = 15;
+print("\nRange with variables (start..finish):");
+var var_array = range_to_array(start..finish);
+foreach (i in var_array) {
+  print(i);
+}
+
+print("\nSimple range test completed!");

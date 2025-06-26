@@ -1,0 +1,36 @@
+// Test for range_to_array function
+// This file demonstrates conversion of ranges to arrays (FloatVectors)
+
+// Simple literal ranges
+var r1 = 1..5;    // Exclusive range: 1, 2, 3, 4
+var r2 = 1..=5;   // Inclusive range: 1, 2, 3, 4, 5
+
+print("Basic ranges:");
+print(r1);  // Should print "1..5"
+print(r2);  // Should print "1..=5"
+
+// Convert to arrays
+var a1 = range_to_array(r1);
+var a2 = range_to_array(r2);
+
+print("\nAfter conversion to arrays:");
+print(a1);  // Should print vector with [1, 2, 3, 4]
+print(a2);  // Should print vector with [1, 2, 3, 4, 5]
+
+// Test array operations
+print("\nArray lengths:");
+print(len(a1));  // Should be 4
+print(len(a2));  // Should be 5
+
+// Verify values with iteration
+print("\nVerifying a1 values:");
+for (var i = 0; i < len(a1); i = i + 1) {
+    print(nth(a1, i));  // Should print 1, 2, 3, 4
+}
+
+print("\nVerifying a2 values:");
+for (var i = 0; i < len(a2); i = i + 1) {
+    print(nth(a2, i));  // Should print 1, 2, 3, 4, 5
+}
+
+print("\nTest completed successfully!");

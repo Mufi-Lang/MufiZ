@@ -1,0 +1,11 @@
+// Single Variable Test
+// This file tests a single variable declaration and a print statement
+
+// Declare a single variable
+var x = 42;
+
+// Print the variable
+print("The value of x is: " + x);
+
+// End of test
+print("Test completed!");

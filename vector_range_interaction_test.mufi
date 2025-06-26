@@ -1,0 +1,141 @@
+// Test the specific interaction between float vectors and ranges
+// This test focuses on the hypothesis that ranges fail after float vectors are created
+
+print("=== Vector-Range Interaction Test ===");
+
+print("Testing if float vectors affect subsequent range creation...");
+
+// Test 1: Create vector, then test range
+print("\n--- Test 1: Vector then Range ---");
+var vector1 = {1, 2, 3};
+print("Vector created: " + vector1);
+
+var range1 = 1..4;
+print("Range created after vector: " + range1);
+
+var count1 = 0;
+foreach (val in range1) {
+    print("Range1 value: " + val);
+    count1 = count1 + 1;
+}
+print("Range1 iterations: " + count1 + " (expected: 3)");
+
+// Test 2: Create another vector, then another range
+print("\n--- Test 2: Second Vector then Range ---");
+var vector2 = {10, 20};
+print("Second vector created: " + vector2);
+
+var range2 = 5..8;
+print("Second range created: " + range2);
+
+var count2 = 0;
+foreach (val in range2) {
+    print("Range2 value: " + val);
+    count2 = count2 + 1;
+}
+print("Range2 iterations: " + count2 + " (expected: 3)");
+
+// Test 3: Test if vectors still work after creating ranges
+print("\n--- Test 3: Vector iteration after ranges ---");
+print("Testing vector1 iteration:");
+var vector1_count = 0;
+foreach (val in vector1) {
+    print("Vector1 value: " + val);
+    vector1_count = vector1_count + 1;
+}
+print("Vector1 iterations: " + vector1_count + " (expected: 3)");
+
+print("Testing vector2 iteration:");
+var vector2_count = 0;
+foreach (val in vector2) {
+    print("Vector2 value: " + val);
+    vector2_count = vector2_count + 1;
+}
+print("Vector2 iterations: " + vector2_count + " (expected: 2)");
+
+// Test 4: Create the specific problematic vector
+print("\n--- Test 4: Problematic Vector Test ---");
+var problematic = {0, 5, 10, 15, 20};
+print("Problematic vector created: " + problematic);
+
+var range3 = 1..3;
+print("Range after problematic vector: " + range3);
+
+var count3 = 0;
+foreach (val in range3) {
+    print("Range3 value: " + val);
+    count3 = count3 + 1;
+}
+print("Range3 iterations: " + count3 + " (expected: 2)");
+
+// Test 5: Test inclusive ranges
+print("\n--- Test 5: Inclusive Ranges ---");
+var inclusive_range = 1..=3;
+print("Inclusive range created: " + inclusive_range);
+
+var inclusive_count = 0;
+foreach (val in inclusive_range) {
+    print("Inclusive value: " + val);
+    inclusive_count = inclusive_count + 1;
+}
+print("Inclusive iterations: " + inclusive_count + " (expected: 3)");
+
+// Test 6: Multiple ranges in sequence
+print("\n--- Test 6: Multiple Ranges in Sequence ---");
+var seq_range1 = 10..12;
+var seq_range2 = 20..22;
+var seq_range3 = 30..32;
+
+print("Testing sequential ranges:");
+
+var seq_count1 = 0;
+foreach (val in seq_range1) {
+    seq_count1 = seq_count1 + 1;
+}
+
+var seq_count2 = 0;
+foreach (val in seq_range2) {
+    seq_count2 = seq_count2 + 1;
+}
+
+var seq_count3 = 0;
+foreach (val in seq_range3) {
+    seq_count3 = seq_count3 + 1;
+}
+
+print("Sequential range counts: " + seq_count1 + ", " + seq_count2 + ", " + seq_count3);
+
+print("\n=== Results Summary ===");
+print("Range after first vector: " + count1 + "/3");
+print("Range after second vector: " + count2 + "/3");
+print("Vector1 after ranges: " + vector1_count + "/3");
+print("Vector2 after ranges: " + vector2_count + "/2");
+print("Range after problematic vector: " + count3 + "/2");
+print("Inclusive range: " + inclusive_count + "/3");
+print("Sequential ranges: " + seq_count1 + "/2, " + seq_count2 + "/2, " + seq_count3 + "/2");
+
+print("\n=== Analysis ===");
+var ranges_fail_after_vectors = (count1 == 0 or count2 == 0 or count3 == 0);
+var vectors_work = (vector1_count == 3 and vector2_count == 2);
+var inclusive_works = (inclusive_count == 3);
+
+if (ranges_fail_after_vectors) {
+    print("CONFIRMED: Ranges fail after float vectors are created");
+    print("This suggests memory corruption or object interference");
+} else {
+    print("UNEXPECTED: Ranges work correctly after vectors");
+}
+
+if (vectors_work) {
+    print("GOOD: Vectors themselves work correctly");
+} else {
+    print("ISSUE: Vectors also affected");
+}
+
+if (inclusive_works) {
+    print("INTERESTING: Inclusive ranges work differently than exclusive");
+} else {
+    print("CONSISTENT: Inclusive ranges also fail");
+}
+
+print("\n=== Vector-Range Interaction Test Complete ===");

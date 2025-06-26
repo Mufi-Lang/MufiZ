@@ -1,0 +1,164 @@
+// Debug test to understand what happens to collection objects during foreach iteration
+// This test will help identify when and why objects become invalid during iteration
+
+print("=== Collection Debug Test ===");
+
+print("Testing collection object state during foreach iteration...");
+
+// Test 1: Debug the problematic array {0, 5, 10, 15, 20}
+print("\n--- Test 1: Debug Problematic Array ---");
+var problematic_array = {0, 5, 10, 15, 20};
+print("Created problematic array: " + problematic_array);
+
+print("Manual access verification:");
+print("problematic_array[0] = " + problematic_array[0]);
+print("problematic_array[1] = " + problematic_array[1]);
+print("problematic_array[2] = " + problematic_array[2]);
+print("problematic_array[3] = " + problematic_array[3]);
+print("problematic_array[4] = " + problematic_array[4]);
+
+print("Starting foreach with debug prints:");
+var iteration = 0;
+foreach (val in problematic_array) {
+    print("=== Iteration " + iteration + " ===");
+    print("Current value: " + val);
+    print("Array object still valid: " + problematic_array);
+
+    // Try to access array manually during iteration
+    if (iteration == 0) {
+        print("Manual access during iteration 0:");
+        print("  problematic_array[0] = " + problematic_array[0]);
+        print("  problematic_array[1] = " + problematic_array[1]);
+    }
+
+    if (iteration == 2) {
+        print("Manual access during iteration 2:");
+        print("  problematic_array[2] = " + problematic_array[2]);
+        print("  problematic_array[3] = " + problematic_array[3]);
+    }
+
+    iteration = iteration + 1;
+    print("=== End Iteration " + (iteration - 1) + " ===");
+}
+print("Foreach completed. Total iterations: " + iteration);
+
+// Test 2: Compare with working array
+print("\n--- Test 2: Compare with Working Array ---");
+var working_array = {1, 2, 3, 4, 5};
+print("Created working array: " + working_array);
+
+var working_iteration = 0;
+foreach (val in working_array) {
+    print("Working iteration " + working_iteration + ": " + val);
+    working_iteration = working_iteration + 1;
+}
+print("Working array iterations: " + working_iteration);
+
+// Test 3: Test array creation order
+print("\n--- Test 3: Array Creation Order ---");
+print("Creating first array:");
+var first_array = {10, 20, 30};
+print("First array: " + first_array);
+
+print("Creating second array:");
+var second_array = {0, 5, 10, 15, 20};
+print("Second array: " + second_array);
+
+print("Testing first array foreach:");
+var first_count = 0;
+foreach (val in first_array) {
+    print("First array value: " + val);
+    first_count = first_count + 1;
+}
+print("First array count: " + first_count);
+
+print("Testing second array foreach:");
+var second_count = 0;
+foreach (val in second_array) {
+    print("Second array value: " + val);
+    second_count = second_count + 1;
+}
+print("Second array count: " + second_count);
+
+// Test 4: Test ranges
+print("\n--- Test 4: Range Debug ---");
+print("Creating first range:");
+var first_range = 1..5;
+print("First range: " + first_range);
+
+print("Creating second range:");
+var second_range = 1..5;
+print("Second range: " + second_range);
+
+print("Testing first range foreach:");
+var first_range_count = 0;
+foreach (val in first_range) {
+    print("First range value: " + val);
+    first_range_count = first_range_count + 1;
+}
+print("First range count: " + first_range_count);
+
+print("Testing second range foreach:");
+var second_range_count = 0;
+foreach (val in second_range) {
+    print("Second range value: " + val);
+    second_range_count = second_range_count + 1;
+}
+print("Second range count: " + second_range_count);
+
+// Test 5: Minimal reproduction
+print("\n--- Test 5: Minimal Reproduction ---");
+print("Attempting to reproduce the exact failing scenario...");
+
+// Create the exact sequence from the original failing test
+var test_range_excl = 1..5;
+print("Exclusive range created: " + test_range_excl);
+
+print("Testing exclusive range:");
+var excl_count = 0;
+foreach (i in test_range_excl) {
+    print("Exclusive range value: " + i);
+    excl_count = excl_count + 1;
+}
+print("Exclusive range iterations: " + excl_count);
+
+var test_range_incl = 1..=5;
+print("Inclusive range created: " + test_range_incl);
+
+print("Testing inclusive range:");
+var incl_count = 0;
+foreach (i in test_range_incl) {
+    print("Inclusive range value: " + i);
+    incl_count = incl_count + 1;
+}
+print("Inclusive range iterations: " + incl_count);
+
+print("Creating the problematic test_values array:");
+var test_values = {0, 5, 10, 15, 20};
+print("Array created: " + test_values);
+
+print("Starting problematic foreach:");
+foreach (test_val in test_values) {
+    print("Processing test_val: " + test_val);
+
+    // Simulate what the original test does
+    switch (test_val) {
+        case 0 => { print("Case: Exactly 0"); },
+        case 1..5 => { print("Case: Between 1 and 4"); },
+        case 5..=10 => { print("Case: Between 5 and 10 (inclusive)"); },
+        case 11..20 => { print("Case: Between 11 and 19"); },
+        _ => { print("Case: Default (20 or higher)"); }
+    }
+}
+
+print("\n=== Debug Test Summary ===");
+print("Problematic array iterations: " + iteration);
+print("Working array iterations: " + working_iteration);
+print("First array iterations: " + first_count);
+print("Second array iterations: " + second_count);
+print("First range iterations: " + first_range_count);
+print("Second range iterations: " + second_range_count);
+print("Exclusive range iterations: " + excl_count);
+print("Inclusive range iterations: " + incl_count);
+
+print("\n=== Collection Debug Test Complete ===");

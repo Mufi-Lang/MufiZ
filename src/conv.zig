@@ -1,15 +1,15 @@
 const std = @import("std");
 const JValue = std.json.Value;
-const value_h = @import("value.zig");
+
 const obj_h = @import("object.zig");
-const Value = value_h.Value;
-const ValueType = value_h.ValueType;
 const Obj = obj_h.Obj;
 const ObjType = obj_h.ObjType;
 const ObjString = obj_h.ObjString;
 const ObjClass = obj_h.ObjClass;
 const ObjInstance = obj_h.ObjInstance;
-
+const value_h = @import("value.zig");
+const Value = value_h.Value;
+const ValueType = value_h.ValueType;
 pub const Complex = value_h.Complex;
 
 /// Returns the type of the given value
@@ -33,6 +33,7 @@ pub fn what_is(val: Value) []const u8 {
                 .OBJ_LINKED_LIST => return "Linked List",
                 .OBJ_HASH_TABLE => return "Hash Table",
                 .OBJ_FVECTOR => return "Float Vector",
+                .OBJ_RANGE => return "Range",
             }
         },
         .VAL_COMPLEX => return "Complex",

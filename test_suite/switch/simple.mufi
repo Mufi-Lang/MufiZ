@@ -1,7 +1,9 @@
 var a = 3;
+print("Switch value: " + a);
 
 switch(a){
-    case 1 => { assert(1, a); break;},
-    case 2 => { assert(2, a); break;},
-    case 3 => { assert(3, a); break;}
+    case 1 => { print("Entered case 1"); assert(a, 1); break;},
+    case 2 => { print("Entered case 2"); assert(a, 2); break;},
+    case 3 => { print("Entered case 3"); assert(a, 3); break;}
 }
+print("End of switch");

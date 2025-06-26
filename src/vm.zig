@@ -41,6 +41,8 @@ const ObjClass = object_h.ObjClass;
 const copyString = object_h.copyString;
 const fvec = @import("objects/fvec.zig");
 const FloatVector = fvec.FloatVector;
+const obj_range = @import("objects/range.zig");
+const ObjRange = obj_range.ObjRange;
 const table_h = @import("table.zig");
 const tableGet = table_h.tableGet;
 const tableSet = table_h.tableSet;
@@ -629,9 +631,18 @@ fn get_slot(frame: *CallFrame) u8 {
     // const tmp = ref.*;
     // ref.* += 1;
     // return tmp.*;
-    const result = frame.ip[0];
-    frame.ip += 1;
+    const result = frame.*.ip[0];
+    frame.*.ip += 1;
     return result;
+}
+
+fn getConstant(frame: *CallFrame, index: u8) ?Value {
+    // Bounds check for constants array access
+    if (index >= frame.*.closure.*.function.*.chunk.constants.count) {
+        runtimeError("Invalid constant index: {d}. Constants count: {d}. This may indicate corrupted bytecode.", .{ index, frame.*.closure.*.function.*.chunk.constants.count });
+        return null;
+    }
+    return frame.*.closure.*.function.*.chunk.constants.values[index];
 }
 
 /// Reads a 16-bit big-endian value from bytecode at the current instruction pointer
@@ -674,11 +685,26 @@ pub fn run() InterpretResult {
         while (true) {
             const instruction = frame.*.ip[0];
             frame.*.ip += 1;
+
+            // Validate instruction is within valid OpCode range
+            if (instruction > 54) {
+                runtimeError("Invalid bytecode instruction: {d}. This may indicate corrupted bytecode.", .{instruction});
+                return .INTERPRET_RUNTIME_ERROR;
+            }
+
             switch (@as(chunk_h.OpCode, @enumFromInt(instruction))) {
                 .OP_CONSTANT => {
                     // C: (frame->closure->function->chunk.constants.values[(*frame->ip++)])
-                    const constant = frame.*.closure.*.function.*.chunk.constants.values[frame.*.ip[0]];
+                    const constant_index = frame.*.ip[0];
                     frame.*.ip += 1;
+
+                    // Bounds check for constants array access
+                    if (constant_index >= frame.*.closure.*.function.*.chunk.constants.count) {
+                        runtimeError("Invalid constant index: {d}. Constants count: {d}. This may indicate corrupted bytecode.", .{ constant_index, frame.*.closure.*.function.*.chunk.constants.count });
+                        return .INTERPRET_RUNTIME_ERROR;
+                    }
+
+                    const constant = frame.*.closure.*.function.*.chunk.constants.values[constant_index];
                     push(constant);
                     continue;
                 },
@@ -709,9 +735,9 @@ pub fn run() InterpretResult {
                     continue;
                 },
                 .OP_GET_GLOBAL => {
-                    const name: *ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
-                        get_slot(frame)
-                    ].as.obj));
+                    const constant = getConstant(frame, get_slot(frame));
+                    if (constant == null) return .INTERPRET_RUNTIME_ERROR;
+                    const name: *ObjString = @ptrCast(@alignCast(constant.?.as.obj));
                     var value: Value = undefined;
                     if (!tableGet(&vm.globals, name, &value)) {
                         const varName = zstr(name);
@@ -729,17 +755,17 @@ pub fn run() InterpretResult {
                     continue;
                 },
                 .OP_DEFINE_GLOBAL => {
-                    const name: *ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
-                        get_slot(frame)
-                    ].as.obj));
+                    const constant = getConstant(frame, get_slot(frame));
+                    if (constant == null) return .INTERPRET_RUNTIME_ERROR;
+                    const name: *ObjString = @ptrCast(@alignCast(constant.?.as.obj));
                     _ = tableSet(&vm.globals, name, peek(0));
                     _ = pop();
                     continue;
                 },
                 .OP_SET_GLOBAL => {
-                    const name: *ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
-                        get_slot(frame)
-                    ].as.obj));
+                    const constant = getConstant(frame, get_slot(frame));
+                    if (constant == null) return .INTERPRET_RUNTIME_ERROR;
+                    const name: *ObjString = @ptrCast(@alignCast(constant.?.as.obj));
                     if (tableSet(&vm.globals, name, peek(0))) {
                         _ = tableDelete(&vm.globals, name);
                         const varName = zstr(name);
@@ -775,9 +801,9 @@ pub fn run() InterpretResult {
                         return .INTERPRET_RUNTIME_ERROR;
                     }
                     const instance: *ObjInstance = @as(*ObjInstance, @ptrCast(@alignCast(peek(0).as.obj)));
-                    const name: *ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
-                        get_slot(frame)
-                    ].as.obj));
+                    const constant = getConstant(frame, get_slot(frame));
+                    if (constant == null) return .INTERPRET_RUNTIME_ERROR;
+                    const name: *ObjString = @ptrCast(@alignCast(constant.?.as.obj));
                     var value: Value = undefined;
                     if (tableGet(&instance.*.fields, name, &value)) {
                         _ = pop();
@@ -795,18 +821,18 @@ pub fn run() InterpretResult {
                         return .INTERPRET_RUNTIME_ERROR;
                     }
                     const instance: *ObjInstance = @as(*ObjInstance, @ptrCast(@alignCast(peek(1).as.obj)));
-                    _ = tableSet(&instance.*.fields, @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
-                        get_slot(frame)
-                    ].as.obj)), peek(0));
+                    const constant = getConstant(frame, get_slot(frame));
+                    if (constant == null) return .INTERPRET_RUNTIME_ERROR;
+                    _ = tableSet(&instance.*.fields, @ptrCast(@alignCast(constant.?.as.obj)), peek(0));
                     const value: Value = pop();
                     _ = pop();
                     push(value);
                     continue;
                 },
                 .OP_GET_SUPER => {
-                    const name: *ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
-                        get_slot(frame)
-                    ].as.obj));
+                    const constant = getConstant(frame, get_slot(frame));
+                    if (constant == null) return .INTERPRET_RUNTIME_ERROR;
+                    const name: *ObjString = @ptrCast(@alignCast(constant.?.as.obj));
 
                     // Pop the superclass reference from stack (just removed, not used)
                     _ = pop();
@@ -892,6 +918,13 @@ pub fn run() InterpretResult {
                     const a = pop();
                     const result = value_h.valueCompare(a, b);
                     push(Value.init_bool(result == -1));
+                    continue;
+                },
+                .OP_GREATER_EQUAL => {
+                    const b = pop();
+                    const a = pop();
+                    const result = value_h.valueCompare(a, b);
+                    push(Value.init_bool(result >= 0)); // Greater than or equal means result is 0 or 1
                     continue;
                 },
                 .OP_ADD => {
@@ -1041,9 +1074,9 @@ pub fn run() InterpretResult {
                     continue;
                 },
                 .OP_INVOKE => {
-                    const method: *ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
-                        get_slot(frame)
-                    ].as.obj));
+                    const constant = getConstant(frame, get_slot(frame));
+                    if (constant == null) return .INTERPRET_RUNTIME_ERROR;
+                    const method: *ObjString = @ptrCast(@alignCast(constant.?.as.obj));
 
                     const count: i32 = @as(i32, @bitCast(@as(c_uint, get_slot(frame))));
 
@@ -1054,9 +1087,9 @@ pub fn run() InterpretResult {
                     continue;
                 },
                 .OP_SUPER_INVOKE => {
-                    const method: *ObjString = @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
-                        get_slot(frame)
-                    ].as.obj));
+                    const constant = getConstant(frame, get_slot(frame));
+                    if (constant == null) return .INTERPRET_RUNTIME_ERROR;
+                    const method: *ObjString = @ptrCast(@alignCast(constant.?.as.obj));
 
                     const argCount: i32 = @as(i32, @bitCast(@as(c_uint, get_slot(frame))));
 
@@ -1101,9 +1134,9 @@ pub fn run() InterpretResult {
                     continue;
                 },
                 .OP_CLOSURE => {
-                    const function: *ObjFunction = @as(*ObjFunction, @ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
-                        get_slot(frame)
-                    ].as.obj)));
+                    const constant = getConstant(frame, get_slot(frame));
+                    if (constant == null) return .INTERPRET_RUNTIME_ERROR;
+                    const function: *ObjFunction = @as(*ObjFunction, @ptrCast(@alignCast(constant.?.as.obj)));
 
                     const closure: *ObjClosure = object_h.newClosure(function);
 
@@ -1143,9 +1176,9 @@ pub fn run() InterpretResult {
                     continue;
                 },
                 .OP_CLASS => {
-                    push(Value.init_obj(@ptrCast(@alignCast(object_h.newClass(@ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
-                        get_slot(frame)
-                    ].as.obj)))))));
+                    const constant = getConstant(frame, get_slot(frame));
+                    if (constant == null) return .INTERPRET_RUNTIME_ERROR;
+                    push(Value.init_obj(@ptrCast(@alignCast(object_h.newClass(@ptrCast(@alignCast(constant.?.as.obj)))))));
                     continue;
                 },
                 .OP_INHERIT => {
@@ -1168,9 +1201,9 @@ pub fn run() InterpretResult {
                     continue;
                 },
                 .OP_METHOD => {
-                    defineMethod(@ptrCast(@alignCast(frame.*.closure.*.function.*.chunk.constants.values[
-                        get_slot(frame)
-                    ].as.obj)));
+                    const constant = getConstant(frame, get_slot(frame));
+                    if (constant == null) return .INTERPRET_RUNTIME_ERROR;
+                    defineMethod(@ptrCast(@alignCast(constant.?.as.obj)));
                     continue;
                 },
                 .OP_LENGTH => {
@@ -1188,6 +1221,10 @@ pub fn run() InterpretResult {
                             .OBJ_STRING => {
                                 const string = @as(*ObjString, @ptrCast(@alignCast(object.as.obj.?)));
                                 push(Value.init_int(@intCast(string.length)));
+                            },
+                            .OBJ_RANGE => {
+                                const range = @as(*ObjRange, @ptrCast(@alignCast(object.as.obj.?)));
+                                push(Value.init_int(range.length()));
                             },
                             // Add other collection types here as they get implemented
                             else => {
@@ -1223,6 +1260,27 @@ pub fn run() InterpretResult {
                             const value = object_h.getHashTable(hashTable, key);
                             push(value);
                         },
+                        .OBJ_RANGE => {
+                            // Convert index to integer if possible
+                            var idx: i32 = 0;
+                            if (index.is_int()) {
+                                idx = index.as_num_int();
+                            } else if (index.is_double()) {
+                                idx = @as(i32, @intFromFloat(index.as_num_double()));
+                            } else {
+                                runtimeError("Index must be a number.", .{});
+                                return .INTERPRET_RUNTIME_ERROR;
+                            }
+
+                            const range = @as(*ObjRange, @ptrCast(@alignCast(object.as.obj.?)));
+
+                            // Keep object alive during indexing operation
+                            object.retain();
+
+                            // Get value at the specified index in the range
+                            push(range.index(idx));
+                            object.release();
+                        },
                         .OBJ_FVECTOR => {
                             // Convert index to integer if possible
                             var idx: i32 = 0;
@@ -1237,6 +1295,9 @@ pub fn run() InterpretResult {
 
                             const vector = @as(*fvec.FloatVector, @ptrCast(@alignCast(object.as.obj.?)));
 
+                            // Keep object alive during indexing operation
+                            object.retain();
+
                             // Handle 'end' keyword (represented by -1)
                             if (idx == -1) {
                                 idx = @as(i32, @intCast(vector.count)) - 1;
@@ -1246,11 +1307,13 @@ pub fn run() InterpretResult {
                             }
 
                             if (idx < 0 or idx >= vector.count) {
+                                object.release();
                                 runtimeError("Index out of bounds: {} (count: {})", .{ idx, vector.count });
                                 return .INTERPRET_RUNTIME_ERROR;
                             }
                             const value = vector.get(@intCast(idx));
                             push(Value.init_double(value));
+                            object.release();
                         },
                         .OBJ_STRING => {
                             if (!index.is_int()) {
@@ -1259,6 +1322,9 @@ pub fn run() InterpretResult {
                             }
                             const string = @as(*ObjString, @ptrCast(@alignCast(object.as.obj.?)));
                             var idx = index.as_num_int();
+
+                            // Keep object alive during indexing operation
+                            object.retain();
 
                             // Handle 'end' keyword (represented by -1)
                             if (idx == -1) {
@@ -1269,12 +1335,14 @@ pub fn run() InterpretResult {
                             }
 
                             if (idx < 0 or idx >= string.length) {
+                                object.release();
                                 runtimeError("Index out of bounds.", .{});
                                 return .INTERPRET_RUNTIME_ERROR;
                             }
                             const char = string.chars[@intCast(idx)];
                             const char_str = object_h.copyString(@ptrCast(&char), 1);
                             push(Value.init_obj(@ptrCast(@alignCast(char_str))));
+                            object.release();
                         },
                         .OBJ_LINKED_LIST => {
                             if (!index.is_int()) {
@@ -1283,6 +1351,9 @@ pub fn run() InterpretResult {
                             }
                             const list = @as(*ObjLinkedList, @ptrCast(@alignCast(object.as.obj.?)));
                             var idx = index.as_num_int();
+
+                            // Keep object alive during indexing operation
+                            object.retain();
 
                             // Handle 'end' keyword (represented by -1)
                             if (idx == -1) {
@@ -1293,6 +1364,7 @@ pub fn run() InterpretResult {
                             }
 
                             if (idx < 0 or idx >= list.count) {
+                                object.release();
                                 runtimeError("Index out of bounds.", .{});
                                 return .INTERPRET_RUNTIME_ERROR;
                             }
@@ -1307,7 +1379,9 @@ pub fn run() InterpretResult {
 
                             if (current != null) {
                                 push(current.?.data);
+                                object.release();
                             } else {
+                                object.release();
                                 runtimeError("Index out of bounds.", .{});
                                 return .INTERPRET_RUNTIME_ERROR;
                             }
@@ -1402,6 +1476,86 @@ pub fn run() InterpretResult {
                     push(Value.init_obj(@ptrCast(@alignCast(result))));
                     continue;
                 },
+                .OP_RANGE => {
+                    const end_value = pop();
+                    const start_value = pop();
+
+                    // Convert values to integers
+                    if (!start_value.is_int() and !start_value.is_double()) {
+                        runtimeError("Range start must be a number.", .{});
+                        return .INTERPRET_RUNTIME_ERROR;
+                    }
+
+                    if (!end_value.is_int() and !end_value.is_double()) {
+                        runtimeError("Range end must be a number.", .{});
+                        return .INTERPRET_RUNTIME_ERROR;
+                    }
+
+                    const start = start_value.as_num_int();
+                    const end = end_value.as_num_int();
+
+                    // Create a new range object (exclusive)
+                    // Range objects now support direct indexing for iteration
+                    const range = ObjRange.init(start, end, false);
+                    push(Value.init_obj(@ptrCast(range)));
+                    continue;
+                },
+                .OP_RANGE_INCLUSIVE => {
+                    const end_value = pop();
+                    const start_value = pop();
+
+                    // Convert values to integers
+                    if (!start_value.is_int() and !start_value.is_double()) {
+                        runtimeError("Range start must be a number.", .{});
+                        return .INTERPRET_RUNTIME_ERROR;
+                    }
+
+                    if (!end_value.is_int() and !end_value.is_double()) {
+                        runtimeError("Range end must be a number.", .{});
+                        return .INTERPRET_RUNTIME_ERROR;
+                    }
+
+                    const start = start_value.as_num_int();
+                    const end = end_value.as_num_int();
+
+                    // Create a new range object (inclusive)
+                    // Range objects now support direct indexing for iteration
+                    const range = ObjRange.init(start, end, true);
+                    push(Value.init_obj(@ptrCast(range)));
+                    continue;
+                },
+                .OP_CHECK_RANGE => {
+                    // Check if the value at the top of the stack is a range object
+                    // If it is, leave it as is; if not, raise a runtime error
+                    const value = peek(0);
+                    if (value.type != .VAL_OBJ or value.as.obj == null or value.as.obj.?.type != .OBJ_RANGE) {
+                        runtimeError("Expected a range object for iteration", .{});
+                        return .INTERPRET_RUNTIME_ERROR;
+                    }
+                    continue;
+                },
+                .OP_IS_RANGE => {
+                    // Check if the value is a range object and push true/false
+                    const value = pop();
+                    const isRange = value.type == .VAL_OBJ and
+                        value.as.obj != null and
+                        value.as.obj.?.type == .OBJ_RANGE;
+                    push(Value.init_bool(isRange));
+                    continue;
+                },
+                .OP_GET_RANGE_LENGTH => {
+                    // Get the length of a range object
+                    // Assumes a range object is on the stack
+                    const value = pop();
+                    if (value.type != .VAL_OBJ or value.as.obj == null or value.as.obj.?.type != .OBJ_RANGE) {
+                        runtimeError("Expected a range object for length operation", .{});
+                        return .INTERPRET_RUNTIME_ERROR;
+                    }
+
+                    const range = @as(*ObjRange, @ptrCast(@alignCast(value.as.obj.?)));
+                    push(Value.init_int(range.length()));
+                    continue;
+                },
                 .OP_SET_INDEX => {
                     const value = pop();
                     const index = pop();
@@ -1452,7 +1606,7 @@ pub fn run() InterpretResult {
                                 push(value);
                             },
                             else => {
-                                runtimeError("Object is not mutable or indexable.", .{});
+                                runtimeError("Object is not indexable.", .{});
                                 return .INTERPRET_RUNTIME_ERROR;
                             },
                         }
@@ -1573,6 +1727,12 @@ pub fn run() InterpretResult {
                                 .OBJ_FVECTOR => {
                                     const vector = @as(*fvec.FloatVector, @ptrCast(@alignCast(value.as.obj)));
                                     const str = std.fmt.allocPrint(std.heap.page_allocator, "FloatVector[{d}]", .{vector.count}) catch "";
+                                    result = object_h.copyString(str.ptr, @intCast(str.len));
+                                },
+                                .OBJ_RANGE => {
+                                    const range = @as(*ObjRange, @ptrCast(@alignCast(value.as.obj)));
+                                    const operator = if (range.inclusive) "..=" else "..";
+                                    const str = std.fmt.allocPrint(std.heap.page_allocator, "{d}{s}{d}", .{ range.start, operator, range.end }) catch "";
                                     result = object_h.copyString(str.ptr, @intCast(str.len));
                                 },
                                 .OBJ_FUNCTION => {

@@ -12,6 +12,7 @@ const ObjLinkedList = obj_h.ObjLinkedList;
 const Node = obj_h.Node;
 const FloatVector = obj_h.FloatVector;
 const fvec = @import("objects/fvec.zig");
+const obj_range = @import("objects/range.zig");
 const reallocate = @import("memory.zig").reallocate;
 const scanner_h = @import("scanner.zig");
 
@@ -348,6 +349,10 @@ pub const Value = struct {
         return self.is_obj_type(.OBJ_FVECTOR);
     }
 
+    pub fn is_range(self: Self) bool {
+        return self.is_obj_type(.OBJ_RANGE);
+    }
+
     pub fn as_obj(self: Self) ?*Obj {
         return self.as.obj;
     }
@@ -369,6 +374,10 @@ pub const Value = struct {
     }
 
     pub fn as_fvec(self: Self) *FloatVector {
+        return @ptrCast(@alignCast(self.as.obj));
+    }
+
+    pub fn as_range(self: Self) *obj_range.ObjRange {
         return @ptrCast(@alignCast(self.as.obj));
     }
 
@@ -422,7 +431,27 @@ pub const ValueArray = struct {
 };
 
 pub fn valuesEqual(a: Value, b: Value) bool {
-    if (a.type != b.type) return false;
+    if (a.type != b.type) {
+        // Special case for range objects - check if value is contained in range
+        if (a.type == .VAL_OBJ and a.as.obj != null and a.as.obj.?.type == .OBJ_RANGE and
+            (b.type == .VAL_INT or b.type == .VAL_DOUBLE))
+        {
+            const range = @import("objects/range.zig");
+            const range_obj: *range.ObjRange = @ptrCast(@alignCast(a.as.obj));
+            const value = b.as_num_int();
+            return range_obj.contains(value);
+        }
+        if (b.type == .VAL_OBJ and b.as.obj != null and b.as.obj.?.type == .OBJ_RANGE and
+            (a.type == .VAL_INT or a.type == .VAL_DOUBLE))
+        {
+            const range = @import("objects/range.zig");
+            const range_obj: *range.ObjRange = @ptrCast(@alignCast(b.as.obj));
+            const value = a.as_num_int();
+            return range_obj.contains(value);
+        }
+        return false;
+    }
+
     switch (a.type) {
         .VAL_BOOL => return a.as_bool() == b.as_bool(),
         .VAL_NIL => return true,
@@ -461,18 +490,24 @@ pub fn valuesEqual(a: Value, b: Value) bool {
                         }
                     },
                     .OBJ_FVECTOR => {
-                        
-                            const vec_a: *FloatVector = @as(*FloatVector, @ptrCast(@alignCast(a.as.obj)));
-                            const vec_b: *FloatVector = @as(*FloatVector, @ptrCast(@alignCast(b.as.obj)));
-                            if (vec_a.*.count != vec_b.*.count) return false;
+                        const vec_a: *FloatVector = @as(*FloatVector, @ptrCast(@alignCast(a.as.obj)));
+                        const vec_b: *FloatVector = @as(*FloatVector, @ptrCast(@alignCast(b.as.obj)));
+                        if (vec_a.*.count != vec_b.*.count) return false;
 
-                            var i: i32 = 0;
-                            while (i < vec_a.*.count) : (i += 1) {
-                                if (vec_a.*.data[@intCast(i)] != vec_b.*.data[@intCast(i)]) return false;
-                            }
+                        var i: i32 = 0;
+                        while (i < vec_a.*.count) : (i += 1) {
+                            if (vec_a.*.data[@intCast(i)] != vec_b.*.data[@intCast(i)]) return false;
+                        }
 
-                            return true;
-                        
+                        return true;
+                    },
+                    .OBJ_RANGE => {
+                        const range_a = @as(*obj_range.ObjRange, @ptrCast(@alignCast(a.as.obj)));
+                        const range_b = @as(*obj_range.ObjRange, @ptrCast(@alignCast(b.as.obj)));
+
+                        return range_a.start == range_b.start and
+                            range_a.end == range_b.end and
+                            range_a.inclusive == range_b.inclusive;
                     },
                     else => return false,
                 }

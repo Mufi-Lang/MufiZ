@@ -1,0 +1,43 @@
+// Test file for range patterns in switch statements
+// This file demonstrates the use of range patterns in switch statements
+
+// Test simple range patterns
+print("Testing switch with range patterns:");
+
+// Test with literal values
+var value = 7;
+print("\nTesting switch with value: " + value);
+
+switch (value) {
+    case 0 => { print("Case: Exactly 0"); },
+    case 1..5 => { print("Case: Between 1 and 4"); },
+    case 5..=10 => { print("Case: Between 5 and 10 (inclusive)"); },
+    case 11..20 => { print("Case: Between 11 and 19"); },
+    _ => { print("Case: Default (20 or higher)"); }
+}
+
+// Test with a different value
+value = 3;
+print("\nTesting switch with value: " + value);
+
+switch (value) {
+    case 0 => { print("Case: Exactly 0"); },
+    case 1..5 => { print("Case: Between 1 and 4"); },
+    case 5..=10 => { print("Case: Between 5 and 10 (inclusive)"); },
+    case 11..20 => { print("Case: Between 11 and 19"); },
+    _ => { print("Case: Default (20 or higher)"); }
+}
+
+// Test with a value at the boundary
+value = 5;
+print("\nTesting switch with value: " + value);
+
+switch (value) {
+    case 0 => { print("Case: Exactly 0"); },
+    case 1..5 => { print("Case: Between 1 and 4"); },
+    case 5..=10 => { print("Case: Between 5 and 10 (inclusive)"); },
+    case 11..20 => { print("Case: Between 11 and 19"); },
+    _ => { print("Case: Default (20 or higher)"); }
+}
+
+print("\nAll tests completed!");

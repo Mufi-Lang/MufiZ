@@ -1,0 +1,82 @@
+// Test if the specific values in the array matter for foreach iteration
+
+print("=== Values Test ===");
+
+print("Testing if specific values affect foreach behavior...");
+
+// Test 1: The original failing values
+print("\nTest 1: Original failing values {0, 5, 10, 15, 20}");
+var original = {0, 5, 10, 15, 20};
+var count_original = 0;
+foreach (val in original) {
+    print("Original - Value: " + val);
+    count_original = count_original + 1;
+}
+print("Original array iterations: " + count_original);
+
+// Test 2: Simple sequential values
+print("\nTest 2: Simple sequential values {1, 2, 3, 4, 5}");
+var sequential = {1, 2, 3, 4, 5};
+var count_sequential = 0;
+foreach (val in sequential) {
+    print("Sequential - Value: " + val);
+    count_sequential = count_sequential + 1;
+}
+print("Sequential array iterations: " + count_sequential);
+
+// Test 3: Same size, different values {10, 20, 30, 40, 50}
+print("\nTest 3: Different values {10, 20, 30, 40, 50}");
+var different = {10, 20, 30, 40, 50};
+var count_different = 0;
+foreach (val in different) {
+    print("Different - Value: " + val);
+    count_different = count_different + 1;
+}
+print("Different array iterations: " + count_different);
+
+// Test 4: Contains zero but different pattern {0, 1, 2, 3, 4}
+print("\nTest 4: Contains zero {0, 1, 2, 3, 4}");
+var with_zero = {0, 1, 2, 3, 4};
+var count_with_zero = 0;
+foreach (val in with_zero) {
+    print("With zero - Value: " + val);
+    count_with_zero = count_with_zero + 1;
+}
+print("With zero array iterations: " + count_with_zero);
+
+// Test 5: Large values {100, 200, 300, 400, 500}
+print("\nTest 5: Large values {100, 200, 300, 400, 500}");
+var large = {100, 200, 300, 400, 500};
+var count_large = 0;
+foreach (val in large) {
+    print("Large - Value: " + val);
+    count_large = count_large + 1;
+}
+print("Large array iterations: " + count_large);
+
+// Test 6: Mixed positive/negative {-2, -1, 0, 1, 2}
+print("\nTest 6: Mixed values {-2, -1, 0, 1, 2}");
+var mixed = {-2, -1, 0, 1, 2};
+var count_mixed = 0;
+foreach (val in mixed) {
+    print("Mixed - Value: " + val);
+    count_mixed = count_mixed + 1;
+}
+print("Mixed array iterations: " + count_mixed);
+
+print("\n=== Summary ===");
+print("Original {0,5,10,15,20}: " + count_original);
+print("Sequential {1,2,3,4,5}: " + count_sequential);
+print("Different {10,20,30,40,50}: " + count_different);
+print("With zero {0,1,2,3,4}: " + count_with_zero);
+print("Large {100,200,300,400,500}: " + count_large);
+print("Mixed {-2,-1,0,1,2}: " + count_mixed);
+
+print("\nAnalysis:");
+if (count_original == 0) {
+    print("Original array fails - likely the specific values cause the issue");
+} else {
+    print("Original array works - issue might be elsewhere");
+}
+
+print("\n=== Values Test Complete ===");

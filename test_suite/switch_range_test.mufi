@@ -1,0 +1,52 @@
+// Test file for range patterns in switch statements
+// This demonstrates the use of exclusive (..) and inclusive (..=) range operators in switch case patterns
+
+// Test with a value in the middle of an inclusive range
+var value = 7;
+print("Testing with value: " + value);
+
+switch(value) {
+    case 0 => { print("Case: Exactly 0"); },
+    case 1..5 => { print("Case: Between 1 and 4"); },
+    case 5..=10 => { print("Case: Between 5 and 10 (inclusive)"); },
+    case 11..20 => { print("Case: Between 11 and 19"); },
+    _ => { print("Case: Default (20 or higher)"); }
+}
+
+// Test with a value in an exclusive range
+value = 3;
+print("\nTesting with value: " + value);
+
+switch(value) {
+    case 0 => { print("Case: Exactly 0"); },
+    case 1..5 => { print("Case: Between 1 and 4"); },
+    case 5..=10 => { print("Case: Between 5 and 10 (inclusive)"); },
+    case 11..20 => { print("Case: Between 11 and 19"); },
+    _ => { print("Case: Default (20 or higher)"); }
+}
+
+// Test with a value at the boundary between ranges
+value = 5;
+print("\nTesting with value: " + value);
+
+switch(value) {
+    case 0 => { print("Case: Exactly 0"); },
+    case 1..5 => { print("Case: Between 1 and 4"); },
+    case 5..=10 => { print("Case: Between 5 and 10 (inclusive)"); },
+    case 11..20 => { print("Case: Between 11 and 19"); },
+    _ => { print("Case: Default (20 or higher)"); }
+}
+
+// Test with a value outside all explicit ranges
+value = 25;
+print("\nTesting with value: " + value);
+
+switch(value) {
+    case 0 => { print("Case: Exactly 0"); },
+    case 1..5 => { print("Case: Between 1 and 4"); },
+    case 5..=10 => { print("Case: Between 5 and 10 (inclusive)"); },
+    case 11..20 => { print("Case: Between 11 and 19"); },
+    _ => { print("Case: Default (20 or higher)"); }
+}
+
+print("\nAll tests completed!");

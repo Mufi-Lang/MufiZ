@@ -41,10 +41,8 @@ def run_test(num, test_file_path):
     except subprocess.CalledProcessError as e:
         # Log the error along with stdout and stderr
         logger.error(f"Test [{num}]: {test_file_path} failed with error: {e}")
-        logger.error(f"STDERR:\n{e.stderr.decode('utf-8')}")
+        logger.error(f"STDERR:\\n{e.stderr.decode('utf-8')}")
         return False, False
-
-    # Iterate through files in the directory
 
 
 def flatten_directory(directory):

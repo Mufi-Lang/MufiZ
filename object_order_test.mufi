@@ -1,0 +1,88 @@
+// Test if creating a different object first affects the range behavior
+// This test will help determine if the issue is with "first object" or "first range"
+
+print("=== Object Order Test ===");
+
+print("Creating different types of objects first, then testing ranges...");
+
+// Test 1: Create array first, then range
+print("\n--- Test 1: Array first, then range ---");
+var first_array = {100, 200, 300};
+print("Array created first: " + first_array);
+
+print("Now creating range after array:");
+var range_after_array = 1..5;
+print("Range created: " + range_after_array);
+
+var count1 = 0;
+foreach (val in range_after_array) {
+    print("Range value: " + val);
+    count1 = count1 + 1;
+}
+print("Range iterations: " + count1);
+
+// Test 2: Create string first, then range
+print("\n--- Test 2: String first, then range ---");
+var first_string = "hello world";
+print("String created first: " + first_string);
+
+print("Now creating range after string:");
+var range_after_string = 2..6;
+print("Range created: " + range_after_string);
+
+var count2 = 0;
+foreach (val in range_after_string) {
+    print("Range value: " + val);
+    count2 = count2 + 1;
+}
+print("Range iterations: " + count2);
+
+// Test 3: Create number first, then range
+print("\n--- Test 3: Number first, then range ---");
+var first_number = 42;
+print("Number created first: " + first_number);
+
+print("Now creating range after number:");
+var range_after_number = 0..3;
+print("Range created: " + range_after_number);
+
+var count3 = 0;
+foreach (val in range_after_number) {
+    print("Range value: " + val);
+    count3 = count3 + 1;
+}
+print("Range iterations: " + count3);
+
+// Test 4: Test the problematic array after creating other objects
+print("\n--- Test 4: Problematic array after other objects ---");
+var problematic_array = {0, 5, 10, 15, 20};
+print("Problematic array created: " + problematic_array);
+
+var count4 = 0;
+foreach (val in problematic_array) {
+    print("Array value: " + val);
+    count4 = count4 + 1;
+}
+print("Array iterations: " + count4);
+
+print("\n=== Results Summary ===");
+print("Range after array: " + count1 + " (expected: 4)");
+print("Range after string: " + count2 + " (expected: 4)");
+print("Range after number: " + count3 + " (expected: 3)");
+print("Problematic array: " + count4 + " (expected: 5)");
+
+print("\n=== Analysis ===");
+if (count1 == 4 and count2 == 4 and count3 == 3) {
+    print("SUCCESS: Ranges work correctly when created after other objects");
+    print("CONCLUSION: The issue is specifically with the FIRST object created");
+} else {
+    print("ISSUE: Ranges still fail even when created after other objects");
+}
+
+if (count4 == 5) {
+    print("SUCCESS: Problematic array works when created after other objects");
+} else {
+    print("ISSUE: Problematic array still fails");
+}
+
+print("\n=== Object Order Test Complete ===");

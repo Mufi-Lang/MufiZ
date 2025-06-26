@@ -1,0 +1,81 @@
+// Test file for range syntax in MufiZ
+// This file demonstrates the use of exclusive (..) and inclusive (..=) range operators
+// for both foreach loops and switch statements
+
+// Test basic range creation
+var r1 = 1..5;    // Exclusive range: 1, 2, 3, 4
+var r2 = 1..=5;   // Inclusive range: 1, 2, 3, 4, 5
+
+print("Ranges created:");
+print(r1);  // Should print "1..5"
+print(r2);  // Should print "1..=5"
+
+// Test foreach with ranges
+print("\nIteration with exclusive range (1..5):");
+foreach (i in 1..5) {
+    print(i);  // Should print 1, 2, 3, 4
+}
+
+print("\nIteration with inclusive range (1..=5):");
+foreach (i in 1..=5) {
+    print(i);  // Should print 1, 2, 3, 4, 5
+}
+
+// Test range with variables - convert to array first
+var start = 10;
+var finish = 15;
+print("\nIteration with variable range (start..finish):");
+foreach (i in start..finish) {
+    print(i);  // Should print 10, 11, 12, 13, 14
+}
+
+// Test switch statement with range patterns
+print("\nSwitch statement with range patterns:");
+
+// Test different values in the switch
+print("\nTesting switch with value: 0");
+switch (0) {
+    case 0 => { print("Case: Exactly 0"); },
+    case 1..5 => { print("Case: Between 1 and 4"); },
+    case 5..=10 => { print("Case: Between 5 and 10 (inclusive)"); },
+    case 11..=20 => { print("Case: Between 11 and 20 (inclusive)"); },
+    _ => { print("Case: Default (20 or higher)"); }
+}
+
+print("\nTesting switch with value: 5");
+switch (5) {
+    case 0 => { print("Case: Exactly 0"); },
+    case 1..5 => { print("Case: Between 1 and 4"); },
+    case 5..=10 => { print("Case: Between 5 and 10 (inclusive)"); },
+    case 11..=20 => { print("Case: Between 11 and 20 (inclusive)"); },
+    _ => { print("Case: Default (20 or higher)"); }
+}
+
+print("\nTesting switch with value: 10");
+switch (10) {
+    case 0 => { print("Case: Exactly 0"); },
+    case 1..5 => { print("Case: Between 1 and 4"); },
+    case 5..=10 => { print("Case: Between 5 and 10 (inclusive)"); },
+    case 11..=20 => { print("Case: Between 11 and 20 (inclusive)"); },
+    _ => { print("Case: Default (20 or higher)"); }
+}
+
+print("\nTesting switch with value: 15");
+switch (15) {
+    case 0 => { print("Case: Exactly 0"); },
+    case 1..5 => { print("Case: Between 1 and 4"); },
+    case 5..=10 => { print("Case: Between 5 and 10 (inclusive)"); },
+    case 11..=20 => { print("Case: Between 11 and 20 (inclusive)"); },
+    _ => { print("Case: Default (20 or higher)"); }
+}
+
+print("\nTesting switch with value: 20");
+switch (20) {
+    case 0 => { print("Case: Exactly 0"); },
+    case 1..5 => { print("Case: Between 1 and 4"); },
+    case 5..=10 => { print("Case: Between 5 and 10 (inclusive)"); },
+    case 11..=20 => { print("Case: Between 11 and 20 (inclusive)"); },
+    _ => { print("Case: Default (20 or higher)"); }
+}
+
+print("\nAll tests completed!");

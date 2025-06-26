@@ -1,0 +1,152 @@
+// Test specific combinations to isolate the problematic value in {0, 5, 10, 15, 20}
+
+print("=== Isolate Problem Test ===");
+
+print("We know {0, 5, 10, 15, 20} fails while other 5-element arrays work.");
+print("Let's find which specific value or combination causes the issue.");
+
+// Test individual values first
+print("\n--- Testing individual values ---");
+
+print("Testing {0}:");
+var t0 = {0};
+var c0 = 0;
+foreach (v in t0) { c0 = c0 + 1; }
+print("Iterations: " + c0);
+
+print("Testing {5}:");
+var t5 = {5};
+var c5 = 0;
+foreach (v in t5) { c5 = c5 + 1; }
+print("Iterations: " + c5);
+
+print("Testing {10}:");
+var t10 = {10};
+var c10 = 0;
+foreach (v in t10) { c10 = c10 + 1; }
+print("Iterations: " + c10);
+
+print("Testing {15}:");
+var t15 = {15};
+var c15 = 0;
+foreach (v in t15) { c15 = c15 + 1; }
+print("Iterations: " + c15);
+
+print("Testing {20}:");
+var t20 = {20};
+var c20 = 0;
+foreach (v in t20) { c20 = c20 + 1; }
+print("Iterations: " + c20);
+
+// Test pairs
+print("\n--- Testing pairs ---");
+
+print("Testing {0, 5}:");
+var t05 = {0, 5};
+var c05 = 0;
+foreach (v in t05) { c05 = c05 + 1; }
+print("Iterations: " + c05);
+
+print("Testing {5, 10}:");
+var t510 = {5, 10};
+var c510 = 0;
+foreach (v in t510) { c510 = c510 + 1; }
+print("Iterations: " + c510);
+
+print("Testing {10, 15}:");
+var t1015 = {10, 15};
+var c1015 = 0;
+foreach (v in t1015) { c1015 = c1015 + 1; }
+print("Iterations: " + c1015);
+
+print("Testing {15, 20}:");
+var t1520 = {15, 20};
+var c1520 = 0;
+foreach (v in t1520) { c1520 = c1520 + 1; }
+print("Iterations: " + c1520);
+
+// Test triplets
+print("\n--- Testing triplets ---");
+
+print("Testing {0, 5, 10}:");
+var t0510 = {0, 5, 10};
+var c0510 = 0;
+foreach (v in t0510) { c0510 = c0510 + 1; }
+print("Iterations: " + c0510);
+
+print("Testing {5, 10, 15}:");
+var t51015 = {5, 10, 15};
+var c51015 = 0;
+foreach (v in t51015) { c51015 = c51015 + 1; }
+print("Iterations: " + c51015);
+
+print("Testing {10, 15, 20}:");
+var t101520 = {10, 15, 20};
+var c101520 = 0;
+foreach (v in t101520) { c101520 = c101520 + 1; }
+print("Iterations: " + c101520);
+
+// Test 4-element subsets
+print("\n--- Testing 4-element subsets ---");
+
+print("Testing {0, 5, 10, 15}:");
+var t051015 = {0, 5, 10, 15};
+var c051015 = 0;
+foreach (v in t051015) { c051015 = c051015 + 1; }
+print("Iterations: " + c051015);
+
+print("Testing {5, 10, 15, 20}:");
+var t5101520 = {5, 10, 15, 20};
+var c5101520 = 0;
+foreach (v in t5101520) { c5101520 = c5101520 + 1; }
+print("Iterations: " + c5101520);
+
+print("Testing {0, 10, 15, 20}:");
+var t0101520 = {0, 10, 15, 20};
+var c0101520 = 0;
+foreach (v in t0101520) { c0101520 = c0101520 + 1; }
+print("Iterations: " + c0101520);
+
+// Test different orderings of the original array
+print("\n--- Testing different orderings ---");
+
+print("Testing {20, 15, 10, 5, 0} (reversed):");
+var treverse = {20, 15, 10, 5, 0};
+var creverse = 0;
+foreach (v in treverse) { creverse = creverse + 1; }
+print("Iterations: " + creverse);
+
+print("Testing {5, 0, 15, 10, 20} (shuffled):");
+var tshuffle = {5, 0, 15, 10, 20};
+var cshuffle = 0;
+foreach (v in tshuffle) { cshuffle = cshuffle + 1; }
+print("Iterations: " + cshuffle);
+
+// Test the original problematic array one more time
+print("\n--- Testing original problematic array ---");
+print("Testing {0, 5, 10, 15, 20} (original):");
+var toriginal = {0, 5, 10, 15, 20};
+var coriginal = 0;
+foreach (v in toriginal) { coriginal = coriginal + 1; }
+print("Iterations: " + coriginal);
+
+print("\n=== Results Summary ===");
+print("Individual: 0:" + c0 + " 5:" + c5 + " 10:" + c10 + " 15:" + c15 + " 20:" + c20);
+print("Pairs: (0,5):" + c05 + " (5,10):" + c510 + " (10,15):" + c1015 + " (15,20):" + c1520);
+print("Triplets: (0,5,10):" + c0510 + " (5,10,15):" + c51015 + " (10,15,20):" + c101520);
+print("4-elem: (0,5,10,15):" + c051015 + " (5,10,15,20):" + c5101520 + " (0,10,15,20):" + c0101520);
+print("Reorder: reverse:" + creverse + " shuffle:" + cshuffle);
+print("Original: " + coriginal);
+
+print("\n=== Analysis ===");
+if (c0 == 0) {
+    print("Single element arrays with value 0 fail!");
+} else if (coriginal == 0 and creverse > 0) {
+    print("Order matters - reverse works but original doesn't");
+} else if (coriginal == 0 and cshuffle > 0) {
+    print("Specific combination issue - shuffle works but original doesn't");
+} else {
+    print("Need more investigation to find the root cause");
+}
+
+print("\n=== Isolate Problem Test Complete ===");

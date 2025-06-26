@@ -1,0 +1,130 @@
+// Test various exclusive ranges to isolate the length calculation issue
+// This test will help identify if the bug is in length calculation or iteration logic
+
+print("=== Exclusive Range Length Test ===");
+
+print("Testing different exclusive ranges to find the pattern...");
+
+// Test 1: Simple exclusive ranges with different sizes
+print("\n--- Test 1: Different Sizes ---");
+
+print("Testing 1..2 (should have 1 element: 1):");
+var r1_2 = 1..2;
+var c1_2 = 0;
+foreach (val in r1_2) {
+    print("Value: " + val);
+    c1_2 = c1_2 + 1;
+}
+print("Count: " + c1_2);
+
+print("Testing 1..3 (should have 2 elements: 1, 2):");
+var r1_3 = 1..3;
+var c1_3 = 0;
+foreach (val in r1_3) {
+    print("Value: " + val);
+    c1_3 = c1_3 + 1;
+}
+print("Count: " + c1_3);
+
+print("Testing 1..4 (should have 3 elements: 1, 2, 3):");
+var r1_4 = 1..4;
+var c1_4 = 0;
+foreach (val in r1_4) {
+    print("Value: " + val);
+    c1_4 = c1_4 + 1;
+}
+print("Count: " + c1_4);
+
+print("Testing 1..5 (should have 4 elements: 1, 2, 3, 4):");
+var r1_5 = 1..5;
+var c1_5 = 0;
+foreach (val in r1_5) {
+    print("Value: " + val);
+    c1_5 = c1_5 + 1;
+}
+print("Count: " + c1_5);
+
+// Test 2: Ranges starting from 0
+print("\n--- Test 2: Starting from 0 ---");
+
+print("Testing 0..1 (should have 1 element: 0):");
+var r0_1 = 0..1;
+var c0_1 = 0;
+foreach (val in r0_1) {
+    print("Value: " + val);
+    c0_1 = c0_1 + 1;
+}
+print("Count: " + c0_1);
+
+print("Testing 0..3 (should have 3 elements: 0, 1, 2):");
+var r0_3 = 0..3;
+var c0_3 = 0;
+foreach (val in r0_3) {
+    print("Value: " + val);
+    c0_3 = c0_3 + 1;
+}
+print("Count: " + c0_3);
+
+// Test 3: Negative ranges
+print("\n--- Test 3: Negative Ranges ---");
+
+print("Testing -2..1 (should have 3 elements: -2, -1, 0):");
+var rn2_1 = -2..1;
+var cn2_1 = 0;
+foreach (val in rn2_1) {
+    print("Value: " + val);
+    cn2_1 = cn2_1 + 1;
+}
+print("Count: " + cn2_1);
+
+// Test 4: Empty ranges
+print("\n--- Test 4: Empty Ranges ---");
+
+print("Testing 5..5 (should be empty):");
+var r5_5 = 5..5;
+var c5_5 = 0;
+foreach (val in r5_5) {
+    print("Value: " + val);
+    c5_5 = c5_5 + 1;
+}
+print("Count: " + c5_5);
+
+print("Testing 5..3 (should be empty - invalid range):");
+var r5_3 = 5..3;
+var c5_3 = 0;
+foreach (val in r5_3) {
+    print("Value: " + val);
+    c5_3 = c5_3 + 1;
+}
+print("Count: " + c5_3);
+
+// Test 5: Manual indexing to verify range contents
+print("\n--- Test 5: Manual Indexing Verification ---");
+
+print("Manual indexing of 1..5:");
+var manual_range = 1..5;
+print("manual_range[0] = " + manual_range[0]);
+print("manual_range[1] = " + manual_range[1]);
+print("manual_range[2] = " + manual_range[2]);
+print("manual_range[3] = " + manual_range[3]);
+
+print("\n=== Results Summary ===");
+print("1..2: " + c1_2 + " (expected: 1)");
+print("1..3: " + c1_3 + " (expected: 2)");
+print("1..4: " + c1_4 + " (expected: 3)");
+print("1..5: " + c1_5 + " (expected: 4)");
+print("0..1: " + c0_1 + " (expected: 1)");
+print("0..3: " + c0_3 + " (expected: 3)");
+print("-2..1: " + cn2_1 + " (expected: 3)");
+print("5..5: " + c5_5 + " (expected: 0)");
+print("5..3: " + c5_3 + " (expected: 0)");
+
+print("\n=== Analysis ===");
+var all_zero = (c1_2 == 0 and c1_3 == 0 and c1_4 == 0 and c1_5 == 0);
+if (all_zero) {
+    print("ALL EXCLUSIVE RANGES FAIL - Bug in exclusive range foreach implementation");
+} else {
+    print("SOME EXCLUSIVE RANGES WORK - Bug may be size or value specific");
+}
+
+print("\n=== Exclusive Range Length Test Complete ===");

@@ -1,0 +1,109 @@
+// Focused test to isolate the inconsistent behavior of 1..5 range
+// This test will help determine why 1..5 sometimes works and sometimes fails
+
+print("=== Focused Range Test for 1..5 ===");
+
+print("This test will run 1..5 multiple times to check for consistency...");
+
+// Test 1: First attempt at 1..5
+print("\n--- Test 1: First 1..5 test ---");
+var range1 = 1..5;
+print("Range1 created: " + range1);
+var count1 = 0;
+foreach (val in range1) {
+    print("Test1 - Value: " + val);
+    count1 = count1 + 1;
+}
+print("Test1 - Count: " + count1);
+
+// Test 2: Second attempt at 1..5 (different variable)
+print("\n--- Test 2: Second 1..5 test ---");
+var range2 = 1..5;
+print("Range2 created: " + range2);
+var count2 = 0;
+foreach (val in range2) {
+    print("Test2 - Value: " + val);
+    count2 = count2 + 1;
+}
+print("Test2 - Count: " + count2);
+
+// Test 3: Third attempt at 1..5 (inline creation)
+print("\n--- Test 3: Third 1..5 test (inline) ---");
+var count3 = 0;
+var temp_range = 1..5;
+foreach (val in temp_range) {
+    print("Test3 - Value: " + val);
+    count3 = count3 + 1;
+}
+print("Test3 - Count: " + count3);
+
+// Test 4: Manual indexing of 1..5 to verify range contents
+print("\n--- Test 4: Manual indexing verification ---");
+var manual_range = 1..5;
+print("Manual range created: " + manual_range);
+print("manual_range[0] = " + manual_range[0]);
+print("manual_range[1] = " + manual_range[1]);
+print("manual_range[2] = " + manual_range[2]);
+print("manual_range[3] = " + manual_range[3]);
+
+// Test 5: Test after some other operations
+print("\n--- Test 5: After other operations ---");
+var dummy = 42;
+var dummy_str = "hello";
+var dummy_array = {1, 2, 3};
+print("Dummy operations done");
+
+var range5 = 1..5;
+print("Range5 created after other ops: " + range5);
+var count5 = 0;
+foreach (val in range5) {
+    print("Test5 - Value: " + val);
+    count5 = count5 + 1;
+}
+print("Test5 - Count: " + count5);
+
+// Test 6: Compare with working ranges
+print("\n--- Test 6: Compare with known working ranges ---");
+
+print("Testing 1..3 (known to work):");
+var working_range = 1..3;
+var working_count = 0;
+foreach (val in working_range) {
+    print("Working - Value: " + val);
+    working_count = working_count + 1;
+}
+print("Working range count: " + working_count);
+
+print("Testing 1..5 again after working range:");
+var range6 = 1..5;
+var count6 = 0;
+foreach (val in range6) {
+    print("Test6 - Value: " + val);
+    count6 = count6 + 1;
+}
+print("Test6 - Count: " + count6);
+
+print("\n=== Results Summary ===");
+print("Test1 (1..5): " + count1);
+print("Test2 (1..5): " + count2);
+print("Test3 (1..5): " + count3);
+print("Test5 (1..5): " + count5);
+print("Test6 (1..5): " + count6);
+print("Working (1..3): " + working_count);
+
+print("\n=== Consistency Analysis ===");
+var all_same = (count1 == count2 and count2 == count3 and count3 == count5 and count5 == count6);
+if (all_same) {
+    if (count1 == 4) {
+        print("CONSISTENT: All 1..5 tests work correctly (4 iterations each)");
+    } else if (count1 == 0) {
+        print("CONSISTENT: All 1..5 tests fail (0 iterations each) - Bug confirmed");
+    } else {
+        print("CONSISTENT: All 1..5 tests have same wrong count: " + count1);
+    }
+} else {
+    print("INCONSISTENT: 1..5 behavior varies between tests!");
+    print("This suggests a state-dependent bug or memory corruption issue");
+}
+
+print("\n=== Focused Range Test Complete ===");

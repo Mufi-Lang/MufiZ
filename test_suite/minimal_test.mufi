@@ -1,0 +1,10 @@
+// Minimal range test
+// Tests only the most basic range iteration
+
+// Simple iteration with range
+print("Exclusive range (1..5):");
+foreach (i in 1..5) {
+    print(i);
+}
+
+print("Test completed");

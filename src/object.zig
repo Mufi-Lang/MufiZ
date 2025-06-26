@@ -1,29 +1,30 @@
 const std = @import("std");
 const print = std.debug.print;
-const debug_opts = @import("debug");
-const value_h = @import("value.zig");
-const table_h = @import("table.zig");
-const chunk_h = @import("chunk.zig");
-const memory_h = @import("memory.zig");
-const vm_h = @import("vm.zig");
-const reallocate = memory_h.reallocate;
-const Table = table_h.Table;
-const Value = value_h.Value;
-const Chunk = chunk_h.Chunk;
-const AS_OBJ = value_h.AS_OBJ;
-// printf replaced with print from std import
-const push = vm_h.push;
-const pop = vm_h.pop;
-const scanner_h = @import("scanner.zig");
-const memcpy = @import("mem_utils.zig").memcpyFast;
-const valuesEqual = value_h.valuesEqual;
 
-// Objects
+const debug_opts = @import("debug");
+
+const chunk_h = @import("chunk.zig");
+const Chunk = chunk_h.Chunk;
+const memcpy = @import("mem_utils.zig").memcpyFast;
+const memory_h = @import("memory.zig");
+const reallocate = memory_h.reallocate;
+pub const FloatVector = @import("objects/fvec.zig").FloatVector;
 const __obj = @import("objects/obj.zig");
 pub const Obj = __obj.Obj;
 pub const ObjType = __obj.ObjType;
-pub const FloatVector = @import("objects/fvec.zig").FloatVector;
+pub const ObjRange = @import("objects/range.zig").ObjRange;
+const scanner_h = @import("scanner.zig");
+const table_h = @import("table.zig");
+const Table = table_h.Table;
+const value_h = @import("value.zig");
+const Value = value_h.Value;
+const AS_OBJ = value_h.AS_OBJ;
+const valuesEqual = value_h.valuesEqual;
+const vm_h = @import("vm.zig");
+const push = vm_h.push;
+const pop = vm_h.pop;
 
+// Object Types
 pub const ObjString = struct {
     obj: Obj,
     length: usize,
@@ -98,6 +99,10 @@ pub fn allocateObject(size: usize, type_: ObjType) *Obj {
     if (mem == null) {
         @panic("Failed to allocate object memory");
     }
+
+    // Zero out the allocated memory to prevent uninitialized data issues
+    @memset(@as([*]u8, @ptrCast(mem))[0..size], 0);
+
     const object: *Obj = @ptrCast(@alignCast(mem));
     object.*.type = type_;
     object.*.isMarked = false;
@@ -807,6 +812,11 @@ pub fn printObject(value: Value) void {
                 }
             }
             print("}}", .{});
+        },
+        .OBJ_RANGE => {
+            const range = @as(*ObjRange, @ptrCast(@alignCast(value.as.obj)));
+            const operator = if (range.*.inclusive) "..=" else "..";
+            print("{d}{s}{d}", .{ range.*.start, operator, range.*.end });
         },
     }
 }

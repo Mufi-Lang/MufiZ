@@ -1,0 +1,102 @@
+// Test to debug the length calculation issue in foreach loops
+// This test tries to understand why foreach loops don't work with float vectors
+
+print("=== Length Debug Test ===");
+
+print("Creating test array...");
+var test_values = {0, 5, 10, 15, 20};
+print("Array created successfully");
+
+print("Manual indexing test to confirm array works:");
+print("test_values[0] = " + test_values[0]);
+print("test_values[1] = " + test_values[1]);
+print("test_values[2] = " + test_values[2]);
+print("test_values[3] = " + test_values[3]);
+print("test_values[4] = " + test_values[4]);
+
+// Test out-of-bounds access to understand array behavior
+print("\nTesting out-of-bounds access:");
+print("test_values[5] should be out of bounds...");
+// print("test_values[5] = " + test_values[5]); // This might cause an error
+
+print("\nSimulating foreach loop with while loop:");
+
+// Store collection in a variable (like foreach does)
+var collection = test_values;
+var index = 0;
+
+print("Starting while loop simulation...");
+print("Initial index: " + index);
+
+// Try to manually determine when to stop the loop
+// Since we can't get length directly, we'll use a different approach
+var continue_loop = true;
+var iteration_count = 0;
+
+while (continue_loop and iteration_count < 10) { // Safety limit
+    print("\n--- Loop iteration " + iteration_count + " ---");
+    print("Current index: " + index);
+
+    // This is the critical part - try to access collection[index]
+    // If this fails, we'll know the indexing is the issue
+    print("Attempting to access collection[" + index + "]...");
+
+    // Try to access the element
+    var current_value = collection[index];
+    print("Successfully retrieved value: " + current_value);
+
+    // Process the value (like foreach would)
+    print("Processing value: " + current_value);
+
+    // Increment index and iteration count
+    index = index + 1;
+    iteration_count = iteration_count + 1;
+
+    print("Incremented index to: " + index);
+
+    // Check if we should continue (manual bounds checking)
+    // We know the array has 5 elements (indices 0-4)
+    if (index >= 5) {
+        print("Reached end of array (index >= 5), stopping loop");
+        continue_loop = false;
+    }
+}
+
+print("\nWhile loop simulation completed");
+print("Total iterations: " + iteration_count);
+print("Final index: " + index);
+
+print("\n=== Testing smaller arrays ===");
+
+// Test with smaller arrays to see if the issue is size-related
+print("Testing with 1-element array:");
+var small1 = {42};
+print("Created array: " + small1);
+print("small1[0] = " + small1[0]);
+
+print("Testing foreach with 1-element array:");
+foreach (val in small1) {
+    print("Value from 1-element array: " + val);
+}
+
+print("Testing with 2-element array:");
+var small2 = {10, 20};
+print("Created array: " + small2);
+print("small2[0] = " + small2[0]);
+print("small2[1] = " + small2[1]);
+
+print("Testing foreach with 2-element array:");
+foreach (val in small2) {
+    print("Value from 2-element array: " + val);
+}
+
+print("Testing with 3-element array:");
+var small3 = {1, 2, 3};
+print("Created array: " + small3);
+
+print("Testing foreach with 3-element array:");
+foreach (val in small3) {
+    print("Value from 3-element array: " + val);
+}
+
+print("\n=== Length Debug Test Complete ===");

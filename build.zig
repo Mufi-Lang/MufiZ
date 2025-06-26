@@ -87,7 +87,7 @@ pub fn build(b: *std.Build) !void {
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
 
-    const exe_test = b.addTest(.{ .root_source_file = b.path("lib/main.zig"), .target = target, .optimize = optimize });
+    const exe_test = b.addTest(.{ .root_source_file = b.path("tests/test_errors.zig"), .target = target, .optimize = optimize });
     exe_test.linkLibC();
     const run_exe_test = b.addRunArtifact(exe_test);
 

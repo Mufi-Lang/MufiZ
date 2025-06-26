@@ -98,6 +98,7 @@ pub const COLLECTION_FUNCTIONS = [_]BuiltinDef{
     .{ .name = "minl", .func = collections.minl, .params = "vector", .description = "Minimum element in list", .module = "collections" },
     .{ .name = "dot", .func = collections.dot, .params = "vector1, vector2", .description = "Dot product of vectors", .module = "collections" },
     .{ .name = "norm", .func = collections.norm, .params = "vector", .description = "Euclidean norm of vector", .module = "collections" },
+    .{ .name = "range_to_array", .func = collections.range_to_array, .params = "range", .description = "Converts a range to an array", .module = "collections" },
 };
 
 pub const FILESYSTEM_FUNCTIONS = [_]BuiltinDef{

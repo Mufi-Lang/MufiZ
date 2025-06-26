@@ -1,0 +1,45 @@
+// Small test to isolate the specific issue with {0, 5, 10, 15, 20}
+
+print("=== Small Isolate Test ===");
+
+// Test the problematic array
+print("Test 1: {0, 5, 10, 15, 20} (original failing)");
+var prob = {0, 5, 10, 15, 20};
+var c1 = 0;
+foreach (v in prob) {
+    print("Value: " + v);
+    c1 = c1 + 1;
+}
+print("Count: " + c1);
+
+// Test reversed order
+print("Test 2: {20, 15, 10, 5, 0} (reversed)");
+var rev = {20, 15, 10, 5, 0};
+var c2 = 0;
+foreach (v in rev) {
+    print("Value: " + v);
+    c2 = c2 + 1;
+}
+print("Count: " + c2);
+
+// Test similar but different
+print("Test 3: {0, 6, 12, 18, 24} (different multiples)");
+var diff = {0, 6, 12, 18, 24};
+var c3 = 0;
+foreach (v in diff) {
+    print("Value: " + v);
+    c3 = c3 + 1;
+}
+print("Count: " + c3);
+
+// Test without the zero
+print("Test 4: {1, 5, 10, 15, 20} (no zero)");
+var nozero = {1, 5, 10, 15, 20};
+var c4 = 0;
+foreach (v in nozero) {
+    print("Value: " + v);
+    c4 = c4 + 1;
+}
+print("Count: " + c4);
+
+print("Results: orig=" + c1 + " rev=" + c2 + " diff=" + c3 + " nozero=" + c4);

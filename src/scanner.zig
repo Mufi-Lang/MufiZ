@@ -123,6 +123,8 @@ pub const TokenType = enum(c_int) {
     TOKEN_F_STRING = 65,
     TOKEN_ARROW = 66,
     TOKEN_HASH = 67, // Hash symbol '#' used as prefix for hashtable literals
+    TOKEN_RANGE_EXCLUSIVE = 68, // .. for exclusive range
+    TOKEN_RANGE_INCLUSIVE = 69, // ..= for inclusive range
 };
 
 pub const Token = struct {
@@ -529,7 +531,17 @@ pub fn scanToken() Token {
         ';' => return make_token(.TOKEN_SEMICOLON),
         ':' => return make_token(.TOKEN_COLON),
         ',' => return make_token(.TOKEN_COMMA),
-        '.' => return make_token(.TOKEN_DOT),
+        '.' => {
+            if (match('.')) {
+                if (match('=')) {
+                    return make_token(.TOKEN_RANGE_INCLUSIVE);
+                } else {
+                    return make_token(.TOKEN_RANGE_EXCLUSIVE);
+                }
+            } else {
+                return make_token(.TOKEN_DOT);
+            }
+        },
         '-' => {
             if (match('=')) {
                 return make_token(.TOKEN_MINUS_EQUAL);

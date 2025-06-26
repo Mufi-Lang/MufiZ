@@ -1,0 +1,117 @@
+// Simplified Range Test Suite
+// This file tests the essential range functionality in MufiZ
+// Created to replace multiple failing range tests
+
+// --- Part 1: Basic Range Creation ---
+print("--- Part 1: Basic Range Creation ---");
+// Create ranges with literals
+var r1 = 1..5;    // Exclusive range: 1, 2, 3, 4
+var r2 = 1..=5;   // Inclusive range: 1, 2, 3, 4, 5
+
+// Display ranges
+print("Exclusive range (1..5):");
+print(r1);
+
+print("Inclusive range (1..=5):");
+print(r2);
+
+// --- Part 2: Range Iteration with Literals ---
+print("\n--- Part 2: Range Iteration with Literals ---");
+// Iterate through exclusive range
+print("Iterating through exclusive range (1..5):");
+foreach (i in 1..5) { print(i); }
+
+// Iterate through inclusive range
+print("Iterating through inclusive range (1..=5):");
+foreach (i in 1..=5) { print(i); }
+
+// --- Part 3: Range to Array Conversion ---
+print("\n--- Part 3: Range to Array Conversion ---");
+// Convert ranges to arrays
+print("Converting ranges to arrays:");
+var arr1 = range_to_array(r1);
+var arr2 = range_to_array(r2);
+
+print("Array from exclusive range (1..5):");
+print(arr1);
+
+print("Array from inclusive range (1..=5):");
+print(arr2);
+
+// --- Part 4: Range with Variables ---
+print("\n--- Part 4: Range with Variables ---");
+// Create ranges with variables
+var start = 10;
+var finish = 15;
+
+print("Variables: start = " + start + ", finish = " + finish);
+
+// Create range from variables
+var r3 = start..finish;
+print("Range with variables (start..finish):");
+print(r3);
+
+// Convert to array and iterate
+var arr3 = range_to_array(r3);
+print("Array from variable range:");
+print(arr3);
+
+print("Iterating through array from variable range:");
+foreach (i in arr3) { print(i); }
+
+// --- Part 5: Range in Switch Statements ---
+print("\n--- Part 5: Range in Switch Statements ---");
+// Test literal values in switch with range patterns
+print("Testing switch with different values:");
+
+// Test with value in exclusive range
+var testValue = 3;
+print("\nValue: " + testValue);
+switch(testValue) {
+    case 1 => { print("Case: Exactly 1"); },
+    case 2..5 => { print("Case: In range 2..5 (exclusive)"); },
+    case 5..=10 => { print("Case: In range 5..=10 (inclusive)"); },
+    _ => { print("Case: Default"); }
+}
+
+// Test with value at boundary
+testValue = 5;
+print("\nValue: " + testValue);
+switch(testValue) {
+    case 1 => { print("Case: Exactly 1"); },
+    case 2..5 => { print("Case: In range 2..5 (exclusive)"); },
+    case 5..=10 => { print("Case: In range 5..=10 (inclusive)"); },
+    _ => { print("Case: Default"); }
+}
+
+// Test with value in inclusive range
+testValue = 7;
+print("\nValue: " + testValue);
+switch(testValue) {
+    case 1 => { print("Case: Exactly 1"); },
+    case 2..5 => { print("Case: In range 2..5 (exclusive)"); },
+    case 5..=10 => { print("Case: In range 5..=10 (inclusive)"); },
+    _ => { print("Case: Default"); }
+}
+
+// Test with value outside all ranges
+testValue = 20;
+print("\nValue: " + testValue);
+switch(testValue) {
+    case 1 => { print("Case: Exactly 1"); },
+    case 2..5 => { print("Case: In range 2..5 (exclusive)"); },
+    case 5..=10 => { print("Case: In range 5..=10 (inclusive)"); },
+    _ => { print("Case: Default"); }
+}
+
+// Test with literal range pattern equivalent to variables
+testValue = 12;
+print("\nValue: " + testValue + " with literal range pattern:");
+switch(testValue) {
+    case 1 => { print("Case: Exactly 1"); },
+    case 2..5 => { print("Case: In range 2..5 (exclusive)"); },
+    case 10..15 => { print("Case: In range 10..15 (equivalent to start..finish)"); },
+    _ => { print("Case: Default"); }
+}
+
+print("\nSimplified Range Test Suite Completed!");
