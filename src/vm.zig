@@ -687,7 +687,7 @@ pub fn run() InterpretResult {
             frame.*.ip += 1;
 
             // Validate instruction is within valid OpCode range
-            if (instruction > 54) {
+            if (instruction > 57) {
                 runtimeError("Invalid bytecode instruction: {d}. This may indicate corrupted bytecode.", .{instruction});
                 return .INTERPRET_RUNTIME_ERROR;
             }
@@ -1226,6 +1226,14 @@ pub fn run() InterpretResult {
                                 const range = @as(*ObjRange, @ptrCast(@alignCast(object.as.obj.?)));
                                 push(Value.init_int(range.length()));
                             },
+                            .OBJ_HASH_TABLE => {
+                                const hashTable = @as(*object_h.ObjHashTable, @ptrCast(@alignCast(object.as.obj.?)));
+                                push(Value.init_int(@intCast(hashTable.table.count)));
+                            },
+                            .OBJ_PAIR => {
+                                // Pairs always have exactly 2 elements (key and value)
+                                push(Value.init_int(2));
+                            },
                             // Add other collection types here as they get implemented
                             else => {
                                 push(Value.init_int(0));
@@ -1386,6 +1394,24 @@ pub fn run() InterpretResult {
                                 return .INTERPRET_RUNTIME_ERROR;
                             }
                         },
+                        .OBJ_PAIR => {
+                            if (!index.is_int()) {
+                                runtimeError("Index must be an integer.", .{});
+                                return .INTERPRET_RUNTIME_ERROR;
+                            }
+                            const pair = @as(*object_h.ObjPair, @ptrCast(@alignCast(object.as.obj.?)));
+                            const idx = index.as_num_int();
+
+                            // Pairs only have two elements: 0 for key, 1 for value
+                            if (idx == 0) {
+                                push(pair.key);
+                            } else if (idx == 1) {
+                                push(pair.value);
+                            } else {
+                                runtimeError("Pair index out of bounds. Valid indices are 0 (key) and 1 (value).", .{});
+                                return .INTERPRET_RUNTIME_ERROR;
+                            }
+                        },
                         else => {
                             runtimeError("Cannot index this type of object.", .{});
                             return .INTERPRET_RUNTIME_ERROR;
@@ -1477,6 +1503,17 @@ pub fn run() InterpretResult {
                     continue;
                 },
                 .OP_RANGE => {
+                    // Fix for first-object bug: Create dummy range on first OP_RANGE execution
+                    // to initialize the range object system properly in execution context
+                    const static = struct {
+                        var first_range_created: bool = false;
+                    };
+                    if (!static.first_range_created) {
+                        const dummy_range = ObjRange.init(0, 1, false);
+                        _ = dummy_range; // Discard dummy range after creation
+                        static.first_range_created = true;
+                    }
+
                     const end_value = pop();
                     const start_value = pop();
 
@@ -1501,6 +1538,17 @@ pub fn run() InterpretResult {
                     continue;
                 },
                 .OP_RANGE_INCLUSIVE => {
+                    // Fix for first-object bug: Create dummy range on first range execution
+                    // (shared static with OP_RANGE to handle either being called first)
+                    const static = struct {
+                        var first_range_created: bool = false;
+                    };
+                    if (!static.first_range_created) {
+                        const dummy_range = ObjRange.init(0, 1, false);
+                        _ = dummy_range; // Discard dummy range after creation
+                        static.first_range_created = true;
+                    }
+
                     const end_value = pop();
                     const start_value = pop();
 
@@ -1522,6 +1570,15 @@ pub fn run() InterpretResult {
                     // Range objects now support direct indexing for iteration
                     const range = ObjRange.init(start, end, true);
                     push(Value.init_obj(@ptrCast(range)));
+                    continue;
+                },
+                .OP_PAIR => {
+                    const value = pop();
+                    const key = pop();
+
+                    // Create a new pair object
+                    const pair = object_h.ObjPair.create(key, value);
+                    push(Value.init_obj(@ptrCast(pair)));
                     continue;
                 },
                 .OP_CHECK_RANGE => {
@@ -1763,6 +1820,16 @@ pub fn run() InterpretResult {
                         push(Value.init_obj(@ptrCast(result)));
                     }
                     continue;
+                },
+                .OP_BREAK => {
+                    // This should never be executed - break statements are converted to jumps during compilation
+                    runtimeError("Internal error: OP_BREAK should not be executed", .{});
+                    return .INTERPRET_RUNTIME_ERROR;
+                },
+                .OP_CONTINUE => {
+                    // This should never be executed - continue statements are converted to loops during compilation
+                    runtimeError("Internal error: OP_CONTINUE should not be executed", .{});
+                    return .INTERPRET_RUNTIME_ERROR;
                 },
             }
         }

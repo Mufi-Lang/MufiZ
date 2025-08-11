@@ -41,4 +41,5 @@ pub const ObjType = enum(i32) {
     OBJ_HASH_TABLE = 9,
     OBJ_FVECTOR = 10,
     OBJ_RANGE = 11,
+    OBJ_PAIR = 12,
 };

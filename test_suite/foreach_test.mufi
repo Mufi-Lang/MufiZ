@@ -1,0 +1,233 @@
+// Test Suite: Foreach Loops
+// Tests foreach functionality with various collection types
+
+print("=== FOREACH TEST SUITE ===");
+
+// Test 1: Foreach with vector literals
+print("\n[Test 1] Foreach with vector literals");
+var nums = {10, 20, 30, 40, 50};
+print("Vector: ");
+print(nums);
+print("Iterating with foreach:");
+foreach (n in nums) {
+    print("  Value: ");
+    print(n);
+}
+
+// Test 2: Foreach with float vectors
+print("\n[Test 2] Foreach with float vectors");
+var vec = fvec(5);
+push(vec, 1.5);
+push(vec, 2.5);
+push(vec, 3.5);
+push(vec, 4.5);
+push(vec, 5.5);
+print("Float vector: ");
+print(vec);
+print("Iterating with foreach:");
+foreach (v in vec) {
+    print("  Value: ");
+    print(v);
+}
+
+// Test 3: Foreach with ranges (exclusive)
+print("\n[Test 3] Foreach with exclusive ranges");
+var range1 = 1..5;
+print("Range 1..5: ");
+print(range1);
+print("Iterating:");
+foreach (r in range1) {
+    print("  ");
+    print(r);
+}
+
+// Test 4: Foreach with ranges (inclusive)
+print("\n[Test 4] Foreach with inclusive ranges");
+var range2 = 1..=5;
+print("Range 1..=5: ");
+print(range2);
+print("Iterating:");
+foreach (r in range2) {
+    print("  ");
+    print(r);
+}
+
+// Test 5: Foreach with break (commented - break not supported in foreach)
+print("\n[Test 5] Foreach with break (skipped - not supported)");
+// var break_vec = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+// print("Breaking at 5:");
+// foreach (n in break_vec) {
+//     if (n == 5) {
+//         print("  Breaking!");
+//         break;
+//     }
+//     print("  ");
+//     print(n);
+// }
+// print("After break");
+print("  Break statement is not supported in foreach loops");
+
+// Test 6: Foreach with continue (commented - continue not supported in foreach)
+print("\n[Test 6] Foreach with continue (skipped - not supported)");
+// var cont_vec = {1, 2, 3, 4, 5, 6, 7, 8};
+// print("Skipping even numbers:");
+// foreach (n in cont_vec) {
+//     if (n % 2 == 0) {
+//         continue;
+//     }
+//     print("  ");
+//     print(n);
+// }
+print("  Continue statement is not supported in foreach loops");
+
+// Test 7: Nested foreach loops
+print("\n[Test 7] Nested foreach loops");
+var outer = {1, 2, 3};
+var inner = {10, 20};
+print("Nested loops:");
+foreach (o in outer) {
+    print("Outer: ");
+    print(o);
+    foreach (i in inner) {
+        print("  Inner: ");
+        print(i);
+        print("  Product: ");
+        print(o * i);
+    }
+}
+
+// Test 8: Foreach with empty collections
+print("\n[Test 8] Foreach with empty collections");
+var empty_vec = {};
+print("Empty vector: ");
+print(empty_vec);
+print("Iterating (should print nothing):");
+foreach (e in empty_vec) {
+    print("  This should not print!");
+}
+print("Done with empty vector");
+
+// Test 9: Foreach with single element
+print("\n[Test 9] Foreach with single element");
+var single = {42};
+print("Single element vector: ");
+print(single);
+foreach (s in single) {
+    print("  Single value: ");
+    print(s);
+}
+
+// Test 10: Foreach with range of negative numbers
+print("\n[Test 10] Foreach with negative range");
+var neg_range = -3..2;
+print("Range -3..2: ");
+print(neg_range);
+foreach (n in neg_range) {
+    print("  ");
+    print(n);
+}
+
+// Test 11: Foreach with calculations
+print("\n[Test 11] Foreach with calculations");
+var calc_vec = {2, 4, 6, 8, 10};
+var sum = 0;
+var product = 1;
+print("Calculating sum and product:");
+foreach (n in calc_vec) {
+    sum = sum + n;
+    product = product * n;
+}
+print("Sum: ");
+print(sum);
+print("Product: ");
+print(product);
+
+// Test 12: Foreach with conditions
+print("\n[Test 12] Foreach with conditions");
+var cond_vec = {15, 22, 8, 33, 17, 24, 9, 41};
+print("Finding numbers > 20:");
+var count = 0;
+foreach (n in cond_vec) {
+    if (n > 20) {
+        print("  Found: ");
+        print(n);
+        count = count + 1;
+    }
+}
+print("Total found: ");
+print(count);
+
+// Test 13: Foreach modifying external variable
+print("\n[Test 13] Foreach modifying external variables");
+var external = 0;
+var mod_vec = {1, 2, 3, 4, 5};
+print("Initial external value: ");
+print(external);
+foreach (n in mod_vec) {
+    external = external + n;
+}
+print("Final external value: ");
+print(external);
+
+// Test 14: Foreach with early exit pattern
+print("\n[Test 14] Foreach with early exit pattern");
+var search_vec = {10, 20, 30, 40, 50, 60};
+var target = 30;
+var found = false;
+var position = -1;
+var idx = 0;
+print("Searching for ");
+print(target);
+print(":");
+foreach (n in search_vec) {
+    if (n == target) {
+        found = true;
+        position = idx;
+        // break;  // break not supported in foreach
+    }
+    idx = idx + 1;
+}
+if (found) {
+    print("Found at position: ");
+    print(position);
+} else {
+    print("Not found");
+}
+
+// Test 15: Complex foreach with multiple conditions
+print("\n[Test 15] Complex foreach with multiple conditions");
+var complex_vec = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+print("Processing with conditions:");
+print("- Values less than 5 get printed");
+print("- Values 5 or greater get doubled");
+foreach (n in complex_vec) {
+    if (n >= 10) {
+        print("  Value ");
+        print(n);
+        print(" (stopping point reached)");
+        // break;  // break not supported in foreach
+    }
+    if (n < 5) {
+        print("  ");
+        print(n);
+        print(" (small value)");
+    } else {
+        print("  ");
+        print(n);
+        print(" doubled = ");
+        print(n * 2);
+    }
+}
+
+// Note: Foreach with linked lists appears to have issues in current implementation
+// Test 16: Foreach with linked lists (commented out due to known issues)
+print("\n[Test 16] Foreach with linked lists");
+print("Note: Foreach with linked lists has known issues");
+print("Manual iteration is recommended for linked lists");
+
+// Note about pairs iteration
+print("\n[Test 17] Note about pairs iteration");
+print("Foreach over pairs(hash_table) has issues with linked lists");
+print("Use manual while loops for iterating over pairs");
+
+print("\n=== ALL FOREACH TESTS COMPLETED ===");

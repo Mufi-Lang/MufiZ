@@ -126,6 +126,37 @@ pub const ClassCompiler = struct {
     hasSuperclass: bool,
 };
 
+pub const Loop = struct {
+    enclosing: ?*Loop,
+    start: i32,
+    scopeDepth: i32,
+    breakJumps: std.ArrayList(i32),
+    continueJumps: std.ArrayList(i32),
+    loopType: LoopType,
+
+    pub const LoopType = enum {
+        FOR,
+        WHILE,
+        FOREACH,
+    };
+
+    pub fn init(enclosing: ?*Loop, start: i32, scopeDepth: i32, loopType: LoopType) Loop {
+        return Loop{
+            .enclosing = enclosing,
+            .start = start,
+            .scopeDepth = scopeDepth,
+            .breakJumps = std.ArrayList(i32).init(std.heap.page_allocator),
+            .continueJumps = std.ArrayList(i32).init(std.heap.page_allocator),
+            .loopType = loopType,
+        };
+    }
+
+    pub fn deinit(self: *Loop) void {
+        self.breakJumps.deinit();
+        self.continueJumps.deinit();
+    }
+};
+
 pub const Compiler = struct {
     enclosing: ?*Compiler,
     function: *ObjFunction,
@@ -134,6 +165,7 @@ pub const Compiler = struct {
     localCount: i32,
     upvalues: [256]Upvalue,
     scopeDepth: i32,
+    innermostLoop: ?*Loop,
 };
 
 pub var parser: Parser = undefined;
@@ -327,6 +359,7 @@ pub fn initCompiler(compiler: *Compiler, type_: FunctionType) void {
     compiler.*.localCount = 0;
     compiler.*.scopeDepth = 0;
     compiler.*.function = object_h.newFunction();
+    compiler.*.innermostLoop = null;
     current = compiler;
 
     // Set function name if not a script
@@ -430,8 +463,12 @@ pub fn statement() void {
             returnStatement();
         },
         .TOKEN_BREAK => {
-            @"error"("'break' statement must be inside a switch case block.");
             advance();
+            breakStatement();
+        },
+        .TOKEN_CONTINUE => {
+            advance();
+            continueStatement();
         },
         .TOKEN_SWITCH => {
             advance();
@@ -538,7 +575,7 @@ pub fn getRule(type_: TokenType) ParseRule {
         .TOKEN_IN => ParseRule{ .precedence = PREC_NONE },
         .TOKEN_END => ParseRule{ .precedence = PREC_NONE },
         .TOKEN_CONST => ParseRule{ .precedence = PREC_NONE },
-        .TOKEN_ARROW => ParseRule{ .precedence = PREC_NONE },
+        .TOKEN_ARROW => ParseRule{ .infix = &pair, .precedence = PREC_TERM },
         else => ParseRule{ .precedence = PREC_NONE },
     };
 }
@@ -1120,6 +1157,16 @@ pub fn rangeInclusive(canAssign: bool) void {
 
     // Emit the range creation instruction with inclusive flag
     emitByte(@intCast(@intFromEnum(OpCode.OP_RANGE_INCLUSIVE)));
+}
+
+pub fn pair(canAssign: bool) void {
+    _ = canAssign;
+
+    // Parse the value expression (right hand side)
+    parsePrecedence(@as(c_uint, @bitCast(PREC_TERM + 1)));
+
+    // Emit the pair creation instruction
+    emitByte(@intCast(@intFromEnum(OpCode.OP_PAIR)));
 }
 
 // Helper function to determine if the current token sequence looks like a range pattern
@@ -1719,6 +1766,12 @@ pub fn forStatement() void {
         exitJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
         emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
     }
+
+    // Set up loop tracking for break/continue
+    var loop = Loop.init(current.?.innermostLoop, loopStart, current.?.scopeDepth, .FOR);
+    defer loop.deinit();
+    current.?.innermostLoop = &loop;
+
     if (!match(.TOKEN_RIGHT_PAREN)) {
         var bodyJump: i32 = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
         _ = &bodyJump;
@@ -1729,6 +1782,7 @@ pub fn forStatement() void {
         consume(.TOKEN_RIGHT_PAREN, "Expect ')' after for clauses.");
         emitLoop(loopStart);
         loopStart = incrementStart;
+        loop.start = incrementStart; // Update loop start for continue to jump to increment
         patchJump(bodyJump);
     }
     statement();
@@ -1737,83 +1791,116 @@ pub fn forStatement() void {
         patchJump(exitJump);
         emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
     }
+
+    // Patch all break jumps to point here
+    for (loop.breakJumps.items) |breakJump| {
+        patchJump(breakJump);
+    }
+
+    // For loops shouldn't have continue jumps to patch (they use direct loops)
+    // But let's be safe and patch them if they exist
+    for (loop.continueJumps.items) |continueJump| {
+        patchJump(continueJump);
+    }
+
+    // Restore the enclosing loop
+    current.?.innermostLoop = loop.enclosing;
+
     endScope();
 }
 // eachStatement function removed - it was using removed iterator opcodes
 pub fn foreachStatement() void {
     beginScope();
 
-    // Expect '(' after 'foreach'
+    // Parse: foreach (item in collection)
     consume(.TOKEN_LEFT_PAREN, "Expect '(' after 'foreach'.");
-
-    // Parse the loop variable (item)
     consume(.TOKEN_IDENTIFIER, "Expect variable name.");
     const itemName = parser.previous;
-
-    // Expect 'in' keyword
     consume(.TOKEN_IN, "Expect 'in' after loop variable.");
 
-    // Store the collection in a local variable
-    const collectionSlot = current.?.localCount;
-    addLocal(syntheticToken("__collection"));
-    expression(); // Collection expression leaves value on stack
-    emitBytes(@intCast(@intFromEnum(OpCode.OP_SET_LOCAL)), @intCast(collectionSlot));
-    emitByte(@intCast(@intFromEnum(OpCode.OP_POP))); // Pop the value after storing
-    markInitialized();
-
-    // Expect ')'
+    // Parse and immediately store the collection
+    expression();
     consume(.TOKEN_RIGHT_PAREN, "Expect ')' after collection.");
 
-    // Initialize index variable
+    // Collection is now on stack - store it in a local variable
+    const collectionSlot = current.?.localCount;
+    addLocal(syntheticToken("__collection"));
+    markInitialized();
+    emitBytes(@intCast(@intFromEnum(OpCode.OP_SET_LOCAL)), @intCast(collectionSlot));
+    emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+
+    // Initialize index = 0
     const indexSlot = current.?.localCount;
     addLocal(syntheticToken("__index"));
+    markInitialized();
     emitConstant(Value.init_int(0));
     emitBytes(@intCast(@intFromEnum(OpCode.OP_SET_LOCAL)), @intCast(indexSlot));
-    emitByte(@intCast(@intFromEnum(OpCode.OP_POP))); // Pop the value after storing
-    markInitialized();
+    emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
 
-    // Declare item variable
+    // Declare the loop item variable
     const itemSlot = current.?.localCount;
     addLocal(itemName);
+    markInitialized();
 
-    // Main loop starts here
-    const loopStart: i32 = currentChunk().*.count;
+    // Main loop start
+    const loopStart: i32 = @intCast(currentChunk().*.count);
 
-    // Loop condition: index < collection.length
+    // Condition: index < collection.length
     emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(indexSlot));
     emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(collectionSlot));
     emitByte(@intCast(@intFromEnum(OpCode.OP_LENGTH)));
     emitByte(@intCast(@intFromEnum(OpCode.OP_LESS)));
 
-    const exitJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
-    emitByte(@intCast(@intFromEnum(OpCode.OP_POP))); // Pop the condition result
+    // Exit if condition is false
+    const exitJump: i32 = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
+    emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
 
-    // Get current element: collection[index]
+    // Set item = collection[index]
     emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(collectionSlot));
     emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(indexSlot));
     emitByte(@intCast(@intFromEnum(OpCode.OP_GET_INDEX)));
-
-    // Set the item variable
     emitBytes(@intCast(@intFromEnum(OpCode.OP_SET_LOCAL)), @intCast(itemSlot));
-    emitByte(@intCast(@intFromEnum(OpCode.OP_POP))); // Pop the value after setting
-    markInitialized(); // Mark the item variable as initialized
+    emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
 
-    // Execute loop body
+    // Set up loop tracking for break/continue before executing body
+    // For foreach, we'll patch continue jumps later to jump to increment
+    var loop = Loop.init(current.?.innermostLoop, loopStart, current.?.scopeDepth, .FOREACH);
+    defer loop.deinit();
+    current.?.innermostLoop = &loop;
+
+    // Execute the loop body
     statement();
 
-    // Increment index: index = index + 1
+    // Continue point: increment index (continue jumps here)
+    const incrementStart: i32 = @intCast(currentChunk().*.count);
+    _ = incrementStart; // autofix
+
+    // Patch all continue jumps to point to increment start
+    for (loop.continueJumps.items) |continueJump| {
+        patchJump(continueJump);
+    }
+
+    // Increment: index = index + 1
     emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(indexSlot));
     emitConstant(Value.init_int(1));
     emitByte(@intCast(@intFromEnum(OpCode.OP_ADD)));
     emitBytes(@intCast(@intFromEnum(OpCode.OP_SET_LOCAL)), @intCast(indexSlot));
     emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
 
-    // Jump back to loop start
+    // Jump back to condition check
     emitLoop(loopStart);
 
-    // Exit point
+    // Patch exit jump
     patchJump(exitJump);
-    emitByte(@intCast(@intFromEnum(OpCode.OP_POP))); // Pop the final condition result
+    emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+
+    // Patch all break jumps to point here
+    for (loop.breakJumps.items) |breakJump| {
+        patchJump(breakJump);
+    }
+
+    // Restore the enclosing loop
+    current.?.innermostLoop = loop.enclosing;
 
     endScope();
 }
@@ -1868,6 +1955,12 @@ pub fn returnStatement() void {
 pub fn whileStatement() void {
     var loopStart: i32 = @intCast(currentChunk().*.count);
     _ = &loopStart;
+
+    // Set up loop tracking for break/continue
+    var loop = Loop.init(current.?.innermostLoop, loopStart, current.?.scopeDepth, .WHILE);
+    defer loop.deinit();
+    current.?.innermostLoop = &loop;
+
     consume(.TOKEN_LEFT_PAREN, "Expect '(' after 'while'.");
     expression();
     consume(.TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
@@ -1878,6 +1971,55 @@ pub fn whileStatement() void {
     emitLoop(loopStart);
     patchJump(exitJump);
     emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+
+    // Patch all break jumps to point here
+    for (loop.breakJumps.items) |breakJump| {
+        patchJump(breakJump);
+    }
+
+    // While loops shouldn't have continue jumps to patch (they use direct loops)
+    // But let's be safe and patch them if they exist
+    for (loop.continueJumps.items) |continueJump| {
+        patchJump(continueJump);
+    }
+
+    // Restore the enclosing loop
+    current.?.innermostLoop = loop.enclosing;
+}
+
+pub fn breakStatement() void {
+    if (current.?.innermostLoop == null) {
+        @"error"("'break' statement must be inside a loop.");
+        consume(.TOKEN_SEMICOLON, "Expect ';' after 'break'.");
+        return;
+    }
+
+    consume(.TOKEN_SEMICOLON, "Expect ';' after 'break'.");
+
+    // Emit a jump that will be patched to jump to the end of the loop
+    const jump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+    current.?.innermostLoop.?.breakJumps.append(jump) catch unreachable;
+}
+
+pub fn continueStatement() void {
+    if (current.?.innermostLoop == null) {
+        @"error"("'continue' statement must be inside a loop.");
+        consume(.TOKEN_SEMICOLON, "Expect ';' after 'continue'.");
+        return;
+    }
+
+    consume(.TOKEN_SEMICOLON, "Expect ';' after 'continue'.");
+
+    // For foreach loops, we need to emit a jump that will be patched later
+    // For other loops, we can emit the loop instruction directly
+    if (current.?.innermostLoop.?.loopType == .FOREACH) {
+        // Emit a jump that will be patched to jump to the increment section
+        const jump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+        current.?.innermostLoop.?.continueJumps.append(jump) catch unreachable;
+    } else {
+        // Emit a loop instruction to jump back to the start of the loop
+        emitLoop(current.?.innermostLoop.?.start);
+    }
 }
 
 pub fn switchStatement() void {
@@ -1954,150 +2096,238 @@ pub fn switchStatement() void {
             // Handle case statement: case expr => ...
             advance(); // consume 'case'
 
-            // Evaluate the case expression
-            expression();
+            // Parse the first part of the case value
+            // For range patterns, we need to handle them specially
+            if (check(.TOKEN_INT) or check(.TOKEN_DOUBLE) or check(.TOKEN_IDENTIFIER)) {
+                // Parse the first value
+                parsePrecedence(@as(c_uint, @bitCast(PREC_RANGE + 1)));
 
-            // Get the switch value for comparison (gets the value we stored in the local)
-            emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(switchVarSlot));
+                // Check if this is a range pattern
+                if (check(.TOKEN_RANGE_EXCLUSIVE) or check(.TOKEN_RANGE_INCLUSIVE)) {
+                    // This is a range pattern
+                    const isInclusive = match(.TOKEN_RANGE_INCLUSIVE);
+                    if (!isInclusive) {
+                        consume(.TOKEN_RANGE_EXCLUSIVE, "Expect range operator '..' or '..='");
+                    }
 
-            consume(.TOKEN_ARROW, "Expect '=>' after case value.");
+                    // Parse the end value
+                    parsePrecedence(@as(c_uint, @bitCast(PREC_RANGE + 1)));
 
-            // Compare the case value with the switch value (on stack as: case_value, switch_value)
-            emitByte(@intCast(@intFromEnum(OpCode.OP_EQUAL)));
+                    // Store end value in a temporary local
+                    beginScope();
+                    addLocal(syntheticToken("__case_range_end"));
+                    markInitialized();
+                    const rangeEndSlot = current.?.localCount - 1;
+                    emitBytes(@intCast(@intFromEnum(OpCode.OP_SET_LOCAL)), @intCast(rangeEndSlot));
 
-            // If they're not equal, skip this case
-            const skipCaseJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
+                    // Check if switch value >= start
+                    // Stack before: [start_value]
+                    emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(switchVarSlot));
+                    // Stack: [start_value, switch_value]
+                    // We need switch_value >= start_value, which is !(switch_value < start_value)
+                    emitByte(@intCast(@intFromEnum(OpCode.OP_LESS)));
+                    emitByte(@intCast(@intFromEnum(OpCode.OP_NOT)));
 
-            // Pop the comparison result only when we execute the case
-            emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+                    const skipStartCheck = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
+                    emitByte(@intCast(@intFromEnum(OpCode.OP_POP))); // Pop comparison result
 
-            // Parse case body
-            if (match(.TOKEN_LEFT_BRACE)) {
-                inCaseBlock = true;
-                beginScope();
+                    // Check if switch value <= end (or < for exclusive)
+                    emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(switchVarSlot));
+                    emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(rangeEndSlot));
 
-                // Capture current position for break statements
-                breakJumpPos = @intCast(currentChunk().*.count);
+                    if (isInclusive) {
+                        emitByte(@intCast(@intFromEnum(OpCode.OP_GREATER)));
+                        emitByte(@intCast(@intFromEnum(OpCode.OP_NOT)));
+                    } else {
+                        emitByte(@intCast(@intFromEnum(OpCode.OP_LESS)));
+                    }
 
-                // Parse statements until we hit a break or the end of the block
-                while (!check(.TOKEN_RIGHT_BRACE) and !check(.TOKEN_EOF)) {
+                    const skipEndCheck = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
+                    emitByte(@intCast(@intFromEnum(OpCode.OP_POP))); // Pop comparison result
+
+                    consume(.TOKEN_ARROW, "Expect '=>' after range pattern.");
+
+                    // Parse case body
+                    if (match(.TOKEN_LEFT_BRACE)) {
+                        beginScope();
+
+                        while (!check(.TOKEN_RIGHT_BRACE) and !check(.TOKEN_EOF)) {
+                            if (match(.TOKEN_BREAK)) {
+                                consume(.TOKEN_SEMICOLON, "Expect ';' after break.");
+                                const breakJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+                                endJumps.append(breakJump) catch unreachable;
+                                break;
+                            } else {
+                                statement();
+                            }
+                        }
+
+                        consume(.TOKEN_RIGHT_BRACE, "Expect '}' after case body.");
+                        endScope();
+                    } else {
+                        expression();
+                        emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+
+                        if (match(.TOKEN_BREAK)) {
+                            consume(.TOKEN_SEMICOLON, "Expect ';' after break.");
+                            const breakJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+                            endJumps.append(breakJump) catch unreachable;
+                        }
+                    }
+
+                    // Jump to end of switch after executing case
+                    const endJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+                    endJumps.append(endJump) catch unreachable;
+
+                    // Patch skip jumps
+                    patchJump(skipStartCheck);
+                    patchJump(skipEndCheck);
+                    emitByte(@intCast(@intFromEnum(OpCode.OP_POP))); // Pop comparison result
+
+                    endScope(); // End scope for range end variable
+                } else {
+                    // Not a range, just a regular case value
+                    // We already parsed the value, now consume the arrow
+                    consume(.TOKEN_ARROW, "Expect '=>' after case value.");
+
+                    // Get the switch value for comparison (gets the value we stored in the local)
+                    emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(switchVarSlot));
+
+                    // Compare the case value with the switch value (on stack as: case_value, switch_value)
+                    emitByte(@intCast(@intFromEnum(OpCode.OP_EQUAL)));
+
+                    // If they're not equal, skip this case
+                    const skipCaseJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
+
+                    // Pop the comparison result only when we execute the case
+                    emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+
+                    // Parse case body
+                    if (match(.TOKEN_LEFT_BRACE)) {
+                        inCaseBlock = true;
+                        beginScope();
+
+                        // Capture current position for break statements
+                        breakJumpPos = @intCast(currentChunk().*.count);
+
+                        // Parse statements until we hit a break or the end of the block
+                        while (!check(.TOKEN_RIGHT_BRACE) and !check(.TOKEN_EOF)) {
+                            if (match(.TOKEN_BREAK)) {
+                                consume(.TOKEN_SEMICOLON, "Expect ';' after break.");
+
+                                // Jump to the end of the switch statement
+                                const breakJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+                                endJumps.append(breakJump) catch unreachable;
+
+                                // No need to continue parsing this block
+                                break;
+                            } else {
+                                statement();
+                            }
+                        }
+
+                        // Reset case block tracking
+                        inCaseBlock = false;
+
+                        consume(.TOKEN_RIGHT_BRACE, "Expect '}' after case body.");
+                        endScope();
+                    } else {
+                        expression();
+                        emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+
+                        // Handle single-statement break
+                        if (match(.TOKEN_BREAK)) {
+                            consume(.TOKEN_SEMICOLON, "Expect ';' after break.");
+
+                            // Jump to the end of the switch statement
+                            const breakJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+                            endJumps.append(breakJump) catch unreachable;
+                        }
+                    }
+
+                    // After case body, jump to the end of the switch (if no break was encountered)
+                    const endJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+                    endJumps.append(endJump) catch unreachable;
+
+                    // If comparison was false, skip to here (next case)
+                    patchJump(skipCaseJump);
+
+                    // No need to pop the switch value as we're using a local variable
+                }
+            } else {
+                // Parse other types of expressions
+                parsePrecedence(@as(c_uint, @bitCast(PREC_TERM + 1)));
+                consume(.TOKEN_ARROW, "Expect '=>' after case value.");
+
+                // Get the switch value for comparison (gets the value we stored in the local)
+                emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(switchVarSlot));
+
+                // Compare the case value with the switch value (on stack as: case_value, switch_value)
+                emitByte(@intCast(@intFromEnum(OpCode.OP_EQUAL)));
+
+                // If they're not equal, skip this case
+                const skipCaseJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
+
+                // Pop the comparison result only when we execute the case
+                emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+
+                // Parse case body
+                if (match(.TOKEN_LEFT_BRACE)) {
+                    inCaseBlock = true;
+                    beginScope();
+
+                    // Capture current position for break statements
+                    breakJumpPos = @intCast(currentChunk().*.count);
+
+                    // Parse statements until we hit a break or the end of the block
+                    while (!check(.TOKEN_RIGHT_BRACE) and !check(.TOKEN_EOF)) {
+                        if (match(.TOKEN_BREAK)) {
+                            consume(.TOKEN_SEMICOLON, "Expect ';' after break.");
+
+                            // Jump to the end of the switch statement
+                            const breakJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+                            endJumps.append(breakJump) catch unreachable;
+
+                            // No need to continue parsing this block
+                            break;
+                        } else {
+                            statement();
+                        }
+                    }
+
+                    // Reset case block tracking
+                    inCaseBlock = false;
+
+                    consume(.TOKEN_RIGHT_BRACE, "Expect '}' after case body.");
+                    endScope();
+                } else {
+                    expression();
+                    emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+
+                    // Handle single-statement break
                     if (match(.TOKEN_BREAK)) {
                         consume(.TOKEN_SEMICOLON, "Expect ';' after break.");
 
                         // Jump to the end of the switch statement
                         const breakJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
                         endJumps.append(breakJump) catch unreachable;
-
-                        // No need to continue parsing this block
-                        break;
-                    } else {
-                        statement();
                     }
                 }
 
-                // Reset case block tracking
-                inCaseBlock = false;
+                // After case body, jump to the end of the switch (if no break was encountered)
+                const endJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+                endJumps.append(endJump) catch unreachable;
 
-                consume(.TOKEN_RIGHT_BRACE, "Expect '}' after case body.");
-                endScope();
-            } else {
-                expression();
-                emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+                // If comparison was false, skip to here (next case)
+                patchJump(skipCaseJump);
 
-                // Handle single-statement break
-                if (match(.TOKEN_BREAK)) {
-                    consume(.TOKEN_SEMICOLON, "Expect ';' after break.");
-
-                    // Jump to the end of the switch statement
-                    const breakJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
-                    endJumps.append(breakJump) catch unreachable;
-                }
+                // No need to pop the switch value as we're using a local variable
             }
-
-            // After case body, jump to the end of the switch (if no break was encountered)
-            const endJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
-            endJumps.append(endJump) catch unreachable;
-
-            // If comparison was false, skip to here (next case)
-            patchJump(skipCaseJump);
-
-            // No need to pop the switch value as we're using a local variable
-        } else if (isRangePattern()) {
-            // Range pattern: start..end => ...
-
-            // Parse the start value
-            expression();
-
-            // We don't need to store the start value
-
-            // Check which range operator we're using
-            const isInclusive = match(.TOKEN_RANGE_INCLUSIVE);
-            if (!isInclusive) {
-                consume(.TOKEN_RANGE_EXCLUSIVE, "Expect range operator '..' or '..='");
-            }
-
-            // Parse the end value
-            expression();
-
-            // Store end value in a temporary value
-            emitByte(@intCast(@intFromEnum(OpCode.OP_DUP)));
-            // Create a local for the end value
-            addLocal(syntheticToken("__range_end"));
-            markInitialized();
-            const rangeEndSlot = current.?.localCount - 1;
-            emitBytes(@intCast(@intFromEnum(OpCode.OP_SET_LOCAL)), @intCast(rangeEndSlot));
-            emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
-
-            // Now test if switch_value >= start
-            emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(switchVarSlot));
-            emitByte(@intCast(@intFromEnum(OpCode.OP_GREATER_EQUAL)));
-
-            // If not in range, skip case
-            const skipStartCheck = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
-            emitByte(@intCast(@intFromEnum(OpCode.OP_POP))); // Pop comparison result
-
-            // Now check if switch_value <= end (or < for exclusive)
-            emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(switchVarSlot));
-            emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(rangeEndSlot));
-
-            if (isInclusive) {
-                // Implement LESS_EQUAL using GREATER and NOT
-                emitByte(@intCast(@intFromEnum(OpCode.OP_GREATER)));
-                emitByte(@intCast(@intFromEnum(OpCode.OP_NOT)));
-            } else {
-                emitByte(@intCast(@intFromEnum(OpCode.OP_LESS)));
-            }
-
-            // Skip this case if end check fails
-            const skipEndCheck = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
-            emitByte(@intCast(@intFromEnum(OpCode.OP_POP))); // Pop comparison result
-
-            consume(.TOKEN_ARROW, "Expect '=>' after range pattern.");
-
-            // Parse case body
-            if (match(.TOKEN_LEFT_BRACE)) {
-                inCaseBlock = true;
-                beginScope();
-                block();
-                inCaseBlock = false;
-                endScope();
-            } else {
-                expression();
-                emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
-            }
-
-            // After case body, jump to the end of the switch
-            const endJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
-            endJumps.append(endJump) catch unreachable;
-
-            // Patch the skip jumps to point to the next case
-            patchJump(skipStartCheck);
-            patchJump(skipEndCheck);
         } else {
             // Original syntax: expr => ...
 
-            // Parse the case expression
-            expression();
+            // Parse with precedence that stops before => operator
+            parsePrecedence(@as(c_uint, @bitCast(PREC_TERM + 1)));
 
             // Get the switch value for comparison
             emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(switchVarSlot));

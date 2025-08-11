@@ -1,0 +1,250 @@
+// Test Suite: Pairs Edge Cases
+// Tests edge cases and special scenarios for pairs functionality
+
+print("=== PAIRS EDGE CASES TEST SUITE ===");
+
+fun test1_special_strings() {
+    print("\n[Test 1] Pairs with special string values");
+    var empty_str_pair = "" => "empty key";
+    var empty_val_pair = "empty value" => "";
+    var both_empty = "" => "";
+    var space_pair = " " => "space";
+    var newline_pair = "newline" => "line";
+    var quote_pair = "quote" => "quoted";
+
+    print("Empty key pair: ");
+    print(empty_str_pair);
+    print("Empty value pair: ");
+    print(empty_val_pair);
+    print("Both empty: ");
+    print(both_empty);
+    print("Quote pair: ");
+    print(quote_pair);
+}
+
+fun test2_extreme_numeric() {
+    print("\n[Test 2] Pairs with extreme numeric values");
+    var large_int_pair = "large" => 999999999;
+    var small_int_pair = "small" => -999999999;
+    var zero_pair = "zero" => 0;
+    var large_float_pair = "pi" => 3.14159265359;
+    var tiny_float_pair = "tiny" => 0.000001;
+    var neg_float_pair = "negative" => -123.456;
+
+    print("Large int: ");
+    print(large_int_pair);
+    print("Small int: ");
+    print(small_int_pair);
+    print("Zero: ");
+    print(zero_pair);
+    print("Large float: ");
+    print(large_float_pair);
+    print("Negative float: ");
+    print(neg_float_pair);
+}
+
+fun test3_identical_pairs() {
+    print("\n[Test 3] Pairs with identical key and value");
+    var same_str = "same" => "same";
+    var same_num = 42 => 42;
+
+    print("Same string pair: ");
+    print(same_str);
+    print("Same number pair: ");
+    print(same_num);
+}
+
+fun test4_duplicate_keys() {
+    print("\n[Test 4] Multiple pairs with same keys");
+    var duplicate_list = linked_list();
+    push(duplicate_list, "key" => 1);
+    push(duplicate_list, "key" => 2);
+    push(duplicate_list, "key" => 3);
+    push(duplicate_list, "other" => 4);
+
+    print("List with duplicate keys: ");
+    print(duplicate_list);
+}
+
+fun test5_complex_nested() {
+    print("\n[Test 5] Pairs with complex nested structures");
+    var nested_ht = hash_table();
+    put(nested_ht, "inner", 100);
+
+    var nested_ll = linked_list();
+    push(nested_ll, 200);
+
+    var ht_pair = "hashtable" => nested_ht;
+    var list_pair = "list" => nested_ll;
+
+    print("Hash table pair: ");
+    print(ht_pair);
+    print("List pair: ");
+    print(list_pair);
+}
+
+fun test6_empty_conversion() {
+    print("\n[Test 6] Empty hash table conversion");
+    var empty_ht = hash_table();
+    var empty_pairs = pairs(empty_ht);
+
+    print("Empty hash table pairs: ");
+    print(empty_pairs);
+    print("Is empty: ");
+    print(is_empty(empty_pairs));
+    print("Length: ");
+    print(len(empty_pairs));
+}
+
+fun test7_nil_values() {
+    print("\n[Test 7] Hash table with nil values");
+    var nil_ht = hash_table();
+    put(nil_ht, "nil_val", nil);
+    put(nil_ht, "not_nil", "value");
+
+    var nil_pairs = pairs(nil_ht);
+    print("Pairs with nil: ");
+    print(nil_pairs);
+}
+
+fun test8_long_strings() {
+    print("\n[Test 8] Pairs with long strings");
+    var long_key = "this_is_a_very_long_key_name_that_tests_string_handling";
+    var long_value = "this_is_an_extremely_long_value_string_that_tests_how_the_system_handles_lengthy_string_values_in_pairs";
+    var long_pair = long_key => long_value;
+
+    print("Long string pair created");
+    print("Pair with long strings: ");
+    print(long_pair);
+}
+
+fun test9_boolean_pairs() {
+    print("\n[Test 9] Pairs with boolean values");
+    var true_pair = "enabled" => true;
+    var false_pair = "disabled" => false;
+
+    print("True pair: ");
+    print(true_pair);
+    print("False pair: ");
+    print(false_pair);
+}
+
+fun test10_nested_chain() {
+    print("\n[Test 10] Chain of nested pairs");
+    var chain1 = "a" => ("b" => ("c" => "end"));
+
+    print("Nested chain: ");
+    print(chain1);
+    print("End of chain: ");
+    print(chain1[1][1][1]);
+}
+
+fun test11_mixed_types() {
+    print("\n[Test 11] Mixed type pairs in collection");
+    var mixed = linked_list();
+    push(mixed, "string" => "text");
+    push(mixed, "number" => 42);
+    push(mixed, "float" => 3.14);
+    push(mixed, "bool" => true);
+    push(mixed, "nil" => nil);
+
+    print("Mixed type pairs: ");
+    print(mixed);
+}
+
+fun test12_rapid_creation() {
+    print("\n[Test 12] Rapid pair creation");
+    var rapid_list = linked_list();
+    var i = 0;
+    while (i < 10) {
+        push(rapid_list, i => (i * 2));
+        i = i + 1;
+    }
+
+    print("Created ");
+    print(len(rapid_list));
+    print(" pairs rapidly");
+}
+
+fun test13_bounds_checking() {
+    print("\n[Test 13] Bounds checking with nth");
+    var bounds_list = linked_list();
+    push(bounds_list, "first" => 1);
+    push(bounds_list, "second" => 2);
+
+    print("First pair: ");
+    print(nth(bounds_list, 0));
+    print("Second pair: ");
+    print(nth(bounds_list, 1));
+    print("Attempting to access beyond bounds would error");
+    // Uncomment to test error:
+    // print(nth(bounds_list, 2));  // Should error
+}
+
+fun test14_single_entry() {
+    print("\n[Test 14] Single entry hash table");
+    var single_ht = hash_table();
+    put(single_ht, "only", "one");
+
+    var single_pairs = pairs(single_ht);
+    print("Single pair: ");
+    print(single_pairs);
+    print("Length: ");
+    print(len(single_pairs));
+}
+
+fun test15_pair_as_key() {
+    print("\n[Test 15] Attempting pair as hash table key");
+    var test_ht = hash_table();
+    // Pairs cannot be used as keys, using string instead
+    put(test_ht, "pair_key", "a" => "b");
+    print("Hash table with string key created successfully");
+}
+
+fun test16_self_referential() {
+    print("\n[Test 16] Self-referential test");
+    var self_list = linked_list();
+    push(self_list, "list" => self_list);
+
+    print("Self-referential structure created");
+    print("Length: ");
+    print(len(self_list));
+}
+
+fun test17_performance() {
+    print("\n[Test 17] Performance test setup");
+    var perf_ht = hash_table();
+    var j = 0;
+    while (j < 20) {
+        put(perf_ht, "key" + j, j * 10);
+        j = j + 1;
+    }
+
+    var perf_pairs = pairs(perf_ht);
+    print("Created ");
+    print(len(perf_pairs));
+    print(" pairs from hash table");
+    print("Performance test completed");
+}
+
+// Run all edge case tests
+test1_special_strings();
+test2_extreme_numeric();
+test3_identical_pairs();
+test4_duplicate_keys();
+test5_complex_nested();
+test6_empty_conversion();
+test7_nil_values();
+test8_long_strings();
+test9_boolean_pairs();
+test10_nested_chain();
+test11_mixed_types();
+test12_rapid_creation();
+test13_bounds_checking();
+test14_single_entry();
+test15_pair_as_key();
+test16_self_referential();
+test17_performance();
+
+print("\n=== ALL EDGE CASES TESTED ===");
+print("Edge case testing completed successfully!");

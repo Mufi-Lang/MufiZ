@@ -1,0 +1,136 @@
+// Test break and continue in while loops
+
+print "=== Testing WHILE loops with break and continue ===";
+print "";
+
+print "Test 1: Basic break in while loop";
+var i = 0;
+while (i < 10) {
+    if (i == 5) {
+        print "Breaking at i = 5";
+        break;
+    }
+    print i;
+    i = i + 1;
+}
+print "After while loop with break";
+print "";
+
+print "Test 2: Basic continue in while loop";
+var j = 0;
+while (j < 10) {
+    j = j + 1;  // Increment first to avoid infinite loop
+    if (j % 2 == 0) {
+        continue;  // Skip even numbers
+    }
+    print j;  // Should only print odd numbers: 1, 3, 5, 7, 9
+}
+print "After while loop with continue";
+print "";
+
+print "Test 3: Nested while loops with break and continue";
+var x = 0;
+while (x < 3) {
+    print "Outer loop x = " + x;
+    var y = 0;
+    while (y < 5) {
+        if (y == 2) {
+            y = y + 1;
+            continue;  // Skip y = 2
+        }
+        if (y == 4) {
+            break;  // Break inner loop at y = 4
+        }
+        print "  Inner loop y = " + y;
+        y = y + 1;
+    }
+    x = x + 1;
+}
+print "After nested while loops";
+print "";
+
+print "Test 4: Complex break/continue logic";
+var count = 0;
+var k = 1;
+while (k <= 20) {
+    if (k % 3 == 0) {
+        k = k + 1;
+        continue;  // Skip multiples of 3
+    }
+    count = count + 1;
+    if (count > 5) {
+        break;  // Stop after processing 5 non-multiples of 3
+    }
+    print "Processed: " + k;
+    k = k + 1;
+}
+print "Total non-multiples of 3 processed: " + count;
+print "";
+
+print "Test 5: while true with break";
+var n = 0;
+while (true) {
+    print "Iteration: " + n;
+    n = n + 1;
+    if (n >= 3) {
+        print "Breaking infinite loop";
+        break;
+    }
+}
+print "Successfully exited infinite loop";
+print "";
+
+print "Test 6: Continue with multiple conditions";
+var m = 0;
+while (m < 20) {
+    m = m + 1;
+    if (m < 10) {
+        continue;  // Skip values less than 10
+    }
+    if (m > 15) {
+        break;  // Stop after 15
+    }
+    print "Value in range [10, 15]: " + m;
+}
+print "";
+
+print "Test 7: While loop with early continue";
+var p = 10;
+while (p > 0) {
+    p = p - 1;
+    if (p > 5) {
+        continue;  // Skip values greater than 5
+    }
+    print "Countdown value <= 5: " + p;
+}
+print "";
+
+print "Test 8: Break from deeply nested condition";
+var q = 0;
+while (q < 100) {
+    q = q + 1;
+    if (q > 10) {
+        if (q % 7 == 0) {
+            print "Found multiple of 7: " + q;
+            break;
+        }
+    }
+}
+print "Exited at q = " + q;
+print "";
+
+print "Test 9: Continue with counter update";
+var r = 0;
+var skipped = 0;
+while (r < 15) {
+    r = r + 1;
+    if (r % 2 == 0 or r % 3 == 0) {
+        skipped = skipped + 1;
+        continue;
+    }
+    print "Not divisible by 2 or 3: " + r;
+}
+print "Total skipped: " + skipped;
+print "";
+
+print "=== All WHILE loop tests completed ===";

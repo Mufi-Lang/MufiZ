@@ -12,6 +12,7 @@ pub const FloatVector = @import("objects/fvec.zig").FloatVector;
 const __obj = @import("objects/obj.zig");
 pub const Obj = __obj.Obj;
 pub const ObjType = __obj.ObjType;
+pub const ObjPair = @import("objects/pair.zig").ObjPair;
 pub const ObjRange = @import("objects/range.zig").ObjRange;
 const scanner_h = @import("scanner.zig");
 const table_h = @import("table.zig");
@@ -818,10 +819,44 @@ pub fn printObject(value: Value) void {
             const operator = if (range.*.inclusive) "..=" else "..";
             print("{d}{s}{d}", .{ range.*.start, operator, range.*.end });
         },
+        .OBJ_PAIR => {
+            const pair = @as(*ObjPair, @ptrCast(@alignCast(value.as.obj)));
+            print("(", .{});
+            value_h.printValue(pair.key);
+            print(", ", .{});
+            value_h.printValue(pair.value);
+            print(")", .{});
+        },
     }
 }
 pub fn isObjType(value: Value, type_: ObjType) bool {
     return (value.type == .VAL_OBJ) and (value.as.obj.?.type == type_);
+}
+
+// Convert a hash table to a linked list of pairs for iteration
+pub fn hashTableToPairs(hashTable: *ObjHashTable) *ObjLinkedList {
+    const list = newLinkedList();
+
+    if (hashTable.table.entries) |entries| {
+        for (0..@intCast(hashTable.table.capacity)) |i| {
+            if (entries[i].key != null and entries[i].isActive()) {
+                // Create a pair with the key and value
+                const keyValue = Value.init_obj(@ptrCast(entries[i].key));
+                const pair = ObjPair.create(keyValue, entries[i].value);
+                const pairValue = Value.init_obj(@ptrCast(pair));
+
+                // Add the pair to the list
+                pushBack(list, pairValue);
+            }
+        }
+    }
+
+    return list;
+}
+
+// Get the number of active entries in a hash table
+pub fn hashTableLength(hashTable: *ObjHashTable) i32 {
+    return @intCast(hashTable.table.count);
 }
 
 pub const ObjTypeCheckParams = struct {

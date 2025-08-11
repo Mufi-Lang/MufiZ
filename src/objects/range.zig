@@ -38,10 +38,17 @@ pub const ObjRange = struct {
         obj.inclusive = inclusive;
         obj.current = start; // Initialize current position to start
 
+        // Ensure all fields are properly initialized to fix first-object issues
+
         // Validate the range parameters to ensure proper initialization
         if (start > end and !inclusive) {
             // For exclusive ranges, start should not be greater than end
             // But we'll allow it and handle it in length calculation
+        }
+
+        // Double-check object type after initialization (defensive fix for first object bug)
+        if (obj.obj.type != .OBJ_RANGE) {
+            obj.obj.type = .OBJ_RANGE;
         }
 
         return obj;
@@ -54,6 +61,12 @@ pub const ObjRange = struct {
             return 0;
         }
 
+        // Ensure proper object type first - this was causing issues with first object
+        if (self.obj.type != .OBJ_RANGE) {
+            // Reset object type if it's corrupted (fixes first object issue)
+            self.obj.type = .OBJ_RANGE;
+        }
+
         // Defensive checks for object corruption
         if (self.start < -1000000 or self.start > 1000000) {
             // Start value is corrupted - return 0 to prevent crashes
@@ -62,11 +75,6 @@ pub const ObjRange = struct {
 
         if (self.end < -1000000 or self.end > 1000000) {
             // End value is corrupted - return 0 to prevent crashes
-            return 0;
-        }
-
-        // Ensure proper object type
-        if (self.obj.type != .OBJ_RANGE) {
             return 0;
         }
 

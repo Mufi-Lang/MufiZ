@@ -17,7 +17,7 @@ pub fn build(b: *std.Build) !void {
         .root_module = b.createModule(.{ .root_source_file = b.path("src/main.zig"), .target = target, .optimize = optimize }),
         // .target = target,
         // .optimize = optimize,
-        .link_libc = true, // Required for termios functionality
+        .link_libc = false,
     });
 
     const exe_check = b.addExecutable(.{
@@ -25,7 +25,7 @@ pub fn build(b: *std.Build) !void {
         // .root_source_file = b.path("src/main.zig"),
         // .target = target,
         // .optimize = optimize,
-        .link_libc = true, // Required for termios functionality
+        .link_libc = false,
         .root_module = b.createModule(.{ .root_source_file = b.path("src/main.zig"), .target = target, .optimize = optimize }),
     });
 

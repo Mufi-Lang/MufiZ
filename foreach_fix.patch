@@ -1,0 +1,116 @@
+--- a/src/compiler.zig
++++ b/src/compiler.zig
+@@ -1763,88 +1763,95 @@
+ pub fn foreachStatement() void {
+     beginScope();
+
+     // Expect '(' after 'foreach'
+     consume(.TOKEN_LEFT_PAREN, "Expect '(' after 'foreach'.");
+
+     // Parse the loop variable (item)
+     consume(.TOKEN_IDENTIFIER, "Expect variable name.");
+     const itemName = parser.previous;
+
+     // Expect 'in' keyword
+     consume(.TOKEN_IN, "Expect 'in' after loop variable.");
+
+     // Store the collection in a local variable
+     const collectionSlot = current.?.localCount;
+     addLocal(syntheticToken("__collection"));
+     expression(); // Collection expression leaves value on stack
+     emitBytes(@intCast(@intFromEnum(OpCode.OP_SET_LOCAL)), @intCast(collectionSlot));
+     emitByte(@intCast(@intFromEnum(OpCode.OP_POP))); // Pop the value after storing
+     markInitialized();
+
+     // Expect ')'
+     consume(.TOKEN_RIGHT_PAREN, "Expect ')' after collection.");
+
+     // Initialize index variable
+     const indexSlot = current.?.localCount;
+     addLocal(syntheticToken("__index"));
+     emitConstant(Value.init_int(0));
+     emitBytes(@intCast(@intFromEnum(OpCode.OP_SET_LOCAL)), @intCast(indexSlot));
+     emitByte(@intCast(@intFromEnum(OpCode.OP_POP))); // Pop the value after storing
+     markInitialized();
+
+     // Declare item variable
+     const itemSlot = current.?.localCount;
+     addLocal(itemName);
+     markInitialized(); // Mark the item variable as initialized immediately
+
+-    // Loop start - condition check location
+-    var loopStart: i32 = @intCast(currentChunk().*.count);
++    // Jump to condition check first
++    const jumpToCondition = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
++
++    // Increment section - this is where continue statements should jump
++    const incrementStart: i32 = @intCast(currentChunk().*.count);
++    // Increment index: index = index + 1
++    emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(indexSlot));
++    emitConstant(Value.init_int(1));
++    emitByte(@intCast(@intFromEnum(OpCode.OP_ADD)));
++    emitBytes(@intCast(@intFromEnum(OpCode.OP_SET_LOCAL)), @intCast(indexSlot));
++    emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
++
++    // Condition check location
++    patchJump(jumpToCondition);
++    const conditionStart: i32 = @intCast(currentChunk().*.count);
+
+     // Loop condition: index < collection.length
+     emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(indexSlot));
+     emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(collectionSlot));
+     emitByte(@intCast(@intFromEnum(OpCode.OP_LENGTH)));
+     emitByte(@intCast(@intFromEnum(OpCode.OP_LESS)));
+
+     const exitJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
+     emitByte(@intCast(@intFromEnum(OpCode.OP_POP))); // Pop the condition result
+
+     // Get current element: collection[index]
+     emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(collectionSlot));
+     emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(indexSlot));
+     emitByte(@intCast(@intFromEnum(OpCode.OP_GET_INDEX)));
+
+     // Set the item variable
+     emitBytes(@intCast(@intFromEnum(OpCode.OP_SET_LOCAL)), @intCast(itemSlot));
+     emitByte(@intCast(@intFromEnum(OpCode.OP_POP))); // Pop the value after setting
+
+-    // Jump over increment section to body for first iteration
+-    const bodyJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+-
+-    // Increment section - this is where continue statements should jump
+-    const incrementStart: i32 = @intCast(currentChunk().*.count);
+-    // Increment index: index = index + 1
+-    emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(indexSlot));
+-    emitConstant(Value.init_int(1));
+-    emitByte(@intCast(@intFromEnum(OpCode.OP_ADD)));
+-    emitBytes(@intCast(@intFromEnum(OpCode.OP_SET_LOCAL)), @intCast(indexSlot));
+-    emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+-
+-    // Jump back to condition check
+-    emitLoop(loopStart);
+-
+-    // Update loop start for continue statements
+-    loopStart = incrementStart;
+-
+-    // Patch the jump to body
+-    patchJump(bodyJump);
+-
+-    // Create loop context with continue target set to increment section
+-    const loop = beginLoop(loopStart);
++    // Create loop context with continue target set to increment section
++    const loop = beginLoop(incrementStart);
+
+     // Execute loop body
+     statement();
+
+     // Jump back to increment section
+-    emitLoop(loopStart);
++    emitLoop(incrementStart);
+
+     // Exit point
+     patchJump(exitJump);
+     emitByte(@intCast(@intFromEnum(OpCode.OP_POP))); // Pop the final condition result
+
+     endLoop(loop);
+     endScope();
+ }

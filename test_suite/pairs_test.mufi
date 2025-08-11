@@ -1,0 +1,257 @@
+// Test Suite: Pairs Functionality
+// Tests the pair creation and manipulation features
+
+print("=== PAIRS TEST SUITE ===");
+
+fun test1_basic_creation() {
+    print("\n[Test 1] Basic pair creation with arrow syntax");
+    var pair1 = "key" => "value";
+    var pair2 = 100 => 200;
+    var pair3 = true => false;
+    var pair4 = nil => "something";
+    var pair5 = 3.14 => 2.71;
+
+    print("String pair: ");
+    print(pair1);
+    print("Integer pair: ");
+    print(pair2);
+    print("Boolean pair: ");
+    print(pair3);
+    print("Nil pair: ");
+    print(pair4);
+    print("Float pair: ");
+    print(pair5);
+}
+
+fun test2_element_access() {
+    print("\n[Test 2] Pair element access");
+    var pair1 = "key" => "value";
+    var pair2 = 100 => 200;
+
+    print("pair1[0] (key): ");
+    print(pair1[0]);
+    print("pair1[1] (value): ");
+    print(pair1[1]);
+    print("pair2[0]: ");
+    print(pair2[0]);
+    print("pair2[1]: ");
+    print(pair2[1]);
+}
+
+fun test3_properties() {
+    print("\n[Test 3] Pair properties");
+    var pair1 = "key" => "value";
+    var pair2 = 100 => 200;
+
+    print("Length of pair1: ");
+    print(len(pair1));
+    print("Length of pair2: ");
+    print(len(pair2));
+}
+
+fun test4_nested_pairs() {
+    print("\n[Test 4] Nested pairs");
+    var nested1 = "outer" => ("inner" => 100);
+    var nested2 = "level1" => ("level2" => ("level3" => "deep"));
+
+    print("Nested pair 1: ");
+    print(nested1);
+    print("Accessing nested1[0]: ");
+    print(nested1[0]);
+    print("Accessing nested1[1]: ");
+    print(nested1[1]);
+    print("Accessing nested1[1][0]: ");
+    print(nested1[1][0]);
+    print("Accessing nested1[1][1]: ");
+    print(nested1[1][1]);
+
+    print("Deep nested: ");
+    print(nested2[1][1][1]);
+}
+
+fun test5_pairs_with_hash() {
+    print("\n[Test 5] Pairs with hash tables");
+    var ht = hash_table();
+    put(ht, "name", "Alice");
+    put(ht, "age", 30);
+    put(ht, "city", "NYC");
+
+    var ht_pairs = pairs(ht);
+    print("Hash table as pairs: ");
+    print(ht_pairs);
+    print("Number of pairs: ");
+    print(len(ht_pairs));
+}
+
+fun test6_pairs_in_collections() {
+    print("\n[Test 6] Pairs in collections");
+    var pair_list = linked_list();
+    push(pair_list, "first" => 1);
+    push(pair_list, "second" => 2);
+    push(pair_list, "third" => 3);
+
+    print("List of pairs: ");
+    print(pair_list);
+    print("Length: ");
+    print(len(pair_list));
+
+    print("Iterating through pairs:");
+    var i = 0;
+    while (i < len(pair_list)) {
+        var curr = nth(pair_list, i);
+        print("  ");
+        print(curr[0]);
+        print(" => ");
+        print(curr[1]);
+        i = i + 1;
+    }
+}
+
+fun test7_pairs_with_vectors() {
+    print("\n[Test 7] Pairs with vectors");
+    var vec_pairs = linked_list();
+    push(vec_pairs, {1, 2, 3} => {4, 5, 6});
+    push(vec_pairs, {7, 8, 9} => {10, 11, 12});
+
+    print("Vector pairs: ");
+    print(vec_pairs);
+    print("First vector pair: ");
+    print(nth(vec_pairs, 0));
+}
+
+fun test8_empty_hash_pairs() {
+    print("\n[Test 8] Empty hash table pairs");
+    var empty_ht = hash_table();
+    var empty_pairs = pairs(empty_ht);
+
+    print("Empty hash pairs: ");
+    print(empty_pairs);
+    print("Length: ");
+    print(len(empty_pairs));
+    print("Is empty: ");
+    print(is_empty(empty_pairs));
+}
+
+fun test9_nth_with_pairs() {
+    print("\n[Test 9] Using nth with pairs from hash table");
+    var ht = hash_table();
+    put(ht, "x", 10);
+    put(ht, "y", 20);
+    var ht_pairs = pairs(ht);
+
+    if (len(ht_pairs) > 0) {
+        var first_pair = nth(ht_pairs, 0);
+        print("First pair from hash: ");
+        print(first_pair);
+        print("Key: ");
+        print(first_pair[0]);
+        print("Value: ");
+        print(first_pair[1]);
+    }
+}
+
+fun test10_complex_types() {
+    print("\n[Test 10] Complex data types in pairs");
+    var complex_ht = hash_table();
+    var ll = linked_list();
+    push(ll, 1);
+    push(ll, 2);
+
+    put(complex_ht, "list", ll);
+    put(complex_ht, "vector", {10, 20, 30});
+
+    var complex_pairs = pairs(complex_ht);
+    print("Complex pairs: ");
+    print(complex_pairs);
+}
+
+fun test11_pair_expressions() {
+    print("\n[Test 11] Pair creation with expressions");
+    var x = 10;
+    var y = 20;
+    var expr_pair1 = (x + y) => (x * y);
+    var expr_pair2 = ("hello" + " ") => ("world" + "!");
+    var expr_pair3 = (x > y) => (x < y);
+
+    print("Math expression pair: ");
+    print(expr_pair1);
+    print("String expression pair: ");
+    print(expr_pair2);
+    print("Boolean expression pair: ");
+    print(expr_pair3);
+}
+
+fun test12_bounds_checking() {
+    print("\n[Test 12] Bounds checking (should error if uncommented)");
+    // Uncomment to test bounds checking:
+    // var test_pair = "a" => "b";
+    // print(test_pair[2]);  // Should error: index out of bounds
+}
+
+fun test13_pairs_with_ranges() {
+    print("\n[Test 13] Pairs with ranges");
+    var range_pair = "range" => (1..5);
+    print("Range pair: ");
+    print(range_pair);
+    print("Accessing range: ");
+    print(range_pair[1]);
+}
+
+fun test14_building_hash() {
+    print("\n[Test 14] Building hash table from pairs");
+    var config_pairs = linked_list();
+    push(config_pairs, "host" => "localhost");
+    push(config_pairs, "port" => 8080);
+    push(config_pairs, "debug" => true);
+
+    var config_ht = hash_table();
+    var i = 0;
+    while (i < len(config_pairs)) {
+        var p = nth(config_pairs, i);
+        put(config_ht, p[0], p[1]);
+        i = i + 1;
+    }
+
+    print("Config hash table built from pairs:");
+    print("Host: ");
+    print(get(config_ht, "host"));
+    print("Port: ");
+    print(get(config_ht, "port"));
+    print("Debug: ");
+    print(get(config_ht, "debug"));
+}
+
+fun test15_pairs_comparison() {
+    print("\n[Test 15] Pairs comparison");
+    var p1 = "test" => 123;
+    var p2 = "test" => 123;
+    var p3 = "test" => 456;
+
+    print("p1: ");
+    print(p1);
+    print("p2: ");
+    print(p2);
+    print("p3: ");
+    print(p3);
+    print("p1 and p2 have same values");
+    print("p1 and p3 have different second values");
+}
+
+// Run all tests
+test1_basic_creation();
+test2_element_access();
+test3_properties();
+test4_nested_pairs();
+test5_pairs_with_hash();
+test6_pairs_in_collections();
+test7_pairs_with_vectors();
+test8_empty_hash_pairs();
+test9_nth_with_pairs();
+test10_complex_types();
+test11_pair_expressions();
+test12_bounds_checking();
+test13_pairs_with_ranges();
+test14_building_hash();
+test15_pairs_comparison();
+
+print("\n=== ALL PAIRS TESTS COMPLETED ===");

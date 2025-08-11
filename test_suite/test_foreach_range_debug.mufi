@@ -1,0 +1,46 @@
+// Debug test for foreach with range and break
+
+print "Test 1: Basic foreach with range (no break)";
+foreach (i in 1..5) {
+    print i;
+}
+print "";
+
+print "Test 2: Foreach with range and break at 3";
+foreach (j in 1..7) {
+    print j;
+    if (j == 3) {
+        print "Breaking now";
+        break;
+    }
+}
+print "";
+
+print "Test 3: Foreach with range and early break";
+foreach (k in 1..10) {
+    if (k == 5) {
+        print "Breaking at 5";
+        break;
+    }
+    print k;
+}
+print "";
+
+print "Test 4: Foreach with inclusive range and break";
+foreach (m in 1..=5) {
+    print m;
+    if (m == 3) {
+        print "Breaking at 3";
+        break;
+    }
+}
+print "";
+
+print "Test 5: Foreach with range - break first iteration";
+foreach (n in 10..20) {
+    print "First iteration: " + n;
+    break;
+}
+print "";
+
+print "Done!";

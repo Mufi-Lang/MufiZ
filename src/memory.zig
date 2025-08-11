@@ -676,6 +676,12 @@ pub fn freeObject(object: *Obj) void {
         .OBJ_RANGE => {
             _ = reallocate(@ptrCast(object), @sizeOf(obj_h.ObjRange), 0);
         },
+        .OBJ_PAIR => {
+            const pair: *obj_h.ObjPair = @ptrCast(@alignCast(object));
+            pair.key.release();
+            pair.value.release();
+            _ = reallocate(@ptrCast(object), @sizeOf(obj_h.ObjPair), 0);
+        },
     }
 }
 
@@ -740,6 +746,11 @@ pub fn blackenObject(object: *Obj) void {
         .OBJ_HASH_TABLE => {
             const hashTable: *ObjHashTable = @ptrCast(@alignCast(object));
             markTable(&hashTable.*.table);
+        },
+        .OBJ_PAIR => {
+            const pair: *obj_h.ObjPair = @ptrCast(@alignCast(object));
+            markValue(pair.key);
+            markValue(pair.value);
         },
 
         else => {},

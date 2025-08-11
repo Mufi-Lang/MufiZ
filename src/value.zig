@@ -353,6 +353,10 @@ pub const Value = struct {
         return self.is_obj_type(.OBJ_RANGE);
     }
 
+    pub fn is_pair(self: Self) bool {
+        return self.is_obj_type(.OBJ_PAIR);
+    }
+
     pub fn as_obj(self: Self) ?*Obj {
         return self.as.obj;
     }
@@ -378,6 +382,10 @@ pub const Value = struct {
     }
 
     pub fn as_range(self: Self) *obj_range.ObjRange {
+        return @ptrCast(@alignCast(self.as.obj));
+    }
+
+    pub fn as_pair(self: Self) *obj_h.ObjPair {
         return @ptrCast(@alignCast(self.as.obj));
     }
 
@@ -508,6 +516,13 @@ pub fn valuesEqual(a: Value, b: Value) bool {
                         return range_a.start == range_b.start and
                             range_a.end == range_b.end and
                             range_a.inclusive == range_b.inclusive;
+                    },
+                    .OBJ_PAIR => {
+                        const pair_a = @as(*obj_h.ObjPair, @ptrCast(@alignCast(a.as.obj)));
+                        const pair_b = @as(*obj_h.ObjPair, @ptrCast(@alignCast(b.as.obj)));
+
+                        return valuesEqual(pair_a.key, pair_b.key) and
+                            valuesEqual(pair_a.value, pair_b.value);
                     },
                     else => return false,
                 }
@@ -644,6 +659,12 @@ fn objToString(value: Value) []const u8 {
         },
         .OBJ_FVECTOR => return "<vector>",
         .OBJ_LINKED_LIST => return "<list>",
+        .OBJ_PAIR => {
+            const pair = @as(*obj_h.ObjPair, @ptrCast(@alignCast(value.as.obj)));
+            const keyStr = valueToString(pair.key);
+            const valueStr = valueToString(pair.value);
+            return std.fmt.allocPrint(std.heap.page_allocator, "({s}, {s})", .{ keyStr, valueStr }) catch unreachable;
+        },
         else => return "<object>",
     }
 }

@@ -34,6 +34,7 @@ pub fn what_is(val: Value) []const u8 {
                 .OBJ_HASH_TABLE => return "Hash Table",
                 .OBJ_FVECTOR => return "Float Vector",
                 .OBJ_RANGE => return "Range",
+                .OBJ_PAIR => return "Pair",
             }
         },
         .VAL_COMPLEX => return "Complex",

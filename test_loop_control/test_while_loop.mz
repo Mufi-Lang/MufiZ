@@ -1,0 +1,79 @@
+// Test break and continue in while loops
+
+print "Testing break in while loop:";
+var i = 0;
+while (i < 10) {
+    if (i == 5) {
+        print "Breaking at i = 5";
+        break;
+    }
+    print i;
+    i = i + 1;
+}
+print "After while loop with break";
+print "";
+
+print "Testing continue in while loop:";
+var j = 0;
+while (j < 10) {
+    j = j + 1;  // Increment first to avoid infinite loop
+    if (j % 2 == 0) {
+        continue;  // Skip even numbers
+    }
+    print j;  // Should only print odd numbers: 1, 3, 5, 7, 9
+}
+print "After while loop with continue";
+print "";
+
+print "Testing nested while loops with break and continue:";
+var x = 0;
+while (x < 3) {
+    print "Outer loop x = " + x;
+    var y = 0;
+    while (y < 5) {
+        if (y == 2) {
+            y = y + 1;
+            continue;  // Skip y = 2
+        }
+        if (y == 4) {
+            break;  // Break inner loop at y = 4
+        }
+        print "  Inner loop y = " + y;
+        y = y + 1;
+    }
+    x = x + 1;
+}
+print "After nested while loops";
+print "";
+
+// Test break and continue with more complex conditions
+print "Testing complex break/continue logic:";
+var count = 0;
+var k = 1;
+while (k <= 20) {
+    if (k % 3 == 0) {
+        k = k + 1;
+        continue;  // Skip multiples of 3
+    }
+    count = count + 1;
+    if (count > 5) {
+        break;  // Stop after processing 5 non-multiples of 3
+    }
+    print "Processed: " + k;
+    k = k + 1;
+}
+print "Total non-multiples of 3 processed: " + count;
+
+// Test while true with break
+print "";
+print "Testing while true with break:";
+var n = 0;
+while (true) {
+    print "Iteration: " + n;
+    n = n + 1;
+    if (n >= 3) {
+        print "Breaking infinite loop";
+        break;
+    }
+}
+print "Successfully exited infinite loop";

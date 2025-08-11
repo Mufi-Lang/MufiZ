@@ -1,14 +1,8 @@
-const value_h = @import("value.zig");
-const obj_h = @import("object.zig");
-const table_h = @import("table.zig");
+const std = @import("std");
+const print = std.debug.print;
+
 const conv = @import("conv.zig");
-const Entry = table_h.Entry;
-const entries_ = table_h.entries_;
-const Value = value_h.Value;
-const vm_h = @import("vm.zig");
-const runtimeError = vm_h.runtimeError;
-const valuesEqual = value_h.valuesEqual;
-const valueToString = value_h.valueToString;
+const obj_h = @import("object.zig");
 const isObjType = obj_h.isObjType;
 const notObjTypes = obj_h.notObjTypes;
 const ObjString = obj_h.ObjString;
@@ -18,10 +12,17 @@ const ObjHashTable = obj_h.ObjHashTable;
 const Obj = obj_h.Obj;
 const Node = obj_h.Node;
 const ObjTypeCheckParams = obj_h.ObjTypeCheckParams;
-const std = @import("std");
-const print = std.debug.print;
 const fvec = @import("objects/fvec.zig");
 const pushFloatVector = fvec.FloatVector.push;
+const table_h = @import("table.zig");
+const Entry = table_h.Entry;
+const entries_ = table_h.entries_;
+const value_h = @import("value.zig");
+const Value = value_h.Value;
+const valuesEqual = value_h.valuesEqual;
+const valueToString = value_h.valueToString;
+const vm_h = @import("vm.zig");
+const runtimeError = vm_h.runtimeError;
 
 // Helper functions to make code more DRY
 fn validateArgCount(argCount: i32, expected: i32, funcName: []const u8) bool {
@@ -1478,4 +1479,21 @@ pub fn interp1_nf(argCount: i32, args: [*]Value) Value {
     const result = x.interp1(y, x0);
 
     return Value.init_double(result);
+}
+
+// Get all key-value pairs from a hash table as a list of pairs
+pub fn pairs_nf(argCount: i32, args: [*]Value) Value {
+    if (!validateArgCount(argCount, 1, "pairs")) {
+        return Value.init_nil();
+    }
+
+    if (!isObjType(args[0], .OBJ_HASH_TABLE)) {
+        runtimeError("Argument must be a hash table.", .{});
+        return Value.init_nil();
+    }
+
+    const hashTable = @as(*ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
+    const pairsList = obj_h.hashTableToPairs(hashTable);
+
+    return Value.init_obj(@ptrCast(pairsList));
 }

@@ -58,6 +58,9 @@ pub const OpCode = enum(i32) {
     OP_CHECK_RANGE = 52,
     OP_IS_RANGE = 53,
     OP_GET_RANGE_LENGTH = 54,
+    OP_BREAK = 55,
+    OP_CONTINUE = 56,
+    OP_PAIR = 57,
 };
 
 pub const Chunk = struct {

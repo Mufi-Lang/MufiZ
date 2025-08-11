@@ -1,0 +1,34 @@
+// Test variable declaration with function call
+print("Testing variable declaration with function call");
+
+// Create a simple function
+fun get_value(x) {
+    return x * 2;
+}
+
+// Test 1: Variable declaration with function call outside loop
+var result1 = get_value(5);
+print("result1 = " + result1);
+
+// Test 2: Variable declaration with function call inside loop
+var i = 0;
+while (i < 3) {
+    var result2 = get_value(i);
+    print("In loop: result2 = " + result2);
+    i = i + 1;
+}
+
+// Test 3: Using nth function (if available)
+var list = linked_list();
+push(list, "first");
+push(list, "second");
+push(list, "third");
+
+i = 0;
+while (i < len(list)) {
+    var item = nth(list, i);
+    print("Item " + i + ": " + item);
+    i = i + 1;
+}
+
+print("Test completed");

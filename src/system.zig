@@ -45,6 +45,38 @@ fn processSpecialCommand(command: []const u8) bool {
     return false;
 }
 
+fn isStatementComplete(input: []const u8) bool {
+    var brace_count: i32 = 0;
+    var paren_count: i32 = 0;
+    var in_string: bool = false;
+    var i: usize = 0;
+
+    while (i < input.len) {
+        const c = input[i];
+
+        // Handle string literals
+        if (c == '"' and (i == 0 or input[i - 1] != '\\')) {
+            in_string = !in_string;
+        }
+
+        // Only count braces/parens outside of strings
+        if (!in_string) {
+            switch (c) {
+                '{' => brace_count += 1,
+                '}' => brace_count -= 1,
+                '(' => paren_count += 1,
+                ')' => paren_count -= 1,
+                else => {},
+            }
+        }
+
+        i += 1;
+    }
+
+    // Statement is complete if all braces and parens are balanced
+    return brace_count <= 0 and paren_count <= 0;
+}
+
 pub fn repl() !void {
     // Create arena allocator for the REPL session
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
@@ -60,35 +92,51 @@ pub fn repl() !void {
     version();
     std.debug.print("Type 'help' for more information or 'exit' to quit\n", .{});
 
+    var statement_buffer = std.ArrayList(u8).init(allocator);
+    defer statement_buffer.deinit();
+
     while (true) {
+        // Determine the prompt based on whether we're in a multi-line statement
+        const prompt = if (statement_buffer.items.len == 0) "(mufi) >> " else "     .. ";
+
         // Read a line with history support and no echo
-        const input = (try line_editor.readLine("(mufi) >> ")) orelse {
+        const input = (try line_editor.readLine(prompt)) orelse {
             std.debug.print("Exiting MufiZ\n", .{});
             return;
         };
 
-        // Skip empty lines
-        if (input.len == 0) continue;
+        // Skip empty lines only if we're not in a multi-line statement
+        if (input.len == 0 and statement_buffer.items.len == 0) continue;
 
-        // Check for special commands
-        if (processSpecialCommand(input)) {
+        // If we're starting fresh, check for special commands
+        if (statement_buffer.items.len == 0 and processSpecialCommand(input)) {
             continue;
         }
 
-        // Copy to a mutable buffer for interpreter
-        var mutable_buffer: [1024]u8 = undefined;
-        const len = @min(input.len, mutable_buffer.len - 1);
-        @memcpy(mutable_buffer[0..len], input[0..len]);
-        mutable_buffer[len] = 0; // null terminate
+        // Add the current line to our statement buffer
+        if (statement_buffer.items.len > 0) {
+            try statement_buffer.append(' '); // Add space between lines
+        }
+        try statement_buffer.appendSlice(input);
 
-        // Execute the code
-        _ = vm_h.interpret(conv.cstr(mutable_buffer[0..len]));
+        // Check if the statement is complete
+        if (isStatementComplete(statement_buffer.items)) {
+            // Copy to a mutable buffer for interpreter
+            var mutable_buffer: [4096]u8 = undefined; // Increased buffer size for multi-line
+            const len = @min(statement_buffer.items.len, mutable_buffer.len - 1);
+            @memcpy(mutable_buffer[0..len], statement_buffer.items[0..len]);
+            mutable_buffer[len] = 0; // null terminate
 
-        // Print a new prompt on the same line
-        //std.debug.print("\n", .{});
+            // Execute the complete statement
+            _ = vm_h.interpret(conv.cstr(mutable_buffer[0..len]));
 
-        // Add to history after execution (even if there was an error)
-        try line_editor.addHistory(input);
+            // Add to history after execution (even if there was an error)
+            try line_editor.addHistory(statement_buffer.items);
+
+            // Clear the statement buffer for the next statement
+            statement_buffer.clearRetainingCapacity();
+        }
+        // If statement is not complete, continue reading more lines
     }
 }
 

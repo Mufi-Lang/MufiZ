@@ -1,0 +1,110 @@
+// Basic loop control test for break and continue
+// Tests each loop type separately without nesting
+
+print "=== BASIC LOOP CONTROL TEST ===";
+print "";
+
+// Test 1: FOR loop with break
+print "Test 1: FOR loop with break";
+for (var i = 0; i < 10; i = i + 1) {
+    if (i == 5) {
+        print "Breaking at 5";
+        break;
+    }
+    print i;
+}
+print "";
+
+// Test 2: FOR loop with continue
+print "Test 2: FOR loop with continue";
+for (var j = 0; j < 8; j = j + 1) {
+    if (j == 2 or j == 4 or j == 6) {
+        continue;
+    }
+    print j;
+}
+print "";
+
+// Test 3: WHILE loop with break
+print "Test 3: WHILE loop with break";
+var w = 0;
+while (w < 10) {
+    if (w == 5) {
+        print "Breaking at 5";
+        break;
+    }
+    print w;
+    w = w + 1;
+}
+print "";
+
+// Test 4: WHILE loop with continue
+print "Test 4: WHILE loop with continue";
+var x = 0;
+while (x < 8) {
+    x = x + 1;
+    if (x == 3 or x == 5 or x == 7) {
+        continue;
+    }
+    print x;
+}
+print "";
+
+// Test 5: WHILE true with break
+print "Test 5: WHILE true with break";
+var count = 0;
+while (true) {
+    print count;
+    count = count + 1;
+    if (count >= 3) {
+        print "Exiting infinite loop";
+        break;
+    }
+}
+print "";
+
+// Test 6: FOREACH with range and break
+print "Test 6: FOREACH range with break";
+foreach (r in 1..10) {
+    if (r == 5) {
+        print "Breaking at 5";
+        break;
+    }
+    print r;
+}
+print "";
+
+// Test 7: FOREACH with range and continue
+print "Test 7: FOREACH range with continue";
+foreach (s in 1..=8) {
+    if (s == 3 or s == 5 or s == 7) {
+        continue;
+    }
+    print s;
+}
+print "";
+
+// Test 8: FOREACH with vector and break
+print "Test 8: FOREACH vector with break";
+var vec1 = {10.0, 20.0, 30.0, 40.0, 50.0};
+foreach (v in vec1) {
+    if (v == 30.0) {
+        print "Breaking at 30";
+        break;
+    }
+    print v;
+}
+print "";
+
+// Test 9: FOREACH with vector and continue
+print "Test 9: FOREACH vector with continue";
+var vec2 = {1.0, 2.0, 3.0, 4.0, 5.0};
+foreach (n in vec2) {
+    if (n == 2.0 or n == 4.0) {
+        continue;
+    }
+    print n;
+}
+print "";
+
+print "=== ALL TESTS COMPLETED ===";

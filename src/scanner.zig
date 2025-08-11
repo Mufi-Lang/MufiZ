@@ -45,6 +45,7 @@ fn initKeywordMap() void {
     keyword_map.put("switch", .TOKEN_SWITCH) catch unreachable;
     keyword_map.put("case", .TOKEN_CASE) catch unreachable;
     keyword_map.put("break", .TOKEN_BREAK) catch unreachable;
+    keyword_map.put("continue", .TOKEN_CONTINUE) catch unreachable;
 
     keyword_map_initialized = true;
 }
@@ -104,27 +105,28 @@ pub const TokenType = enum(c_int) {
     TOKEN_SWITCH = 47,
     TOKEN_CASE = 48,
     TOKEN_BREAK = 49,
+    TOKEN_CONTINUE = 50,
     // Misc
-    TOKEN_ERROR = 50,
-    TOKEN_EOF = 51,
-    TOKEN_PLUS_EQUAL = 52,
-    TOKEN_MINUS_EQUAL = 53,
-    TOKEN_STAR_EQUAL = 54,
-    TOKEN_SLASH_EQUAL = 55,
-    TOKEN_PLUS_PLUS = 56,
-    TOKEN_MINUS_MINUS = 57,
-    TOKEN_HAT = 58,
-    TOKEN_LEFT_SQPAREN = 59,
-    TOKEN_RIGHT_SQPAREN = 60,
-    TOKEN_COLON = 61,
-    TOKEN_IMAGINARY = 62,
-    TOKEN_MULTILINE_STRING = 63,
-    TOKEN_BACKTICK_STRING = 64,
-    TOKEN_F_STRING = 65,
-    TOKEN_ARROW = 66,
-    TOKEN_HASH = 67, // Hash symbol '#' used as prefix for hashtable literals
-    TOKEN_RANGE_EXCLUSIVE = 68, // .. for exclusive range
-    TOKEN_RANGE_INCLUSIVE = 69, // ..= for inclusive range
+    TOKEN_ERROR = 51,
+    TOKEN_EOF = 52,
+    TOKEN_PLUS_EQUAL = 53,
+    TOKEN_MINUS_EQUAL = 54,
+    TOKEN_STAR_EQUAL = 55,
+    TOKEN_SLASH_EQUAL = 56,
+    TOKEN_PLUS_PLUS = 57,
+    TOKEN_MINUS_MINUS = 58,
+    TOKEN_HAT = 59,
+    TOKEN_LEFT_SQPAREN = 60,
+    TOKEN_RIGHT_SQPAREN = 61,
+    TOKEN_COLON = 62,
+    TOKEN_IMAGINARY = 63,
+    TOKEN_MULTILINE_STRING = 64,
+    TOKEN_BACKTICK_STRING = 65,
+    TOKEN_F_STRING = 66,
+    TOKEN_ARROW = 67,
+    TOKEN_HASH = 68,
+    TOKEN_RANGE_EXCLUSIVE = 69,
+    TOKEN_RANGE_INCLUSIVE = 70,
 };
 
 pub const Token = struct {

@@ -99,6 +99,7 @@ pub const COLLECTION_FUNCTIONS = [_]BuiltinDef{
     .{ .name = "dot", .func = collections.dot, .params = "vector1, vector2", .description = "Dot product of vectors", .module = "collections" },
     .{ .name = "norm", .func = collections.norm, .params = "vector", .description = "Euclidean norm of vector", .module = "collections" },
     .{ .name = "range_to_array", .func = collections.range_to_array, .params = "range", .description = "Converts a range to an array", .module = "collections" },
+    .{ .name = "pairs", .func = collections.pairs, .params = "hash_table", .description = "Gets key-value pairs from hash table", .module = "collections" },
 };
 
 pub const FILESYSTEM_FUNCTIONS = [_]BuiltinDef{

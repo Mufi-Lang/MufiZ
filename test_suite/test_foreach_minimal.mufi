@@ -1,0 +1,50 @@
+// Minimal test to verify foreach works with our break/continue implementation
+
+print "Test 1: Basic foreach without break or continue";
+var vec1 = {1.0, 2.0, 3.0};
+foreach (x in vec1) {
+    print x;
+}
+print "Basic foreach completed";
+print "";
+
+print "Test 2: Foreach with simple break";
+var vec2 = {10.0, 20.0, 30.0, 40.0, 50.0};
+foreach (element in vec2) {
+    print element;
+    if (element == 30.0) {
+        print "Breaking at 30";
+        break;
+    }
+}
+print "Foreach with break completed";
+print "";
+
+print "Test 3: Foreach with simple continue";
+var vec3 = {1.0, 2.0, 3.0, 4.0, 5.0};
+foreach (n in vec3) {
+    if (n == 3.0) {
+        print "Skipping 3";
+        continue;
+    }
+    print n;
+}
+print "Foreach with continue completed";
+print "";
+
+print "Test 4: Foreach with both break and continue";
+var vec4 = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0};
+foreach (val in vec4) {
+    if (val == 2.0 or val == 4.0) {
+        continue;  // Skip 2 and 4
+    }
+    if (val == 6.0) {
+        print "Breaking at 6";
+        break;
+    }
+    print val;
+}
+print "Foreach with break and continue completed";
+print "";
+
+print "All minimal tests completed!";

@@ -148,7 +148,9 @@ pub fn len(argc: i32, args: [*]Value) Value {
 
     if (!Value.is_obj_type(args[0], .OBJ_LINKED_LIST) and
         !Value.is_obj_type(args[0], .OBJ_FVECTOR) and
-        !Value.is_obj_type(args[0], .OBJ_HASH_TABLE))
+        !Value.is_obj_type(args[0], .OBJ_HASH_TABLE) and
+        !Value.is_obj_type(args[0], .OBJ_RANGE) and
+        !Value.is_obj_type(args[0], .OBJ_PAIR))
     {
         return stdlib_error("Argument must be a collection type!", .{ .value_type = conv.what_is(args[0]) });
     }
@@ -159,6 +161,12 @@ pub fn len(argc: i32, args: [*]Value) Value {
     } else if (Value.is_obj_type(args[0], .OBJ_FVECTOR)) {
         const vector = args[0].as_vector();
         return Value.init_int(@intCast(vector.count));
+    } else if (Value.is_obj_type(args[0], .OBJ_RANGE)) {
+        const range = @as(*@import("../objects/range.zig").ObjRange, @ptrCast(@alignCast(args[0].as.obj)));
+        return Value.init_int(range.length());
+    } else if (Value.is_obj_type(args[0], .OBJ_PAIR)) {
+        // Pairs always have exactly 2 elements (key and value)
+        return Value.init_int(2);
     } else {
         const list = args[0].as_linked_list();
         return Value.init_int(@intCast(list.count));
@@ -242,9 +250,10 @@ pub fn nth(argc: i32, args: [*]Value) Value {
     if (argc != 2) return stdlib_error("nth() expects two arguments!", .{ .argn = argc });
 
     if (!Value.is_obj_type(args[0], .OBJ_LINKED_LIST) and
-        !Value.is_obj_type(args[0], .OBJ_FVECTOR))
+        !Value.is_obj_type(args[0], .OBJ_FVECTOR) and
+        !Value.is_obj_type(args[0], .OBJ_PAIR))
     {
-        return stdlib_error("First argument must be a list or vector!", .{ .value_type = conv.what_is(args[0]) });
+        return stdlib_error("First argument must be a list, vector, or pair!", .{ .value_type = conv.what_is(args[0]) });
     }
 
     if (!type_check(1, args + 1, 6)) {
@@ -259,6 +268,15 @@ pub fn nth(argc: i32, args: [*]Value) Value {
             return stdlib_error("Vector index out of bounds!", .{ .argn = index });
         }
         return Value.init_double(vector.data[@intCast(index)]);
+    } else if (Value.is_obj_type(args[0], .OBJ_PAIR)) {
+        const pair = args[0].as_pair();
+        if (index == 0) {
+            return pair.key;
+        } else if (index == 1) {
+            return pair.value;
+        } else {
+            return stdlib_error("Pair index out of bounds! Valid indices are 0 (key) and 1 (value).", .{ .argn = index });
+        }
     } else {
         const list = args[0].as_linked_list();
         if (index < 0 or index >= list.count) {
@@ -783,6 +801,20 @@ pub fn dot(argc: i32, args: [*]Value) Value {
     }
 
     return Value.init_double(result);
+}
+
+// Get all key-value pairs from a hash table as a list of pairs
+pub fn pairs(argc: i32, args: [*]Value) Value {
+    if (argc != 1) return stdlib_error("pairs() expects 1 argument!", .{ .argn = argc });
+
+    if (!obj_h.isObjType(args[0], .OBJ_HASH_TABLE)) {
+        return stdlib_error("pairs() expects a hash table!", .{ .value_type = conv.what_is(args[0]) });
+    }
+
+    const hashTable = @as(*ObjHashTable, @ptrCast(@alignCast(args[0].as.obj)));
+    const pairsList = obj_h.hashTableToPairs(hashTable);
+
+    return Value.init_obj(@ptrCast(pairsList));
 }
 
 // norm(vector) - Calculates the Euclidean norm (magnitude) of a vector
