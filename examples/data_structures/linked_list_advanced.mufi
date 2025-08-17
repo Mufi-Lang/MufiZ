@@ -1,0 +1,453 @@
+// Advanced LinkedList operations and patterns
+// Demonstrates iterator pattern, custom comparators, and advanced use cases
+
+// Import the basic LinkedList (assuming it's available)
+// For this example, we'll extend the basic LinkedList class
+
+class AdvancedLinkedList < LinkedList {
+    // Initialize with optional initial values
+    init(...initial_values) {
+        super.init();
+        foreach (val in initial_values) {
+            self.push(val);
+        }
+    }
+
+    // Insert element at specific position
+    insert(index, value) {
+        if (index < 0 || index > self.length()) {
+            print("Error: Index out of bounds");
+            return self;
+        }
+
+        if (index == 0) {
+            return self.push_front(value);
+        }
+
+        if (index == self.length()) {
+            return self.push(value);
+        }
+
+        // For middle insertion, we need to rebuild the list
+        var new_data = linked_list();
+        var i = 0;
+        while (i < index) {
+            push(new_data, self.at(i));
+            i = i + 1;
+        }
+        push(new_data, value);
+        while (i < self.length()) {
+            push(new_data, self.at(i));
+            i = i + 1;
+        }
+        self.data = new_data;
+        return self;
+    }
+
+    // Remove element at specific position
+    remove_at(index) {
+        if (index < 0 || index >= self.length()) {
+            print("Error: Index out of bounds");
+            return nil;
+        }
+
+        if (index == 0) {
+            return self.pop_front();
+        }
+
+        if (index == self.length() - 1) {
+            return self.pop();
+        }
+
+        // For middle removal
+        var removed_value = self.at(index);
+        var new_data = linked_list();
+        var i = 0;
+        while (i < self.length()) {
+            if (i != index) {
+                push(new_data, self.at(i));
+            }
+            i = i + 1;
+        }
+        self.data = new_data;
+        return removed_value;
+    }
+
+    // Remove first occurrence of value
+    remove_value(value) {
+        var index = self.search(value);
+        if (index != -1) {
+            return self.remove_at(index);
+        }
+        return nil;
+    }
+
+    // Remove all occurrences of value
+    remove_all(value) {
+        var count = 0;
+        var new_data = linked_list();
+        var i = 0;
+        while (i < self.length()) {
+            var elem = self.at(i);
+            if (elem != value) {
+                push(new_data, elem);
+            } else {
+                count = count + 1;
+            }
+            i = i + 1;
+        }
+        self.data = new_data;
+        return count;
+    }
+
+    // Find first element matching predicate
+    find(predicate) {
+        var i = 0;
+        while (i < self.length()) {
+            var elem = self.at(i);
+            if (predicate(elem)) {
+                return elem;
+            }
+            i = i + 1;
+        }
+        return nil;
+    }
+
+    // Find index of first element matching predicate
+    find_index(predicate) {
+        var i = 0;
+        while (i < self.length()) {
+            if (predicate(self.at(i))) {
+                return i;
+            }
+            i = i + 1;
+        }
+        return -1;
+    }
+
+    // Check if any element matches predicate
+    any(predicate) {
+        var i = 0;
+        while (i < self.length()) {
+            if (predicate(self.at(i))) {
+                return true;
+            }
+            i = i + 1;
+        }
+        return false;
+    }
+
+    // Check if all elements match predicate
+    all(predicate) {
+        var i = 0;
+        while (i < self.length()) {
+            if (!predicate(self.at(i))) {
+                return false;
+            }
+            i = i + 1;
+        }
+        return true;
+    }
+
+    // Partition list into two lists based on predicate
+    partition(predicate) {
+        var true_list = AdvancedLinkedList();
+        var false_list = AdvancedLinkedList();
+
+        var i = 0;
+        while (i < self.length()) {
+            var elem = self.at(i);
+            if (predicate(elem)) {
+                true_list.push(elem);
+            } else {
+                false_list.push(elem);
+            }
+            i = i + 1;
+        }
+
+        return [true_list, false_list];
+    }
+
+    // Take first n elements
+    take(n) {
+        var result = AdvancedLinkedList();
+        var count = n;
+        if (count > self.length()) {
+            count = self.length();
+        }
+
+        var i = 0;
+        while (i < count) {
+            result.push(self.at(i));
+            i = i + 1;
+        }
+        return result;
+    }
+
+    // Skip first n elements
+    skip(n) {
+        var result = AdvancedLinkedList();
+        var i = n;
+        while (i < self.length()) {
+            result.push(self.at(i));
+            i = i + 1;
+        }
+        return result;
+    }
+
+    // Get unique elements (remove duplicates)
+    unique() {
+        var result = AdvancedLinkedList();
+        var i = 0;
+        while (i < self.length()) {
+            var elem = self.at(i);
+            if (!result.contains(elem)) {
+                result.push(elem);
+            }
+            i = i + 1;
+        }
+        return result;
+    }
+
+    // Zip with another list
+    zip(other_list) {
+        var result = AdvancedLinkedList();
+        var len = self.length();
+        if (other_list.length() < len) {
+            len = other_list.length();
+        }
+
+        var i = 0;
+        while (i < len) {
+            result.push(self.at(i) => other_list.at(i));
+            i = i + 1;
+        }
+        return result;
+    }
+
+    // Group consecutive equal elements
+    group() {
+        if (self.is_empty()) {
+            return AdvancedLinkedList();
+        }
+
+        var result = AdvancedLinkedList();
+        var current_group = AdvancedLinkedList();
+        var current_value = self.at(0);
+        current_group.push(current_value);
+
+        var i = 1;
+        while (i < self.length()) {
+            var elem = self.at(i);
+            if (elem == current_value) {
+                current_group.push(elem);
+            } else {
+                result.push(current_group);
+                current_group = AdvancedLinkedList();
+                current_group.push(elem);
+                current_value = elem;
+            }
+            i = i + 1;
+        }
+
+        if (current_group.length() > 0) {
+            result.push(current_group);
+        }
+
+        return result;
+    }
+
+    // Sort with custom comparator
+    sort_by(comparator) {
+        // Simple bubble sort with custom comparator
+        var n = self.length();
+        var i = 0;
+        while (i < n - 1) {
+            var j = 0;
+            while (j < n - i - 1) {
+                if (comparator(self.at(j), self.at(j + 1)) > 0) {
+                    // Swap elements
+                    var temp = self.at(j);
+                    var next = self.at(j + 1);
+                    self.remove_at(j);
+                    self.insert(j, next);
+                    self.remove_at(j + 1);
+                    self.insert(j + 1, temp);
+                }
+                j = j + 1;
+            }
+            i = i + 1;
+        }
+        return self;
+    }
+}
+
+// Iterator class for advanced iteration patterns
+class LinkedListIterator {
+    init(list) {
+        self.list = list;
+        self.index = 0;
+    }
+
+    has_next() {
+        return self.index < self.list.length();
+    }
+
+    next() {
+        if (self.has_next()) {
+            var value = self.list.at(self.index);
+            self.index = self.index + 1;
+            return value;
+        }
+        return nil;
+    }
+
+    peek() {
+        if (self.has_next()) {
+            return self.list.at(self.index);
+        }
+        return nil;
+    }
+
+    reset() {
+        self.index = 0;
+        return self;
+    }
+}
+
+// Example: Person class for demonstration
+class Person {
+    init(name, age) {
+        self.name = name;
+        self.age = age;
+    }
+
+    to_string() {
+        return self.name + " (" + str(self.age) + ")";
+    }
+}
+
+// Test advanced operations
+fun test_advanced_linked_list() {
+    print("=== Advanced LinkedList Tests ===");
+
+    // Test 1: Insert and remove at index
+    print("\n[Test 1] Insert and remove at index");
+    var list1 = AdvancedLinkedList(1, 2, 4, 5);
+    print("Original: " + list1.to_string());
+
+    list1.insert(2, 3);
+    print("After insert(2, 3): " + list1.to_string());
+
+    var removed = list1.remove_at(3);
+    print("After remove_at(3): " + list1.to_string());
+    print("Removed value: " + str(removed));
+
+    // Test 2: Remove by value
+    print("\n[Test 2] Remove by value");
+    var list2 = AdvancedLinkedList(1, 2, 3, 2, 4, 2, 5);
+    print("Original: " + list2.to_string());
+
+    list2.remove_value(2);
+    print("After remove_value(2): " + list2.to_string());
+
+    var list2_copy = list2.copy();
+    list2_copy.push(2).push(2);
+    var count = list2_copy.remove_all(2);
+    print("After remove_all(2): " + list2_copy.to_string());
+    print("Removed " + str(count) + " occurrences");
+
+    // Test 3: Find operations
+    print("\n[Test 3] Find operations");
+    var list3 = AdvancedLinkedList(1, 5, 3, 8, 2, 7, 4);
+
+    var found = list3.find(fun(x) { return x > 6; });
+    print("First element > 6: " + str(found));
+
+    var index = list3.find_index(fun(x) { return x % 2 == 0; });
+    print("Index of first even number: " + str(index));
+
+    print("Any element > 10? " + str(list3.any(fun(x) { return x > 10; })));
+    print("All elements < 10? " + str(list3.all(fun(x) { return x < 10; })));
+
+    // Test 4: Partition
+    print("\n[Test 4] Partition");
+    var partitions = list3.partition(fun(x) { return x % 2 == 0; });
+    print("Even numbers: " + partitions[0].to_string());
+    print("Odd numbers: " + partitions[1].to_string());
+
+    // Test 5: Take and skip
+    print("\n[Test 5] Take and skip");
+    var list4 = AdvancedLinkedList(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+    print("Original: " + list4.to_string());
+    print("Take(5): " + list4.take(5).to_string());
+    print("Skip(7): " + list4.skip(7).to_string());
+
+    // Test 6: Unique elements
+    print("\n[Test 6] Unique elements");
+    var list5 = AdvancedLinkedList(1, 2, 2, 3, 1, 4, 3, 5, 1);
+    print("Original: " + list5.to_string());
+    print("Unique: " + list5.unique().to_string());
+
+    // Test 7: Zip operation
+    print("\n[Test 7] Zip operation");
+    var names = AdvancedLinkedList("Alice", "Bob", "Charlie");
+    var ages = AdvancedLinkedList(25, 30, 35, 40);
+    var zipped = names.zip(ages);
+    print("Zipped:");
+    zipped.foreach(fun(pair) {
+        print("  " + pair[0] + " => " + str(pair[1]));
+    });
+
+    // Test 8: Group consecutive elements
+    print("\n[Test 8] Group consecutive elements");
+    var list6 = AdvancedLinkedList(1, 1, 2, 2, 2, 3, 1, 1);
+    var grouped = list6.group();
+    print("Grouped:");
+    var i = 0;
+    while (i < grouped.length()) {
+        print("  Group " + str(i) + ": " + grouped.at(i).to_string());
+        i = i + 1;
+    }
+
+    // Test 9: Custom sort with Person objects
+    print("\n[Test 9] Custom sort with objects");
+    var people = AdvancedLinkedList(
+        Person("Charlie", 35),
+        Person("Alice", 25),
+        Person("Bob", 30),
+        Person("David", 25)
+    );
+
+    print("Original:");
+    people.foreach(fun(p) { print("  " + p.to_string()); });
+
+    // Sort by age
+    people.sort_by(fun(a, b) {
+        if (a.age < b.age) return -1;
+        if (a.age > b.age) return 1;
+        return 0;
+    });
+
+    print("Sorted by age:");
+    people.foreach(fun(p) { print("  " + p.to_string()); });
+
+    // Test 10: Iterator pattern
+    print("\n[Test 10] Iterator pattern");
+    var list7 = AdvancedLinkedList("a", "b", "c", "d", "e");
+    var iter = LinkedListIterator(list7);
+
+    print("Iterating with iterator:");
+    while (iter.has_next()) {
+        print("  " + iter.next());
+    }
+
+    iter.reset();
+    print("Peek without advancing: " + iter.peek());
+    print("Still at: " + iter.peek());
+
+    print("\n=== All advanced tests passed! ===");
+}
+
+// Run advanced tests
+test_advanced_linked_list();

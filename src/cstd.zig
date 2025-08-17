@@ -407,18 +407,7 @@ pub fn nth_nf(argCount: i32, args: [*]Value) Value {
         },
         .OBJ_LINKED_LIST => {
             const l = @as(*ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
-
-            if (index >= 0 and index < l.count) {
-                var node = l.head;
-                var i: i32 = 0;
-                while (i < index) : (i += 1) {
-                    node = node.?.next;
-                }
-                return node.?.data;
-            }
-
-            runtimeError("Index out of bounds.", .{});
-            return Value.init_nil();
+            return l.get(index);
         },
         .OBJ_HASH_TABLE => {
             runtimeError("Hash tables do not support indexed access. Use get() instead.", .{});
@@ -516,16 +505,7 @@ pub fn contains_nf(argCount: i32, args: [*]Value) Value {
         },
         .OBJ_LINKED_LIST => {
             const list = @as(*ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
-            var current = list.head;
-
-            // Traverse the list looking for a matching value
-            while (current) |node| {
-                if (valuesEqual(node.data, args[1])) {
-                    return Value.init_bool(true);
-                }
-                current = node.next;
-            }
-            return Value.init_bool(false);
+            return Value.init_bool(list.search(args[1]) != -1);
         },
         else => {
             runtimeError("Invalid argument type.", .{});
@@ -611,7 +591,7 @@ pub fn len_nf(argCount: i32, args: [*]Value) Value {
         },
         .OBJ_LINKED_LIST => {
             const list = @as(*ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
-            return Value.init_int(list.count);
+            return Value.init_int(list.len());
         },
         else => {
             runtimeError("Invalid argument type.", .{});
@@ -702,7 +682,7 @@ pub fn is_empty_nf(argCount: i32, args: [*]Value) Value {
         },
         .OBJ_LINKED_LIST => {
             const list = @as(*ObjLinkedList, @ptrCast(@alignCast(args[0].as.obj)));
-            return Value.init_bool(list.count == 0);
+            return Value.init_bool(list.is_empty());
         },
         else => {
             runtimeError("Unsupported type for is_empty().", .{});
