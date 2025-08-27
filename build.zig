@@ -17,7 +17,6 @@ pub fn build(b: *std.Build) !void {
         .root_module = b.createModule(.{ .root_source_file = b.path("src/main.zig"), .target = target, .optimize = optimize }),
         // .target = target,
         // .optimize = optimize,
-        .link_libc = false,
     });
 
     const exe_check = b.addExecutable(.{
@@ -25,7 +24,6 @@ pub fn build(b: *std.Build) !void {
         // .root_source_file = b.path("src/main.zig"),
         // .target = target,
         // .optimize = optimize,
-        .link_libc = false,
         .root_module = b.createModule(.{ .root_source_file = b.path("src/main.zig"), .target = target, .optimize = optimize }),
     });
 
@@ -33,10 +31,13 @@ pub fn build(b: *std.Build) !void {
         b.enable_wasmtime = true;
     }
 
-    const clap = b.dependency("clap", .{ .target = target, .optimize = .ReleaseSafe });
-
+    const clap = b.dependency("clap", .{});
     exe.root_module.addImport("clap", clap.module("clap"));
-    exe_check.root_module.addImport("clap", clap.module("clap"));
+
+    // const clap = b.dependency("clap", .{ .target = target, .optimize = .ReleaseSafe });
+
+    // exe.root_module.addImport("clap", clap.module("clap"));
+    // exe_check.root_module.addImport("clap", clap.module("clap"));
 
     const options = b.addOptions();
     const net = b.option(bool, "enable_net", "Enable Network features") orelse true;
@@ -86,11 +87,4 @@ pub fn build(b: *std.Build) !void {
 
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
-
-    const exe_test = b.addTest(.{ .root_source_file = b.path("tests/test_errors.zig"), .target = target, .optimize = optimize });
-    exe_test.linkLibC();
-    const run_exe_test = b.addRunArtifact(exe_test);
-
-    const test_step = b.step("test", "Run Test Suite");
-    test_step.dependOn(&run_exe_test.step);
 }

@@ -29,7 +29,7 @@ pub fn hash_table(argc: i32, args: [*]Value) Value {
     _ = args;
     if (argc != 0) return stdlib_error("hash_table() expects no arguments!", .{ .argn = argc });
 
-    const ht: *ObjHashTable = obj_h.newHashTable();
+    const ht: *ObjHashTable = ObjHashTable.init();
     return Value.init_obj(@ptrCast(ht));
 }
 
@@ -514,7 +514,7 @@ pub fn clone(argc: i32, args: [*]Value) Value {
 
     if (Value.is_obj_type(args[0], .OBJ_HASH_TABLE)) {
         const table = args[0].as_hash_table();
-        const new_table = obj_h.cloneHashTable(table);
+        const new_table = table.clone();
         return Value.init_obj(@ptrCast(new_table));
     } else if (Value.is_obj_type(args[0], .OBJ_FVECTOR)) {
         const vector = args[0].as_vector();

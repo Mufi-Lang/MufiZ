@@ -8,7 +8,13 @@ const Chunk = chunk_h.Chunk;
 const memcpy = @import("mem_utils.zig").memcpyFast;
 const memory_h = @import("memory.zig");
 const reallocate = memory_h.reallocate;
+pub const Class = @import("objects/class.zig").Class;
+pub const ObjClass = Class;
 pub const FloatVector = @import("objects/fvec.zig").FloatVector;
+pub const HashTable = @import("objects/hash_table.zig").HashTable;
+pub const ObjHashTable = HashTable;
+pub const Instance = @import("objects/instance.zig").Instance;
+pub const ObjInstance = Instance;
 pub const LinkedList = @import("objects/linked_list.zig").LinkedList;
 pub const Node = @import("objects/linked_list.zig").Node;
 pub const ObjLinkedList = LinkedList;
@@ -17,6 +23,8 @@ pub const Obj = __obj.Obj;
 pub const ObjType = __obj.ObjType;
 pub const ObjPair = @import("objects/pair.zig").ObjPair;
 pub const ObjRange = @import("objects/range.zig").ObjRange;
+pub const String = @import("objects/string.zig").String;
+pub const ObjString = String;
 const scanner_h = @import("scanner.zig");
 const table_h = @import("table.zig");
 const Table = table_h.Table;
@@ -29,17 +37,6 @@ const push = vm_h.push;
 const pop = vm_h.pop;
 
 // Object Types
-pub const ObjString = struct {
-    obj: Obj,
-    length: usize,
-    chars: []u8,
-    hash: u64,
-};
-
-pub const ObjHashTable = struct {
-    obj: Obj,
-    table: Table,
-};
 
 pub const ObjFunction = struct {
     obj: Obj,
@@ -68,17 +65,7 @@ pub const ObjClosure = struct {
     upvalues: ?[*]?*ObjUpvalue,
     upvalueCount: i32,
 };
-pub const ObjClass = struct {
-    obj: Obj,
-    name: ?*ObjString,
-    methods: Table,
-    superclass: ?*ObjClass,
-};
-pub const ObjInstance = struct {
-    obj: Obj,
-    klass: *ObjClass,
-    fields: Table,
-};
+
 pub const ObjBoundMethod = struct {
     obj: Obj,
     receiver: Value,
@@ -122,11 +109,7 @@ pub fn newBoundMethod(receiver: Value, method: *ObjClosure) *ObjBoundMethod {
     return bound;
 }
 pub fn newClass(name: *ObjString) *ObjClass {
-    const klass: *ObjClass = @as(*ObjClass, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjClass), .OBJ_CLASS))));
-    klass.*.name = name;
-    klass.*.superclass = @ptrFromInt(0);
-    table_h.initTable(&klass.*.methods);
-    return klass;
+    return Class.init(name);
 }
 pub fn newClosure(function: *ObjFunction) *ObjClosure {
     // Allocate memory for upvalues array
@@ -169,10 +152,7 @@ pub fn newFunction() *ObjFunction {
 }
 
 pub fn newInstance(klass: *ObjClass) *ObjInstance {
-    const instance: *ObjInstance = @as(*ObjInstance, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjInstance), .OBJ_INSTANCE))));
-    instance.*.klass = klass;
-    table_h.initTable(&instance.*.fields);
-    return instance;
+    return Instance.init(klass);
 }
 
 pub fn newNative(function: NativeFn) *ObjNative {
@@ -181,31 +161,7 @@ pub fn newNative(function: NativeFn) *ObjNative {
     return native;
 }
 
-pub const AllocStringParams = struct {
-    chars: [*]u8,
-    length: usize,
-    hash: u64,
-};
-
-pub fn allocateString(params: AllocStringParams) *ObjString {
-    // Create a new ObjString
-    const string = @as(*ObjString, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjString), .OBJ_STRING))));
-
-    // Initialize string properties
-    string.length = params.length;
-    string.chars = params.chars[0..@intCast(params.length)];
-    string.hash = params.hash;
-
-    // Add to VM string table to enable string interning
-    push(Value{
-        .type = .VAL_OBJ,
-        .as = .{ .obj = @as(*Obj, @ptrCast(string)) },
-    });
-    _ = table_h.tableSet(&vm_h.vm.strings, string, Value.init_nil());
-    _ = pop();
-
-    return string;
-}
+// String allocation is now handled internally by String bounded methods
 
 pub fn hashString(key: [*]const u8, length: usize) u64 {
     const FNV_OFFSET_BASIS: u64 = 0xcbf29ce484222325;
@@ -222,63 +178,16 @@ pub fn hashString(key: [*]const u8, length: usize) u64 {
 }
 
 pub fn takeString(chars: [*]u8, length: usize) *ObjString {
-    // Compute the hash of the string
-    const hash = hashString(chars, length);
-
-    // Check if the string is already interned
-    const interned = table_h.tableFindString(&vm_h.vm.strings, chars, length, hash);
-    if (interned != null) {
-        // Free the passed-in memory as we'll use the interned version
-        _ = reallocate(@as(?*anyopaque, @ptrCast(chars)), @intCast(@sizeOf(u8) *% length + 1), 0);
-        return interned.?;
-    }
-
-    // String isn't interned, so create a new one with the given chars
-    return allocateString(AllocStringParams{
-        .chars = chars,
-        .length = length,
-        .hash = hash,
-    });
+    return String.take(chars[0..length], length);
 }
 
 pub fn copyString(chars: ?[*]const u8, length: usize) *ObjString {
     // Safety check: ensure valid inputs
-    if (chars == null or length < 0) {
-        // Handle invalid inputs by creating empty string directly
-        const emptyChars = @as([*]u8, @ptrCast(@alignCast(reallocate(null, 0, 1))));
-        emptyChars[0] = 0;
-        return allocateString(AllocStringParams{
-            .chars = emptyChars,
-            .length = 0,
-            .hash = hashString(emptyChars, 0),
-        });
+    if (chars == null) {
+        return String.copy(&[_]u8{}, 0);
     }
 
-    // Compute the hash of the string
-    const hash = hashString(chars.?, length);
-
-    // Check if the string is already interned
-    const interned = table_h.tableFindString(&vm_h.vm.strings, chars.?, length, hash);
-    if (interned != null) return interned.?;
-
-    // Allocate space for the new string (including null terminator)
-    const size = @as(usize, @intCast(length)) + 1;
-    const heapChars = @as([*]u8, @ptrCast(@alignCast(reallocate(null, 0, size))));
-
-    // Copy the string contents
-    if (length > 0) {
-        _ = memcpy(@ptrCast(heapChars), @ptrCast(chars), @intCast(length));
-    }
-
-    // Add null terminator
-    heapChars[@intCast(length)] = 0;
-
-    // Create a new string object
-    return allocateString(AllocStringParams{
-        .chars = heapChars,
-        .length = length,
-        .hash = hash,
-    });
+    return String.copy(chars.?[0..length], length);
 }
 
 pub fn newUpvalue(slot: [*]Value) *ObjUpvalue {
@@ -464,39 +373,29 @@ pub fn spliceLinkedList(list: *ObjLinkedList, start: i32, end: i32) *ObjLinkedLi
     return list.splice(start, end);
 }
 pub fn newHashTable() *ObjHashTable {
-    const htable: *ObjHashTable = @as(*ObjHashTable, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjHashTable), .OBJ_HASH_TABLE))));
-    table_h.initTable(&htable.*.table);
-    return htable;
+    return HashTable.init();
 }
 pub fn cloneHashTable(table: *ObjHashTable) *ObjHashTable {
-    var newTable: *ObjHashTable = newHashTable();
-    _ = &newTable;
-    table_h.tableAddAll(&table.*.table, &newTable.*.table);
-    return newTable;
+    return table.clone();
 }
 pub fn clearHashTable(table: *ObjHashTable) void {
-    table_h.freeTable(&table.*.table);
-    table_h.initTable(&table.*.table);
+    table.clear();
 }
 pub fn putHashTable(table: *ObjHashTable, key: *ObjString, value: Value) bool {
-    return table_h.tableSet(&table.*.table, key, value);
+    return table.put(key, value);
 }
 pub fn getHashTable(table: *ObjHashTable, key: *ObjString) Value {
-    var value: Value = undefined;
-
-    if (table_h.tableGet(&table.*.table, key, &value)) {
+    if (table.get(key)) |value| {
         return value;
     } else {
         return Value.init_nil();
     }
-    return @import("std").mem.zeroes(Value);
 }
 pub fn removeHashTable(table: *ObjHashTable, key: *ObjString) bool {
-    return table_h.tableDelete(&table.*.table, key);
+    return table.remove(key);
 }
 pub fn freeObjectHashTable(table: *ObjHashTable) void {
-    table_h.freeTable(&table.*.table);
-    _ = reallocate(@as(?*anyopaque, @ptrCast(table)), @sizeOf(ObjHashTable), 0);
+    table.deinit();
 }
 // pub  fn mergeHashTable(a: *ObjHashTable, b: *ObjHashTable) *ObjHashTable;
 // pub  fn keysHashTable(table: *ObjHashTable) *ObjArray;
@@ -616,28 +515,12 @@ pub fn isObjType(value: Value, type_: ObjType) bool {
 
 // Convert a hash table to a linked list of pairs for iteration
 pub fn hashTableToPairs(hashTable: *ObjHashTable) *ObjLinkedList {
-    const list = newLinkedList();
-
-    if (hashTable.table.entries) |entries| {
-        for (0..@intCast(hashTable.table.capacity)) |i| {
-            if (entries[i].key != null and entries[i].isActive()) {
-                // Create a pair with the key and value
-                const keyValue = Value.init_obj(@ptrCast(entries[i].key));
-                const pair = ObjPair.create(keyValue, entries[i].value);
-                const pairValue = Value.init_obj(@ptrCast(pair));
-
-                // Add the pair to the list
-                pushBack(list, pairValue);
-            }
-        }
-    }
-
-    return list;
+    return hashTable.toPairs();
 }
 
 // Get the number of active entries in a hash table
 pub fn hashTableLength(hashTable: *ObjHashTable) i32 {
-    return @intCast(hashTable.table.count);
+    return @intCast(hashTable.len());
 }
 
 pub const ObjTypeCheckParams = struct {

@@ -30,7 +30,7 @@ const isObjType = object_h.isObjType;
 const newUpvalue = object_h.newUpvalue;
 const newBoundMethod = object_h.newBoundMethod;
 const ObjInstance = object_h.ObjInstance;
-const newInstance = object_h.newInstance;
+const Instance = object_h.Instance;
 const takeString = object_h.takeString;
 const ObjLinkedList = object_h.ObjLinkedList;
 const equalLinkedList = object_h.equalLinkedList;
@@ -393,7 +393,7 @@ pub fn callValue(callee: Value, argCount: i32) bool {
                 const klass: *ObjClass = @ptrCast(@alignCast(callee.as.obj));
 
                 // Create instance
-                const instance = object_h.newInstance(klass);
+                const instance = Instance.init(klass);
 
                 // Create the instance value
                 const instanceValue = Value.init_obj(@ptrCast(@alignCast(instance)));
@@ -426,7 +426,7 @@ pub fn callValue(callee: Value, argCount: i32) bool {
             .OBJ_CLOSURE => return call(@as(*ObjClosure, @ptrCast(@alignCast(callee.as.obj))), argCount),
             .OBJ_INSTANCE => {
                 const klass: *ObjClass = @ptrCast(@alignCast(callee.as.obj));
-                set_stack_top(argCount, Value.init_obj(@ptrCast(@alignCast(object_h.newInstance(klass)))));
+                set_stack_top(argCount, Value.init_obj(@ptrCast(@alignCast(Instance.init(klass)))));
 
                 return true;
             },
@@ -1178,7 +1178,8 @@ pub fn run() InterpretResult {
                 .OP_CLASS => {
                     const constant = getConstant(frame, get_slot(frame));
                     if (constant == null) return .INTERPRET_RUNTIME_ERROR;
-                    push(Value.init_obj(@ptrCast(@alignCast(object_h.newClass(@ptrCast(@alignCast(constant.?.as.obj)))))));
+                    const Class = object_h.Class;
+                    push(Value.init_obj(@ptrCast(@alignCast(Class.init(@ptrCast(@alignCast(constant.?.as.obj)))))));
                     continue;
                 },
                 .OP_INHERIT => {

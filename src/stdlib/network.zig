@@ -1,14 +1,15 @@
 const std = @import("std");
-const enable_net = @import("features").enable_net;
-const net = @import("../net.zig");
 
-const vm = @import("../vm.zig");
-const Value = @import("../value.zig").Value;
-const stdlib_error = @import("../stdlib.zig").stdlib_error;
-const ContentType = net.ContentType;
+const enable_net = @import("features").enable_net;
+
 const GlobalAlloc = @import("../main.zig").GlobalAlloc;
+const net = @import("../net.zig");
+const ContentType = net.ContentType;
 const obj_h = @import("../object.zig");
+const stdlib_error = @import("../stdlib.zig").stdlib_error;
 const table_h = @import("../table.zig");
+const Value = @import("../value.zig").Value;
+const vm = @import("../vm.zig");
 
 // HTTP Requests
 pub fn http_get(argc: i32, args: [*]Value) Value {
@@ -22,16 +23,16 @@ pub fn http_get(argc: i32, args: [*]Value) Value {
 
     const url_obj = args[0].as_string();
     const url = url_obj.chars[0..url_obj.length];
-    
+
     // Default content type to JSON
     const ct = ContentType.JSON;
     const options = net.Options{};
-    
+
     const result = net.get(url, ct, options) catch |err| {
         vm.runtimeError("HTTP GET request failed: {s}", .{@errorName(err)});
         return Value.init_nil();
     };
-    
+
     return Value.init_obj(@ptrCast(obj_h.copyString(result.ptr, result.len)));
 }
 
@@ -49,16 +50,16 @@ pub fn http_post(argc: i32, args: [*]Value) Value {
     const url = url_obj.chars[0..url_obj.length];
     const data_obj = args[1].as_string();
     const data = data_obj.chars[0..data_obj.length];
-    
+
     // Default content type to JSON
     const ct = ContentType.JSON;
     const options = net.Options{};
-    
+
     const result = net.post(url, data, ct, options) catch |err| {
         vm.runtimeError("HTTP POST request failed: {s}", .{@errorName(err)});
         return Value.init_nil();
     };
-    
+
     return Value.init_obj(@ptrCast(obj_h.copyString(result.ptr, result.len)));
 }
 
@@ -76,16 +77,16 @@ pub fn http_put(argc: i32, args: [*]Value) Value {
     const url = url_obj.chars[0..url_obj.length];
     const data_obj = args[1].as_string();
     const data = data_obj.chars[0..data_obj.length];
-    
+
     // Default content type to JSON
     const ct = ContentType.JSON;
     const options = net.Options{};
-    
+
     const result = net.put(url, data, ct, options) catch |err| {
         vm.runtimeError("HTTP PUT request failed: {s}", .{@errorName(err)});
         return Value.init_nil();
     };
-    
+
     return Value.init_obj(@ptrCast(obj_h.copyString(result.ptr, result.len)));
 }
 
@@ -100,16 +101,16 @@ pub fn http_delete(argc: i32, args: [*]Value) Value {
 
     const url_obj = args[0].as_string();
     const url = url_obj.chars[0..url_obj.length];
-    
+
     // Default content type to JSON
     const ct = ContentType.JSON;
     const options = net.Options{};
-    
+
     const result = net.delete(url, ct, options) catch |err| {
         vm.runtimeError("HTTP DELETE request failed: {s}", .{@errorName(err)});
         return Value.init_nil();
     };
-    
+
     return Value.init_obj(@ptrCast(obj_h.copyString(result.ptr, result.len)));
 }
 
@@ -125,16 +126,16 @@ pub fn set_content_type(argc: i32, args: [*]Value) Value {
 
     const content_type_obj = args[0].as_string();
     const content_type_str = content_type_obj.chars[0..content_type_obj.length];
-    
+
     // Create a hash table with the available content types for reference
     // Store the provided content type for reference
     _ = content_type_str;
-    const result = obj_h.newHashTable();
-    _ = obj_h.putHashTable(result, obj_h.copyString("text", 4), Value.init_obj(@ptrCast(obj_h.copyString("text/plain", 10))));
-    _ = obj_h.putHashTable(result, obj_h.copyString("html", 4), Value.init_obj(@ptrCast(obj_h.copyString("text/html", 9))));
-    _ = obj_h.putHashTable(result, obj_h.copyString("json", 4), Value.init_obj(@ptrCast(obj_h.copyString("application/json", 16))));
-    _ = obj_h.putHashTable(result, obj_h.copyString("xml", 3), Value.init_obj(@ptrCast(obj_h.copyString("application/xml", 15))));
-    
+    const result = obj_h.HashTable.init();
+    _ = result.put(obj_h.copyString("text", 4), Value.init_obj(@ptrCast(obj_h.copyString("text/plain", 10))));
+    _ = result.put(obj_h.copyString("html", 4), Value.init_obj(@ptrCast(obj_h.copyString("text/html", 9))));
+    _ = result.put(obj_h.copyString("json", 4), Value.init_obj(@ptrCast(obj_h.copyString("application/json", 16))));
+    _ = result.put(obj_h.copyString("xml", 3), Value.init_obj(@ptrCast(obj_h.copyString("application/xml", 15))));
+
     return Value.init_obj(@ptrCast(result));
 }
 
@@ -165,22 +166,22 @@ pub fn parse_url(argc: i32, args: [*]Value) Value {
 
     const url_obj = args[0].as_string();
     const url = url_obj.chars[0..url_obj.length];
-    
+
     // Use Zig's std.Uri for parsing
     const uri = std.Uri.parse(url) catch {
         vm.runtimeError("Failed to parse URL: {s}", .{url});
         return Value.init_nil();
     };
-    
+
     // Create a hash table to hold the parsed URL parts
-    const result = obj_h.newHashTable();
-    
+    const result = obj_h.HashTable.init();
+
     // Add the parsed components to the hash table
     if (uri.scheme.len > 0) {
-        _ = obj_h.putHashTable(result, obj_h.copyString("scheme", 6), Value.init_obj(@ptrCast(obj_h.copyString(uri.scheme.ptr, uri.scheme.len))));
+        _ = result.put(obj_h.copyString("scheme", 6), Value.init_obj(@ptrCast(obj_h.copyString(uri.scheme.ptr, uri.scheme.len))));
     }
     if (uri.user) |user| {
-        _ = obj_h.putHashTable(result, obj_h.copyString("user", 4), Value.init_obj(@ptrCast(obj_h.copyString(switch (user) {
+        _ = result.put(obj_h.copyString("user", 4), Value.init_obj(@ptrCast(obj_h.copyString(switch (user) {
             .raw => |raw| raw.ptr,
             .percent_encoded => |encoded| encoded.ptr,
         }, switch (user) {
@@ -189,7 +190,7 @@ pub fn parse_url(argc: i32, args: [*]Value) Value {
         }))));
     }
     if (uri.password) |password| {
-        _ = obj_h.putHashTable(result, obj_h.copyString("password", 8), Value.init_obj(@ptrCast(obj_h.copyString(switch (password) {
+        _ = result.put(obj_h.copyString("password", 8), Value.init_obj(@ptrCast(obj_h.copyString(switch (password) {
             .raw => |raw| raw.ptr,
             .percent_encoded => |encoded| encoded.ptr,
         }, switch (password) {
@@ -198,7 +199,7 @@ pub fn parse_url(argc: i32, args: [*]Value) Value {
         }))));
     }
     if (uri.host) |host| {
-        _ = obj_h.putHashTable(result, obj_h.copyString("host", 4), Value.init_obj(@ptrCast(obj_h.copyString(switch (host) {
+        _ = result.put(obj_h.copyString("host", 4), Value.init_obj(@ptrCast(obj_h.copyString(switch (host) {
             .raw => |raw| raw.ptr,
             .percent_encoded => |encoded| encoded.ptr,
         }, switch (host) {
@@ -207,12 +208,12 @@ pub fn parse_url(argc: i32, args: [*]Value) Value {
         }))));
     }
     if (uri.port != null) {
-        _ = obj_h.putHashTable(result, obj_h.copyString("port", 4), Value.init_int(@intCast(uri.port.?)));
+        _ = result.put(obj_h.copyString("port", 4), Value.init_int(@intCast(uri.port.?)));
     }
     // Path is non-optional Component type
     {
         const path = uri.path;
-        _ = obj_h.putHashTable(result, obj_h.copyString("path", 4), Value.init_obj(@ptrCast(obj_h.copyString(switch (path) {
+        _ = result.put(obj_h.copyString("path", 4), Value.init_obj(@ptrCast(obj_h.copyString(switch (path) {
             .raw => |raw| raw.ptr,
             .percent_encoded => |encoded| encoded.ptr,
         }, switch (path) {
@@ -221,7 +222,7 @@ pub fn parse_url(argc: i32, args: [*]Value) Value {
         }))));
     }
     if (uri.query) |query| {
-        _ = obj_h.putHashTable(result, obj_h.copyString("query", 5), Value.init_obj(@ptrCast(obj_h.copyString(switch (query) {
+        _ = result.put(obj_h.copyString("query", 5), Value.init_obj(@ptrCast(obj_h.copyString(switch (query) {
             .raw => |raw| raw.ptr,
             .percent_encoded => |encoded| encoded.ptr,
         }, switch (query) {
@@ -230,7 +231,7 @@ pub fn parse_url(argc: i32, args: [*]Value) Value {
         }))));
     }
     if (uri.fragment) |fragment| {
-        _ = obj_h.putHashTable(result, obj_h.copyString("fragment", 8), Value.init_obj(@ptrCast(obj_h.copyString(switch (fragment) {
+        _ = result.put(obj_h.copyString("fragment", 8), Value.init_obj(@ptrCast(obj_h.copyString(switch (fragment) {
             .raw => |raw| raw.ptr,
             .percent_encoded => |encoded| encoded.ptr,
         }, switch (fragment) {
@@ -238,7 +239,7 @@ pub fn parse_url(argc: i32, args: [*]Value) Value {
             .percent_encoded => |encoded| encoded.len,
         }))));
     }
-    
+
     return Value.init_obj(@ptrCast(result));
 }
 
@@ -256,11 +257,11 @@ pub fn url_encode(argc: i32, args: [*]Value) Value {
     const input = input_obj.chars[0..input_obj.length];
     var buffer_array = std.ArrayList(u8).init(std.heap.page_allocator);
     defer buffer_array.deinit();
-    
+
     const allocator = std.heap.page_allocator;
     var buffer = std.ArrayList(u8).init(allocator);
     defer buffer.deinit();
-    
+
     // URL encoding (RFC 3986)
     for (input) |c| {
         if (std.ascii.isAlphanumeric(c) or c == '-' or c == '_' or c == '.' or c == '~') {
@@ -271,13 +272,13 @@ pub fn url_encode(argc: i32, args: [*]Value) Value {
             buffer.append('0') catch return Value.init_nil();
         } else {
             buffer.append('%') catch return Value.init_nil();
-            
+
             const hex_chars = "0123456789ABCDEF";
             buffer.append(hex_chars[(c >> 4) & 0xF]) catch return Value.init_nil();
             buffer.append(hex_chars[c & 0xF]) catch return Value.init_nil();
         }
     }
-    
+
     return Value.init_obj(@ptrCast(obj_h.copyString(buffer.items.ptr, buffer.items.len)));
 }
 
@@ -295,7 +296,7 @@ pub fn url_decode(argc: i32, args: [*]Value) Value {
     const input = input_obj.chars[0..input_obj.length];
     var buffer = std.ArrayList(u8).init(std.heap.page_allocator);
     defer buffer.deinit();
-    
+
     var i: usize = 0;
     while (i < input.len) {
         const c = input[i];
@@ -315,7 +316,7 @@ pub fn url_decode(argc: i32, args: [*]Value) Value {
             i += 1;
         }
     }
-    
+
     return Value.init_obj(@ptrCast(obj_h.copyString(buffer.items.ptr, buffer.items.len)));
 }
 
@@ -331,20 +332,20 @@ pub fn open_url(argc: i32, args: [*]Value) Value {
 
     const url_obj = args[0].as_string();
     const url = url_obj.chars[0..url_obj.length];
-    
+
     // Allocate memory for URL that we can pass to Open
     const url_copy = GlobalAlloc.dupe(u8, url) catch {
         vm.runtimeError("Memory allocation failed", .{});
         return Value.init_nil();
     };
-    
+
     // Create Open instance and open URL
     const opener = net.Open.init(url_copy);
     opener.that() catch {
         vm.runtimeError("Failed to open URL: {s}", .{url});
         return Value.init_nil();
     };
-    
+
     return Value.init_bool(true);
 }
 
