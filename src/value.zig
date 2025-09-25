@@ -11,6 +11,7 @@ const ObjFunction = obj_h.ObjFunction;
 const ObjLinkedList = obj_h.ObjLinkedList;
 const Node = obj_h.Node;
 const FloatVector = obj_h.FloatVector;
+const Tensor = obj_h.Tensor;
 const fvec = @import("objects/fvec.zig");
 const obj_range = @import("objects/range.zig");
 const reallocate = @import("memory.zig").reallocate;

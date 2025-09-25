@@ -1,0 +1,53 @@
+// Test basic tensor functionality
+
+// Test 1D tensor
+print "Testing 1D tensor:";
+var t1 = tensor1d(5);
+tensor_fill(t1, 2.5);
+print t1;
+
+// Test 2D tensor  
+print "Testing 2D tensor:";
+var t2 = tensor2d(3, 4);
+
+// Fill 2D tensor with some values
+for(var i = 0; i < 3; i++){
+    for(var j = 0; j < 4; j++){
+        tensor_set(t2, i, j, double(i * 4 + j + 1));
+    }
+}
+print t2;
+
+// Test 3D tensor
+print "Testing 3D tensor:";
+var t3 = tensor3d(2, 2, 2);
+tensor_fill(t3, 1.0);
+print t3;
+
+// Test tensor operations
+print "Testing tensor addition:";
+var ta = tensor1d(3);
+var tb = tensor1d(3);
+
+tensor_set(ta, 0, 1.0);
+tensor_set(ta, 1, 2.0);
+tensor_set(ta, 2, 3.0);
+
+tensor_set(tb, 0, 4.0);
+tensor_set(tb, 1, 5.0);
+tensor_set(tb, 2, 6.0);
+
+print "Tensor A:";
+print ta;
+print "Tensor B:";
+print tb;
+
+var tc = tensor_add(ta, tb);
+print "A + B:";
+print tc;
+
+// Test scalar operations
+print "Testing scalar multiplication:";
+var td = tensor_scale(ta, 2.0);
+print "A * 2:";
+print td;

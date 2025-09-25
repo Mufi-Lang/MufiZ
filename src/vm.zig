@@ -106,6 +106,9 @@ pub fn initVM() void {
     initTable(&vm.strings); // Initialize strings table first
 
     vm.initString = copyString(@ptrCast("init"), 4); // Create initString after tables are ready
+    
+    // Import standard library functions including tensor functions
+    importCollections();
 }
 
 pub const InterpretResult = enum(i32) {
@@ -173,66 +176,77 @@ pub fn freeVM() void {
     freeObjects();
 }
 
-// pub fn importCollections() void {
-//     defineNative("assert", cstd_h.assert_nf);
-//     // defineNative("array", &cstd_h.array_nf);
-//     defineNative("linked_list", cstd_h.linkedlist_nf);
-//     defineNative("hash_table", cstd_h.hashtable_nf);
-//     // defineNative("matrix", &cstd_h.matrix_nf);
-//     defineNative("fvec", cstd_h.fvector_nf);
-//     // defineNative("range", &cstd_h.range_nf);
-//     defineNative("linspace", cstd_h.linspace_nf);
-//     defineNative("slice", &cstd_h.slice_nf);
-//     defineNative("splice", &cstd_h.splice_nf);
-//     defineNative("push", &cstd_h.push_nf);
-//     defineNative("pop", &cstd_h.pop_nf);
-//     defineNative("push_front", &cstd_h.push_front_nf);
-//     defineNative("pop_front", &cstd_h.pop_front_nf);
-//     defineNative("nth", &cstd_h.nth_nf);
-//     defineNative("sort", &cstd_h.sort_nf);
-//     defineNative("contains", &cstd_h.contains_nf);
-//     defineNative("insert", &cstd_h.insert_nf);
-//     defineNative("len", &cstd_h.len_nf);
-//     defineNative("search", &cstd_h.search_nf);
-//     defineNative("is_empty", &cstd_h.is_empty_nf);
-//     defineNative("equal_list", &cstd_h.equal_list_nf);
-//     defineNative("reverse", &cstd_h.reverse_nf);
-//     defineNative("merge", &cstd_h.merge_nf);
-//     defineNative("clone", &cstd_h.clone_nf);
-//     defineNative("clear", &cstd_h.clear_nf);
-//     defineNative("next", &cstd_h.next_nf);
-//     defineNative("has_next", &cstd_h.hasNext_nf);
-//     defineNative("reset", &cstd_h.reset_nf);
-//     defineNative("skip", &cstd_h.skip_nf);
-//     defineNative("put", &cstd_h.put_nf);
-//     defineNative("get", &cstd_h.get_nf);
-//     defineNative("remove", &cstd_h.remove_nf);
-//     // defineNative("set_row", &cstd_h.set_row_nf);
-//     // defineNative("set_col", &cstd_h.set_col_nf);
-//     // defineNative("set", &cstd_h.set_nf);
-//     // defineNative("kolasa", &cstd_h.kolasa_nf);
-//     // defineNative("rref", &cstd_h.rref_nf);
-//     // defineNative("rank", &cstd_h.rank_nf);
-//     // defineNative("transpose", &cstd_h.transpose_nf);
-//     // defineNative("det", &cstd_h.determinant_nf);
-//     // defineNative("lu", &cstd_h.lu_nf);
-//     defineNative("workspace", &cstd_h.workspace_nf);
-//     defineNative("interp1", &cstd_h.interp1_nf);
-//     defineNative("sum", &cstd_h.sum_nf);
-//     defineNative("mean", &cstd_h.mean_nf);
-//     defineNative("std", &cstd_h.std_nf);
-//     defineNative("vari", &cstd_h.var_nf);
-//     defineNative("maxl", &cstd_h.maxl_nf);
-//     defineNative("minl", &cstd_h.minl_nf);
-//     defineNative("dot", &cstd_h.dot_nf);
-//     defineNative("cross", &cstd_h.cross_nf);
-//     defineNative("norm", &cstd_h.norm_nf);
-//     defineNative("angle", &cstd_h.angle_nf);
-//     defineNative("proj", &cstd_h.proj_nf);
-//     defineNative("reflect", &cstd_h.reflect_nf);
-//     defineNative("reject", &cstd_h.reject_nf);
-//     defineNative("refract", &cstd_h.refract_nf);
-// }
+pub fn importCollections() void {
+    defineNative("assert", cstd_h.assert_nf);
+    // defineNative("array", &cstd_h.array_nf);
+    defineNative("linked_list", cstd_h.linkedlist_nf);
+    defineNative("hash_table", cstd_h.hashtable_nf);
+    // defineNative("matrix", &cstd_h.matrix_nf);
+    defineNative("fvec", cstd_h.fvector_nf);
+    
+    // Tensor functions  
+    defineNative("tensor1d", cstd_h.tensor1d_nf);
+    defineNative("tensor2d", cstd_h.tensor2d_nf);
+    defineNative("tensor3d", cstd_h.tensor3d_nf);
+    defineNative("tensor_get", cstd_h.tensor_get_nf);
+    defineNative("tensor_set", cstd_h.tensor_set_nf);
+    defineNative("tensor_fill", cstd_h.tensor_fill_nf);
+    defineNative("tensor_add", cstd_h.tensor_add_nf);
+    defineNative("tensor_scale", cstd_h.tensor_scale_nf);
+    
+    // defineNative("range", &cstd_h.range_nf);
+    defineNative("linspace", cstd_h.linspace_nf);
+    defineNative("slice", &cstd_h.slice_nf);
+    defineNative("splice", &cstd_h.splice_nf);
+    defineNative("push", &cstd_h.push_nf);
+    defineNative("pop", &cstd_h.pop_nf);
+    defineNative("push_front", &cstd_h.push_front_nf);
+    defineNative("pop_front", &cstd_h.pop_front_nf);
+    defineNative("nth", &cstd_h.nth_nf);
+    defineNative("sort", &cstd_h.sort_nf);
+    defineNative("contains", &cstd_h.contains_nf);
+    defineNative("insert", &cstd_h.insert_nf);
+    defineNative("len", &cstd_h.len_nf);
+    defineNative("search", &cstd_h.search_nf);
+    defineNative("is_empty", &cstd_h.is_empty_nf);
+    defineNative("equal_list", &cstd_h.equal_list_nf);
+    defineNative("reverse", &cstd_h.reverse_nf);
+    defineNative("merge", &cstd_h.merge_nf);
+    defineNative("clone", &cstd_h.clone_nf);
+    defineNative("clear", &cstd_h.clear_nf);
+    defineNative("next", &cstd_h.next_nf);
+    defineNative("has_next", &cstd_h.hasNext_nf);
+    defineNative("reset", &cstd_h.reset_nf);
+    defineNative("skip", &cstd_h.skip_nf);
+    defineNative("put", &cstd_h.put_nf);
+    defineNative("get", &cstd_h.get_nf);
+    defineNative("remove", &cstd_h.remove_nf);
+    // defineNative("set_row", &cstd_h.set_row_nf);
+    // defineNative("set_col", &cstd_h.set_col_nf);
+    // defineNative("set", &cstd_h.set_nf);
+    // defineNative("kolasa", &cstd_h.kolasa_nf);
+    // defineNative("rref", &cstd_h.rref_nf);
+    // defineNative("rank", &cstd_h.rank_nf);
+    // defineNative("transpose", &cstd_h.transpose_nf);
+    // defineNative("det", &cstd_h.determinant_nf);
+    // defineNative("lu", &cstd_h.lu_nf);
+    defineNative("workspace", &cstd_h.workspace_nf);
+    defineNative("interp1", &cstd_h.interp1_nf);
+    defineNative("sum", &cstd_h.sum_nf);
+    defineNative("mean", &cstd_h.mean_nf);
+    defineNative("std", &cstd_h.std_nf);
+    defineNative("vari", &cstd_h.var_nf);
+    defineNative("maxl", &cstd_h.maxl_nf);
+    defineNative("minl", &cstd_h.minl_nf);
+    defineNative("dot", &cstd_h.dot_nf);
+    defineNative("cross", &cstd_h.cross_nf);
+    defineNative("norm", &cstd_h.norm_nf);
+    defineNative("angle", &cstd_h.angle_nf);
+    defineNative("proj", &cstd_h.proj_nf);
+    defineNative("reflect", &cstd_h.reflect_nf);
+    defineNative("reject", &cstd_h.reject_nf);
+    defineNative("refract", &cstd_h.refract_nf);
+}
 
 inline fn zstr(s: ?*ObjString) []u8 {
     if (s) |str| {
