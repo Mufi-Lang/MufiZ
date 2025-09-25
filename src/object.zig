@@ -17,6 +17,7 @@ pub const Obj = __obj.Obj;
 pub const ObjType = __obj.ObjType;
 pub const ObjPair = @import("objects/pair.zig").ObjPair;
 pub const ObjRange = @import("objects/range.zig").ObjRange;
+pub const Tensor = @import("objects/tensor.zig").Tensor;
 const scanner_h = @import("scanner.zig");
 const table_h = @import("table.zig");
 const Table = table_h.Table;
@@ -607,6 +608,10 @@ pub fn printObject(value: Value) void {
             print(", ", .{});
             value_h.printValue(pair.value);
             print(")", .{});
+        },
+        .OBJ_TENSOR => {
+            const tensor = @as(*Tensor, @ptrCast(@alignCast(value.as.obj)));
+            tensor.print();
         },
     }
 }
