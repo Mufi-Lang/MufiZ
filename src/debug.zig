@@ -133,6 +133,13 @@ pub fn disassembleInstruction(chunk: *Chunk, offset: i32) i32 {
         54 => return simpleInstruction("OP_GET_RANGE_LENGTH", offset),
         55 => return simpleInstruction("OP_BREAK", offset),
         56 => return simpleInstruction("OP_CONTINUE", offset),
+        57 => return simpleInstruction("OP_PAIR", offset),
+        58 => return simpleInstruction("OP_ADD_INT", offset),
+        59 => return simpleInstruction("OP_ADD_FLOAT", offset),
+        60 => return simpleInstruction("OP_SUB_INT", offset),
+        61 => return simpleInstruction("OP_SUB_FLOAT", offset),
+        62 => return simpleInstruction("OP_MUL_INT", offset),
+        63 => return simpleInstruction("OP_MUL_FLOAT", offset),
         else => {
             print("Unknown opcode {d}\n", .{instruction});
             return offset + 1;

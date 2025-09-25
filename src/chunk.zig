@@ -61,6 +61,12 @@ pub const OpCode = enum(i32) {
     OP_BREAK = 55,
     OP_CONTINUE = 56,
     OP_PAIR = 57,
+    OP_ADD_INT = 58,
+    OP_ADD_FLOAT = 59,
+    OP_SUB_INT = 60,
+    OP_SUB_FLOAT = 61,
+    OP_MUL_INT = 62,
+    OP_MUL_FLOAT = 63,
 };
 
 pub const Chunk = struct {
