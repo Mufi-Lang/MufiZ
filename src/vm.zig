@@ -81,6 +81,7 @@ pub const VM = struct {
     stack: [16384]Value,
     stackTop: [*]Value = undefined,
     globals: Table,
+    globalConstants: Table,
     strings: Table,
     initString: ?*ObjString = null,
     openUpvalues: ?*ObjUpvalue = null,
@@ -103,6 +104,7 @@ pub fn initVM() void {
     vm.grayStack = null;
 
     initTable(&vm.globals);
+    initTable(&vm.globalConstants);
     initTable(&vm.strings); // Initialize strings table first
 
     // Create initString after tables are ready - with error handling
@@ -171,6 +173,7 @@ pub fn runtimeError(comptime format: []const u8, args: anytype) void {
 
 pub fn freeVM() void {
     freeTable(&vm.globals);
+    freeTable(&vm.globalConstants);
     freeTable(&vm.strings);
     vm.initString = null;
     freeObjects();
@@ -656,7 +659,7 @@ pub fn run() InterpretResult {
             frame.*.ip += 1;
 
             // Validate instruction is within valid OpCode range
-            if (instruction > 57) {
+            if (instruction > 58) {
                 runtimeError("Invalid bytecode instruction: {d}. This may indicate corrupted bytecode.", .{instruction});
                 return .INTERPRET_RUNTIME_ERROR;
             }
@@ -731,10 +734,29 @@ pub fn run() InterpretResult {
                     _ = pop();
                     continue;
                 },
+                .OP_DEFINE_CONST_GLOBAL => {
+                    const constant = getConstant(frame, get_slot(frame));
+                    if (constant == null) return .INTERPRET_RUNTIME_ERROR;
+                    const name: *ObjString = @ptrCast(@alignCast(constant.?.as.obj));
+                    _ = tableSet(&vm.globals, name, peek(0));
+                    // Mark this variable as a constant
+                    _ = tableSet(&vm.globalConstants, name, Value.init_bool(true));
+                    _ = pop();
+                    continue;
+                },
                 .OP_SET_GLOBAL => {
                     const constant = getConstant(frame, get_slot(frame));
                     if (constant == null) return .INTERPRET_RUNTIME_ERROR;
                     const name: *ObjString = @ptrCast(@alignCast(constant.?.as.obj));
+
+                    // Check if this is a global constant
+                    var dummy_value: Value = undefined;
+                    if (tableGet(&vm.globalConstants, name, &dummy_value)) {
+                        const varName = zstr(name);
+                        runtimeError("Cannot assign to constant variable '{s}'.", .{varName});
+                        return .INTERPRET_RUNTIME_ERROR;
+                    }
+
                     if (tableSet(&vm.globals, name, peek(0))) {
                         _ = tableDelete(&vm.globals, name);
                         const varName = zstr(name);
@@ -847,10 +869,10 @@ pub fn run() InterpretResult {
                     // Initialize with exact size needed
                     const f = fvec.FloatVector.init(@intCast(count));
 
-                    // First collect all values from the stack
-                    var values: [255]f64 = undefined;
+                    // Directly set values from stack without intermediate array
                     for (0..@intCast(count)) |i| {
-                        values[i] = peek((count - @as(i32, @intCast(i))) - 1).as_num_double();
+                        const stack_index = (count - @as(i32, @intCast(i))) - 1;
+                        f.*.data[i] = peek(stack_index).as_num_double();
                     }
 
                     // Pop the values from the stack
@@ -858,10 +880,6 @@ pub fn run() InterpretResult {
                         _ = pop();
                     }
 
-                    // Set values directly in the vector
-                    for (0..@intCast(count)) |i| {
-                        f.*.data[i] = values[i];
-                    }
                     // Set count manually to ensure it matches
                     f.*.count = @intCast(count);
 

@@ -1,0 +1,15 @@
+const PI = 3.14159;
+print("PI = ");
+print(PI);
+
+const name = "MufiZ";
+print("Language: ");
+print(name);
+
+// This should work - reading const values
+print("PI * 2 = ");
+print(PI * 2);
+
+// This should fail - trying to reassign const
+PI = 2.71828;
+print("This should not print");

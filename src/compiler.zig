@@ -823,7 +823,7 @@ pub fn defineConstVariable(global: u8) void {
         }
     }
 
-    emitBytes(@intCast(@intFromEnum(OpCode.OP_DEFINE_GLOBAL)), global);
+    emitBytes(@intCast(@intFromEnum(OpCode.OP_DEFINE_CONST_GLOBAL)), global);
 }
 
 pub fn argumentList() u8 {
