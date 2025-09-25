@@ -1,5 +1,7 @@
 const std = @import("std");
 
+const debug_opts = @import("debug");
+
 const reallocate = @import("../memory.zig").reallocate;
 const allocateObject = @import("../object.zig").allocateObject;
 const LinkedList = @import("../object.zig").LinkedList;
@@ -40,7 +42,18 @@ pub const String = struct {
 
     /// Creates a new string by copying the given characters
     pub fn copy(chars: []const u8, length: usize) Self {
-        const hash = String.hashChars(chars, length);
+        if (length == 0) {
+            // Return the empty string singleton
+            const emptyChars = @as([*]u8, @ptrCast(@alignCast(reallocate(null, 0, 1))));
+            emptyChars[0] = 0; // Null terminate
+            return allocateString(.{
+                .chars = emptyChars[0..0], // Empty slice
+                .length = 0,
+                .hash = hashChars(&[_]u8{}, 0),
+            });
+        }
+
+        const hash = hashChars(chars, length);
 
         // Check if string already exists in intern table
         if (findString(chars, length, hash)) |interned| {
@@ -48,8 +61,14 @@ pub const String = struct {
         }
 
         // Allocate memory for the new string
-        const heapChars = @as([*]u8, @ptrCast(@alignCast(reallocate(null, 0, length))));
+        const heapCharsPtr = reallocate(null, 0, length + 1);
+        if (heapCharsPtr == null) {
+            // This shouldn't happen since reallocate exits on failure, but just in case
+            @panic("Failed to allocate memory for string");
+        }
+        const heapChars = @as([*]u8, @ptrCast(@alignCast(heapCharsPtr)));
         @memcpy(heapChars[0..length], chars[0..length]);
+        heapChars[length] = 0; // Null terminate
 
         return allocateString(.{
             .chars = heapChars[0..length],
@@ -354,7 +373,7 @@ fn findString(chars: []const u8, length: usize, hash: u64) ?*String {
     const tableFindString = @import("../table.zig").tableFindString;
 
     if (vm_h.vm.strings.count == 0) return null;
-    return tableFindString(&vm_h.vm.strings, chars, length, hash);
+    return tableFindString(&vm_h.vm.strings, chars.ptr, length, hash);
 }
 
 // VM imports for string interning

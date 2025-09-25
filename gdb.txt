@@ -1,0 +1,45 @@
+
+This GDB supports auto-downloading debuginfo from the following URLs:
+  <https://debuginfod.fedoraproject.org/>
+Enable debuginfod for this session? (y or [n]) [answered N; input not from terminal]
+Debuginfod has been disabled.
+To make this setting permanent, add 'set debuginfod enabled off' to .gdbinit.
+
+Program received signal SIGSEGV, Segmentation fault.
+0x00000000011af69f in vm.run ()
+#0  0x00000000011af69f in vm.run ()
+#1  0x000000000117e5ce in vm.interpret (source=0x7ffff7e00000 "print(\"Hello\");\n")
+#2  0x000000000117ca79 in system.Runner.run (str=...)
+#3  0x0000000001170dbb in system.Runner.runFile (self=...)
+#4  0x0000000001174195 in main.main ()
+rax            0x131d201           20042241
+rbx            0x131d240           20042304
+rcx            0x1                 1
+rdx            0x131cc40           20040768
+rsi            0x139d2b0           20566704
+rdi            0x7ffffff7b7c0      140737487812544
+rbp            0x7ffffff7bb10      0x7ffffff7bb10
+rsp            0x7ffffcdc8c60      0x7ffffcdc8c60
+r8             0x13c8118           20742424
+r9             0x7fffffffd468      140737488344168
+r10            0x2236ea8           35876520
+r11            0x0                 0
+r12            0x0                 0
+r13            0x0                 0
+r14            0x0                 0
+r15            0x0                 0
+rip            0x11af69f           0x11af69f <vm.run+15>
+eflags         0x10202             [ IF RF ]
+cs             0x33                51
+ss             0x2b                43
+ds             0x0                 0
+es             0x0                 0
+fs             0x0                 0
+gs             0x0                 0
+fs_base        0x131a028           20029480
+gs_base        0x0                 0
+A debugging session is active.
+
+	Inferior 1 [process 114293] will be killed.
+
+Quit anyway? (y or n) [answered Y; input not from terminal]

@@ -33,11 +33,7 @@ pub fn build(b: *std.Build) !void {
 
     const clap = b.dependency("clap", .{});
     exe.root_module.addImport("clap", clap.module("clap"));
-
-    // const clap = b.dependency("clap", .{ .target = target, .optimize = .ReleaseSafe });
-
-    // exe.root_module.addImport("clap", clap.module("clap"));
-    // exe_check.root_module.addImport("clap", clap.module("clap"));
+    exe_check.root_module.addImport("clap", clap.module("clap"));
 
     const options = b.addOptions();
     const net = b.option(bool, "enable_net", "Enable Network features") orelse true;

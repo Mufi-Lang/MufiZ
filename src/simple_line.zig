@@ -13,7 +13,7 @@ pub const SimpleLineEditor = struct {
 
     pub fn init(allocator: std.mem.Allocator, buffer_size: usize) !Self {
         return Self{
-            .history = std.ArrayList([]const u8).init(allocator),
+            .history = std.ArrayList([]const u8).initCapacity(allocator, 8) catch unreachable,
             .history_pos = 0,
             .buffer = try allocator.alloc(u8, buffer_size),
             .allocator = allocator,
@@ -21,86 +21,63 @@ pub const SimpleLineEditor = struct {
     }
 
     pub fn deinit(self: *Self) void {
-        // Free each history item
         for (self.history.items) |item| {
             self.allocator.free(item);
         }
-        self.history.deinit();
+        self.history.deinit(self.allocator);
         self.allocator.free(self.buffer);
     }
 
     pub fn addHistory(self: *Self, line: []const u8) !void {
-        // Don't add empty lines
         if (line.len == 0) return;
 
-        // Don't add if identical to previous entry
-        if (self.history.items.len > 0) {
-            const last = self.history.items[self.history.items.len - 1];
-            if (std.mem.eql(u8, last, line)) return;
-        }
+        const dup = try self.allocator.dupe(u8, line);
+        errdefer self.allocator.free(dup);
 
-        // Add to history
-        const dup = try self.allocator.alloc(u8, line.len);
-        @memcpy(dup, line);
-        try self.history.append(dup);
+        try self.history.append(self.allocator, dup);
         self.history_pos = self.history.items.len;
     }
 
     // Read a line with non-echoing input
     pub fn readLine(self: *Self, prompt: []const u8) !?[]const u8 {
-        const stdin = std.io.getStdIn();
-        var stdout = std.io.getStdOut().writer();
+        // Print the prompt
+        std.debug.print("{s}", .{prompt});
 
-        try stdout.writeAll(prompt);
+        // Use stdin for Zig 0.15 like stdlib does
+        const stdin = std.fs.File.stdin();
 
-        // Simple line reading with non-echoing input
         var pos: usize = 0;
-
         while (pos < self.buffer.len - 1) {
-            const byte = stdin.reader().readByte() catch |err| {
+            // Try to read a byte
+            var byte_buffer: [1]u8 = undefined;
+            const amt = stdin.read(byte_buffer[0..]) catch |err| {
                 if (err == error.EndOfStream) {
-                    try stdout.writeAll("\n");
                     if (pos == 0) return null;
                     break;
                 }
                 return err;
             };
 
-            // Handle input
-            switch (byte) {
-                '\r', '\n' => {
-                    // Do not print a newline, keep output clean
-                    break;
-                },
-                8, 127 => { // backspace
-                    if (pos > 0) {
-                        pos -= 1;
-                        try stdout.writeAll("\x08 \x08"); // backspace, space, backspace
-                    }
-                },
-                3 => { // Ctrl+C
-                    try stdout.writeAll("^C\n");
-                    return null;
-                },
-                4 => { // Ctrl+D (EOF)
-                    if (pos == 0) {
-                        try stdout.writeAll("\n");
-                        return null;
-                    }
-                },
-                else => {
-                    if (byte >= 32 and byte < 127) { // printable ASCII
-                        self.buffer[pos] = byte;
-                        pos += 1;
-                        // Don't echo the character, stay silent
-                    }
-                },
+            if (amt == 0) {
+                if (pos == 0) return null;
+                break;
+            }
+
+            const byte = byte_buffer[0];
+
+            // Basic input handling
+            if (byte == '\n' or byte == '\r') {
+                break;
+            } else if (byte == 3) { // Ctrl+C
+                std.debug.print("^C\n", .{});
+                return null;
+            } else if (byte >= 32 and byte < 127) { // Printable ASCII
+                self.buffer[pos] = byte;
+                pos += 1;
             }
         }
 
-        // Do not echo the input at all
-
-        // Successfully read a line but do not echo it back
+        // Return the line
         return self.buffer[0..pos];
     }
 };

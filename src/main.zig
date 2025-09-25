@@ -49,7 +49,7 @@ pub fn main() !void {
             .allocator = GlobalAlloc,
             .diagnostic = &diag,
         }) catch |err| {
-            try diag.report(std.io.getStdErr().writer(), err);
+            std.debug.print("Error: {any}\n", .{err});
             return err;
         };
         defer res.deinit();
@@ -71,7 +71,8 @@ pub fn main() !void {
         } else {
             system.version();
             system.usage();
-            return clap.help(std.io.getStdErr().writer(), clap.Help, &params, .{});
+            std.debug.print("Use --help for usage information\n", .{});
+            return;
         }
     }
 }

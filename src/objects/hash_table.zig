@@ -3,6 +3,8 @@ const std = @import("std");
 const reallocate = @import("../memory.zig").reallocate;
 const allocateObject = @import("../object.zig").allocateObject;
 const ObjString = @import("../object.zig").ObjString;
+const LinkedList = @import("../object.zig").LinkedList;
+const ObjPair = @import("../object.zig").ObjPair;
 const table_h = @import("../table.zig");
 const Table = table_h.Table;
 const Value = @import("../value.zig").Value;
@@ -125,8 +127,6 @@ pub const HashTable = struct {
 
     /// Converts the hash table to a list of key-value pairs
     pub fn toPairs(self: Self) *LinkedList {
-        const LinkedList = @import("../object.zig").LinkedList;
-        const ObjPair = @import("../object.zig").ObjPair;
         const list = LinkedList.init();
 
         if (self.table.entries) |entries| {
@@ -145,7 +145,6 @@ pub const HashTable = struct {
 
     /// Gets all keys as a list
     pub fn keys(self: Self) *LinkedList {
-        const LinkedList = @import("../object.zig").LinkedList;
         const list = LinkedList.init();
 
         if (self.table.entries) |entries| {
@@ -162,7 +161,6 @@ pub const HashTable = struct {
 
     /// Gets all values as a list
     pub fn values(self: Self) *LinkedList {
-        const LinkedList = @import("../object.zig").LinkedList;
         const list = LinkedList.init();
 
         if (self.table.entries) |entries| {

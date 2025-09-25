@@ -255,31 +255,31 @@ pub fn url_encode(argc: i32, args: [*]Value) Value {
 
     const input_obj = args[0].as_string();
     const input = input_obj.chars[0..input_obj.length];
-    var buffer_array = std.ArrayList(u8).init(std.heap.page_allocator);
-    defer buffer_array.deinit();
-
+    // Simplified URL encoding - allocate max size buffer
     const allocator = std.heap.page_allocator;
-    var buffer = std.ArrayList(u8).init(allocator);
-    defer buffer.deinit();
-
+    const max_size = input.len * 3; // Worst case: every char becomes %XX
+    const buffer = allocator.alloc(u8, max_size) catch return Value.init_nil();
+    defer allocator.free(buffer);
+    
+    var pos: usize = 0;
     // URL encoding (RFC 3986)
     for (input) |c| {
         if (std.ascii.isAlphanumeric(c) or c == '-' or c == '_' or c == '.' or c == '~') {
-            buffer.append(c) catch return Value.init_nil();
+            buffer[pos] = c;
+            pos += 1;
         } else if (c == ' ') {
-            buffer.append('%') catch return Value.init_nil();
-            buffer.append('2') catch return Value.init_nil();
-            buffer.append('0') catch return Value.init_nil();
+            buffer[pos] = '%'; pos += 1;
+            buffer[pos] = '2'; pos += 1;
+            buffer[pos] = '0'; pos += 1;
         } else {
-            buffer.append('%') catch return Value.init_nil();
-
+            buffer[pos] = '%'; pos += 1;
             const hex_chars = "0123456789ABCDEF";
-            buffer.append(hex_chars[(c >> 4) & 0xF]) catch return Value.init_nil();
-            buffer.append(hex_chars[c & 0xF]) catch return Value.init_nil();
+            buffer[pos] = hex_chars[(c >> 4) & 0xF]; pos += 1;
+            buffer[pos] = hex_chars[c & 0xF]; pos += 1;
         }
     }
 
-    return Value.init_obj(@ptrCast(obj_h.copyString(buffer.items.ptr, buffer.items.len)));
+    return Value.init_obj(@ptrCast(obj_h.copyString(buffer.ptr, pos)));
 }
 
 // URL decoding
@@ -294,10 +294,13 @@ pub fn url_decode(argc: i32, args: [*]Value) Value {
 
     const input_obj = args[0].as_string();
     const input = input_obj.chars[0..input_obj.length];
-    var buffer = std.ArrayList(u8).init(std.heap.page_allocator);
-    defer buffer.deinit();
-
+    // Simplified URL decoding - allocate buffer same size as input  
+    const allocator = std.heap.page_allocator;
+    const buffer = allocator.alloc(u8, input.len) catch return Value.init_nil();
+    defer allocator.free(buffer);
+    
     var i: usize = 0;
+    var pos: usize = 0;
     while (i < input.len) {
         const c = input[i];
         if (c == '%' and i + 2 < input.len) {
@@ -306,18 +309,21 @@ pub fn url_decode(argc: i32, args: [*]Value) Value {
             const digit1 = std.fmt.charToDigit(hex1, 16) catch 0;
             const digit2 = std.fmt.charToDigit(hex2, 16) catch 0;
             const value = (digit1 << 4) + digit2;
-            buffer.append(value) catch return Value.init_nil();
+            buffer[pos] = value;
+            pos += 1;
             i += 3;
         } else if (c == '+') {
-            buffer.append(' ') catch return Value.init_nil();
+            buffer[pos] = ' ';
+            pos += 1;
             i += 1;
         } else {
-            buffer.append(c) catch return Value.init_nil();
+            buffer[pos] = c;
+            pos += 1;
             i += 1;
         }
     }
 
-    return Value.init_obj(@ptrCast(obj_h.copyString(buffer.items.ptr, buffer.items.len)));
+    return Value.init_obj(@ptrCast(obj_h.copyString(buffer.ptr, pos)));
 }
 
 // Open URL in browser

@@ -108,24 +108,32 @@ pub fn reallocate(pointer: ?*anyopaque, oldSize: usize, newSize: usize) ?*anyopa
     if (newSize > oldSize) {
         if (debug_opts.stress_gc) collectGarbage();
 
-        // Check for overflow
-        if (vm_h.vm.bytesAllocated > std.math.maxInt(usize) - (newSize - oldSize)) {
-            std.debug.print("Memory allocation would cause overflow.\n", .{});
-            std.process.exit(1);
-        }
-
-        vm_h.vm.bytesAllocated += newSize - oldSize;
+        const delta = newSize - oldSize;
+        vm_h.vm.bytesAllocated += delta;
     } else if (oldSize > newSize) {
-        vm_h.vm.bytesAllocated -= oldSize - newSize;
+        const delta = oldSize - newSize;
+        if (vm_h.vm.bytesAllocated >= delta) {
+            vm_h.vm.bytesAllocated -= delta;
+        } else {
+            // Accounting bug - prevent underflow
+            vm_h.vm.bytesAllocated = 0;
+        }
+    }
+
+    if (newSize == 0) {
+        // Freeing memory - subtract oldSize from bytesAllocated
+        if (vm_h.vm.bytesAllocated >= oldSize) {
+            vm_h.vm.bytesAllocated -= oldSize;
+        } else {
+            // Accounting bug - prevent underflow
+            vm_h.vm.bytesAllocated = 0;
+        }
+        if (pointer != null) free(pointer);
+        return null;
     }
 
     if (vm_h.vm.bytesAllocated > vm_h.vm.nextGC) {
         collectGarbage();
-    }
-
-    if (newSize == 0) {
-        if (pointer != null) free(pointer);
-        return null;
     }
 
     var result = realloc(pointer, newSize);

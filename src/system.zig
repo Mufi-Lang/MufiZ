@@ -92,8 +92,8 @@ pub fn repl() !void {
     version();
     std.debug.print("Type 'help' for more information or 'exit' to quit\n", .{});
 
-    var statement_buffer = std.ArrayList(u8).init(allocator);
-    defer statement_buffer.deinit();
+    var statement_buffer = std.ArrayList(u8).initCapacity(allocator, 0) catch unreachable;
+    defer statement_buffer.deinit(allocator);
 
     while (true) {
         // Determine the prompt based on whether we're in a multi-line statement
@@ -115,9 +115,9 @@ pub fn repl() !void {
 
         // Add the current line to our statement buffer
         if (statement_buffer.items.len > 0) {
-            try statement_buffer.append(' '); // Add space between lines
+            try statement_buffer.append(allocator, ' '); // Add space between lines
         }
-        try statement_buffer.appendSlice(input);
+        try statement_buffer.appendSlice(allocator, input);
 
         // Check if the statement is complete
         if (isStatementComplete(statement_buffer.items)) {

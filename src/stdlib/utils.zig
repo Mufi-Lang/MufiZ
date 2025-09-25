@@ -147,7 +147,7 @@ pub fn sleep(argc: i32, args: [*]Value) Value {
     const seconds = args[0].as_num_double();
     const nanoseconds = @as(u64, @intFromFloat(seconds * 1_000_000_000));
 
-    std.time.sleep(nanoseconds);
+    std.Thread.sleep(nanoseconds);
     return Value.init_nil();
 }
 
@@ -181,14 +181,19 @@ pub fn format_str(argc: i32, args: [*]Value) Value {
         return args[0];
     }
 
-    // Parse the template string for placeholders {} and replace with arguments
-    var result = std.ArrayList(u8).init(std.heap.page_allocator);
-    defer result.deinit();
-
+    // Simplified string formatting - allocate a large buffer
+    const allocator = std.heap.page_allocator;
+    const buffer = allocator.alloc(u8, template.len * 2) catch {
+        vm.runtimeError("Failed to allocate buffer for format", .{});
+        return Value.init_nil();
+    };
+    defer allocator.free(buffer);
+    
+    var pos: usize = 0;
     var i: usize = 0;
     var arg_index: i32 = 1; // Start with the second argument
 
-    while (i < template.len) {
+    while (i < template.len and pos < buffer.len - 1) {
         if (template[i] == '{' and i + 1 < template.len and template[i + 1] == '}') {
             // Found a placeholder
             if (arg_index < argc) {
@@ -201,34 +206,41 @@ pub fn format_str(argc: i32, args: [*]Value) Value {
                     else => value_h.valueToString(args[@intCast(arg_index)]),
                 };
 
-                result.appendSlice(arg_str) catch {
-                    vm.runtimeError("Failed to format string", .{});
-                    return Value.init_nil();
-                };
-
+                // Copy the argument string to buffer
+                const copy_len = @min(arg_str.len, buffer.len - pos - 1);
+                @memcpy(buffer[pos..pos + copy_len], arg_str[0..copy_len]);
+                pos += copy_len;
+                
                 arg_index += 1;
             } else {
                 // Not enough arguments for placeholders
-                result.appendSlice("{}") catch {};
+                if (pos < buffer.len - 2) {
+                    buffer[pos] = '{';
+                    buffer[pos + 1] = '}';
+                    pos += 2;
+                }
             }
 
             i += 2; // Skip the {}
         } else if (template[i] == '{' and i + 1 < template.len and template[i + 1] == '{') {
             // Escaped { character
-            result.append('{') catch {};
+            buffer[pos] = '{';
+            pos += 1;
             i += 2;
         } else if (template[i] == '}' and i + 1 < template.len and template[i + 1] == '}') {
             // Escaped } character
-            result.append('}') catch {};
+            buffer[pos] = '}';
+            pos += 1;
             i += 2;
         } else {
             // Regular character
-            result.append(template[i]) catch {};
+            buffer[pos] = template[i];
+            pos += 1;
             i += 1;
         }
     }
 
     // Create a string object from the result
-    const str_obj = object_h.copyString(result.items.ptr, result.items.len);
+    const str_obj = object_h.copyString(buffer.ptr, pos);
     return Value.init_obj(@ptrCast(str_obj));
 }

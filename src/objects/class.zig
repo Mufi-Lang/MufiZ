@@ -4,6 +4,8 @@ const reallocate = @import("../memory.zig").reallocate;
 const allocateObject = @import("../object.zig").allocateObject;
 const ObjString = @import("../object.zig").ObjString;
 const ObjClosure = @import("../object.zig").ObjClosure;
+const Instance = @import("../object.zig").Instance;
+const LinkedList = @import("../object.zig").LinkedList;
 const table_h = @import("../table.zig");
 const Table = table_h.Table;
 const Value = @import("../value.zig").Value;
@@ -117,7 +119,6 @@ pub const Class = struct {
 
     /// Creates an instance of this class
     pub fn createInstance(self: Self) *Instance {
-        const Instance = @import("instance.zig").Instance;
         return Instance.init(self);
     }
 
@@ -132,7 +133,6 @@ pub const Class = struct {
 
     /// Gets all method names as a list
     pub fn getMethodNames(self: Self) *LinkedList {
-        const LinkedList = @import("../object.zig").LinkedList;
         const list = LinkedList.init();
 
         if (self.methods.entries) |entries| {
@@ -165,7 +165,6 @@ pub const Class = struct {
 
     /// Gets all superclasses as a list (from immediate parent to root)
     pub fn getSuperclasses(self: Self) *LinkedList {
-        const LinkedList = @import("../object.zig").LinkedList;
         const list = LinkedList.init();
 
         var current: ?*Class = self.superclass;
