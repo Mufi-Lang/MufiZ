@@ -102,6 +102,9 @@ pub fn initVM() void {
     vm.grayCapacity = 0;
     vm.grayStack = null;
 
+    // Initialize memory pool for optimized allocations
+    memory_h.resetMemoryPool();
+
     initTable(&vm.globals);
     initTable(&vm.strings); // Initialize strings table first
 
@@ -167,6 +170,12 @@ pub fn runtimeError(comptime format: []const u8, args: anytype) void {
 }
 
 pub fn freeVM() void {
+    // Print performance statistics before shutdown
+    if (debug_opts.log_gc) {
+        print("\n=== VM Performance Summary ===\n", .{});
+        memory_h.printAllocStats();
+    }
+    
     freeTable(&vm.globals);
     freeTable(&vm.strings);
     vm.initString = null;

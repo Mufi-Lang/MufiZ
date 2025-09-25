@@ -68,8 +68,56 @@ pub const MemoryPool = struct {
 // Global memory pool instance
 var memory_pool: MemoryPool = .{};
 
+// Performance monitoring for memory allocation patterns
+pub const AllocStats = struct {
+    total_allocs: u64 = 0,
+    pool_allocs: u64 = 0,
+    system_allocs: u64 = 0,
+    pool_hits: u64 = 0,
+    
+    pub fn recordPoolAlloc(self: *AllocStats) void {
+        self.total_allocs += 1;
+        self.pool_allocs += 1;
+        self.pool_hits += 1;
+    }
+    
+    pub fn recordSystemAlloc(self: *AllocStats) void {
+        self.total_allocs += 1;
+        self.system_allocs += 1;
+    }
+    
+    pub fn recordPoolMiss(self: *AllocStats) void {
+        self.total_allocs += 1;
+        self.system_allocs += 1;
+    }
+    
+    pub fn getPoolHitRate(self: *const AllocStats) f64 {
+        if (self.total_allocs == 0) return 0.0;
+        return @as(f64, @floatFromInt(self.pool_hits)) / @as(f64, @floatFromInt(self.total_allocs));
+    }
+};
+
+var alloc_stats: AllocStats = .{};
+
 pub fn resetMemoryPool() void {
     memory_pool = .{};
+    alloc_stats = .{};
+}
+
+pub fn getAllocStats() *const AllocStats {
+    return &alloc_stats;
+}
+
+pub fn printAllocStats() void {
+    if (debug_opts.log_gc) {
+        const stats = &alloc_stats;
+        print("=== Memory Allocation Statistics ===\n", .{});
+        print("Total allocations: {d}\n", .{stats.total_allocs});
+        print("Pool allocations: {d}\n", .{stats.pool_allocs});
+        print("System allocations: {d}\n", .{stats.system_allocs});
+        print("Pool hit rate: {d:.2}%\n", .{stats.getPoolHitRate() * 100.0});
+        print("=====================================\n", .{});
+    }
 }
 
 pub const GCState = enum(i32) {
@@ -184,7 +232,10 @@ pub fn reallocate(pointer: ?*anyopaque, oldSize: usize, newSize: usize) ?*anyopa
     // For small allocations, try to use memory pool first
     if (pointer == null and newSize <= 64) {
         if (memory_pool.alloc(newSize)) |pooled| {
+            alloc_stats.recordPoolAlloc();
             return pooled;
+        } else {
+            alloc_stats.recordPoolMiss();
         }
     }
 
@@ -197,6 +248,10 @@ pub fn reallocate(pointer: ?*anyopaque, oldSize: usize, newSize: usize) ?*anyopa
             std.debug.print("Critical error: Memory allocation failed after garbage collection attempt.\n", .{});
             std.process.exit(1);
         }
+    }
+    
+    if (result != null) {
+        alloc_stats.recordSystemAlloc();
     }
 
     return result;
@@ -824,24 +879,42 @@ pub fn markArray(array: *value_h.ValueArray) void {
 }
 
 pub fn incrementalGC() void {
-    const INCREMENT_LIMIT: i32 = 500;
+    // Dynamic increment limit based on allocation pressure
+    const baseLimit: i32 = 500;
+    const pressureMultiplier = if (vm_h.vm.bytesAllocated > vm_h.vm.nextGC / 2) @as(i32, 2) else @as(i32, 1);
+    const INCREMENT_LIMIT: i32 = baseLimit * pressureMultiplier;
 
     var workDone: i32 = 0;
     while (workDone < INCREMENT_LIMIT) {
         switch (gcData.state) {
             .GC_IDLE => {
+                // Only start GC if we actually need it
+                if (vm_h.vm.bytesAllocated < vm_h.vm.nextGC / 4) return;
+                
                 gcData.state = .GC_MARK_ROOTS;
                 gcData.rootIndex = 0;
                 gcData.sweepingObject = null;
+                
+                if (debug_opts.log_gc) {
+                    print("Starting incremental GC cycle - allocated: {d}, threshold: {d}\n", 
+                          .{ vm_h.vm.bytesAllocated, vm_h.vm.nextGC });
+                }
             },
             .GC_MARK_ROOTS => {
                 const stackSize: usize = @intCast(@intFromPtr(vm_h.vm.stackTop) - @intFromPtr(&vm_h.vm.stack));
                 const stackItemCount = stackSize / @sizeOf(Value);
-                while ((gcData.rootIndex < stackItemCount) and (workDone < INCREMENT_LIMIT)) : (gcData.rootIndex +%= 1) {
+                
+                // Process stack roots in batches for better cache locality
+                const batchSize = @min(INCREMENT_LIMIT - workDone, 50);
+                const endIndex = @min(gcData.rootIndex + @as(usize, @intCast(batchSize)), stackItemCount);
+                
+                while (gcData.rootIndex < endIndex) : (gcData.rootIndex += 1) {
                     markValue(vm_h.vm.stack[gcData.rootIndex]);
                     workDone += 1;
                 }
+                
                 if (gcData.rootIndex >= stackItemCount) {
+                    // Mark other roots efficiently
                     for (0..@intCast(vm_h.vm.frameCount)) |i| {
                         markObject(@ptrCast(@alignCast(vm_h.vm.frames[i].closure)));
                     }
@@ -849,8 +922,8 @@ pub fn incrementalGC() void {
                     markTable(&vm_h.vm.strings);
                     markObject(@ptrCast(@alignCast(vm_h.vm.initString)));
 
+                    // Mark upvalues
                     var upvalue: ?*obj_h.ObjUpvalue = vm_h.vm.openUpvalues;
-
                     while (upvalue) |current| {
                         markObject(@ptrCast(@alignCast(current)));
                         upvalue = current.next;
@@ -860,7 +933,12 @@ pub fn incrementalGC() void {
                 }
             },
             .GC_TRACING => {
-                while ((vm_h.vm.grayCount > 0) and (workDone < INCREMENT_LIMIT)) {
+                // Process gray objects in batches for better performance
+                const batchSize = @min(INCREMENT_LIMIT - workDone, @min(vm_h.vm.grayCount, 100));
+                
+                for (0..@intCast(batchSize)) |_| {
+                    if (vm_h.vm.grayCount <= 0) break;
+                    
                     vm_h.vm.grayCount -= 1;
                     if (vm_h.vm.grayStack) |stack| {
                         const object = stack[@intCast(vm_h.vm.grayCount)];
@@ -868,13 +946,18 @@ pub fn incrementalGC() void {
                         workDone += 1;
                     }
                 }
+                
                 if (vm_h.vm.grayCount == 0) {
                     gcData.state = .GC_SWEEPING;
                     gcData.sweepingObject = vm_h.vm.objects;
                 }
             },
             .GC_SWEEPING => {
-                while ((gcData.sweepingObject != null) and (workDone < INCREMENT_LIMIT)) {
+                // Adaptive sweeping - process more objects when under memory pressure
+                var objectsProcessed: i32 = 0;
+                const maxObjects = if (vm_h.vm.bytesAllocated > vm_h.vm.nextGC) 200 else 100;
+                
+                while ((gcData.sweepingObject != null) and (objectsProcessed < maxObjects) and (workDone < INCREMENT_LIMIT)) {
                     if (gcData.sweepingObject) |current| {
                         const next: ?*Obj = current.next;
                         if (!current.isMarked) {
@@ -884,16 +967,24 @@ pub fn incrementalGC() void {
                             current.isMarked = false;
                         }
                         gcData.sweepingObject = next;
+                        objectsProcessed += 1;
                         workDone += 1;
                     }
                 }
+                
                 if (gcData.sweepingObject == null) {
                     gcData.state = .GC_IDLE;
-                    // Safe calculation of nextGC
+                    
+                    // Calculate next GC threshold more conservatively
+                    const minGrowth = @max(vm_h.vm.bytesAllocated / 4, 1024 * 1024); // At least 1MB growth
                     if (vm_h.vm.bytesAllocated > std.math.maxInt(usize) / 2) {
                         vm_h.vm.nextGC = std.math.maxInt(usize);
                     } else {
-                        vm_h.vm.nextGC = vm_h.vm.bytesAllocated * 2;
+                        vm_h.vm.nextGC = vm_h.vm.bytesAllocated + minGrowth;
+                    }
+                    
+                    if (debug_opts.log_gc) {
+                        print("Incremental GC cycle completed - new threshold: {d}\n", .{vm_h.vm.nextGC});
                     }
                 }
             },
