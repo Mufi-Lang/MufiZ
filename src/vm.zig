@@ -354,12 +354,9 @@ pub fn resetStack() void {
 }
 
 pub inline fn peek(distance: i32) Value {
-    const tmp = -1 - distance;
-    if (tmp >= 0) {
-        return (vm.stackTop + @as(usize, @intCast(tmp)))[0];
-    } else {
-        return (vm.stackTop - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1)))[0];
-    }
+    // Optimized peek function - eliminate branching
+    // distance is typically 0, 1, 2, etc., so we can directly compute the offset
+    return (vm.stackTop - @as(usize, @intCast(distance + 1)))[0];
 }
 
 pub fn call(closure: *ObjClosure, argCount: i32) bool {
@@ -661,6 +658,165 @@ fn readOffset(frame: *CallFrame) u16 {
     return (@as(u16, high_byte) << @as(u4, 8)) | @as(u16, low_byte);
 }
 
+// Jump table opcode handlers for optimized dispatch
+const OpHandler = *const fn(*CallFrame) InterpretResult;
+
+inline fn opConstant(frame: *CallFrame) InterpretResult {
+    const constant_index = frame.*.ip[0];
+    frame.*.ip += 1;
+
+    // Bounds check for constants array access
+    if (constant_index >= frame.*.closure.*.function.*.chunk.constants.count) {
+        runtimeError("Invalid constant index: {d}. Constants count: {d}. This may indicate corrupted bytecode.", .{ constant_index, frame.*.closure.*.function.*.chunk.constants.count });
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    const constant = frame.*.closure.*.function.*.chunk.constants.values[constant_index];
+    push(constant);
+    return .INTERPRET_OK;
+}
+
+inline fn opNil(frame: *CallFrame) InterpretResult {
+    _ = frame;
+    push(Value.init_nil());
+    return .INTERPRET_OK;
+}
+
+inline fn opTrue(frame: *CallFrame) InterpretResult {
+    _ = frame;
+    push(Value.init_bool(true));
+    return .INTERPRET_OK;
+}
+
+inline fn opFalse(frame: *CallFrame) InterpretResult {
+    _ = frame;
+    push(Value.init_bool(false));
+    return .INTERPRET_OK;
+}
+
+inline fn opPop(frame: *CallFrame) InterpretResult {
+    _ = frame;
+    _ = pop();
+    return .INTERPRET_OK;
+}
+
+inline fn opAddInt(frame: *CallFrame) InterpretResult {
+    _ = frame;
+    if (peek(0).is_int() and peek(1).is_int()) {
+        const b = pop().as_int();
+        const a = pop().as_int();
+        push(Value.init_int(a + b));
+        return .INTERPRET_OK;
+    }
+    // Fallback to generic add
+    const b = pop();
+    const a = pop();
+    if (a.is_nil()) {
+        runtimeError("Invalid Binary Operation.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    push(a.add(b));
+    return .INTERPRET_OK;
+}
+
+inline fn opAddFloat(frame: *CallFrame) InterpretResult {
+    _ = frame;
+    if (peek(0).is_double() and peek(1).is_double()) {
+        const b = pop().as_num_double();
+        const a = pop().as_num_double();
+        push(Value.init_double(a + b));
+        return .INTERPRET_OK;
+    }
+    // Fallback to generic add
+    const b = pop();
+    const a = pop();
+    if (a.is_nil()) {
+        runtimeError("Invalid Binary Operation.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    push(a.add(b));
+    return .INTERPRET_OK;
+}
+
+inline fn opSubInt(frame: *CallFrame) InterpretResult {
+    _ = frame;
+    if (peek(0).is_int() and peek(1).is_int()) {
+        const b = pop().as_int();
+        const a = pop().as_int();
+        push(Value.init_int(a - b));
+        return .INTERPRET_OK;
+    }
+    // Fallback to generic sub
+    const b = pop();
+    const a = pop();
+    if (a.is_nil() or a.is_string()) {
+        runtimeError("Invalid Binary Operation.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    push(a.sub(b));
+    return .INTERPRET_OK;
+}
+
+inline fn opSubFloat(frame: *CallFrame) InterpretResult {
+    _ = frame;
+    if (peek(0).is_double() and peek(1).is_double()) {
+        const b = pop().as_num_double();
+        const a = pop().as_num_double();
+        push(Value.init_double(a - b));
+        return .INTERPRET_OK;
+    }
+    // Fallback to generic sub
+    const b = pop();
+    const a = pop();
+    if (a.is_nil() or a.is_string()) {
+        runtimeError("Invalid Binary Operation.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    push(a.sub(b));
+    return .INTERPRET_OK;
+}
+
+inline fn opMulInt(frame: *CallFrame) InterpretResult {
+    _ = frame;
+    if (peek(0).is_int() and peek(1).is_int()) {
+        const b = pop().as_int();
+        const a = pop().as_int();
+        push(Value.init_int(a * b));
+        return .INTERPRET_OK;
+    }
+    // Fallback to generic mul
+    const b = pop();
+    const a = pop();
+    if (a.is_nil() or a.is_string()) {
+        runtimeError("Invalid Binary Operation.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    push(a.mul(b));
+    return .INTERPRET_OK;
+}
+
+inline fn opMulFloat(frame: *CallFrame) InterpretResult {
+    _ = frame;
+    if (peek(0).is_double() and peek(1).is_double()) {
+        const b = pop().as_num_double();
+        const a = pop().as_num_double();
+        push(Value.init_double(a * b));
+        return .INTERPRET_OK;
+    }
+    // Fallback to generic mul
+    const b = pop();
+    const a = pop();
+    if (a.is_nil() or a.is_string()) {
+        runtimeError("Invalid Binary Operation.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    push(a.mul(b));
+    return .INTERPRET_OK;
+}
+
+// Fallback for unsupported operations - delegates to original switch
+// This is removed for now as the original switch handles all remaining opcodes
+
 // now work on this
 pub fn run() InterpretResult {
     var frame: *CallFrame = &vm.frames[@intCast(vm.frameCount - 1)];
@@ -686,10 +842,68 @@ pub fn run() InterpretResult {
             const instruction = frame.*.ip[0];
             frame.*.ip += 1;
 
-            // Validate instruction is within valid OpCode range
-            if (instruction > 57) {
+            // Validate instruction is within valid OpCode range (updated for new opcodes)
+            if (instruction > 63) {
                 runtimeError("Invalid bytecode instruction: {d}. This may indicate corrupted bytecode.", .{instruction});
                 return .INTERPRET_RUNTIME_ERROR;
+            }
+
+            // Fast path for most common operations using optimized handlers
+            switch (instruction) {
+                0 => { // OP_CONSTANT
+                    const result = opConstant(frame);
+                    if (result != .INTERPRET_OK) return result;
+                    continue;
+                },
+                1 => { // OP_NIL
+                    _ = opNil(frame);
+                    continue;
+                },
+                2 => { // OP_TRUE
+                    _ = opTrue(frame);
+                    continue;
+                },
+                3 => { // OP_FALSE
+                    _ = opFalse(frame);
+                    continue;
+                },
+                4 => { // OP_POP
+                    _ = opPop(frame);
+                    continue;
+                },
+                58 => { // OP_ADD_INT
+                    const result = opAddInt(frame);
+                    if (result != .INTERPRET_OK) return result;
+                    continue;
+                },
+                59 => { // OP_ADD_FLOAT
+                    const result = opAddFloat(frame);
+                    if (result != .INTERPRET_OK) return result;
+                    continue;
+                },
+                60 => { // OP_SUB_INT
+                    const result = opSubInt(frame);
+                    if (result != .INTERPRET_OK) return result;
+                    continue;
+                },
+                61 => { // OP_SUB_FLOAT
+                    const result = opSubFloat(frame);
+                    if (result != .INTERPRET_OK) return result;
+                    continue;
+                },
+                62 => { // OP_MUL_INT
+                    const result = opMulInt(frame);
+                    if (result != .INTERPRET_OK) return result;
+                    continue;
+                },
+                63 => { // OP_MUL_FLOAT
+                    const result = opMulFloat(frame);
+                    if (result != .INTERPRET_OK) return result;
+                    continue;
+                },
+                else => {
+                    // Fallback to original switch for complex operations
+                },
             }
 
             switch (@as(chunk_h.OpCode, @enumFromInt(instruction))) {

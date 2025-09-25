@@ -24,6 +24,54 @@ const vm_h = @import("vm.zig");
 
 pub const GC_HEAP_GROW_FACTOR = 2;
 
+// Memory pool for frequent allocations
+pub const MemoryPool = struct {
+    const POOL_SIZE = 1024;
+    const CHUNK_SIZE = 64; // Size for small objects like Values
+    
+    chunks: [POOL_SIZE][CHUNK_SIZE]u8 = undefined,
+    free_chunks: [POOL_SIZE]bool = [_]bool{true} ** POOL_SIZE,
+    next_free: usize = 0,
+    
+    pub fn alloc(self: *MemoryPool, size: usize) ?*anyopaque {
+        if (size > CHUNK_SIZE) return null; // Use regular allocator for large objects
+        
+        // Find a free chunk
+        for (0..POOL_SIZE) |i| {
+            const idx = (self.next_free + i) % POOL_SIZE;
+            if (self.free_chunks[idx]) {
+                self.free_chunks[idx] = false;
+                self.next_free = (idx + 1) % POOL_SIZE;
+                return @ptrCast(&self.chunks[idx]);
+            }
+        }
+        return null; // Pool exhausted, use regular allocator
+    }
+    
+    pub fn free(self: *MemoryPool, ptr: *anyopaque) bool {
+        const ptr_addr = @intFromPtr(ptr);
+        const pool_start = @intFromPtr(&self.chunks[0]);
+        const pool_end = pool_start + (POOL_SIZE * CHUNK_SIZE);
+        
+        if (ptr_addr >= pool_start and ptr_addr < pool_end) {
+            const offset = ptr_addr - pool_start;
+            const chunk_idx = offset / CHUNK_SIZE;
+            if (chunk_idx < POOL_SIZE) {
+                self.free_chunks[chunk_idx] = true;
+                return true;
+            }
+        }
+        return false; // Not from this pool
+    }
+};
+
+// Global memory pool instance
+var memory_pool: MemoryPool = .{};
+
+pub fn resetMemoryPool() void {
+    memory_pool = .{};
+}
+
 pub const GCState = enum(i32) {
     GC_IDLE = 0,
     GC_MARK_ROOTS = 1,
@@ -124,8 +172,20 @@ pub fn reallocate(pointer: ?*anyopaque, oldSize: usize, newSize: usize) ?*anyopa
     }
 
     if (newSize == 0) {
-        if (pointer != null) free(pointer);
+        if (pointer != null) {
+            // Try to free from memory pool first
+            if (!memory_pool.free(pointer.?)) {
+                free(pointer);
+            }
+        }
         return null;
+    }
+
+    // For small allocations, try to use memory pool first
+    if (pointer == null and newSize <= 64) {
+        if (memory_pool.alloc(newSize)) |pooled| {
+            return pooled;
+        }
     }
 
     var result = realloc(pointer, newSize);
