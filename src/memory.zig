@@ -12,7 +12,7 @@ const obj_h = @import("object.zig");
 const Obj = obj_h.Obj;
 const Node = obj_h.Node;
 const ObjHashTable = obj_h.ObjHashTable;
-const ObjMatrix = obj_h.ObjMatrix;
+const Tensor = obj_h.Tensor;
 const fvec = @import("objects/fvec.zig");
 const __obj = @import("objects/obj.zig");
 const table_h = @import("table.zig");
@@ -672,6 +672,10 @@ pub fn freeObject(object: *Obj) void {
         .OBJ_FVECTOR => {
             const fvector: *obj_h.FloatVector = @ptrCast(@alignCast(object));
             fvec.FloatVector.deinit(fvector);
+        },
+        .OBJ_TENSOR => {
+            const tensor: *Tensor = @ptrCast(@alignCast(object));
+            tensor.deinit();
         },
         .OBJ_RANGE => {
             _ = reallocate(@ptrCast(object), @sizeOf(obj_h.ObjRange), 0);

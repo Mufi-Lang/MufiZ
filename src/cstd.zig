@@ -8,6 +8,7 @@ const notObjTypes = obj_h.notObjTypes;
 const ObjString = obj_h.ObjString;
 const ObjLinkedList = obj_h.ObjLinkedList;
 const FloatVector = obj_h.FloatVector;
+const Tensor = obj_h.Tensor;
 const ObjHashTable = obj_h.ObjHashTable;
 const Obj = obj_h.Obj;
 const Node = obj_h.Node;
@@ -160,6 +161,176 @@ pub fn fvector_nf(argCount: i32, args: [*]Value) Value {
     const cap = args[0].as_num_int();
     const f: *FloatVector = fvec.FloatVector.init(@intCast(cap));
     return Value.init_obj(@ptrCast(@alignCast(f)));
+}
+
+// Tensor native functions
+pub fn tensor1d_nf(argCount: i32, args: [*]Value) Value {
+    if (!validateArgCount(argCount, 1, "tensor1d") or !validateNumber(args[0])) {
+        return Value.init_nil();
+    }
+
+    const size = args[0].as_num_int();
+    const tensor: *Tensor = Tensor.init1D(@intCast(size));
+    return Value.init_obj(@ptrCast(@alignCast(tensor)));
+}
+
+pub fn tensor2d_nf(argCount: i32, args: [*]Value) Value {
+    if (!validateArgCount(argCount, 2, "tensor2d") or 
+        !validateNumber(args[0]) or !validateNumber(args[1])) {
+        return Value.init_nil();
+    }
+
+    const rows = args[0].as_num_int();
+    const cols = args[1].as_num_int();
+    const tensor: *Tensor = Tensor.init2D(@intCast(rows), @intCast(cols));
+    return Value.init_obj(@ptrCast(@alignCast(tensor)));
+}
+
+pub fn tensor3d_nf(argCount: i32, args: [*]Value) Value {
+    if (!validateArgCount(argCount, 3, "tensor3d") or 
+        !validateNumber(args[0]) or !validateNumber(args[1]) or !validateNumber(args[2])) {
+        return Value.init_nil();
+    }
+
+    const dim1 = args[0].as_num_int();
+    const dim2 = args[1].as_num_int();
+    const dim3 = args[2].as_num_int();
+    const tensor: *Tensor = Tensor.init3D(@intCast(dim1), @intCast(dim2), @intCast(dim3));
+    return Value.init_obj(@ptrCast(@alignCast(tensor)));
+}
+
+pub fn tensor_get_nf(argCount: i32, args: [*]Value) Value {
+    if (argCount < 2 or !isObjType(args[0], .OBJ_TENSOR)) {
+        runtimeError("tensor_get requires at least 2 arguments and first must be a tensor.", .{});
+        return Value.init_nil();
+    }
+
+    const tensor = @as(*Tensor, @ptrCast(@alignCast(args[0].as.obj)));
+    
+    switch (tensor.order) {
+        1 => {
+            if (!validateArgCount(argCount, 2, "tensor_get") or !validateNumber(args[1])) {
+                return Value.init_nil();
+            }
+            const i = args[1].as_num_int();
+            return Value.init_double(tensor.get1D(@intCast(i)));
+        },
+        2 => {
+            if (!validateArgCount(argCount, 3, "tensor_get") or 
+                !validateNumber(args[1]) or !validateNumber(args[2])) {
+                return Value.init_nil();
+            }
+            const i = args[1].as_num_int();
+            const j = args[2].as_num_int();
+            return Value.init_double(tensor.get2D(@intCast(i), @intCast(j)));
+        },
+        3 => {
+            if (!validateArgCount(argCount, 4, "tensor_get") or 
+                !validateNumber(args[1]) or !validateNumber(args[2]) or !validateNumber(args[3])) {
+                return Value.init_nil();
+            }
+            const i = args[1].as_num_int();
+            const j = args[2].as_num_int();
+            const k = args[3].as_num_int();
+            return Value.init_double(tensor.get3D(@intCast(i), @intCast(j), @intCast(k)));
+        },
+        else => {
+            runtimeError("Invalid tensor order.", .{});
+            return Value.init_nil();
+        },
+    }
+}
+
+pub fn tensor_set_nf(argCount: i32, args: [*]Value) Value {
+    if (argCount < 3 or !isObjType(args[0], .OBJ_TENSOR)) {
+        runtimeError("tensor_set requires at least 3 arguments and first must be a tensor.", .{});
+        return Value.init_nil();
+    }
+
+    const tensor = @as(*Tensor, @ptrCast(@alignCast(args[0].as.obj)));
+    
+    switch (tensor.order) {
+        1 => {
+            if (!validateArgCount(argCount, 3, "tensor_set") or 
+                !validateNumber(args[1]) or !validateNumber(args[2])) {
+                return Value.init_nil();
+            }
+            const i = args[1].as_num_int();
+            const value = args[2].as_num_double();
+            tensor.set1D(@intCast(i), value);
+        },
+        2 => {
+            if (!validateArgCount(argCount, 4, "tensor_set") or 
+                !validateNumber(args[1]) or !validateNumber(args[2]) or !validateNumber(args[3])) {
+                return Value.init_nil();
+            }
+            const i = args[1].as_num_int();
+            const j = args[2].as_num_int();
+            const value = args[3].as_num_double();
+            tensor.set2D(@intCast(i), @intCast(j), value);
+        },
+        3 => {
+            if (!validateArgCount(argCount, 5, "tensor_set") or 
+                !validateNumber(args[1]) or !validateNumber(args[2]) or 
+                !validateNumber(args[3]) or !validateNumber(args[4])) {
+                return Value.init_nil();
+            }
+            const i = args[1].as_num_int();
+            const j = args[2].as_num_int();
+            const k = args[3].as_num_int();
+            const value = args[4].as_num_double();
+            tensor.set3D(@intCast(i), @intCast(j), @intCast(k), value);
+        },
+        else => {
+            runtimeError("Invalid tensor order.", .{});
+            return Value.init_nil();
+        },
+    }
+    
+    return Value.init_nil();
+}
+
+pub fn tensor_fill_nf(argCount: i32, args: [*]Value) Value {
+    if (!validateArgCount(argCount, 2, "tensor_fill") or 
+        !isObjType(args[0], .OBJ_TENSOR) or !validateNumber(args[1])) {
+        return Value.init_nil();
+    }
+
+    const tensor = @as(*Tensor, @ptrCast(@alignCast(args[0].as.obj)));
+    const value = args[1].as_num_double();
+    tensor.fill(value);
+    
+    return Value.init_nil();
+}
+
+pub fn tensor_add_nf(argCount: i32, args: [*]Value) Value {
+    if (!validateArgCount(argCount, 2, "tensor_add") or
+        !isObjType(args[0], .OBJ_TENSOR) or !isObjType(args[1], .OBJ_TENSOR)) {
+        return Value.init_nil();
+    }
+
+    const tensor1 = @as(*Tensor, @ptrCast(@alignCast(args[0].as.obj)));
+    const tensor2 = @as(*Tensor, @ptrCast(@alignCast(args[1].as.obj)));
+    
+    if (tensor1.add(tensor2)) |result| {
+        return Value.init_obj(@ptrCast(@alignCast(result)));
+    } else {
+        runtimeError("Tensor dimensions are incompatible for addition.", .{});
+        return Value.init_nil();
+    }
+}
+
+pub fn tensor_scale_nf(argCount: i32, args: [*]Value) Value {
+    if (!validateArgCount(argCount, 2, "tensor_scale") or
+        !isObjType(args[0], .OBJ_TENSOR) or !validateNumber(args[1])) {
+        return Value.init_nil();
+    }
+
+    const tensor = @as(*Tensor, @ptrCast(@alignCast(args[0].as.obj)));
+    const scalar = args[1].as_num_double();
+    const result = tensor.scale(scalar);
+    
+    return Value.init_obj(@ptrCast(@alignCast(result)));
 }
 
 // pub fn range_nf(argCount: i32, args: [*]Value) Value {

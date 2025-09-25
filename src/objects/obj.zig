@@ -42,4 +42,5 @@ pub const ObjType = enum(i32) {
     OBJ_FVECTOR = 10,
     OBJ_RANGE = 11,
     OBJ_PAIR = 12,
+    OBJ_TENSOR = 13,
 };
