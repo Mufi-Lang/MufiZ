@@ -181,7 +181,7 @@ pub fn importCollections() void {
     // defineNative("array", &cstd_h.array_nf);
     defineNative("linked_list", cstd_h.linkedlist_nf);
     defineNative("hash_table", cstd_h.hashtable_nf);
-    // defineNative("matrix", &cstd_h.matrix_nf);
+    defineNative("matrix", cstd_h.matrix_nf);  // Now implemented as 2D tensor
     defineNative("fvec", cstd_h.fvector_nf);
     
     // Tensor functions  
@@ -193,6 +193,9 @@ pub fn importCollections() void {
     defineNative("tensor_fill", cstd_h.tensor_fill_nf);
     defineNative("tensor_add", cstd_h.tensor_add_nf);
     defineNative("tensor_scale", cstd_h.tensor_scale_nf);
+    defineNative("tensor_matmul", cstd_h.tensor_matmul_nf);
+    defineNative("tensor_transpose", cstd_h.tensor_transpose_nf);
+    defineNative("tensor_dot", cstd_h.tensor_dot_nf);
     
     // defineNative("range", &cstd_h.range_nf);
     defineNative("linspace", cstd_h.linspace_nf);

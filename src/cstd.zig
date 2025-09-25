@@ -333,6 +333,61 @@ pub fn tensor_scale_nf(argCount: i32, args: [*]Value) Value {
     return Value.init_obj(@ptrCast(@alignCast(result)));
 }
 
+pub fn tensor_matmul_nf(argCount: i32, args: [*]Value) Value {
+    if (!validateArgCount(argCount, 2, "tensor_matmul") or
+        !isObjType(args[0], .OBJ_TENSOR) or !isObjType(args[1], .OBJ_TENSOR)) {
+        return Value.init_nil();
+    }
+
+    const tensor1 = @as(*Tensor, @ptrCast(@alignCast(args[0].as.obj)));
+    const tensor2 = @as(*Tensor, @ptrCast(@alignCast(args[1].as.obj)));
+    
+    if (tensor1.matmul(tensor2)) |result| {
+        return Value.init_obj(@ptrCast(@alignCast(result)));
+    } else {
+        runtimeError("Tensor dimensions are incompatible for matrix multiplication.", .{});
+        return Value.init_nil();
+    }
+}
+
+pub fn tensor_transpose_nf(argCount: i32, args: [*]Value) Value {
+    if (!validateArgCount(argCount, 1, "tensor_transpose") or
+        !isObjType(args[0], .OBJ_TENSOR)) {
+        return Value.init_nil();
+    }
+
+    const tensor = @as(*Tensor, @ptrCast(@alignCast(args[0].as.obj)));
+    
+    if (tensor.transpose()) |result| {
+        return Value.init_obj(@ptrCast(@alignCast(result)));
+    } else {
+        runtimeError("Can only transpose 2D tensors.", .{});
+        return Value.init_nil();
+    }
+}
+
+pub fn tensor_dot_nf(argCount: i32, args: [*]Value) Value {
+    if (!validateArgCount(argCount, 2, "tensor_dot") or
+        !isObjType(args[0], .OBJ_TENSOR) or !isObjType(args[1], .OBJ_TENSOR)) {
+        return Value.init_nil();
+    }
+
+    const tensor1 = @as(*Tensor, @ptrCast(@alignCast(args[0].as.obj)));
+    const tensor2 = @as(*Tensor, @ptrCast(@alignCast(args[1].as.obj)));
+    
+    if (tensor1.dot(tensor2)) |result| {
+        return Value.init_double(result);
+    } else {
+        runtimeError("Can only compute dot product of 1D tensors with same dimensions.", .{});
+        return Value.init_nil();
+    }
+}
+
+// Compatibility alias for creating matrices (2D tensors)
+pub fn matrix_nf(argCount: i32, args: [*]Value) Value {
+    return tensor2d_nf(argCount, args);
+}
+
 // pub fn range_nf(argCount: i32, args: [*]Value) Value {
 //     _ = &argCount;
 //     if (!((args[0].type == .VAL_INT) or (args[0].is_double())) and !((args[1].type == .VAL_INT) or (args[1].is_double()))) {
