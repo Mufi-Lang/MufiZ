@@ -296,6 +296,21 @@ pub inline fn pop() Value {
     vm.stackTop -= 1;
     return vm.stackTop[0];
 }
+
+// Hot path instruction reading with bounds checking optimization
+inline fn readByte(frame: *CallFrame) u8 {
+    const byte = frame.*.ip[0];
+    frame.*.ip += 1;
+    return byte;
+}
+
+// Optimized constant access with bounds checking
+inline fn readConstant(frame: *CallFrame) ?Value {
+    const index = readByte(frame);
+    const constants = &frame.*.closure.*.function.*.chunk.constants;
+    if (index >= constants.count) return null;
+    return constants.values[index];
+}
 pub fn defineNative(name: [*]const u8, function: NativeFn) void {
     // Push the name string and the function object onto the stack
     // This ensures GC doesn't collect them during allocation
@@ -671,18 +686,13 @@ fn readOffset(frame: *CallFrame) u16 {
 const OpHandler = *const fn(*CallFrame) InterpretResult;
 
 inline fn opConstant(frame: *CallFrame) InterpretResult {
-    const constant_index = frame.*.ip[0];
-    frame.*.ip += 1;
-
-    // Bounds check for constants array access
-    if (constant_index >= frame.*.closure.*.function.*.chunk.constants.count) {
-        runtimeError("Invalid constant index: {d}. Constants count: {d}. This may indicate corrupted bytecode.", .{ constant_index, frame.*.closure.*.function.*.chunk.constants.count });
+    if (readConstant(frame)) |constant| {
+        push(constant);
+        return .INTERPRET_OK;
+    } else {
+        runtimeError("Invalid constant index. This may indicate corrupted bytecode.", .{});
         return .INTERPRET_RUNTIME_ERROR;
     }
-
-    const constant = frame.*.closure.*.function.*.chunk.constants.values[constant_index];
-    push(constant);
-    return .INTERPRET_OK;
 }
 
 inline fn opNil(frame: *CallFrame) InterpretResult {
