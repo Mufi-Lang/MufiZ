@@ -379,19 +379,81 @@ pub const FloatVector = struct {
 
     pub fn max(self: Self) f64 {
         if (self.count == 0) return 0.0;
-        var max_val = self.data[0];
-        for (1..self.count) |i| {
-            if (self.data[i] > max_val) max_val = self.data[i];
+        
+        const len = self.count;
+        const Vec4 = @Vector(4, f64);
+        
+        // Initialize max vector with the first element
+        var max_vec: Vec4 = @splat(self.data[0]);
+        
+        // Process elements in chunks of 4
+        const vec_iterations = @divTrunc(len, 4);
+        var i: usize = 0;
+        while (i < vec_iterations) : (i += 1) {
+            const offset = i * 4;
+            
+            const data_vec = Vec4{
+                self.data[offset],
+                self.data[offset + 1],
+                self.data[offset + 2],
+                self.data[offset + 3],
+            };
+            
+            max_vec = @max(max_vec, data_vec);
         }
+        
+        // Find max from the vector elements
+        var max_val: f64 = @reduce(.Max, max_vec);
+        
+        // Handle remaining elements
+        const remaining = @mod(len, 4);
+        if (remaining > 0) {
+            const start = len - remaining;
+            for (start..len) |j| {
+                if (self.data[j] > max_val) max_val = self.data[j];
+            }
+        }
+        
         return max_val;
     }
 
     pub fn min(self: Self) f64 {
         if (self.count == 0) return 0.0;
-        var min_val = self.data[0];
-        for (1..self.count) |i| {
-            if (self.data[i] < min_val) min_val = self.data[i];
+        
+        const len = self.count;
+        const Vec4 = @Vector(4, f64);
+        
+        // Initialize min vector with the first element
+        var min_vec: Vec4 = @splat(self.data[0]);
+        
+        // Process elements in chunks of 4
+        const vec_iterations = @divTrunc(len, 4);
+        var i: usize = 0;
+        while (i < vec_iterations) : (i += 1) {
+            const offset = i * 4;
+            
+            const data_vec = Vec4{
+                self.data[offset],
+                self.data[offset + 1],
+                self.data[offset + 2],
+                self.data[offset + 3],
+            };
+            
+            min_vec = @min(min_vec, data_vec);
         }
+        
+        // Find min from the vector elements
+        var min_val: f64 = @reduce(.Min, min_vec);
+        
+        // Handle remaining elements
+        const remaining = @mod(len, 4);
+        if (remaining > 0) {
+            const start = len - remaining;
+            for (start..len) |j| {
+                if (self.data[j] < min_val) min_val = self.data[j];
+            }
+        }
+        
         return min_val;
     }
 
@@ -761,10 +823,47 @@ pub const FloatVector = struct {
 
     pub fn dot(a: Self, b: Self) f64 {
         const min_count = @min(a.count, b.count);
-        var result: f64 = 0.0;
-        for (0..min_count) |i| {
-            result += a.data[i] * b.data[i];
+        
+        // Use SIMD for processing chunks of 4 elements
+        const Vec4 = @Vector(4, f64);
+        var sum_vec: Vec4 = @splat(@as(f64, 0.0));
+        
+        const vec_iterations = @divTrunc(min_count, 4);
+        var i: usize = 0;
+        while (i < vec_iterations) : (i += 1) {
+            const offset = i * 4;
+            
+            // Load 4 elements from each vector
+            const vec_a = Vec4{
+                a.data[offset],
+                a.data[offset + 1],
+                a.data[offset + 2],
+                a.data[offset + 3],
+            };
+            
+            const vec_b = Vec4{
+                b.data[offset],
+                b.data[offset + 1],
+                b.data[offset + 2],
+                b.data[offset + 3],
+            };
+            
+            // Multiply and accumulate
+            sum_vec += vec_a * vec_b;
         }
+        
+        // Sum up the vector elements
+        var result: f64 = @reduce(.Add, sum_vec);
+        
+        // Handle remaining elements
+        const remaining = @mod(min_count, 4);
+        if (remaining > 0) {
+            const start = min_count - remaining;
+            for (start..min_count) |j| {
+                result += a.data[j] * b.data[j];
+            }
+        }
+        
         return result;
     }
 

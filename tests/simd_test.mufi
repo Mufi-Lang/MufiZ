@@ -1,0 +1,45 @@
+// Test SIMD optimizations for FloatVector operations
+
+// Test dot product with SIMD
+var v1 = fvec(16);
+var v2 = fvec(16);
+
+for(var i = 0; i < 16; i++){
+    push(v1, double(i + 1));
+    push(v2, double(i + 1));
+}
+
+print "Test dot product:";
+print dot(v1, v2);  // Should be 1496 (1^2 + 2^2 + ... + 16^2)
+
+// Test max with SIMD
+var v3 = linspace(1.0, 100.0, 100);
+print "Test max:";
+print max(v3);  // Should be 100.0
+
+// Test min with SIMD
+print "Test min:";
+print min(v3);  // Should be 1.0
+
+// Test magnitude (uses optimized dot product)
+var v4 = fvec(3);
+push(v4, 3.0);
+push(v4, 4.0);
+push(v4, 0.0);
+print "Test magnitude:";
+print mag(v4);  // Should be 5.0 (sqrt(3^2 + 4^2))
+
+// Test normalize (uses optimized magnitude and single_div)
+print "Test normalize:";
+var normalized = norm(v4);
+print normalized;  // Should be [0.6, 0.8, 0.0]
+
+// Test angle (uses optimized dot and magnitude)
+var v5 = fvec(2);
+push(v5, 1.0);
+push(v5, 0.0);
+var v6 = fvec(2);
+push(v6, 0.0);
+push(v6, 1.0);
+print "Test angle (should be ~1.57 radians = 90 degrees):";
+print angle(v5, v6);
