@@ -31,11 +31,11 @@ pub fn import(argc: i32, args: [*]Value) Value {
     }
 
     const arg = args[0];
-    if (!arg.is_obj() or arg.as.obj.?.type != .OBJ_STRING) {
+    if (!arg.is_obj_type(.OBJ_STRING)) {
         return stdlib_error("import() argument must be a string", .{});
     }
 
-    const filename = @as(*ObjString, @ptrCast(@alignCast(arg.as.obj)));
+    const filename = arg.as_string();
     const filename_slice = filename.chars[0..@intCast(filename.length)];
 
     // Initialize module cache if needed
