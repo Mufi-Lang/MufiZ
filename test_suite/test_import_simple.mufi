@@ -1,0 +1,4 @@
+// Test the exact use case from the problem statement
+const foo = import("test_suite/foo.mufiz");
+const res = foo.add(2, 3);
+print(res);

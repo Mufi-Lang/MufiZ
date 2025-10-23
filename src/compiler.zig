@@ -573,6 +573,7 @@ pub fn getRule(type_: TokenType) ParseRule {
         .TOKEN_END => ParseRule{ .precedence = PREC_NONE },
         .TOKEN_CONST => ParseRule{ .precedence = PREC_NONE },
         .TOKEN_ARROW => ParseRule{ .infix = &pair, .precedence = PREC_TERM },
+        .TOKEN_IMPORT => ParseRule{ .prefix = &variable, .precedence = PREC_NONE },
         else => ParseRule{ .precedence = PREC_NONE },
     };
 }
