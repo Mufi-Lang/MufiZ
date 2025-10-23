@@ -454,7 +454,7 @@ pub fn strlen(s: [*]const u8) usize {
 fn repeatedByte(byte: u8, len: usize) u64 {
     var val: u64 = 0;
     inline for (0..len) |i| {
-        val |= (@as(u64, byte) << @intCast( i * 8));
+        val |= (@as(u64, byte) << @intCast(i * 8));
     }
     return val;
 }

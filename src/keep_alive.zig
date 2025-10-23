@@ -23,7 +23,7 @@ pub const KeepAlive = struct {
             std.debug.print("KeepAlive capacity exceeded\n", .{});
             return;
         }
-        
+
         // Only retain object values
         if (value.is_obj()) {
             value.retain();
@@ -49,6 +49,6 @@ pub const KeepAlive = struct {
 pub fn keepAliveScoped(comptime func: anytype) !void {
     var keeper = KeepAlive.init();
     defer keeper.reset();
-    
+
     try func(&keeper);
 }

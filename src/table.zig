@@ -20,7 +20,7 @@ pub const Table = struct {
     count: usize,
     capacity: usize,
     entries: ?[*]Entry,
-    
+
     pub fn init() Table {
         return Table{
             .count = 0,
@@ -28,15 +28,15 @@ pub const Table = struct {
             .entries = null,
         };
     }
-    
+
     pub fn deinit(self: *Table) void {
         freeTable(self);
     }
-    
+
     pub fn isEmpty(self: *const Table) bool {
         return self.count == 0;
     }
-    
+
     pub fn loadFactor(self: *const Table) f64 {
         if (self.capacity == 0) return 0.0;
         return @as(f64, @floatFromInt(self.count)) / @as(f64, @floatFromInt(self.capacity));
@@ -47,7 +47,7 @@ pub const Entry = struct {
     key: ?*ObjString,
     value: Value,
     deleted: bool,
-    
+
     pub fn init() Entry {
         return Entry{
             .key = null,
@@ -55,15 +55,15 @@ pub const Entry = struct {
             .deleted = false,
         };
     }
-    
+
     pub fn isEmpty(self: *const Entry) bool {
         return self.key == null and !self.deleted;
     }
-    
+
     pub fn isTombstone(self: *const Entry) bool {
         return self.key == null and self.deleted;
     }
-    
+
     pub fn isActive(self: *const Entry) bool {
         return self.key != null and !self.deleted;
     }
@@ -139,7 +139,7 @@ pub fn tableGet(table: *Table, key: ?*ObjString, value: *Value) bool {
     }
 
     const entry = findEntry(table.entries.?, @intCast(table.capacity), key) orelse return false;
-    
+
     if (!entry.isActive()) {
         return false;
     }
@@ -152,7 +152,7 @@ fn adjustCapacity(table: *Table, new_capacity: i32) void {
     if (!isValidCapacity(new_capacity)) {
         return;
     }
-    
+
     const capacity = @as(usize, @intCast(new_capacity));
     const new_size = capacity * @sizeOf(Entry);
     const entries_ptr = reallocate(null, 0, new_size);
@@ -200,9 +200,9 @@ pub fn tableSet(table: *Table, key: ?*ObjString, value: Value) bool {
     }
 
     const entry = findEntry(table.entries.?, @intCast(table.capacity), key) orelse return false;
-    
+
     const is_new_key = !entry.isActive();
-    
+
     if (is_new_key) {
         table.count += 1;
     }
@@ -210,7 +210,7 @@ pub fn tableSet(table: *Table, key: ?*ObjString, value: Value) bool {
     entry.key = key;
     entry.value = value;
     entry.deleted = false;
-    
+
     return is_new_key;
 }
 
@@ -220,7 +220,7 @@ pub fn tableDelete(table: *Table, key: ?*ObjString) bool {
     }
 
     const entry = findEntry(table.entries.?, @intCast(table.capacity), key) orelse return false;
-    
+
     if (!entry.isActive()) {
         return false;
     }
@@ -228,7 +228,7 @@ pub fn tableDelete(table: *Table, key: ?*ObjString) bool {
     // Mark as tombstone
     entry.key = null;
     entry.deleted = true;
-    
+
     return true;
 }
 
@@ -268,7 +268,7 @@ pub fn tableFindString(table: *Table, chars: [*]const u8, length: usize, hash: u
         index = (index + step) & (cap - 1);
         probeCount += 1;
     }
-    
+
     return null;
 }
 
@@ -302,7 +302,7 @@ pub fn markTable(table: *Table) void {
 // Additional utility functions for debugging and statistics
 pub fn tableStats(table: *Table) struct { count: usize, capacity: usize, load_factor: f64, tombstones: usize } {
     var tombstones: usize = 0;
-    
+
     if (table.entries) |entries| {
         for (0..table.capacity) |i| {
             if (entries[i].isTombstone()) {
@@ -310,7 +310,7 @@ pub fn tableStats(table: *Table) struct { count: usize, capacity: usize, load_fa
             }
         }
     }
-    
+
     return .{
         .count = table.count,
         .capacity = table.capacity,

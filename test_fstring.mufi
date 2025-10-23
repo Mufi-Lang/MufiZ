@@ -1,0 +1,28 @@
+// Test file for f-string functionality
+print "Testing f-string support...";
+
+// Basic f-string test
+let name = "World";
+let greeting = f"Hello, {}!";
+print greeting;
+
+// Test with multiple placeholders
+let x = 42;
+let y = 3.14;
+let result = f"x = {}, y = {}";
+print result;
+
+// Test escaped braces
+let escaped = f"This is a {{literal}} brace";
+print escaped;
+
+// Test format function directly (should work)
+let direct_format = format("Hello, {}!", "Direct");
+print direct_format;
+
+// Test with numbers
+let num = 123;
+let formatted_num = f"The number is: {}";
+print formatted_num;
+
+print "F-string tests completed.";

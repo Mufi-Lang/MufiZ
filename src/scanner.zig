@@ -142,7 +142,7 @@ pub const Scanner = struct {
     line: i32,
 };
 
-var scanner: Scanner = undefined;
+pub var scanner: Scanner = undefined;
 
 pub fn init_scanner(source: [*]u8) void {
     scanner.start = @ptrCast(source);

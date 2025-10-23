@@ -43,6 +43,7 @@ const fvec = @import("objects/fvec.zig");
 const FloatVector = fvec.FloatVector;
 const obj_range = @import("objects/range.zig");
 const ObjRange = obj_range.ObjRange;
+const utils = @import("stdlib/utils.zig");
 const table_h = @import("table.zig");
 const tableGet = table_h.tableGet;
 const tableSet = table_h.tableSet;
@@ -456,13 +457,32 @@ pub fn callValue(callee: Value, argCount: i32) bool {
                     return false;
                 }
 
-                // Get the string to be formatted
+                // Get the string to be formatted - it becomes the template
                 const formatStr = @as(*ObjString, @ptrCast(@alignCast(callee.as.obj)));
-                _ = formatStr;
 
-                // String formatting disabled for Zig 0.15 compatibility
-                runtimeError("String formatting temporarily disabled", .{});
-                return false;
+                // Create an array of arguments for format_str function
+                // First argument is the template string
+                const template_value = Value.init_obj(@ptrCast(formatStr));
+
+                // Prepare arguments array: template + format arguments
+                var format_args = vm.stackTop - @as(usize, @intCast(argCount));
+
+                // Shift arguments and insert template as first argument
+                var i: usize = @intCast(argCount);
+                while (i > 0) : (i -= 1) {
+                    format_args[i] = format_args[i - 1];
+                }
+                format_args[0] = template_value;
+
+                // Call the format_str function
+                const result = utils.format_str(argCount + 1, format_args);
+
+                // Pop all arguments and the callee from stack
+                vm.stackTop -= @as(usize, @intCast(argCount + 1));
+
+                // Push result
+                push(result);
+                return true;
             },
             else => {},
         }

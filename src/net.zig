@@ -52,25 +52,35 @@ pub const Options = struct {
 };
 
 pub fn get(url: []const u8, ct: ContentType, op: Options) ![]u8 {
-    _ = url; _ = ct; _ = op;
+    _ = url;
+    _ = ct;
+    _ = op;
     // HTTP client disabled for Zig 0.15 compatibility
     return try GlobalAlloc.dupe(u8, "HTTP functionality disabled");
 }
 
 pub fn post(url: []const u8, data: []const u8, ct: ContentType, op: Options) ![]u8 {
-    _ = url; _ = data; _ = ct; _ = op;
+    _ = url;
+    _ = data;
+    _ = ct;
+    _ = op;
     // HTTP client disabled for Zig 0.15 compatibility
     return try GlobalAlloc.dupe(u8, "HTTP functionality disabled");
 }
 
 pub fn put(url: []const u8, data: []const u8, ct: ContentType, op: Options) ![]u8 {
-    _ = url; _ = data; _ = ct; _ = op;
+    _ = url;
+    _ = data;
+    _ = ct;
+    _ = op;
     // HTTP client disabled for Zig 0.15 compatibility
     return try GlobalAlloc.dupe(u8, "HTTP functionality disabled");
 }
 
 pub fn delete(url: []const u8, ct: ContentType, op: Options) ![]u8 {
-    _ = url; _ = ct; _ = op;
+    _ = url;
+    _ = ct;
+    _ = op;
     // HTTP client disabled for Zig 0.15 compatibility
     return try GlobalAlloc.dupe(u8, "HTTP functionality disabled");
 }
