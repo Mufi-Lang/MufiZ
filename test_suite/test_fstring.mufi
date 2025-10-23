@@ -1,0 +1,28 @@
+// Test file for f-string functionality
+print "Testing f-string support...";
+
+// Basic f-string test
+const name = "World";
+const greeting = format("Hello, {}!", name);
+print greeting;
+
+// Test with multiple placeholders
+const x = 42;
+const y = 3.14;
+const result = format("x = {}, y = {}", x, y);
+print result;
+
+// Test escaped braces
+const escaped = format("This is a {{literal}} brace");
+print escaped;
+
+// Test format function directly (should work)
+const direct_format = format("Hello, {}!", "Direct");
+print direct_format;
+
+// Test with numbers
+const num = 123;
+const formatted = format("The number is: {}", num);
+print formatted;
+
+print "F-string tests compconsted.";

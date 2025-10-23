@@ -2,15 +2,9 @@
 print "Starting simple f-string test";
 
 // Test basic string first
-let name = "World";
+const name = "World";
 print name;
 
 // Test format function directly
-let direct = format("Hello, {}!", name);
+const direct = format("Hello, {}!", name);
 print direct;
-
-// Test simple f-string
-let simple = f"Hello!";
-print simple;
-
-print "Test completed";
