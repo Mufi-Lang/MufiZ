@@ -1,7 +1,7 @@
 // Test import functionality
 // Import a module and use its functions
 
-const foo = import("test_suite/test_module.mufiz");
+const foo = import("test_suite/test_module.mufi");
 
 // Test calling imported functions
 const result1 = foo.add(2, 3);
