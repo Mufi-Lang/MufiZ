@@ -1,0 +1,8 @@
+// Module with only constants (no functions)
+
+const MAX_SIZE = 1000;
+const MIN_SIZE = 1;
+const APP_NAME = "TestApp";
+const VERSION_MAJOR = 1;
+const VERSION_MINOR = 0;
+const VERSION_PATCH = 0;
