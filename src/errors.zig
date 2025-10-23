@@ -499,7 +499,6 @@ pub const ErrorTemplates = struct {
     }
 };
 
-
 pub fn findSimilarNames(name: []const u8, candidates: []const []const u8, allocator: Allocator) []const []const u8 {
     _ = allocator;
     // For Zig 0.15, just return a hardcoded similar name if it exists

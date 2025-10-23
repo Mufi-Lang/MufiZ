@@ -188,7 +188,7 @@ pub fn format_str(argc: i32, args: [*]Value) Value {
         return Value.init_nil();
     };
     defer allocator.free(buffer);
-    
+
     var pos: usize = 0;
     var i: usize = 0;
     var arg_index: i32 = 1; // Start with the second argument
@@ -208,9 +208,9 @@ pub fn format_str(argc: i32, args: [*]Value) Value {
 
                 // Copy the argument string to buffer
                 const copy_len = @min(arg_str.len, buffer.len - pos - 1);
-                @memcpy(buffer[pos..pos + copy_len], arg_str[0..copy_len]);
+                @memcpy(buffer[pos .. pos + copy_len], arg_str[0..copy_len]);
                 pos += copy_len;
-                
+
                 arg_index += 1;
             } else {
                 // Not enough arguments for placeholders

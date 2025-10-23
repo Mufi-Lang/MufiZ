@@ -1105,20 +1105,123 @@ pub fn string(canAssign: bool) void {
 pub fn fstring(canAssign: bool) void {
     _ = canAssign;
 
-    // The token includes the quotes but not the 'f'
-    // For f-string, we'll create a normal string instead
-    // but mark it specially in the compiler so the VM understands it's an f-string
+    // Parse f-string content to extract expressions and create format call
+    const fstring_content = parser.previous.start[0..@intCast(parser.previous.length)];
 
-    // Create a normal string literal and emit it
-    string(false);
+    // Count placeholders and collect expressions
+    var arg_count: u8 = 0;
+    var template_buffer: [1024]u8 = undefined;
+    var template_pos: usize = 0;
+    var i: usize = 0;
 
-    // For our basic implementation, we'll leave the string as is
-    // A more complete implementation would parse expressions in {}
-    // and replace them with their values
+    // Create array to store expression strings for later parsing
+    var expressions: [32][64]u8 = undefined;
+    var expr_lengths: [32]usize = undefined;
 
-    // For now, we'll just be emitting the string to the VM
-    // The proper implementation would require parsing the expressions
-    // within {} and evaluating them at runtime
+    // First pass: build template and extract expressions
+    while (i < fstring_content.len and template_pos < template_buffer.len - 3) {
+        if (fstring_content[i] == '{') {
+            if (i + 1 < fstring_content.len and fstring_content[i + 1] == '}') {
+                // Empty placeholder {}
+                template_buffer[template_pos] = '{';
+                template_buffer[template_pos + 1] = '}';
+                template_pos += 2;
+                arg_count += 1;
+                i += 2;
+            } else if (i + 1 < fstring_content.len and fstring_content[i + 1] == '{') {
+                // Escaped {{ -> {
+                template_buffer[template_pos] = '{';
+                template_pos += 1;
+                i += 2;
+            } else {
+                // Expression placeholder {expr}
+                const expr_start = i + 1;
+                var expr_end = expr_start;
+                var brace_count: i32 = 1;
+
+                // Find matching closing brace
+                while (expr_end < fstring_content.len and brace_count > 0) {
+                    if (fstring_content[expr_end] == '{') {
+                        brace_count += 1;
+                    } else if (fstring_content[expr_end] == '}') {
+                        brace_count -= 1;
+                    }
+                    if (brace_count > 0) expr_end += 1;
+                }
+
+                if (brace_count == 0 and arg_count < 32) {
+                    // Store expression for later parsing
+                    const expr_len = expr_end - expr_start;
+                    if (expr_len < 64) {
+                        @memcpy(expressions[arg_count][0..expr_len], fstring_content[expr_start..expr_end]);
+                        expr_lengths[arg_count] = expr_len;
+
+                        // Add placeholder to template
+                        template_buffer[template_pos] = '{';
+                        template_buffer[template_pos + 1] = '}';
+                        template_pos += 2;
+                        arg_count += 1;
+                    }
+
+                    i = expr_end + 1;
+                } else {
+                    @"error"("Unclosed '{' in f-string or too many expressions");
+                    return;
+                }
+            }
+        } else if (fstring_content[i] == '}' and i + 1 < fstring_content.len and fstring_content[i + 1] == '}') {
+            // Escaped }} -> }
+            template_buffer[template_pos] = '}';
+            template_pos += 1;
+            i += 2;
+        } else {
+            // Regular character
+            template_buffer[template_pos] = fstring_content[i];
+            template_pos += 1;
+            i += 1;
+        }
+    }
+
+    // Emit format function call
+    emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_GLOBAL)), makeConstant(Value.init_obj(@ptrCast(object_h.copyString("format", 6)))));
+
+    // Emit template string as first argument
+    const template_value = Value.init_obj(@ptrCast(object_h.copyString(template_buffer[0..template_pos].ptr, template_pos)));
+    emitConstant(template_value);
+
+    // Parse and emit each expression
+    const saved_scanner = scanner_h.scanner;
+    const saved_current = parser.current;
+    const saved_previous = parser.previous;
+
+    var expr_idx: u8 = 0;
+    while (expr_idx < arg_count) {
+        const expr_text = expressions[expr_idx][0..expr_lengths[expr_idx]];
+
+        if (expr_text.len == 0) {
+            // Empty expression, emit nil
+            emitByte(@intCast(@intFromEnum(OpCode.OP_NIL)));
+        } else {
+            // Set up scanner for this expression
+            scanner_h.scanner.start = expr_text.ptr;
+            scanner_h.scanner.current = expr_text.ptr;
+            scanner_h.scanner.line = saved_scanner.line;
+
+            // Parse the expression
+            advance();
+            expression();
+        }
+
+        expr_idx += 1;
+    }
+
+    // Restore scanner state
+    scanner_h.scanner = saved_scanner;
+    parser.current = saved_current;
+    parser.previous = saved_previous;
+
+    // Call format function
+    emitBytes(@intCast(@intFromEnum(OpCode.OP_CALL)), arg_count + 1);
 }
 // pub fn array(canAssign: bool)  void {
 //     _ = &canAssign;

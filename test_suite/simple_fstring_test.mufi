@@ -1,0 +1,10 @@
+// Simple f-string test
+print "Starting simple f-string test";
+
+// Test basic string first
+const name = "World";
+print name;
+
+// Test format function directly
+const direct = format("Hello, {}!", name);
+print direct;

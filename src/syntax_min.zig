@@ -48,10 +48,10 @@ const State = enum {
 pub fn highlight(source: []const u8, writer: anytype) !void {
     const state: State = .Default;
     var i: usize = 0;
-    
+
     while (i < source.len) {
         const c = source[i];
-        
+
         switch (state) {
             .Default => {
                 if (isAlpha(c)) {
