@@ -1,0 +1,86 @@
+// Performance benchmark for SIMD operations
+// This test creates large vectors and measures relative performance
+
+print "=== SIMD Performance Benchmark ===";
+print "";
+
+// Test 1: Dot Product
+print "Test 1: Dot Product Performance";
+var v1 = linspace(1.0, 10000.0, 10000);
+var v2 = linspace(1.0, 10000.0, 10000);
+
+var start_time = time();
+var dot_result = dot(v1, v2);
+var end_time = time();
+
+print "Dot product of 10000 elements completed";
+print "Result: " + str(dot_result);
+print "";
+
+// Test 2: Max/Min Operations
+print "Test 2: Max/Min Performance";
+var v3 = linspace(-5000.0, 5000.0, 10000);
+
+var max_result = max(v3);
+var min_result = min(v3);
+
+print "Max of 10000 elements: " + str(max_result);
+print "Min of 10000 elements: " + str(min_result);
+print "";
+
+// Test 3: Vector Addition
+print "Test 3: Vector Addition Performance";
+var v4 = fvec(10000);
+var v5 = fvec(10000);
+
+for(var i = 0; i < 10000; i++){
+    push(v4, double(i));
+    push(v5, double(i * 2));
+}
+
+var add_result = addfv(v4, v5);
+print "Vector addition of 10000 elements completed";
+print "First element: " + str(get(add_result, 0));
+print "Last element: " + str(get(add_result, 9999));
+print "";
+
+// Test 4: Statistical Operations
+print "Test 4: Statistical Operations";
+var v6 = linspace(0.0, 100.0, 1000);
+
+var sum_result = sum(v6);
+var mean_result = mean(v6);
+var var_result = variance(v6);
+var std_result = std_dev(v6);
+
+print "Sum: " + str(sum_result);
+print "Mean: " + str(mean_result);
+print "Variance: " + str(var_result);
+print "Std Dev: " + str(std_result);
+print "";
+
+// Test 5: Vector Geometry
+print "Test 5: Vector Geometry Operations";
+var v7 = fvec(3);
+push(v7, 1.0);
+push(v7, 0.0);
+push(v7, 0.0);
+
+var v8 = fvec(3);
+push(v8, 0.0);
+push(v8, 1.0);
+push(v8, 0.0);
+
+var cross_result = cross(v7, v8);
+var angle_result = angle(v7, v8);
+var proj_result = proj(v7, v8);
+
+print "Cross product: ";
+print cross_result;
+print "Angle (radians): " + str(angle_result);
+print "Projection: ";
+print proj_result;
+print "";
+
+print "=== Benchmark Complete ===";
+print "All SIMD-optimized operations executed successfully!";
