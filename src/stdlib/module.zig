@@ -75,7 +75,7 @@ pub fn import(argc: i32, args: [*]Value) Value {
     }
 
     // Create a class to hold the module's exports
-    const module_name_str = object_h.copyString(@constCast(filename_slice.ptr), @intCast(filename_slice.len));
+    const module_name_str = object_h.copyString(filename_slice.ptr, filename_slice.len);
     const module_class = ObjClass.init(module_name_str);
     
     // Create an instance of the module class
