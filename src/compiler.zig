@@ -1417,10 +1417,12 @@ pub fn namedVariable(name: Token, canAssign: bool) void {
     var getOp: u8 = undefined;
     var setOp: u8 = undefined;
     var arg: i32 = resolveLocal(current.?, @constCast(&name));
+    var isLocal: bool = false;
 
     if (arg != -1) {
         getOp = @intCast(@intFromEnum(OpCode.OP_GET_LOCAL));
         setOp = @intCast(@intFromEnum(OpCode.OP_SET_LOCAL));
+        isLocal = true;
     } else if ((blk: {
         arg = resolveUpvalue(current.?, @constCast(&name));
         break :blk arg;
@@ -1435,8 +1437,8 @@ pub fn namedVariable(name: Token, canAssign: bool) void {
         setOp = @intCast(@intFromEnum(OpCode.OP_SET_GLOBAL));
     }
     if ((@as(i32, @intFromBool(canAssign)) != 0) and (@as(i32, @intFromBool(match(.TOKEN_EQUAL))) != 0)) {
-        // Check if trying to assign to a const local variable
-        if (arg != -1 and current.?.locals[@intCast(arg)].isConst) {
+        // Check if trying to assign to a const local variable (only for locals)
+        if (isLocal and current.?.locals[@intCast(arg)].isConst) {
             const varName = name.start[0..@intCast(name.length)];
             const suggestions = [_]errors.ErrorSuggestion{
                 .{ .message = "Use 'var' instead of 'const' if you need to modify this variable" },
@@ -1449,8 +1451,8 @@ pub fn namedVariable(name: Token, canAssign: bool) void {
         expression();
         emitBytes(setOp, @as(u8, @bitCast(@as(i8, @truncate(arg)))));
     } else if ((((@as(i32, @intFromBool(match(.TOKEN_PLUS_EQUAL))) != 0) or (@as(i32, @intFromBool(match(.TOKEN_MINUS_EQUAL))) != 0)) or (@as(i32, @intFromBool(match(.TOKEN_STAR_EQUAL))) != 0)) or (@as(i32, @intFromBool(match(.TOKEN_SLASH_EQUAL))) != 0)) {
-        // Check if trying to assign to a const local variable
-        if (arg != -1 and current.?.locals[@intCast(arg)].isConst) {
+        // Check if trying to assign to a const local variable (only for locals)
+        if (isLocal and current.?.locals[@intCast(arg)].isConst) {
             const varName = name.start[0..@intCast(name.length)];
             const suggestions = [_]errors.ErrorSuggestion{
                 .{ .message = "Use 'var' instead of 'const' if you need to modify this variable" },
@@ -1486,8 +1488,8 @@ pub fn namedVariable(name: Token, canAssign: bool) void {
         }
         emitBytes(setOp, @as(u8, @bitCast(@as(i8, @truncate(arg)))));
     } else if (match(.TOKEN_PLUS_PLUS)) {
-        // Check if trying to increment a const local variable
-        if (arg != -1 and current.?.locals[@intCast(arg)].isConst) {
+        // Check if trying to increment a const local variable (only for locals)
+        if (isLocal and current.?.locals[@intCast(arg)].isConst) {
             const varName = name.start[0..@intCast(name.length)];
             const suggestions = [_]errors.ErrorSuggestion{
                 .{ .message = "Use 'var' instead of 'const' if you need to modify this variable" },
@@ -1508,8 +1510,8 @@ pub fn namedVariable(name: Token, canAssign: bool) void {
         emitByte(@intCast(@intFromEnum(OpCode.OP_ADD)));
         emitBytes(setOp, @as(u8, @bitCast(@as(i8, @truncate(arg)))));
     } else if (match(.TOKEN_MINUS_MINUS)) {
-        // Check if trying to decrement a const local variable
-        if (arg != -1 and current.?.locals[@intCast(arg)].isConst) {
+        // Check if trying to decrement a const local variable (only for locals)
+        if (isLocal and current.?.locals[@intCast(arg)].isConst) {
             const varName = name.start[0..@intCast(name.length)];
             const suggestions = [_]errors.ErrorSuggestion{
                 .{ .message = "Use 'var' instead of 'const' if you need to modify this variable" },
