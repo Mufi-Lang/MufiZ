@@ -79,6 +79,18 @@ To support various toolchains, we have added the following features to the proje
 - **Disabled Echo**: Input characters are no longer echoed back while typing in the REPL, improving readability
 - **Simplified Implementation**: Streamlined code for better maintainability and performance
 - **Terminal Handling**: Groundwork for native Zig termios operations without C dependencies
+- **SIMD Optimizations**: FloatVector operations now use SIMD (Single Instruction, Multiple Data) for 2-4x performance improvements on vector operations
+
+## Performance
+
+MufiZ includes SIMD (Single Instruction, Multiple Data) optimizations for FloatVector operations, providing significant performance improvements:
+
+- **Vector Operations**: 22+ operations optimized using `@Vector(4, f64)` 
+- **Performance Gain**: 2-4x speedup for vectors with 16+ elements
+- **Operations**: dot product, max, min, sum, variance, add, sub, mul, div, and more
+- **Documentation**: See [docs/SIMD_OPTIMIZATIONS.md](docs/SIMD_OPTIMIZATIONS.md) for details
+
+SIMD operations automatically adapt to your CPU's capabilities (SSE2, AVX, AVX2, AVX-512) for optimal performance.
 
 ## Related Repositories
 
