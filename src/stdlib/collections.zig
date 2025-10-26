@@ -987,3 +987,209 @@ pub fn splice(argc: i32, args: [*]Value) Value {
         return Value.init_obj(@ptrCast(result));
     }
 }
+
+// ============ Matrix Functions ============
+
+// matrix(rows, cols) - Creates a new matrix (2D float vector)
+pub fn matrix(argc: i32, args: [*]Value) Value {
+    if (argc != 2) return stdlib_error("matrix() expects two arguments!", .{ .argn = argc });
+    if (!type_check(1, args, 6) or !type_check(1, args + 1, 6)) {
+        return stdlib_error("matrix() expects numeric arguments!", .{ .value_type = conv.what_is(args[0]) });
+    }
+
+    const rows = args[0].as_num_int();
+    const cols = args[1].as_num_int();
+    
+    if (rows <= 0 or cols <= 0) {
+        return stdlib_error("matrix() dimensions must be positive!", .{ .argn = rows });
+    }
+
+    const mat = fvector.FloatVector.initMatrix(@intCast(rows), @intCast(cols));
+    return Value.init_obj(@ptrCast(mat));
+}
+
+// identity(size) - Creates an identity matrix
+pub fn identity(argc: i32, args: [*]Value) Value {
+    if (argc != 1) return stdlib_error("identity() expects one argument!", .{ .argn = argc });
+    if (!type_check(1, args, 6)) {
+        return stdlib_error("identity() expects a number!", .{ .value_type = conv.what_is(args[0]) });
+    }
+
+    const size = args[0].as_num_int();
+    if (size <= 0) {
+        return stdlib_error("identity() size must be positive!", .{ .argn = size });
+    }
+
+    const mat = fvector.FloatVector.identity(@intCast(size));
+    return Value.init_obj(@ptrCast(mat));
+}
+
+// zeros(rows, cols) - Creates a matrix filled with zeros
+pub fn zeros(argc: i32, args: [*]Value) Value {
+    if (argc != 2) return stdlib_error("zeros() expects two arguments!", .{ .argn = argc });
+    if (!type_check(1, args, 6) or !type_check(1, args + 1, 6)) {
+        return stdlib_error("zeros() expects numeric arguments!", .{ .value_type = conv.what_is(args[0]) });
+    }
+
+    const rows = args[0].as_num_int();
+    const cols = args[1].as_num_int();
+    
+    if (rows <= 0 or cols <= 0) {
+        return stdlib_error("zeros() dimensions must be positive!", .{ .argn = rows });
+    }
+
+    const mat = fvector.FloatVector.zeros(@intCast(rows), @intCast(cols));
+    return Value.init_obj(@ptrCast(mat));
+}
+
+// ones(rows, cols) - Creates a matrix filled with ones
+pub fn ones(argc: i32, args: [*]Value) Value {
+    if (argc != 2) return stdlib_error("ones() expects two arguments!", .{ .argn = argc });
+    if (!type_check(1, args, 6) or !type_check(1, args + 1, 6)) {
+        return stdlib_error("ones() expects numeric arguments!", .{ .value_type = conv.what_is(args[0]) });
+    }
+
+    const rows = args[0].as_num_int();
+    const cols = args[1].as_num_int();
+    
+    if (rows <= 0 or cols <= 0) {
+        return stdlib_error("ones() dimensions must be positive!", .{ .argn = rows });
+    }
+
+    const mat = fvector.FloatVector.ones(@intCast(rows), @intCast(cols));
+    return Value.init_obj(@ptrCast(mat));
+}
+
+// transpose(matrix) - Transposes a matrix
+pub fn transpose(argc: i32, args: [*]Value) Value {
+    if (argc != 1) return stdlib_error("transpose() expects one argument!", .{ .argn = argc });
+    if (!Value.is_obj_type(args[0], .OBJ_FVECTOR)) {
+        return stdlib_error("transpose() expects a vector/matrix!", .{ .value_type = conv.what_is(args[0]) });
+    }
+
+    const mat = args[0].as_vector();
+    const result = mat.transpose();
+    return Value.init_obj(@ptrCast(result));
+}
+
+// reshape(matrix, rows, cols) - Reshapes a matrix
+pub fn reshape(argc: i32, args: [*]Value) Value {
+    if (argc != 3) return stdlib_error("reshape() expects three arguments!", .{ .argn = argc });
+    if (!Value.is_obj_type(args[0], .OBJ_FVECTOR)) {
+        return stdlib_error("reshape() expects a vector/matrix as first argument!", .{ .value_type = conv.what_is(args[0]) });
+    }
+    if (!type_check(1, args + 1, 6) or !type_check(1, args + 2, 6)) {
+        return stdlib_error("reshape() expects numeric dimensions!", .{ .value_type = conv.what_is(args[1]) });
+    }
+
+    const mat = args[0].as_vector();
+    const rows = args[1].as_num_int();
+    const cols = args[2].as_num_int();
+    
+    if (rows <= 0 or cols <= 0) {
+        return stdlib_error("reshape() dimensions must be positive!", .{ .argn = rows });
+    }
+
+    const result = mat.reshape(@intCast(rows), @intCast(cols));
+    return Value.init_obj(@ptrCast(result));
+}
+
+// matmul(a, b) - Matrix multiplication
+pub fn matmul(argc: i32, args: [*]Value) Value {
+    if (argc != 2) return stdlib_error("matmul() expects two arguments!", .{ .argn = argc });
+    if (!Value.is_obj_type(args[0], .OBJ_FVECTOR) or !Value.is_obj_type(args[1], .OBJ_FVECTOR)) {
+        return stdlib_error("matmul() expects two vectors/matrices!", .{ .value_type = conv.what_is(args[0]) });
+    }
+
+    const a = args[0].as_vector();
+    const b = args[1].as_vector();
+    const result = a.matmul(b);
+    return Value.init_obj(@ptrCast(result));
+}
+
+// mat_at(matrix, row, col) - Gets element at (row, col)
+pub fn mat_at(argc: i32, args: [*]Value) Value {
+    if (argc != 3) return stdlib_error("mat_at() expects three arguments!", .{ .argn = argc });
+    if (!Value.is_obj_type(args[0], .OBJ_FVECTOR)) {
+        return stdlib_error("mat_at() expects a matrix as first argument!", .{ .value_type = conv.what_is(args[0]) });
+    }
+    if (!type_check(1, args + 1, 6) or !type_check(1, args + 2, 6)) {
+        return stdlib_error("mat_at() expects numeric indices!", .{ .value_type = conv.what_is(args[1]) });
+    }
+
+    const mat = args[0].as_vector();
+    const row = args[1].as_num_int();
+    const col = args[2].as_num_int();
+    
+    if (row < 0 or col < 0) {
+        return stdlib_error("mat_at() indices must be non-negative!", .{ .argn = row });
+    }
+
+    const value = mat.getAt(@intCast(row), @intCast(col));
+    return Value.init_double(value);
+}
+
+// mat_set(matrix, row, col, value) - Sets element at (row, col)
+pub fn mat_set(argc: i32, args: [*]Value) Value {
+    if (argc != 4) return stdlib_error("mat_set() expects four arguments!", .{ .argn = argc });
+    if (!Value.is_obj_type(args[0], .OBJ_FVECTOR)) {
+        return stdlib_error("mat_set() expects a matrix as first argument!", .{ .value_type = conv.what_is(args[0]) });
+    }
+    if (!type_check(1, args + 1, 6) or !type_check(1, args + 2, 6) or !type_check(1, args + 3, 6)) {
+        return stdlib_error("mat_set() expects numeric arguments!", .{ .value_type = conv.what_is(args[1]) });
+    }
+
+    const mat = args[0].as_vector();
+    const row = args[1].as_num_int();
+    const col = args[2].as_num_int();
+    const value = args[3].as_num_double();
+    
+    if (row < 0 or col < 0) {
+        return stdlib_error("mat_set() indices must be non-negative!", .{ .argn = row });
+    }
+
+    mat.setAt(@intCast(row), @intCast(col), value);
+    return Value.init_nil();
+}
+
+// get_row(matrix, row) - Gets a row from the matrix
+pub fn get_row(argc: i32, args: [*]Value) Value {
+    if (argc != 2) return stdlib_error("get_row() expects two arguments!", .{ .argn = argc });
+    if (!Value.is_obj_type(args[0], .OBJ_FVECTOR)) {
+        return stdlib_error("get_row() expects a matrix as first argument!", .{ .value_type = conv.what_is(args[0]) });
+    }
+    if (!type_check(1, args + 1, 6)) {
+        return stdlib_error("get_row() expects a numeric index!", .{ .value_type = conv.what_is(args[1]) });
+    }
+
+    const mat = args[0].as_vector();
+    const row = args[1].as_num_int();
+    
+    if (row < 0) {
+        return stdlib_error("get_row() index must be non-negative!", .{ .argn = row });
+    }
+
+    const result = mat.getRow(@intCast(row));
+    return Value.init_obj(@ptrCast(result));
+}
+
+// get_col(matrix, col) - Gets a column from the matrix
+pub fn get_col(argc: i32, args: [*]Value) Value {
+    if (argc != 2) return stdlib_error("get_col() expects two arguments!", .{ .argn = argc });
+    if (!Value.is_obj_type(args[0], .OBJ_FVECTOR)) {
+        return stdlib_error("get_col() expects a matrix as first argument!", .{ .value_type = conv.what_is(args[0]) });
+    }
+    if (!type_check(1, args + 1, 6)) {
+        return stdlib_error("get_col() expects a numeric index!", .{ .value_type = conv.what_is(args[1]) });
+    }
+
+    const mat = args[0].as_vector();
+    const col = args[1].as_num_int();
+    
+    if (col < 0) {
+        return stdlib_error("get_col() index must be non-negative!", .{ .argn = col });
+    }
+
+    const result = mat.getCol(@intCast(col));
+    return Value.init_obj(@ptrCast(result));
+}

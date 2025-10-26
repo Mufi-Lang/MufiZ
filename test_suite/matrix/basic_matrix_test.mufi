@@ -1,0 +1,81 @@
+// Basic matrix operations test
+
+// Test matrix creation
+var m1 = matrix(2, 3);
+print "Created 2x3 matrix:";
+print m1;
+
+// Test identity matrix
+var id = identity(3);
+print "\n3x3 Identity matrix:";
+print id;
+
+// Test zeros and ones
+var z = zeros(2, 2);
+var o = ones(2, 2);
+print "\n2x2 Zeros:";
+print z;
+print "\n2x2 Ones:";
+print o;
+
+// Test setting and getting elements
+mat_set(m1, 0, 0, 1.0);
+mat_set(m1, 0, 1, 2.0);
+mat_set(m1, 0, 2, 3.0);
+mat_set(m1, 1, 0, 4.0);
+mat_set(m1, 1, 1, 5.0);
+mat_set(m1, 1, 2, 6.0);
+print "\nMatrix m1 after setting values:";
+print m1;
+
+var val = mat_at(m1, 1, 2);
+print "\nValue at m1[1,2]: ";
+print val;
+assert(val, 6.0);
+
+// Test transpose
+var m1_t = transpose(m1);
+print "\nTranspose of m1:";
+print m1_t;
+
+// Test getting row and column
+var row0 = get_row(m1, 0);
+var col1 = get_col(m1, 1);
+print "\nRow 0 of m1:";
+print row0;
+print "\nColumn 1 of m1:";
+print col1;
+
+// Test matrix multiplication
+var a = matrix(2, 3);
+mat_set(a, 0, 0, 1.0);
+mat_set(a, 0, 1, 2.0);
+mat_set(a, 0, 2, 3.0);
+mat_set(a, 1, 0, 4.0);
+mat_set(a, 1, 1, 5.0);
+mat_set(a, 1, 2, 6.0);
+
+var b = matrix(3, 2);
+mat_set(b, 0, 0, 7.0);
+mat_set(b, 0, 1, 8.0);
+mat_set(b, 1, 0, 9.0);
+mat_set(b, 1, 1, 10.0);
+mat_set(b, 2, 0, 11.0);
+mat_set(b, 2, 1, 12.0);
+
+print "\nMatrix a (2x3):";
+print a;
+print "\nMatrix b (3x2):";
+print b;
+
+var c = matmul(a, b);
+print "\nMatrix multiplication a * b:";
+print c;
+
+// Expected result: [[58, 64], [139, 154]]
+assert(mat_at(c, 0, 0), 58.0);
+assert(mat_at(c, 0, 1), 64.0);
+assert(mat_at(c, 1, 0), 139.0);
+assert(mat_at(c, 1, 1), 154.0);
+
+print "\nAll matrix tests passed!";

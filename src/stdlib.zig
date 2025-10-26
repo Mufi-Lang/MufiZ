@@ -102,6 +102,18 @@ pub const COLLECTION_FUNCTIONS = [_]BuiltinDef{
     .{ .name = "norm", .func = collections.norm, .params = "vector", .description = "Euclidean norm of vector", .module = "collections" },
     .{ .name = "range_to_array", .func = collections.range_to_array, .params = "range", .description = "Converts a range to an array", .module = "collections" },
     .{ .name = "pairs", .func = collections.pairs, .params = "hash_table", .description = "Gets key-value pairs from hash table", .module = "collections" },
+    // Matrix operations
+    .{ .name = "matrix", .func = collections.matrix, .params = "rows, cols", .description = "Creates a new matrix", .module = "collections" },
+    .{ .name = "identity", .func = collections.identity, .params = "size", .description = "Creates an identity matrix", .module = "collections" },
+    .{ .name = "zeros", .func = collections.zeros, .params = "rows, cols", .description = "Creates a matrix of zeros", .module = "collections" },
+    .{ .name = "ones", .func = collections.ones, .params = "rows, cols", .description = "Creates a matrix of ones", .module = "collections" },
+    .{ .name = "transpose", .func = collections.transpose, .params = "matrix", .description = "Transposes a matrix", .module = "collections" },
+    .{ .name = "reshape", .func = collections.reshape, .params = "matrix, rows, cols", .description = "Reshapes a matrix", .module = "collections" },
+    .{ .name = "matmul", .func = collections.matmul, .params = "a, b", .description = "Matrix multiplication", .module = "collections" },
+    .{ .name = "mat_at", .func = collections.mat_at, .params = "matrix, row, col", .description = "Gets element at (row, col)", .module = "collections" },
+    .{ .name = "mat_set", .func = collections.mat_set, .params = "matrix, row, col, value", .description = "Sets element at (row, col)", .module = "collections" },
+    .{ .name = "get_row", .func = collections.get_row, .params = "matrix, row", .description = "Gets a row from matrix", .module = "collections" },
+    .{ .name = "get_col", .func = collections.get_col, .params = "matrix, col", .description = "Gets a column from matrix", .module = "collections" },
 };
 
 pub const FILESYSTEM_FUNCTIONS = [_]BuiltinDef{

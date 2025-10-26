@@ -14,6 +14,8 @@ pub const FloatVector = struct {
     pos: usize, // Current position for iterator methods
     data: []f64, // Underlying data storage
     sorted: bool, // Whether the vector is sorted
+    rows: usize, // Number of rows (for 2D matrix support)
+    cols: usize, // Number of columns (for 2D matrix support)
 
     const Self = *@This();
 
@@ -28,6 +30,8 @@ pub const FloatVector = struct {
         vector.count = 0;
         vector.pos = 0;
         vector.sorted = false;
+        vector.rows = 0; // 1D vector by default, will be set when elements are added
+        vector.cols = 1; // Treat as n x 1 column vector by default
 
         const byte_size = @sizeOf(f64) * capacity;
         const raw_ptr = reallocate(null, 0, byte_size);
@@ -51,6 +55,72 @@ pub const FloatVector = struct {
         return FloatVector.init(0);
     }
 
+    /// Creates a new matrix with the specified dimensions.
+    /// Elements are initialized to zero.
+    /// @param rows Number of rows in the matrix
+    /// @param cols Number of columns in the matrix
+    pub fn initMatrix(rows: usize, cols: usize) Self {
+        const total_size = rows * cols;
+        const vector: Self = @ptrCast(@alignCast(allocateObject(@sizeOf(FloatVector), .OBJ_FVECTOR)));
+        vector.size = total_size;
+        vector.count = total_size;
+        vector.pos = 0;
+        vector.sorted = false;
+        vector.rows = rows;
+        vector.cols = cols;
+
+        const byte_size = @sizeOf(f64) * total_size;
+        const raw_ptr = reallocate(null, 0, byte_size);
+        if (raw_ptr == null) {
+            std.debug.print("Failed to reallocate memory for FloatVector data\n", .{});
+            std.process.exit(1);
+        }
+        vector.data = @as([*]f64, @ptrCast(@alignCast(raw_ptr.?)))[0..total_size];
+        
+        // Initialize all elements to zero
+        @memset(vector.data, 0.0);
+
+        return vector;
+    }
+
+    /// Creates an identity matrix of the specified size.
+    /// @param size Dimension of the square matrix (size x size)
+    pub fn identity(size: usize) Self {
+        const matrix = FloatVector.initMatrix(size, size);
+        for (0..size) |i| {
+            matrix.data[i * size + i] = 1.0;
+        }
+        return matrix;
+    }
+
+    /// Creates a matrix filled with zeros.
+    /// @param rows Number of rows
+    /// @param cols Number of columns
+    pub fn zeros(rows: usize, cols: usize) Self {
+        return FloatVector.initMatrix(rows, cols);
+    }
+
+    /// Creates a matrix filled with ones.
+    /// @param rows Number of rows
+    /// @param cols Number of columns
+    pub fn ones(rows: usize, cols: usize) Self {
+        const matrix = FloatVector.initMatrix(rows, cols);
+        for (0..matrix.count) |i| {
+            matrix.data[i] = 1.0;
+        }
+        return matrix;
+    }
+
+    /// Check if this is a matrix (2D) or a vector (1D)
+    pub fn isMatrix(self: Self) bool {
+        return self.rows > 0 and self.cols > 0;
+    }
+
+    /// Check if this is a 1D vector
+    pub fn isVector(self: Self) bool {
+        return self.cols == 1 or self.rows == 0;
+    }
+
     pub fn deinit(self: Self) void {
         if (self.data.len > 0) {
             _ = reallocate(@as(?*anyopaque, @ptrCast(self.data.ptr)), @sizeOf(f64) * self.data.len, 0);
@@ -59,12 +129,29 @@ pub const FloatVector = struct {
     }
 
     pub fn print(self: Self) void {
-        std.debug.print("[", .{});
-        for (0..self.count) |i| {
-            std.debug.print("{d:.2}", .{self.data[i]});
-            if (i < self.count - 1) std.debug.print(", ", .{});
+        if (self.isMatrix() and self.rows > 1) {
+            // Print as a 2D matrix
+            std.debug.print("[\n", .{});
+            for (0..self.rows) |i| {
+                std.debug.print("  [", .{});
+                for (0..self.cols) |j| {
+                    const idx = i * self.cols + j;
+                    std.debug.print("{d:.2}", .{self.data[idx]});
+                    if (j < self.cols - 1) std.debug.print(", ", .{});
+                }
+                std.debug.print("]", .{});
+                if (i < self.rows - 1) std.debug.print(",\n", .{});
+            }
+            std.debug.print("\n]", .{});
+        } else {
+            // Print as a 1D vector
+            std.debug.print("[", .{});
+            for (0..self.count) |i| {
+                std.debug.print("{d:.2}", .{self.data[i]});
+                if (i < self.count - 1) std.debug.print(", ", .{});
+            }
+            std.debug.print("]", .{});
         }
-        std.debug.print("]", .{});
     }
 
     fn write(self: Self, i: usize, val: f64) void {
@@ -99,6 +186,8 @@ pub const FloatVector = struct {
         }
         result.count = self.count;
         result.sorted = self.sorted;
+        result.rows = self.rows;
+        result.cols = self.cols;
         return result;
     }
 
@@ -106,6 +195,9 @@ pub const FloatVector = struct {
         self.count = 0;
         self.pos = 0;
         self.sorted = false;
+        // Reset to 1D vector when cleared
+        self.rows = 0;
+        self.cols = 1;
     }
 
     /// Clears the vector and optionally shrinks its capacity.
@@ -177,6 +269,10 @@ pub const FloatVector = struct {
         self.data[self.count] = value;
         self.count += 1;
         self.sorted = false;
+        // Update rows when pushing to 1D vector
+        if (self.cols == 1) {
+            self.rows = self.count;
+        }
     }
 
     /// Adds multiple values to the vector in a single operation.
@@ -194,6 +290,10 @@ pub const FloatVector = struct {
         @memcpy(self.data[self.count .. self.count + values.len], values);
         self.count += values.len;
         self.sorted = false;
+        // Update rows when pushing to 1D vector
+        if (self.cols == 1) {
+            self.rows = self.count;
+        }
     }
 
     pub fn insert(self: Self, index: usize, value: f64) void {
@@ -851,6 +951,353 @@ pub const FloatVector = struct {
             }
         }
         return -1;
+    }
+
+    // ============ Matrix Operations ============
+
+    /// Get element at (row, col) for matrix access
+    pub fn getAt(self: Self, row: usize, col: usize) f64 {
+        if (!self.isMatrix() or row >= self.rows or col >= self.cols) {
+            return 0.0;
+        }
+        return self.data[row * self.cols + col];
+    }
+
+    /// Set element at (row, col) for matrix access
+    pub fn setAt(self: Self, row: usize, col: usize, value: f64) void {
+        if (!self.isMatrix() or row >= self.rows or col >= self.cols) {
+            return;
+        }
+        self.data[row * self.cols + col] = value;
+    }
+
+    /// Get a row from the matrix as a new vector
+    pub fn getRow(self: Self, row: usize) Self {
+        if (!self.isMatrix() or row >= self.rows) {
+            return FloatVector.init(0);
+        }
+        
+        const result = FloatVector.init(self.cols);
+        const start = row * self.cols;
+        @memcpy(result.data[0..self.cols], self.data[start..start + self.cols]);
+        result.count = self.cols;
+        result.rows = 1;
+        result.cols = self.cols;
+        return result;
+    }
+
+    /// Get a column from the matrix as a new vector
+    pub fn getCol(self: Self, col: usize) Self {
+        if (!self.isMatrix() or col >= self.cols) {
+            return FloatVector.init(0);
+        }
+        
+        const result = FloatVector.init(self.rows);
+        for (0..self.rows) |i| {
+            result.data[i] = self.data[i * self.cols + col];
+        }
+        result.count = self.rows;
+        result.rows = self.rows;
+        result.cols = 1;
+        return result;
+    }
+
+    /// Transpose a matrix
+    pub fn transpose(self: Self) Self {
+        if (!self.isMatrix()) {
+            return FloatVector.clone(self);
+        }
+
+        const result = FloatVector.initMatrix(self.cols, self.rows);
+        
+        // Use SIMD-friendly access pattern when possible
+        for (0..self.rows) |i| {
+            for (0..self.cols) |j| {
+                result.data[j * self.rows + i] = self.data[i * self.cols + j];
+            }
+        }
+        
+        return result;
+    }
+
+    /// Reshape a matrix/vector to new dimensions
+    pub fn reshape(self: Self, new_rows: usize, new_cols: usize) Self {
+        if (new_rows * new_cols != self.count) {
+            std.debug.print("Cannot reshape: size mismatch\n", .{});
+            return FloatVector.clone(self);
+        }
+
+        const result = FloatVector.clone(self);
+        result.rows = new_rows;
+        result.cols = new_cols;
+        return result;
+    }
+
+    /// Matrix multiplication using SIMD acceleration
+    pub fn matmul(a: Self, b: Self) Self {
+        // Check dimensions: a is (m x n), b is (n x p), result is (m x p)
+        if (!a.isMatrix() or !b.isMatrix()) {
+            std.debug.print("Both operands must be matrices\n", .{});
+            return FloatVector.init(0);
+        }
+        
+        if (a.cols != b.rows) {
+            std.debug.print("Matrix dimensions incompatible for multiplication: ({d}x{d}) * ({d}x{d})\n", .{a.rows, a.cols, b.rows, b.cols});
+            return FloatVector.init(0);
+        }
+
+        const m = a.rows;
+        const n = a.cols; // = b.rows
+        const p = b.cols;
+        
+        const result = FloatVector.initMatrix(m, p);
+
+        // Use SIMD for the inner loop when possible
+        const Vec4 = @Vector(4, f64);
+        
+        for (0..m) |i| {
+            for (0..p) |j| {
+                var sum_vec: Vec4 = @splat(@as(f64, 0.0));
+                const vec_iterations = @divTrunc(n, 4);
+                
+                // Process 4 elements at a time
+                var k: usize = 0;
+                while (k < vec_iterations) : (k += 1) {
+                    const k_offset = k * 4;
+                    
+                    // Load 4 elements from row i of matrix a
+                    const a_vec = Vec4{
+                        a.data[i * a.cols + k_offset],
+                        a.data[i * a.cols + k_offset + 1],
+                        a.data[i * a.cols + k_offset + 2],
+                        a.data[i * a.cols + k_offset + 3],
+                    };
+                    
+                    // Load 4 elements from column j of matrix b
+                    const b_vec = Vec4{
+                        b.data[(k_offset) * b.cols + j],
+                        b.data[(k_offset + 1) * b.cols + j],
+                        b.data[(k_offset + 2) * b.cols + j],
+                        b.data[(k_offset + 3) * b.cols + j],
+                    };
+                    
+                    sum_vec += a_vec * b_vec;
+                }
+                
+                // Sum up the vector
+                var sum: f64 = @reduce(.Add, sum_vec);
+                
+                // Handle remaining elements
+                const remaining = @mod(n, 4);
+                if (remaining > 0) {
+                    const start = n - remaining;
+                    for (start..n) |k_rem| {
+                        sum += a.data[i * a.cols + k_rem] * b.data[k_rem * b.cols + j];
+                    }
+                }
+                
+                result.data[i * p + j] = sum;
+            }
+        }
+        
+        return result;
+    }
+
+    /// Matrix addition (element-wise)
+    pub fn matadd(a: Self, b: Self) Self {
+        if (!a.isMatrix() or !b.isMatrix()) {
+            // Fall back to vector addition
+            return FloatVector.add(a, b);
+        }
+        
+        if (a.rows != b.rows or a.cols != b.cols) {
+            std.debug.print("Matrix dimensions must match for addition\n", .{});
+            return FloatVector.init(0);
+        }
+
+        const result = FloatVector.initMatrix(a.rows, a.cols);
+        
+        // Use SIMD for element-wise addition
+        const Vec4 = @Vector(4, f64);
+        const vec_iterations = @divTrunc(a.count, 4);
+        
+        var i: usize = 0;
+        while (i < vec_iterations) : (i += 1) {
+            const offset = i * 4;
+            const vec1 = Vec4{
+                a.data[offset],
+                a.data[offset + 1],
+                a.data[offset + 2],
+                a.data[offset + 3],
+            };
+            const vec2 = Vec4{
+                b.data[offset],
+                b.data[offset + 1],
+                b.data[offset + 2],
+                b.data[offset + 3],
+            };
+            const sum_result = vec1 + vec2;
+            result.data[offset] = sum_result[0];
+            result.data[offset + 1] = sum_result[1];
+            result.data[offset + 2] = sum_result[2];
+            result.data[offset + 3] = sum_result[3];
+        }
+        
+        // Handle remaining elements
+        const remaining = @mod(a.count, 4);
+        if (remaining > 0) {
+            const start = a.count - remaining;
+            for (start..a.count) |j| {
+                result.data[j] = a.data[j] + b.data[j];
+            }
+        }
+        
+        return result;
+    }
+
+    /// Matrix subtraction (element-wise)
+    pub fn matsub(a: Self, b: Self) Self {
+        if (!a.isMatrix() or !b.isMatrix()) {
+            // Fall back to vector subtraction
+            return FloatVector.sub(a, b);
+        }
+        
+        if (a.rows != b.rows or a.cols != b.cols) {
+            std.debug.print("Matrix dimensions must match for subtraction\n", .{});
+            return FloatVector.init(0);
+        }
+
+        const result = FloatVector.initMatrix(a.rows, a.cols);
+        
+        // Use SIMD for element-wise subtraction
+        const Vec4 = @Vector(4, f64);
+        const vec_iterations = @divTrunc(a.count, 4);
+        
+        var i: usize = 0;
+        while (i < vec_iterations) : (i += 1) {
+            const offset = i * 4;
+            const vec1 = Vec4{
+                a.data[offset],
+                a.data[offset + 1],
+                a.data[offset + 2],
+                a.data[offset + 3],
+            };
+            const vec2 = Vec4{
+                b.data[offset],
+                b.data[offset + 1],
+                b.data[offset + 2],
+                b.data[offset + 3],
+            };
+            const diff = vec1 - vec2;
+            result.data[offset] = diff[0];
+            result.data[offset + 1] = diff[1];
+            result.data[offset + 2] = diff[2];
+            result.data[offset + 3] = diff[3];
+        }
+        
+        // Handle remaining elements
+        const remaining = @mod(a.count, 4);
+        if (remaining > 0) {
+            const start = a.count - remaining;
+            for (start..a.count) |j| {
+                result.data[j] = a.data[j] - b.data[j];
+            }
+        }
+        
+        return result;
+    }
+
+    /// Matrix element-wise multiplication (Hadamard product)
+    pub fn matmul_elementwise(a: Self, b: Self) Self {
+        if (!a.isMatrix() or !b.isMatrix()) {
+            // Fall back to vector multiplication
+            return FloatVector.mul(a, b);
+        }
+        
+        if (a.rows != b.rows or a.cols != b.cols) {
+            std.debug.print("Matrix dimensions must match for element-wise multiplication\n", .{});
+            return FloatVector.init(0);
+        }
+
+        const result = FloatVector.initMatrix(a.rows, a.cols);
+        
+        // Use SIMD for element-wise multiplication
+        const Vec4 = @Vector(4, f64);
+        const vec_iterations = @divTrunc(a.count, 4);
+        
+        var i: usize = 0;
+        while (i < vec_iterations) : (i += 1) {
+            const offset = i * 4;
+            const vec1 = Vec4{
+                a.data[offset],
+                a.data[offset + 1],
+                a.data[offset + 2],
+                a.data[offset + 3],
+            };
+            const vec2 = Vec4{
+                b.data[offset],
+                b.data[offset + 1],
+                b.data[offset + 2],
+                b.data[offset + 3],
+            };
+            const prod = vec1 * vec2;
+            result.data[offset] = prod[0];
+            result.data[offset + 1] = prod[1];
+            result.data[offset + 2] = prod[2];
+            result.data[offset + 3] = prod[3];
+        }
+        
+        // Handle remaining elements
+        const remaining = @mod(a.count, 4);
+        if (remaining > 0) {
+            const start = a.count - remaining;
+            for (start..a.count) |j| {
+                result.data[j] = a.data[j] * b.data[j];
+            }
+        }
+        
+        return result;
+    }
+
+    /// Matrix scalar multiplication
+    pub fn matscale(self: Self, scalar: f64) Self {
+        if (!self.isMatrix()) {
+            return FloatVector.scale(self, scalar);
+        }
+
+        const result = FloatVector.initMatrix(self.rows, self.cols);
+        
+        // Use SIMD for scalar multiplication
+        const Vec4 = @Vector(4, f64);
+        const scalar_vec: Vec4 = @splat(scalar);
+        const vec_iterations = @divTrunc(self.count, 4);
+        
+        var i: usize = 0;
+        while (i < vec_iterations) : (i += 1) {
+            const offset = i * 4;
+            const vec = Vec4{
+                self.data[offset],
+                self.data[offset + 1],
+                self.data[offset + 2],
+                self.data[offset + 3],
+            };
+            const scaled = vec * scalar_vec;
+            result.data[offset] = scaled[0];
+            result.data[offset + 1] = scaled[1];
+            result.data[offset + 2] = scaled[2];
+            result.data[offset + 3] = scaled[3];
+        }
+        
+        // Handle remaining elements
+        const remaining = @mod(self.count, 4);
+        if (remaining > 0) {
+            const start = self.count - remaining;
+            for (start..self.count) |j| {
+                result.data[j] = self.data[j] * scalar;
+            }
+        }
+        
+        return result;
     }
 };
 

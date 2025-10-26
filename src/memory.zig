@@ -12,7 +12,6 @@ const obj_h = @import("object.zig");
 const Obj = obj_h.Obj;
 const Node = obj_h.Node;
 const ObjHashTable = obj_h.ObjHashTable;
-const ObjMatrix = obj_h.ObjMatrix;
 const fvec = @import("objects/fvec.zig");
 const __obj = @import("objects/obj.zig");
 const table_h = @import("table.zig");
