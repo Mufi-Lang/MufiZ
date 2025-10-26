@@ -89,7 +89,7 @@ pub fn disassembleInstruction(chunk: *chunk_h.Chunk, offset: i32) i32 {
         34 => return invokeInstruction("OP_SUPER_INVOKE", chunk, offset),
         35 => {
             var offset_: i32 = offset + 1;
-            const constant: u8 = chunk.*.code[@as(c_uint, @intCast(offset_))];
+            const constant: u8 = chunk.*.code.?[@as(c_uint, @intCast(offset_))];
             offset_ += 1;
             std.debug.print("{s:<16} {d:4} ", .{ "OP_CLOSURE", constant });
             value_h.printValue(chunk.*.constants.values[constant]);
@@ -100,10 +100,10 @@ pub fn disassembleInstruction(chunk: *chunk_h.Chunk, offset: i32) i32 {
                 var j: i32 = 0;
                 _ = &j;
                 while (j < function.*.upvalueCount) : (j += 1) {
-                    var isLocal: i32 = @as(i32, chunk.*.code[@as(c_uint, @intCast((offset_) + 1))]);
+                    var isLocal: i32 = @as(i32, chunk.*.code.?[@as(c_uint, @intCast((offset_) + 1))]);
                     _ = &isLocal;
                     offset_ += 1;
-                    var index: i32 = @as(i32, chunk.*.code[@as(c_uint, @intCast((offset_) + 1))]);
+                    var index: i32 = @as(i32, chunk.*.code.?[@as(c_uint, @intCast((offset_) + 1))]);
                     _ = &index;
                     offset_ += 1;
                     std.debug.print("{d:04}      |                     {s} {d}\n", .{ offset_ - 2, if (isLocal != 0) "local" else "upvalue", index });

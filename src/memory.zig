@@ -197,7 +197,7 @@ pub fn markObject(object: ?*Obj) void {
 
     if (debug_opts.log_gc) {
         print("{p} mark ", .{@as(*anyopaque, @ptrCast(obj))});
-        value_h.printValue(value_h.OBJ_VAL(obj));
+        value_h.printValue(value_h.Value.init_obj(obj));
         print("\n", .{});
     }
 
@@ -696,7 +696,7 @@ pub fn freeObject(object: *Obj) void {
 pub fn blackenObject(object: *Obj) void {
     if (debug_opts.log_gc) {
         print("{p} blacken ", .{@as(*anyopaque, @ptrCast(object))});
-        value_h.printValue(value_h.OBJ_VAL(object));
+        value_h.printValue(value_h.Value.init_obj(object));
         print("\n", .{});
     }
 

@@ -1,6 +1,6 @@
 // Advanced import test - multiple functions and constants
 
-const advanced = import("test_suite/advanced_module.mufiz");
+const advanced = import("test_suite/advanced_module.mufi");
 
 // Test fibonacci
 print("Fibonacci(10):");
@@ -26,6 +26,6 @@ const greeting = advanced.greet_advanced("Smith", "Dr.");
 print(greeting);
 
 // Test module caching by importing same module again
-const advanced2 = import("test_suite/advanced_module.mufiz");
+const advanced2 = import("test_suite/advanced_module.mufi");
 print("Testing cached import:");
 print(advanced2.factorial(6));
