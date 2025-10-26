@@ -1,7 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
-const zig_version = "0.14.0";
+const zig_version = "0.15.1";
 
 comptime {
     const supported_version = std.SemanticVersion.parse(zig_version) catch unreachable;

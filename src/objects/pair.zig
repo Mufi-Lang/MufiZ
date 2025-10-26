@@ -22,7 +22,7 @@ pub const ObjPair = struct {
 
     /// Creates a new pair object with the given key and value
     pub fn create(key: Value, value: Value) *ObjPair {
-        const pair = @as(*ObjPair, @ptrCast(allocateObject(@sizeOf(ObjPair), .OBJ_PAIR)));
+        const pair = @as(*ObjPair, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjPair), .OBJ_PAIR))));
         pair.key = key;
         pair.value = value;
 
