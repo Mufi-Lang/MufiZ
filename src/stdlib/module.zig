@@ -513,7 +513,7 @@ fn readModuleFile(path: []const u8) ![]u8 {
         return error.FileTooLarge;
     }
 
-    const contents = try GlobalAlloc.alloc(u8, file_size);
+    const contents = try GlobalAlloc.alloc(u8, @intCast(file_size));
     _ = try file.readAll(contents);
 
     return contents;
