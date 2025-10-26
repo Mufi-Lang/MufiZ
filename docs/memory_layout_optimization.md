@@ -154,6 +154,6 @@ If further optimization is desired, consider:
 3. **Profile-guided optimization**: Measure hot paths before optimizing further
 
 ## References
-- Original issue: #[issue-number]
+- Original issue: Performance - Memory Layout Restructuring for Bytecode Compiler Optimization
 - Zig struct packing: https://ziglang.org/documentation/master/#struct
 - Cache line optimization: Computer Architecture, Hennessy & Patterson
