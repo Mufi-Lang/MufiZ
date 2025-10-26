@@ -23,6 +23,12 @@ logger = logging.getLogger(__name__)
 
 
 def run_test(num, test_file_path):
+    # Define tests that are expected to fail (they test error conditions)
+    expected_failures = [
+        "test_suite/test_const.mufi",
+        "test_suite/test_const_vs_var.mufi"
+    ]
+
     try:
         # Check if the test file is empty
         if os.path.getsize(test_file_path) == 0:
@@ -37,25 +43,43 @@ def run_test(num, test_file_path):
             timeout=30
         )
 
-        if result.returncode == 0:
-            logger.info(f"Test [{num}]: {test_file_path} executed successfully")
-            if result.stdout.strip():
-                logger.info(f"STDOUT: {result.stdout.strip()}")
-            return True, False
-        else:
-            # Handle different types of errors
-            if result.returncode == -11:  # SIGSEGV
-                logger.error(f"Test [{num}]: {test_file_path} crashed with segmentation fault (memory corruption)")
-            elif result.returncode == -6:  # SIGABRT
-                logger.error(f"Test [{num}]: {test_file_path} aborted (assertion failure or panic)")
-            else:
-                logger.error(f"Test [{num}]: {test_file_path} failed with exit code {result.returncode}")
+        # Check if this is an expected failure
+        is_expected_failure = test_file_path in expected_failures
 
-            if result.stderr.strip():
-                logger.error(f"STDERR: {result.stderr.strip()}")
-            if result.stdout.strip():
-                logger.error(f"STDOUT: {result.stdout.strip()}")
-            return False, False
+        if result.returncode == 0:
+            if is_expected_failure:
+                logger.error(f"Test [{num}]: {test_file_path} was expected to fail but passed")
+                return False, False
+            else:
+                logger.info(f"Test [{num}]: {test_file_path} executed successfully")
+                if result.stdout.strip():
+                    logger.info(f"STDOUT: {result.stdout.strip()}")
+                return True, False
+        else:
+            if is_expected_failure:
+                # Check if it failed for the right reason (const reassignment error)
+                if "Cannot assign to constant variable" in result.stderr:
+                    logger.info(f"Test [{num}]: {test_file_path} failed as expected (const reassignment error)")
+                    return True, False
+                else:
+                    logger.error(f"Test [{num}]: {test_file_path} failed for wrong reason (expected const error)")
+                    if result.stderr.strip():
+                        logger.error(f"STDERR: {result.stderr.strip()}")
+                    return False, False
+            else:
+                # Handle different types of errors for unexpected failures
+                if result.returncode == -11:  # SIGSEGV
+                    logger.error(f"Test [{num}]: {test_file_path} crashed with segmentation fault (memory corruption)")
+                elif result.returncode == -6:  # SIGABRT
+                    logger.error(f"Test [{num}]: {test_file_path} aborted (assertion failure or panic)")
+                else:
+                    logger.error(f"Test [{num}]: {test_file_path} failed with exit code {result.returncode}")
+
+                if result.stderr.strip():
+                    logger.error(f"STDERR: {result.stderr.strip()}")
+                if result.stdout.strip():
+                    logger.error(f"STDOUT: {result.stdout.strip()}")
+                return False, False
 
     except subprocess.TimeoutExpired:
         logger.error(f"Test [{num}]: {test_file_path} timed out after 30 seconds")

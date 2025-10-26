@@ -1,0 +1,33 @@
+// Edge cases test for import functionality
+
+// Test 1: Import non-existent file (should return nil)
+print("Test 1: Import non-existent file");
+const non_existent = import("non_existent_file.mufiz");
+if (non_existent == nil) {
+    print("PASS: Returns nil for non-existent file");
+} else {
+    print("FAIL: Should return nil for non-existent file");
+}
+
+// Test 2: Import empty module
+const empty = import("test_suite/empty_module.mufiz");
+print("Test 2: Import empty module");
+print("Empty module type:");
+print(what_is(empty));
+
+// Test 3: Module with only constants (no functions)
+const constants_only = import("test_suite/constants_module.mufiz");
+print("Test 3: Module with only constants");
+print("MAX_SIZE:");
+print(constants_only.MAX_SIZE);
+print("APP_NAME:");
+print(constants_only.APP_NAME);
+
+// Test 4: Import same module multiple times (caching)
+print("Test 4: Module caching");
+const mod1 = import("test_suite/foo.mufiz");
+const mod2 = import("test_suite/foo.mufiz");
+print("First import result:");
+print(mod1.add(1, 1));
+print("Second import result (should use cache):");
+print(mod2.add(2, 2));

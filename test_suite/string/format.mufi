@@ -1,4 +1,4 @@
 var f = "hello bob!";
 var bob = "bob";
-var f2 = f("hello {}!", bob);
+var f2 = format("hello {}!", bob);
 assert(f, f2);

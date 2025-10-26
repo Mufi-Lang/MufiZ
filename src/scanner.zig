@@ -46,6 +46,7 @@ fn initKeywordMap() void {
     keyword_map.put("case", .TOKEN_CASE) catch unreachable;
     keyword_map.put("break", .TOKEN_BREAK) catch unreachable;
     keyword_map.put("continue", .TOKEN_CONTINUE) catch unreachable;
+    keyword_map.put("import", .TOKEN_IMPORT) catch unreachable;
 
     keyword_map_initialized = true;
 }
@@ -106,27 +107,28 @@ pub const TokenType = enum(c_int) {
     TOKEN_CASE = 48,
     TOKEN_BREAK = 49,
     TOKEN_CONTINUE = 50,
+    TOKEN_IMPORT = 51,
     // Misc
-    TOKEN_ERROR = 51,
-    TOKEN_EOF = 52,
-    TOKEN_PLUS_EQUAL = 53,
-    TOKEN_MINUS_EQUAL = 54,
-    TOKEN_STAR_EQUAL = 55,
-    TOKEN_SLASH_EQUAL = 56,
-    TOKEN_PLUS_PLUS = 57,
-    TOKEN_MINUS_MINUS = 58,
-    TOKEN_HAT = 59,
-    TOKEN_LEFT_SQPAREN = 60,
-    TOKEN_RIGHT_SQPAREN = 61,
-    TOKEN_COLON = 62,
-    TOKEN_IMAGINARY = 63,
-    TOKEN_MULTILINE_STRING = 64,
-    TOKEN_BACKTICK_STRING = 65,
-    TOKEN_F_STRING = 66,
-    TOKEN_ARROW = 67,
-    TOKEN_HASH = 68,
-    TOKEN_RANGE_EXCLUSIVE = 69,
-    TOKEN_RANGE_INCLUSIVE = 70,
+    TOKEN_ERROR = 52,
+    TOKEN_EOF = 53,
+    TOKEN_PLUS_EQUAL = 54,
+    TOKEN_MINUS_EQUAL = 55,
+    TOKEN_STAR_EQUAL = 56,
+    TOKEN_SLASH_EQUAL = 57,
+    TOKEN_PLUS_PLUS = 58,
+    TOKEN_MINUS_MINUS = 59,
+    TOKEN_HAT = 60,
+    TOKEN_LEFT_SQPAREN = 61,
+    TOKEN_RIGHT_SQPAREN = 62,
+    TOKEN_COLON = 63,
+    TOKEN_IMAGINARY = 64,
+    TOKEN_MULTILINE_STRING = 65,
+    TOKEN_BACKTICK_STRING = 66,
+    TOKEN_F_STRING = 67,
+    TOKEN_ARROW = 68,
+    TOKEN_HASH = 69,
+    TOKEN_RANGE_EXCLUSIVE = 70,
+    TOKEN_RANGE_INCLUSIVE = 71,
 };
 
 pub const Token = struct {

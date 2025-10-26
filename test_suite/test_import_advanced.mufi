@@ -1,0 +1,31 @@
+// Advanced import test - multiple functions and constants
+
+const advanced = import("test_suite/advanced_module.mufi");
+
+// Test fibonacci
+print("Fibonacci(10):");
+print(advanced.fibonacci(10));
+
+// Test factorial
+print("Factorial(5):");
+print(advanced.factorial(5));
+
+// Test power
+print("Power(2, 8):");
+print(advanced.power(2, 8));
+
+// Test constants
+print("E constant:");
+print(advanced.E);
+
+print("Golden Ratio:");
+print(advanced.GOLDEN_RATIO);
+
+// Test function with multiple parameters
+const greeting = advanced.greet_advanced("Smith", "Dr.");
+print(greeting);
+
+// Test module caching by importing same module again
+const advanced2 = import("test_suite/advanced_module.mufi");
+print("Testing cached import:");
+print(advanced2.factorial(6));

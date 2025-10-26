@@ -135,15 +135,10 @@ inline fn next_frame_count() i32 {
 }
 
 inline fn set_stack_top(argc: i32, value: Value) void {
-    const tmp = -argc - 1;
-    // if (tmp >= 0) break :blk vm.stackTop + @as(usize, @intCast(tmp)) else break :blk vm.stackTop - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    var ref: [*]Value = undefined;
-    if (tmp >= 0) {
-        ref = vm.stackTop + @as(usize, @intCast(tmp));
-    } else {
-        ref = vm.stackTop - @as(usize, @intCast(-tmp - 1));
-    }
-    ref[0] = value;
+    // Replace the receiver (which is argc positions back from stackTop)
+    // vm.stackTop points after the last element, so we need to go back argc+1 positions
+    const receiver_position = vm.stackTop - @as(usize, @intCast(argc + 1));
+    receiver_position[0] = value;
 }
 
 pub fn runtimeError(comptime format: []const u8, args: anytype) void {

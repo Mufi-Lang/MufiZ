@@ -1,0 +1,17 @@
+// Test module for import functionality
+// This file defines some functions that can be imported
+
+fun add(a, b) {
+    return a + b;
+}
+
+fun multiply(a, b) {
+    return a * b;
+}
+
+fun greet(name) {
+    return "Hello, " + name + "!";
+}
+
+const PI = 3.14159;
+const VERSION = "1.0.0";

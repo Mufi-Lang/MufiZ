@@ -1,0 +1,23 @@
+// Test import functionality
+// Import a module and use its functions
+
+const foo = import("test_suite/test_module.mufi");
+
+// Test calling imported functions
+const result1 = foo.add(2, 3);
+print("foo.add(2, 3) = ");
+print(result1);
+
+const result2 = foo.multiply(4, 5);
+print("foo.multiply(4, 5) = ");
+print(result2);
+
+const greeting = foo.greet("World");
+print(greeting);
+
+// Test accessing imported constants
+print("PI from module: ");
+print(foo.PI);
+
+print("VERSION from module: ");
+print(foo.VERSION);
