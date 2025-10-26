@@ -1,0 +1,39 @@
+// Test backward compatibility - 1D vectors should still work as before
+
+// Test creating a 1D vector
+var v = fvec(5);
+push(v, 1.0, 2.0, 3.0, 4.0, 5.0);
+
+print "1D Vector:";
+print v;
+
+// Test vector operations
+var sum_v = sum(v);
+print "\nSum of vector: ";
+print sum_v;
+assert(sum_v, 15.0);
+
+var mean_v = mean(v);
+print "Mean of vector: ";
+print mean_v;
+assert(mean_v, 3.0);
+
+// Test vector arithmetic
+var v2 = fvec(5);
+push(v2, 2.0, 2.0, 2.0, 2.0, 2.0);
+
+var v_add = v + v2;
+print "\nVector addition:";
+print v_add;
+
+var v_mul = v * v2;
+print "\nVector multiplication:";
+print v_mul;
+
+// Test dot product
+var dot_result = dot(v, v2);
+print "\nDot product: ";
+print dot_result;
+assert(dot_result, 30.0);
+
+print "\n1D vector backward compatibility tests passed!";

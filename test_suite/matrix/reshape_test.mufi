@@ -1,0 +1,36 @@
+// Test reshape operation
+
+// Create a 1D vector
+var v = fvec(6);
+push(v, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0);
+
+print "Original 1D vector:";
+print v;
+
+// Reshape to 2x3 matrix
+var m = reshape(v, 2, 3);
+print "\nReshaped to 2x3 matrix:";
+print m;
+
+// Verify elements
+assert(mat_at(m, 0, 0), 1.0);
+assert(mat_at(m, 0, 1), 2.0);
+assert(mat_at(m, 0, 2), 3.0);
+assert(mat_at(m, 1, 0), 4.0);
+assert(mat_at(m, 1, 1), 5.0);
+assert(mat_at(m, 1, 2), 6.0);
+
+// Reshape to 3x2 matrix
+var m2 = reshape(v, 3, 2);
+print "\nReshaped to 3x2 matrix:";
+print m2;
+
+// Verify elements
+assert(mat_at(m2, 0, 0), 1.0);
+assert(mat_at(m2, 0, 1), 2.0);
+assert(mat_at(m2, 1, 0), 3.0);
+assert(mat_at(m2, 1, 1), 4.0);
+assert(mat_at(m2, 2, 0), 5.0);
+assert(mat_at(m2, 2, 1), 6.0);
+
+print "\nReshape tests passed!";

@@ -11,12 +11,14 @@ we can ensure more memory safety.
 
 ## Recent Updates
 
+- **Matrix Support**: FloatVector now supports 2D matrix operations with SIMD acceleration, including matrix multiplication, transpose, and element-wise operations
 - **Improved REPL Experience**: The interactive shell now provides a cleaner experience by not echoing characters while typing
 - **Hash Table Syntax Change**: Hash tables now use `#{}` syntax to differentiate from float vectors (`{}`)
 
 ## Data Structures Syntax:
 
 - **Float Vectors**: Use curly braces `{}` - Example: `var vector = {1, 2, 3, 4, 5}`
+- **Matrices**: Use `matrix(rows, cols)` function - Example: `var mat = matrix(3, 3)` creates a 3x3 matrix
 - **Hash Tables**: Use hash-prefixed curly braces `#{}` - Example: `var dict = #{"key": "value", "name": "John"}`
 
 ## Usage:
