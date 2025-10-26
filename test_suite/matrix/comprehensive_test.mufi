@@ -1,0 +1,98 @@
+// Comprehensive matrix operations test combining multiple features
+
+print "=== Comprehensive Matrix Test ===\n";
+
+// Test 1: Create and manipulate matrices
+print "Test 1: Matrix Creation and Manipulation";
+var m = matrix(3, 3);
+mat_set(m, 0, 0, 1.0); mat_set(m, 0, 1, 2.0); mat_set(m, 0, 2, 3.0);
+mat_set(m, 1, 0, 4.0); mat_set(m, 1, 1, 5.0); mat_set(m, 1, 2, 6.0);
+mat_set(m, 2, 0, 7.0); mat_set(m, 2, 1, 8.0); mat_set(m, 2, 2, 9.0);
+print m;
+print " ✓\n";
+
+// Test 2: Identity matrix and matrix multiplication
+print "Test 2: Identity Matrix Multiplication";
+var id = identity(3);
+var result = matmul(m, id);
+// m * I should equal m
+assert(mat_at(result, 0, 0), mat_at(m, 0, 0));
+assert(mat_at(result, 1, 1), mat_at(m, 1, 1));
+assert(mat_at(result, 2, 2), mat_at(m, 2, 2));
+print " ✓\n";
+
+// Test 3: Transpose
+print "Test 3: Transpose";
+var m_small = matrix(2, 3);
+mat_set(m_small, 0, 0, 1.0); mat_set(m_small, 0, 1, 2.0); mat_set(m_small, 0, 2, 3.0);
+mat_set(m_small, 1, 0, 4.0); mat_set(m_small, 1, 1, 5.0); mat_set(m_small, 1, 2, 6.0);
+var m_t = transpose(m_small);
+assert(mat_at(m_t, 0, 0), 1.0);
+assert(mat_at(m_t, 1, 0), 2.0);
+assert(mat_at(m_t, 2, 0), 3.0);
+assert(mat_at(m_t, 0, 1), 4.0);
+assert(mat_at(m_t, 1, 1), 5.0);
+assert(mat_at(m_t, 2, 1), 6.0);
+print " ✓\n";
+
+// Test 4: Matrix multiplication
+print "Test 4: Matrix Multiplication";
+var a = matrix(2, 2);
+mat_set(a, 0, 0, 1.0); mat_set(a, 0, 1, 2.0);
+mat_set(a, 1, 0, 3.0); mat_set(a, 1, 1, 4.0);
+
+var b = matrix(2, 2);
+mat_set(b, 0, 0, 5.0); mat_set(b, 0, 1, 6.0);
+mat_set(b, 1, 0, 7.0); mat_set(b, 1, 1, 8.0);
+
+var c = matmul(a, b);
+// [[1,2],[3,4]] * [[5,6],[7,8]] = [[19,22],[43,50]]
+assert(mat_at(c, 0, 0), 19.0);
+assert(mat_at(c, 0, 1), 22.0);
+assert(mat_at(c, 1, 0), 43.0);
+assert(mat_at(c, 1, 1), 50.0);
+print " ✓\n";
+
+// Test 5: Row and column extraction
+print "Test 5: Row/Column Extraction";
+var row0 = get_row(m_small, 0);
+var col1 = get_col(m_small, 1);
+assert(nth(row0, 0), 1.0);
+assert(nth(row0, 1), 2.0);
+assert(nth(row0, 2), 3.0);
+assert(nth(col1, 0), 2.0);
+assert(nth(col1, 1), 5.0);
+print " ✓\n";
+
+// Test 6: Reshape vector to matrix
+print "Test 6: Reshape Vector to Matrix";
+var v = fvec(4);
+push(v, 1.0, 2.0, 3.0, 4.0);
+var v_mat = reshape(v, 2, 2);
+assert(mat_at(v_mat, 0, 0), 1.0);
+assert(mat_at(v_mat, 0, 1), 2.0);
+assert(mat_at(v_mat, 1, 0), 3.0);
+assert(mat_at(v_mat, 1, 1), 4.0);
+print " ✓\n";
+
+// Test 7: Zeros and Ones
+print "Test 7: Zeros and Ones Matrices";
+var z = zeros(2, 2);
+var o = ones(2, 2);
+assert(mat_at(z, 0, 0), 0.0);
+assert(mat_at(z, 1, 1), 0.0);
+assert(mat_at(o, 0, 0), 1.0);
+assert(mat_at(o, 1, 1), 1.0);
+print " ✓\n";
+
+// Test 8: Backward compatibility with vectors
+print "Test 8: Vector Operations (Backward Compatibility)";
+var v1 = fvec(3);
+var v2 = fvec(3);
+push(v1, 1.0, 2.0, 3.0);
+push(v2, 4.0, 5.0, 6.0);
+var dot_prod = dot(v1, v2);
+assert(dot_prod, 32.0); // 1*4 + 2*5 + 3*6 = 32
+print " ✓\n";
+
+print "\n=== All Comprehensive Tests Passed! ===";
