@@ -14,6 +14,7 @@ const ObjRange = @import("../objects/range.zig").ObjRange;
 const stdlib_error = @import("../stdlib.zig").stdlib_error;
 const Value = @import("../value.zig").Value;
 const valuesEqual = @import("../value.zig").valuesEqual;
+const valueToString = @import("../value.zig").valueToString;
 
 // linked_list() - Creates a new linked list
 pub fn linked_list(argc: i32, args: [*]Value) Value {
@@ -986,4 +987,250 @@ pub fn splice(argc: i32, args: [*]Value) Value {
         const result = obj_h.spliceLinkedList(list, @intCast(start), @intCast(actual_end));
         return Value.init_obj(@ptrCast(result));
     }
+}
+
+// assert(expected, actual) - Assertion function for testing
+pub fn assert_fn(argc: i32, args: [*]Value) Value {
+    if (argc != 2) return stdlib_error("assert() expects two arguments!", .{ .argn = argc });
+
+    if (valuesEqual(args[0], args[1])) {
+        return Value.init_nil();
+    } else {
+        const expected_str = valueToString(args[0]);
+        const actual_str = valueToString(args[1]);
+        std.debug.print("Assertion failed: expected {s}, got {s}\n", .{ expected_str, actual_str });
+        return Value.init_nil();
+    }
+}
+
+// peek(vector, index) - Peek at element without advancing iterator
+pub fn peek(argc: i32, args: [*]Value) Value {
+    if (argc != 2) return stdlib_error("peek() expects two arguments!", .{ .argn = argc });
+
+    if (!Value.is_obj_type(args[0], .OBJ_FVECTOR)) {
+        return stdlib_error("First argument must be a vector!", .{ .value_type = conv.what_is(args[0]) });
+    }
+
+    if (!type_check(1, args + 1, 6)) {
+        return stdlib_error("Index must be a number!", .{ .value_type = conv.what_is(args[1]) });
+    }
+
+    const vector = args[0].as_vector();
+    const index = args[1].as_num_int();
+
+    if (index < 0 or index >= vector.count) {
+        return stdlib_error("Index out of bounds!", .{ .argn = index });
+    }
+
+    return Value.init_double(vector.data[@intCast(index)]);
+}
+
+// equal_list(list1, list2) - Compare two lists for equality
+pub fn equal_list(argc: i32, args: [*]Value) Value {
+    if (argc != 2) return stdlib_error("equal_list() expects two arguments!", .{ .argn = argc });
+
+    if (!Value.is_obj_type(args[0], .OBJ_LINKED_LIST) or !Value.is_obj_type(args[1], .OBJ_LINKED_LIST)) {
+        return stdlib_error("Both arguments must be linked lists!", .{ .value_type = conv.what_is(args[0]) });
+    }
+
+    const list1 = args[0].as_linked_list();
+    const list2 = args[1].as_linked_list();
+
+    if (list1.count != list2.count) {
+        return Value.init_bool(false);
+    }
+
+    var node1 = list1.head;
+    var node2 = list2.head;
+
+    while (node1 != null and node2 != null) {
+        if (!valuesEqual(node1.?.data, node2.?.data)) {
+            return Value.init_bool(false);
+        }
+        node1 = node1.?.next;
+        node2 = node2.?.next;
+    }
+
+    return Value.init_bool(true);
+}
+
+// cross(vector1, vector2) - Cross product of two 3D vectors
+pub fn cross(argc: i32, args: [*]Value) Value {
+    if (argc != 2) return stdlib_error("cross() expects two arguments!", .{ .argn = argc });
+
+    if (!Value.is_obj_type(args[0], .OBJ_FVECTOR) or !Value.is_obj_type(args[1], .OBJ_FVECTOR)) {
+        return stdlib_error("Both arguments must be vectors!", .{ .value_type = conv.what_is(args[0]) });
+    }
+
+    const v1 = args[0].as_vector();
+    const v2 = args[1].as_vector();
+
+    if (v1.count != 3 or v2.count != 3) {
+        return stdlib_error("Cross product requires 3D vectors!", .{ .argn = @intCast(v1.count) });
+    }
+
+    const result = fvector.FloatVector.init(3);
+    result.push(v1.data[1] * v2.data[2] - v1.data[2] * v2.data[1]);
+    result.push(v1.data[2] * v2.data[0] - v1.data[0] * v2.data[2]);
+    result.push(v1.data[0] * v2.data[1] - v1.data[1] * v2.data[0]);
+
+    return Value.init_obj(@ptrCast(result));
+}
+
+// proj(vector1, vector2) - Vector projection of v1 onto v2
+pub fn proj(argc: i32, args: [*]Value) Value {
+    if (argc != 2) return stdlib_error("proj() expects two arguments!", .{ .argn = argc });
+
+    if (!Value.is_obj_type(args[0], .OBJ_FVECTOR) or !Value.is_obj_type(args[1], .OBJ_FVECTOR)) {
+        return stdlib_error("Both arguments must be vectors!", .{ .value_type = conv.what_is(args[0]) });
+    }
+
+    const v1 = args[0].as_vector();
+    const v2 = args[1].as_vector();
+
+    if (v1.count != v2.count) {
+        return stdlib_error("Vectors must have the same length!", .{ .argn = @intCast(v1.count) });
+    }
+
+    const dot_v1_v2 = dot(2, args).as_double();
+    const dot_v2_v2 = dot(1, args + 1).as_double();
+
+    if (dot_v2_v2 == 0) {
+        return stdlib_error("Cannot project onto zero vector!", .{ .argn = 0 });
+    }
+
+    const scalar = dot_v1_v2 / dot_v2_v2;
+    const result = fvector.FloatVector.init(@intCast(v2.count));
+
+    for (0..v2.count) |i| {
+        result.push(scalar * v2.data[i]);
+    }
+
+    return Value.init_obj(@ptrCast(result));
+}
+
+// reject(vector1, vector2) - Vector rejection of v1 from v2
+pub fn reject(argc: i32, args: [*]Value) Value {
+    if (argc != 2) return stdlib_error("reject() expects two arguments!", .{ .argn = argc });
+
+    const projection = proj(2, args);
+    if (projection.is_nil()) return projection;
+
+    const v1 = args[0].as_vector();
+    const proj_vec = projection.as_vector();
+    const result = fvector.FloatVector.init(@intCast(v1.count));
+
+    for (0..v1.count) |i| {
+        result.push(v1.data[i] - proj_vec.data[i]);
+    }
+
+    return Value.init_obj(@ptrCast(result));
+}
+
+// reflect(incident, normal) - Reflect incident vector across normal
+pub fn reflect(argc: i32, args: [*]Value) Value {
+    if (argc != 2) return stdlib_error("reflect() expects two arguments!", .{ .argn = argc });
+
+    if (!Value.is_obj_type(args[0], .OBJ_FVECTOR) or !Value.is_obj_type(args[1], .OBJ_FVECTOR)) {
+        return stdlib_error("Both arguments must be vectors!", .{ .value_type = conv.what_is(args[0]) });
+    }
+
+    const incident = args[0].as_vector();
+    const normal = args[1].as_vector();
+
+    if (incident.count != normal.count) {
+        return stdlib_error("Vectors must have the same length!", .{ .argn = @intCast(incident.count) });
+    }
+
+    const dot_product = dot(2, args).as_double();
+    const result = fvector.FloatVector.init(@intCast(incident.count));
+
+    for (0..incident.count) |i| {
+        result.push(incident.data[i] - 2 * dot_product * normal.data[i]);
+    }
+
+    return Value.init_obj(@ptrCast(result));
+}
+
+// angle(vector1, vector2) - Angle between two vectors in radians
+pub fn angle(argc: i32, args: [*]Value) Value {
+    if (argc != 2) return stdlib_error("angle() expects two arguments!", .{ .argn = argc });
+
+    if (!Value.is_obj_type(args[0], .OBJ_FVECTOR) or !Value.is_obj_type(args[1], .OBJ_FVECTOR)) {
+        return stdlib_error("Both arguments must be vectors!", .{ .value_type = conv.what_is(args[0]) });
+    }
+
+    const v1 = args[0].as_vector();
+    const v2 = args[1].as_vector();
+
+    if (v1.count != v2.count) {
+        return stdlib_error("Vectors must have the same length!", .{ .argn = @intCast(v1.count) });
+    }
+
+    const dot_product = dot(2, args).as_double();
+    const norm_v1 = norm(1, args).as_double();
+    const norm_v2 = norm(1, args + 1).as_double();
+
+    if (norm_v1 == 0 or norm_v2 == 0) {
+        return stdlib_error("Cannot calculate angle with zero vector!", .{ .argn = 0 });
+    }
+
+    const cos_angle = dot_product / (norm_v1 * norm_v2);
+    const clamped = @max(-1.0, @min(1.0, cos_angle));
+
+    return Value.init_double(std.math.acos(clamped));
+}
+
+// interp1(x_vals, y_vals, query) - Linear interpolation
+pub fn interp1(argc: i32, args: [*]Value) Value {
+    if (argc != 3) return stdlib_error("interp1() expects three arguments!", .{ .argn = argc });
+
+    if (!Value.is_obj_type(args[0], .OBJ_FVECTOR) or !Value.is_obj_type(args[1], .OBJ_FVECTOR)) {
+        return stdlib_error("First two arguments must be vectors!", .{ .value_type = conv.what_is(args[0]) });
+    }
+
+    if (!type_check(1, args + 2, 6)) {
+        return stdlib_error("Query point must be a number!", .{ .value_type = conv.what_is(args[2]) });
+    }
+
+    const x_vals = args[0].as_vector();
+    const y_vals = args[1].as_vector();
+    const query = args[2].as_num_double();
+
+    if (x_vals.count != y_vals.count) {
+        return stdlib_error("X and Y vectors must have the same length!", .{ .argn = @intCast(x_vals.count) });
+    }
+
+    if (x_vals.count < 2) {
+        return stdlib_error("Need at least 2 points for interpolation!", .{ .argn = @intCast(x_vals.count) });
+    }
+
+    // Find interpolation interval
+    for (0..x_vals.count - 1) |i| {
+        if (query >= x_vals.data[i] and query <= x_vals.data[i + 1]) {
+            const x0 = x_vals.data[i];
+            const x1 = x_vals.data[i + 1];
+            const y0 = y_vals.data[i];
+            const y1 = y_vals.data[i + 1];
+
+            const t = (query - x0) / (x1 - x0);
+            const result = y0 + t * (y1 - y0);
+
+            return Value.init_double(result);
+        }
+    }
+
+    return stdlib_error("Query point is outside interpolation range!", .{ .value_type = conv.what_is(args[2]) });
+}
+
+// workspace() - Debug function to show VM workspace
+pub fn workspace(argc: i32, args: [*]Value) Value {
+    _ = args;
+    if (argc != 0) return stdlib_error("workspace() expects no arguments!", .{ .argn = argc });
+
+    std.debug.print("Workspace:\n", .{});
+    std.debug.print("Note: This is a placeholder for workspace inspection.\n", .{});
+    std.debug.print("Consider implementing VM globals inspection here.\n", .{});
+
+    return Value.init_nil();
 }

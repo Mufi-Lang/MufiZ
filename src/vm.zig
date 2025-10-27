@@ -11,7 +11,6 @@ const debug_opts = @import("debug");
 const chunk_h = @import("chunk.zig");
 const Chunk = chunk_h.Chunk;
 const compiler_h = @import("compiler.zig");
-const cstd_h = @import("cstd.zig");
 const debug_h = @import("debug.zig");
 const errors = @import("errors.zig");
 const mem_utils = @import("mem_utils.zig");

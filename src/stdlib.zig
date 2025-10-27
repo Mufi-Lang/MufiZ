@@ -102,6 +102,16 @@ pub const COLLECTION_FUNCTIONS = [_]BuiltinDef{
     .{ .name = "norm", .func = collections.norm, .params = "vector", .description = "Euclidean norm of vector", .module = "collections" },
     .{ .name = "range_to_array", .func = collections.range_to_array, .params = "range", .description = "Converts a range to an array", .module = "collections" },
     .{ .name = "pairs", .func = collections.pairs, .params = "hash_table", .description = "Gets key-value pairs from hash table", .module = "collections" },
+    .{ .name = "assert", .func = collections.assert_fn, .params = "expected, actual", .description = "Assertion function for testing", .module = "collections" },
+    .{ .name = "peek", .func = collections.peek, .params = "vector, index", .description = "Peek at element without advancing iterator", .module = "collections" },
+    .{ .name = "equal_list", .func = collections.equal_list, .params = "list1, list2", .description = "Compare two lists for equality", .module = "collections" },
+    .{ .name = "cross", .func = collections.cross, .params = "vector1, vector2", .description = "Cross product of two 3D vectors", .module = "collections" },
+    .{ .name = "proj", .func = collections.proj, .params = "vector1, vector2", .description = "Vector projection of v1 onto v2", .module = "collections" },
+    .{ .name = "reject", .func = collections.reject, .params = "vector1, vector2", .description = "Vector rejection of v1 from v2", .module = "collections" },
+    .{ .name = "reflect", .func = collections.reflect, .params = "incident, normal", .description = "Reflect incident vector across normal", .module = "collections" },
+    .{ .name = "angle", .func = collections.angle, .params = "vector1, vector2", .description = "Angle between two vectors in radians", .module = "collections" },
+    .{ .name = "interp1", .func = collections.interp1, .params = "x_vals, y_vals, query", .description = "Linear interpolation", .module = "collections" },
+    .{ .name = "workspace", .func = collections.workspace, .params = "", .description = "Debug function to show VM workspace", .module = "collections" },
 };
 
 pub const FILESYSTEM_FUNCTIONS = [_]BuiltinDef{
