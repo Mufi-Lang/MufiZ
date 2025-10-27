@@ -852,13 +852,343 @@ pub const FloatVector = struct {
         }
         return -1;
     }
+    // SIMD-optimized mathematical functions
+    pub fn sin_vec(self: Self) Self {
+        const result = FloatVector.init(self.count);
+        const Vec4 = @Vector(4, f64);
+        const vec_iterations = @divTrunc(self.count, 4);
+
+        var i: usize = 0;
+        while (i < vec_iterations) : (i += 1) {
+            const offset = i * 4;
+            const input_vec = Vec4{
+                self.data[offset],
+                self.data[offset + 1],
+                self.data[offset + 2],
+                self.data[offset + 3],
+            };
+
+            // Apply sin to each element
+            result.data[offset] = @sin(input_vec[0]);
+            result.data[offset + 1] = @sin(input_vec[1]);
+            result.data[offset + 2] = @sin(input_vec[2]);
+            result.data[offset + 3] = @sin(input_vec[3]);
+        }
+
+        // Handle remaining elements
+        const remaining = @mod(self.count, 4);
+        if (remaining > 0) {
+            const start = self.count - remaining;
+            for (start..self.count) |j| {
+                result.data[j] = @sin(self.data[j]);
+            }
+        }
+
+        result.count = self.count;
+        return result;
+    }
+
+    pub fn cos_vec(self: Self) Self {
+        const result = FloatVector.init(self.count);
+        const Vec4 = @Vector(4, f64);
+        const vec_iterations = @divTrunc(self.count, 4);
+
+        var i: usize = 0;
+        while (i < vec_iterations) : (i += 1) {
+            const offset = i * 4;
+            const input_vec = Vec4{
+                self.data[offset],
+                self.data[offset + 1],
+                self.data[offset + 2],
+                self.data[offset + 3],
+            };
+
+            // Apply cos to each element
+            result.data[offset] = @cos(input_vec[0]);
+            result.data[offset + 1] = @cos(input_vec[1]);
+            result.data[offset + 2] = @cos(input_vec[2]);
+            result.data[offset + 3] = @cos(input_vec[3]);
+        }
+
+        // Handle remaining elements
+        const remaining = @mod(self.count, 4);
+        if (remaining > 0) {
+            const start = self.count - remaining;
+            for (start..self.count) |j| {
+                result.data[j] = @cos(self.data[j]);
+            }
+        }
+
+        result.count = self.count;
+        return result;
+    }
+
+    pub fn sqrt_vec(self: Self) Self {
+        const result = FloatVector.init(self.count);
+        const Vec4 = @Vector(4, f64);
+        const vec_iterations = @divTrunc(self.count, 4);
+
+        var i: usize = 0;
+        while (i < vec_iterations) : (i += 1) {
+            const offset = i * 4;
+            const input_vec = Vec4{
+                self.data[offset],
+                self.data[offset + 1],
+                self.data[offset + 2],
+                self.data[offset + 3],
+            };
+
+            // Apply sqrt to each element
+            result.data[offset] = @sqrt(input_vec[0]);
+            result.data[offset + 1] = @sqrt(input_vec[1]);
+            result.data[offset + 2] = @sqrt(input_vec[2]);
+            result.data[offset + 3] = @sqrt(input_vec[3]);
+        }
+
+        // Handle remaining elements
+        const remaining = @mod(self.count, 4);
+        if (remaining > 0) {
+            const start = self.count - remaining;
+            for (start..self.count) |j| {
+                result.data[j] = @sqrt(self.data[j]);
+            }
+        }
+
+        result.count = self.count;
+        return result;
+    }
+
+    pub fn abs_vec(self: Self) Self {
+        const result = FloatVector.init(self.count);
+        const Vec4 = @Vector(4, f64);
+        const vec_iterations = @divTrunc(self.count, 4);
+
+        var i: usize = 0;
+        while (i < vec_iterations) : (i += 1) {
+            const offset = i * 4;
+            const input_vec = Vec4{
+                self.data[offset],
+                self.data[offset + 1],
+                self.data[offset + 2],
+                self.data[offset + 3],
+            };
+
+            // Apply abs to each element using @abs for floating point
+            result.data[offset] = @abs(input_vec[0]);
+            result.data[offset + 1] = @abs(input_vec[1]);
+            result.data[offset + 2] = @abs(input_vec[2]);
+            result.data[offset + 3] = @abs(input_vec[3]);
+        }
+
+        // Handle remaining elements
+        const remaining = @mod(self.count, 4);
+        if (remaining > 0) {
+            const start = self.count - remaining;
+            for (start..self.count) |j| {
+                result.data[j] = @abs(self.data[j]);
+            }
+        }
+
+        result.count = self.count;
+        return result;
+    }
+
+    pub fn pow_vec(self: Self, exponent: f64) Self {
+        const result = FloatVector.init(self.count);
+        const Vec4 = @Vector(4, f64);
+        const vec_iterations = @divTrunc(self.count, 4);
+
+        var i: usize = 0;
+        while (i < vec_iterations) : (i += 1) {
+            const offset = i * 4;
+            const input_vec = Vec4{
+                self.data[offset],
+                self.data[offset + 1],
+                self.data[offset + 2],
+                self.data[offset + 3],
+            };
+
+            // Apply pow to each element
+            result.data[offset] = std.math.pow(f64, input_vec[0], exponent);
+            result.data[offset + 1] = std.math.pow(f64, input_vec[1], exponent);
+            result.data[offset + 2] = std.math.pow(f64, input_vec[2], exponent);
+            result.data[offset + 3] = std.math.pow(f64, input_vec[3], exponent);
+        }
+
+        // Handle remaining elements
+        const remaining = @mod(self.count, 4);
+        if (remaining > 0) {
+            const start = self.count - remaining;
+            for (start..self.count) |j| {
+                result.data[j] = std.math.pow(f64, self.data[j], exponent);
+            }
+        }
+
+        result.count = self.count;
+        return result;
+    }
+
+    pub fn exp_vec(self: Self) Self {
+        const result = FloatVector.init(self.count);
+        const Vec4 = @Vector(4, f64);
+        const vec_iterations = @divTrunc(self.count, 4);
+
+        var i: usize = 0;
+        while (i < vec_iterations) : (i += 1) {
+            const offset = i * 4;
+            const input_vec = Vec4{
+                self.data[offset],
+                self.data[offset + 1],
+                self.data[offset + 2],
+                self.data[offset + 3],
+            };
+
+            // Apply exp to each element
+            result.data[offset] = @exp(input_vec[0]);
+            result.data[offset + 1] = @exp(input_vec[1]);
+            result.data[offset + 2] = @exp(input_vec[2]);
+            result.data[offset + 3] = @exp(input_vec[3]);
+        }
+
+        // Handle remaining elements
+        const remaining = @mod(self.count, 4);
+        if (remaining > 0) {
+            const start = self.count - remaining;
+            for (start..self.count) |j| {
+                result.data[j] = @exp(self.data[j]);
+            }
+        }
+
+        result.count = self.count;
+        return result;
+    }
+
+    pub fn log_vec(self: Self) Self {
+        const result = FloatVector.init(self.count);
+        const Vec4 = @Vector(4, f64);
+        const vec_iterations = @divTrunc(self.count, 4);
+
+        var i: usize = 0;
+        while (i < vec_iterations) : (i += 1) {
+            const offset = i * 4;
+            const input_vec = Vec4{
+                self.data[offset],
+                self.data[offset + 1],
+                self.data[offset + 2],
+                self.data[offset + 3],
+            };
+
+            // Apply log to each element
+            result.data[offset] = @log(input_vec[0]);
+            result.data[offset + 1] = @log(input_vec[1]);
+            result.data[offset + 2] = @log(input_vec[2]);
+            result.data[offset + 3] = @log(input_vec[3]);
+        }
+
+        // Handle remaining elements
+        const remaining = @mod(self.count, 4);
+        if (remaining > 0) {
+            const start = self.count - remaining;
+            for (start..self.count) |j| {
+                result.data[j] = @log(self.data[j]);
+            }
+        }
+
+        result.count = self.count;
+        return result;
+    }
+
+    // SIMD-optimized element-wise comparison functions
+    pub fn greater_than(self: Self, other: Self) Self {
+        const min_count = @min(self.count, other.count);
+        const result = FloatVector.init(min_count);
+        const Vec4 = @Vector(4, f64);
+        const vec_iterations = @divTrunc(min_count, 4);
+
+        var i: usize = 0;
+        while (i < vec_iterations) : (i += 1) {
+            const offset = i * 4;
+            const vec1 = Vec4{
+                self.data[offset],
+                self.data[offset + 1],
+                self.data[offset + 2],
+                self.data[offset + 3],
+            };
+            const vec2 = Vec4{
+                other.data[offset],
+                other.data[offset + 1],
+                other.data[offset + 2],
+                other.data[offset + 3],
+            };
+
+            const comparison = vec1 > vec2;
+            result.data[offset] = if (comparison[0]) 1.0 else 0.0;
+            result.data[offset + 1] = if (comparison[1]) 1.0 else 0.0;
+            result.data[offset + 2] = if (comparison[2]) 1.0 else 0.0;
+            result.data[offset + 3] = if (comparison[3]) 1.0 else 0.0;
+        }
+
+        // Handle remaining elements
+        const remaining = @mod(min_count, 4);
+        if (remaining > 0) {
+            const start = min_count - remaining;
+            for (start..min_count) |j| {
+                result.data[j] = if (self.data[j] > other.data[j]) 1.0 else 0.0;
+            }
+        }
+
+        result.count = min_count;
+        return result;
+    }
+
+    pub fn less_than(self: Self, other: Self) Self {
+        const min_count = @min(self.count, other.count);
+        const result = FloatVector.init(min_count);
+        const Vec4 = @Vector(4, f64);
+        const vec_iterations = @divTrunc(min_count, 4);
+
+        var i: usize = 0;
+        while (i < vec_iterations) : (i += 1) {
+            const offset = i * 4;
+            const vec1 = Vec4{
+                self.data[offset],
+                self.data[offset + 1],
+                self.data[offset + 2],
+                self.data[offset + 3],
+            };
+            const vec2 = Vec4{
+                other.data[offset],
+                other.data[offset + 1],
+                other.data[offset + 2],
+                other.data[offset + 3],
+            };
+
+            const comparison = vec1 < vec2;
+            result.data[offset] = if (comparison[0]) 1.0 else 0.0;
+            result.data[offset + 1] = if (comparison[1]) 1.0 else 0.0;
+            result.data[offset + 2] = if (comparison[2]) 1.0 else 0.0;
+            result.data[offset + 3] = if (comparison[3]) 1.0 else 0.0;
+        }
+
+        // Handle remaining elements
+        const remaining = @mod(min_count, 4);
+        if (remaining > 0) {
+            const start = min_count - remaining;
+            for (start..min_count) |j| {
+                result.data[j] = if (self.data[j] < other.data[j]) 1.0 else 0.0;
+            }
+        }
+
+        result.count = min_count;
+        return result;
+    }
 };
 
 fn quickSort(arr: []f64, low: i32, high: i32) void {
     if (low < high) {
-        const pi = partition(arr, low, high);
-        quickSort(arr, low, pi - 1);
-        quickSort(arr, pi + 1, high);
+        const pivot = partition(arr, low, high);
+        quickSort(arr, low, pivot - 1);
+        quickSort(arr, pivot + 1, high);
     }
 }
 

@@ -42,6 +42,8 @@ const fvec = @import("objects/fvec.zig");
 const FloatVector = fvec.FloatVector;
 const obj_range = @import("objects/range.zig");
 const ObjRange = obj_range.ObjRange;
+const simd_string = @import("simd_string.zig");
+const SIMDString = simd_string.SIMDString;
 const utils = @import("stdlib/utils.zig");
 const table_h = @import("table.zig");
 const tableGet = table_h.tableGet;
@@ -114,6 +116,9 @@ pub fn initVM() void {
     if (vm.initString == null) {
         @panic("Failed to create initString during VM initialization");
     }
+
+    // Define SIMD-optimized native functions
+    defineSIMDNatives();
 }
 
 pub const InterpretResult = enum(i32) {
@@ -430,6 +435,171 @@ fn readOffset(frame: *CallFrame) u16 {
     const byte2: u8 = frame.*.ip[0];
     frame.*.ip += 1;
     return (@as(u16, byte1) << 8) | byte2;
+}
+
+// SIMD-optimized native function definitions (replacing regular versions)
+pub fn defineSIMDNatives() void {
+    // String functions use SIMD by default
+    defineNative("find", simdFindNative);
+    defineNative("equals", simdEqualsNative);
+    defineNative("compare", simdCompareNative);
+
+    // Vector math functions use SIMD by default
+    defineNative("sin", vecSinNative);
+    defineNative("cos", vecCosNative);
+    defineNative("sqrt", vecSqrtNative);
+    defineNative("abs", vecAbsNative);
+
+    // Keep explicit SIMD names for advanced users
+    defineNative("simd_find", simdFindNative);
+    defineNative("simd_equals", simdEqualsNative);
+    defineNative("simd_compare", simdCompareNative);
+    defineNative("vec_sin", vecSinNative);
+    defineNative("vec_cos", vecCosNative);
+    defineNative("vec_sqrt", vecSqrtNative);
+    defineNative("vec_abs", vecAbsNative);
+}
+
+// Native function wrappers for SIMD operations
+pub fn simdMemcpyNative(argCount: i32, args: [*]Value) Value {
+    _ = args; // autofix
+    if (argCount != 2) {
+        runtimeError("simd_memcpy() takes exactly 2 arguments.", .{});
+        return Value.init_nil();
+    }
+
+    // Implementation would need proper object handling
+    // This is a placeholder for the actual implementation
+    return Value.init_bool(true);
+}
+
+pub fn simdFindNative(argCount: i32, args: [*]Value) Value {
+    if (argCount != 2) {
+        runtimeError("find() takes exactly 2 arguments.", .{});
+        return Value.init_nil();
+    }
+
+    if (!args[0].is_string() or !args[1].is_string()) {
+        runtimeError("find() requires string arguments.", .{});
+        return Value.init_nil();
+    }
+
+    const haystack_str = args[0].as_string();
+    const needle_str = args[1].as_string();
+
+    const haystack = haystack_str.chars[0..haystack_str.length];
+    const needle = needle_str.chars[0..needle_str.length];
+
+    if (SIMDString.findSIMD(haystack, needle)) |pos| {
+        return Value.init_int(@intCast(pos));
+    } else {
+        return Value.init_int(-1);
+    }
+}
+
+pub fn simdEqualsNative(argCount: i32, args: [*]Value) Value {
+    if (argCount != 2) {
+        runtimeError("equals() takes exactly 2 arguments.", .{});
+        return Value.init_nil();
+    }
+
+    if (!args[0].is_string() or !args[1].is_string()) {
+        runtimeError("equals() requires string arguments.", .{});
+        return Value.init_nil();
+    }
+
+    const str1 = args[0].as_string();
+    const str2 = args[1].as_string();
+
+    const s1 = str1.chars[0..str1.length];
+    const s2 = str2.chars[0..str2.length];
+
+    return Value.init_bool(SIMDString.equalsSIMD(s1, s2));
+}
+
+pub fn simdCompareNative(argCount: i32, args: [*]Value) Value {
+    if (argCount != 2) {
+        runtimeError("compare() takes exactly 2 arguments.", .{});
+        return Value.init_nil();
+    }
+
+    if (!args[0].is_string() or !args[1].is_string()) {
+        runtimeError("compare() requires string arguments.", .{});
+        return Value.init_nil();
+    }
+
+    const str1 = args[0].as_string();
+    const str2 = args[1].as_string();
+
+    const s1 = str1.chars[0..str1.length];
+    const s2 = str2.chars[0..str2.length];
+
+    const result = SIMDString.compareSIMD(s1, s2);
+    return Value.init_int(result);
+}
+
+pub fn vecSinNative(argCount: i32, args: [*]Value) Value {
+    if (argCount != 1) {
+        runtimeError("sin() takes exactly 1 argument.", .{});
+        return Value.init_nil();
+    }
+
+    if (!args[0].is_fvec()) {
+        runtimeError("sin() requires a FloatVector argument.", .{});
+        return Value.init_nil();
+    }
+
+    const input_vec = args[0].as_fvec();
+    const result = input_vec.sin_vec();
+    return Value.init_obj(@ptrCast(result));
+}
+
+pub fn vecCosNative(argCount: i32, args: [*]Value) Value {
+    if (argCount != 1) {
+        runtimeError("cos() takes exactly 1 argument.", .{});
+        return Value.init_nil();
+    }
+
+    if (!args[0].is_fvec()) {
+        runtimeError("cos() requires a FloatVector argument.", .{});
+        return Value.init_nil();
+    }
+
+    const input_vec = args[0].as_fvec();
+    const result = input_vec.cos_vec();
+    return Value.init_obj(@ptrCast(result));
+}
+
+pub fn vecSqrtNative(argCount: i32, args: [*]Value) Value {
+    if (argCount != 1) {
+        runtimeError("sqrt() takes exactly 1 argument.", .{});
+        return Value.init_nil();
+    }
+
+    if (!args[0].is_fvec()) {
+        runtimeError("sqrt() requires a FloatVector argument.", .{});
+        return Value.init_nil();
+    }
+
+    const input_vec = args[0].as_fvec();
+    const result = input_vec.sqrt_vec();
+    return Value.init_obj(@ptrCast(result));
+}
+
+pub fn vecAbsNative(argCount: i32, args: [*]Value) Value {
+    if (argCount != 1) {
+        runtimeError("abs() takes exactly 1 argument.", .{});
+        return Value.init_nil();
+    }
+
+    if (!args[0].is_fvec()) {
+        runtimeError("abs() requires a FloatVector argument.", .{});
+        return Value.init_nil();
+    }
+
+    const input_vec = args[0].as_fvec();
+    const result = input_vec.abs_vec();
+    return Value.init_obj(@ptrCast(result));
 }
 
 // now work on this

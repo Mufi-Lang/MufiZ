@@ -15,6 +15,8 @@ const fvec = @import("objects/fvec.zig");
 const obj_range = @import("objects/range.zig");
 const reallocate = @import("memory.zig").reallocate;
 const scanner_h = @import("scanner.zig");
+const simd_string = @import("simd_string.zig");
+const SIMDString = simd_string.SIMDString;
 
 pub const ValueType = enum(i32) { VAL_BOOL = 0, VAL_NIL = 1, VAL_INT = 2, VAL_DOUBLE = 3, VAL_OBJ = 4, VAL_COMPLEX = 5 };
 
@@ -142,6 +144,7 @@ pub const Value = struct {
                     const b = other.as_string();
                     const length: usize = a.*.length + b.*.length;
                     const chars: [*]u8 = @as([*]u8, @ptrCast(@alignCast(reallocate(null, 0, @intCast(@sizeOf(u8) *% length + 1)))));
+                    // Use regular memory copy to avoid alignment issues
                     _ = memcpy(@ptrCast(chars), @ptrCast(a.*.chars), @intCast(a.*.length));
                     _ = memcpy(@ptrCast(chars + @as(usize, @bitCast(@as(isize, @intCast(a.*.length))))), @ptrCast(b.*.chars), @intCast(b.*.length));
                     chars[@intCast(length)] = '\x00';
@@ -475,7 +478,17 @@ pub fn valuesEqual(a: Value, b: Value) bool {
                         {
                             const str_a: *ObjString = @as(*ObjString, @ptrCast(@alignCast(a.as.obj)));
                             const str_b: *ObjString = @as(*ObjString, @ptrCast(@alignCast(b.as.obj)));
-                            return (str_a.length == str_b.length) and (scanner_h.memcmp(@ptrCast(str_a.chars), @ptrCast(str_b.chars), @intCast(str_a.length)) == 0);
+                            if (str_a.length != str_b.length) return false;
+
+                            // Use SIMD string comparison only for larger strings to avoid alignment issues
+                            if (str_a.length >= 32) {
+                                const slice_a = str_a.chars[0..str_a.length];
+                                const slice_b = str_b.chars[0..str_b.length];
+                                return SIMDString.equalsSIMD(slice_a, slice_b);
+                            } else {
+                                // Use standard comparison for small strings
+                                return scanner_h.memcmp(@ptrCast(str_a.chars), @ptrCast(str_b.chars), @intCast(str_a.length)) == 0;
+                            }
                         }
                     },
                     .OBJ_LINKED_LIST => {

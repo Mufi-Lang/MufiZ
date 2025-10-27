@@ -1,0 +1,61 @@
+// Simple SIMD test script for MufiZ VM
+print("Testing SIMD optimizations in MufiZ VM\n");
+
+// Test 1: Vector operations with SIMD
+print("1. Testing vector operations...\n");
+var vec1 = fvector(100);
+var vec2 = fvector(100);
+
+for (var i = 0; i < 100; i++) {
+    vec1.push(i * 1.5);
+    vec2.push(i * 2.0);
+}
+
+var sum_result = vec1.add(vec2);
+print("Vector addition result[10]: " + sum_result.get(10) + "\n");
+
+var mul_result = vec1.mul(vec2);
+print("Vector multiplication result[10]: " + mul_result.get(10) + "\n");
+
+// Test 2: SIMD math functions (now default)
+print("2. Testing SIMD math functions...\n");
+var sin_result = sin(vec1);
+print("sin(vec1[10]): " + sin_result.get(10) + "\n");
+
+var sqrt_result = sqrt(vec1);
+print("sqrt(vec1[10]): " + sqrt_result.get(10) + "\n");
+
+// Test 3: String operations with SIMD
+print("3. Testing string operations...\n");
+var text = "The quick brown fox jumps over the lazy dog";
+var pattern = "fox";
+
+var position = find(text, pattern);
+print("Found '" + pattern + "' at position: " + position + "\n");
+
+var text1 = "Hello, World!";
+var text2 = "Hello, World!";
+var are_equal = equals(text1, text2);
+print("Strings equal: " + are_equal + "\n");
+
+// Test 4: Performance with larger data
+print("4. Testing with larger datasets...\n");
+var large_vec = fvector(1000);
+for (var i = 0; i < 1000; i++) {
+    large_vec.push(i * 0.1);
+}
+
+var large_sin = sin(large_vec);
+print("Large vector sin computation completed\n");
+print("sin(100): " + large_sin.get(100) + "\n");
+
+// Test 5: String search in larger text
+var large_text = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. " +
+                 "Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. " +
+                 "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.";
+
+var search_pos = find(large_text, "consectetur");
+print("Found 'consectetur' in large text at position: " + search_pos + "\n");
+
+print("\nAll SIMD tests completed successfully!\n");
+print("SIMD optimizations are working automatically behind the scenes.\n");

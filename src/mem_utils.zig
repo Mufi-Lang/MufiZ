@@ -186,10 +186,15 @@ pub fn memcpy(__dest: ?*anyopaque, __src: ?*const anyopaque, __n: usize) ?*anyop
 pub fn memcpyFast(__dest: ?*anyopaque, __src: ?*const anyopaque, __n: usize) ?*anyopaque {
     if (__dest == null or __src == null or __n == 0) return __dest;
 
+    // For large data (>64 bytes), automatically use SIMD optimization
+    if (__n >= 64) {
+        return memcpySIMD(__dest, __src, __n);
+    }
+
     const dest_bytes: [*]u8 = @ptrCast(__dest.?);
     const src_bytes: [*]const u8 = @ptrCast(__src.?);
 
-    // For small copies, byte-by-byte is fine
+    // For small copies, use simple word-sized copying
     if (__n < 8) {
         for (0..@min(__n, std.math.maxInt(usize))) |i| {
             dest_bytes[i] = src_bytes[i];
@@ -197,55 +202,221 @@ pub fn memcpyFast(__dest: ?*anyopaque, __src: ?*const anyopaque, __n: usize) ?*a
         return __dest;
     }
 
-    // Check alignment for word-sized copies
-    const alignment_mask = @sizeOf(usize) - 1;
-    const dest_align = @intFromPtr(dest_bytes) & alignment_mask;
-    const src_align = @intFromPtr(src_bytes) & alignment_mask;
-
-    // If alignment differs, fall back to byte-by-byte copy
-    if (dest_align != src_align) {
-        for (0..@min(__n, std.math.maxInt(usize))) |i| {
-            dest_bytes[i] = src_bytes[i];
-        }
-        return __dest;
-    }
-
-    // Handle unaligned prefix
-    var offset: usize = 0;
-    if (dest_align != 0) {
-        const prefix = @sizeOf(usize) - dest_align;
-        const prefix_len = @min(prefix, __n);
-        for (0..prefix_len) |i| {
-            dest_bytes[i] = src_bytes[i];
-        }
-        offset = prefix_len;
-    }
-
-    // Use usize to copy word-sized chunks for better performance
-    const remaining = __n - offset;
+    // Use word-sized copies for medium data
     const word_size = @sizeOf(usize);
-    const words = remaining / word_size;
+    const words = __n / word_size;
+    var offset: usize = 0;
 
     if (words > 0) {
-        const dest_usize: [*]usize = @ptrCast(@alignCast(dest_bytes + offset));
-        const src_usize: [*]const usize = @ptrCast(@alignCast(src_bytes + offset));
+        const dest_usize: [*]usize = @ptrCast(@alignCast(dest_bytes));
+        const src_usize: [*]const usize = @ptrCast(@alignCast(src_bytes));
 
         // Copy word-sized chunks
         for (0..words) |i| {
             dest_usize[i] = src_usize[i];
         }
+        offset = words * word_size;
     }
 
     // Copy any remaining bytes
-    const bytes_copied = offset + (words * word_size);
-    const remaining_bytes = __n - bytes_copied;
+    const remaining_bytes = __n - offset;
     if (remaining_bytes > 0) {
         for (0..remaining_bytes) |i| {
-            dest_bytes[bytes_copied + i] = src_bytes[bytes_copied + i];
+            dest_bytes[offset + i] = src_bytes[offset + i];
         }
     }
 
     return __dest;
+}
+
+// SIMD-optimized memory copy for aligned data
+pub fn memcpySIMD(__dest: ?*anyopaque, __src: ?*const anyopaque, __n: usize) ?*anyopaque {
+    if (__dest == null or __src == null or __n == 0) return __dest;
+
+    const dest_bytes: [*]u8 = @ptrCast(__dest.?);
+    const src_bytes: [*]const u8 = @ptrCast(__src.?);
+
+    // For unaligned data, fall back to regular copy for safety
+    if ((__n < 64) or
+        (@intFromPtr(dest_bytes) % 16 != 0) or
+        (@intFromPtr(src_bytes) % 16 != 0))
+    {
+        @memcpy(dest_bytes[0..__n], src_bytes[0..__n]);
+        return __dest;
+    }
+
+    // Use 128-bit vectors (16 bytes) for aligned data only
+    const Vec16 = @Vector(16, u8);
+    const vec_size = 16;
+
+    var offset: usize = 0;
+
+    // Process 64-byte chunks (4 vectors) for better cache utilization
+    const chunk_size = vec_size * 4; // 64 bytes
+    const chunks = __n / chunk_size;
+
+    for (0..chunks) |_| {
+        const dest_ptr: *Vec16 = @ptrCast(@alignCast(dest_bytes + offset));
+        const src_ptr: *const Vec16 = @ptrCast(@alignCast(src_bytes + offset));
+
+        // Copy 4 vectors at once
+        dest_ptr[0] = src_ptr[0];
+        (dest_ptr + 1)[0] = (src_ptr + 1)[0];
+        (dest_ptr + 2)[0] = (src_ptr + 2)[0];
+        (dest_ptr + 3)[0] = (src_ptr + 3)[0];
+
+        offset += chunk_size;
+    }
+
+    // Process remaining 16-byte vectors
+    const remaining = __n - offset;
+    const remaining_vecs = remaining / vec_size;
+
+    for (0..remaining_vecs) |_| {
+        const dest_ptr: *Vec16 = @ptrCast(@alignCast(dest_bytes + offset));
+        const src_ptr: *const Vec16 = @ptrCast(@alignCast(src_bytes + offset));
+        dest_ptr.* = src_ptr.*;
+        offset += vec_size;
+    }
+
+    // Copy any remaining bytes
+    const final_remaining = __n - offset;
+    if (final_remaining > 0) {
+        @memcpy(dest_bytes[offset .. offset + final_remaining], src_bytes[offset .. offset + final_remaining]);
+    }
+
+    return __dest;
+}
+
+pub fn memcmp(__s1: ?*const anyopaque, __s2: ?*const anyopaque, __n: usize) i32 {
+    if (__s1 == null or __s2 == null) return 0;
+    if (__n == 0) return 0;
+
+    // Only use SIMD for larger aligned data to avoid alignment issues
+    const s1_bytes: [*]const u8 = @ptrCast(__s1.?);
+    const s2_bytes: [*]const u8 = @ptrCast(__s2.?);
+
+    if (__n >= 128 and
+        @intFromPtr(s1_bytes) % 16 == 0 and
+        @intFromPtr(s2_bytes) % 16 == 0)
+    {
+        return memcmpSIMD(__s1, __s2, __n);
+    }
+
+    // Use standard byte-by-byte comparison for unaligned or small data
+    var i: usize = 0;
+    while (i < __n) : (i += 1) {
+        if (s1_bytes[i] != s2_bytes[i]) {
+            return if (s1_bytes[i] < s2_bytes[i]) -1 else 1;
+        }
+    }
+
+    return 0;
+}
+
+// SIMD-optimized memory comparison
+pub fn memcmpSIMD(__s1: ?*const anyopaque, __s2: ?*const anyopaque, __n: usize) i32 {
+    if (__s1 == null or __s2 == null) return 0;
+    if (__n == 0) return 0;
+
+    const s1_bytes: [*]const u8 = @ptrCast(__s1.?);
+    const s2_bytes: [*]const u8 = @ptrCast(__s2.?);
+
+    // For small comparisons, use byte-by-byte
+    if (__n < 16) {
+        for (0..__n) |i| {
+            if (s1_bytes[i] != s2_bytes[i]) {
+                return if (s1_bytes[i] < s2_bytes[i]) -1 else 1;
+            }
+        }
+        return 0;
+    }
+
+    const Vec16 = @Vector(16, u8);
+    const vec_size = 16;
+    var offset: usize = 0;
+
+    // Process 16-byte chunks using unaligned reads
+    const vecs = __n / vec_size;
+    for (0..vecs) |_| {
+        // Use unaligned loads by reading bytes into vector
+        var v1_bytes: [16]u8 = undefined;
+        var v2_bytes: [16]u8 = undefined;
+
+        @memcpy(&v1_bytes, s1_bytes[offset .. offset + 16]);
+        @memcpy(&v2_bytes, s2_bytes[offset .. offset + 16]);
+
+        const v1: Vec16 = v1_bytes;
+        const v2: Vec16 = v2_bytes;
+
+        if (!@reduce(.And, v1 == v2)) {
+            // Found difference, find the exact byte
+            for (0..vec_size) |i| {
+                const idx = offset + i;
+                if (s1_bytes[idx] != s2_bytes[idx]) {
+                    return if (s1_bytes[idx] < s2_bytes[idx]) -1 else 1;
+                }
+            }
+        }
+        offset += vec_size;
+    }
+
+    // Compare remaining bytes
+    for (offset..__n) |i| {
+        if (s1_bytes[i] != s2_bytes[i]) {
+            return if (s1_bytes[i] < s2_bytes[i]) -1 else 1;
+        }
+    }
+
+    return 0;
+}
+
+// SIMD-optimized memory set
+pub fn memsetSIMD(__s: ?*anyopaque, __c: i32, __n: usize) ?*anyopaque {
+    if (__s == null or __n == 0) return __s;
+
+    const s_bytes: [*]u8 = @ptrCast(__s.?);
+    const byte_val: u8 = @intCast(__c & 0xFF);
+
+    // For small sets, use simple loop
+    if (__n < 32) {
+        for (0..__n) |i| {
+            s_bytes[i] = byte_val;
+        }
+        return __s;
+    }
+
+    const Vec16 = @Vector(16, u8);
+    const splat_vec: Vec16 = @splat(byte_val);
+    const vec_size = 16;
+
+    var offset: usize = 0;
+
+    // Process 32-byte chunks (2 vectors)
+    const chunk_size = vec_size * 2;
+    const chunks = __n / chunk_size;
+
+    for (0..chunks) |_| {
+        @as([*]Vec16, @ptrCast(@alignCast(s_bytes + offset)))[0] = splat_vec;
+        @as([*]Vec16, @ptrCast(@alignCast(s_bytes + offset + vec_size)))[0] = splat_vec;
+        offset += chunk_size;
+    }
+
+    // Process remaining 16-byte vectors
+    const remaining = __n - offset;
+    const remaining_vecs = remaining / vec_size;
+
+    for (0..remaining_vecs) |_| {
+        @as([*]Vec16, @ptrCast(@alignCast(s_bytes + offset)))[0] = splat_vec;
+        offset += vec_size;
+    }
+
+    // Set any remaining bytes
+    for (offset..__n) |i| {
+        s_bytes[i] = byte_val;
+    }
+
+    return __s;
 }
 
 test "basic memcpy test" {
@@ -482,62 +653,4 @@ test "strlen test" {
 
     // Make sure null pointer is handled
     try std.testing.expectEqual(@as(usize, 0), strlen(null));
-}
-
-pub fn memcmp(s1: ?*const anyopaque, s2: ?*const anyopaque, n: usize) i32 {
-    const str1: [*]const u8 = @ptrCast(s1.?);
-    const str2: [*]const u8 = @ptrCast(s2.?);
-    const num: usize = @intCast(n);
-
-    if (num == 0) return 0;
-
-    const ptr1 = @as([*]const u8, @ptrCast(str1));
-    const ptr2 = @as([*]const u8, @ptrCast(str2));
-    var offset: usize = 0;
-
-    // SIMD comparison using vector types (16 bytes at once)
-    const Vec16 = @Vector(16, u8);
-    while (offset + 16 <= num) {
-        const v1 = @as(*align(1) const Vec16, @ptrCast(ptr1 + offset)).*;
-        const v2 = @as(*align(1) const Vec16, @ptrCast(ptr2 + offset)).*;
-
-        // Compare 16 bytes at once
-        const mask = v1 != v2;
-        if (@reduce(.Or, mask)) {
-            // Find first differing byte in the SIMD vector
-            inline for (0..16) |i| {
-                if (mask[i]) {
-                    return @as(i32, @intCast(@as(i16, @intCast(ptr1[offset + i])) - @as(i16, @intCast(ptr2[offset + i]))));
-                }
-            }
-        }
-        offset += 16;
-    }
-
-    // Process 8 bytes at a time for the remainder
-    while (offset + 8 <= num) {
-        const v1 = @as(*align(1) const u64, @ptrCast(ptr1 + offset)).*;
-        const v2 = @as(*align(1) const u64, @ptrCast(ptr2 + offset)).*;
-        if (v1 != v2) {
-            // Find first differing byte
-            inline for (0..8) |i| {
-                const byte1 = @as(u8, @truncate(v1 >> @as(u6, @intCast(i * 8))));
-                const byte2 = @as(u8, @truncate(v2 >> @as(u6, @intCast(i * 8))));
-                if (byte1 != byte2) {
-                    return @as(i32, @intCast(@as(i16, @intCast(byte1)) - @as(i16, @intCast(byte2))));
-                }
-            }
-        }
-        offset += 8;
-    }
-
-    // Handle remaining bytes
-    while (offset < num) {
-        if (ptr1[offset] != ptr2[offset]) {
-            return @as(i32, @intCast(@as(i16, @intCast(ptr1[offset])) - @as(i16, @intCast(ptr2[offset]))));
-        }
-        offset += 1;
-    }
-
-    return 0;
 }

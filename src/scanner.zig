@@ -181,7 +181,7 @@ pub fn peekNext() u8 {
     if (is_at_end()) return 0;
     return scanner.current[1];
 }
-/// TODO: need to simply without converting so much
+
 pub fn make_token(type_: TokenType) Token {
     return .{
         .type = type_,
