@@ -10,6 +10,7 @@ const debug_opts = @import("debug");
 
 const chunk_h = @import("chunk.zig");
 const Chunk = chunk_h.Chunk;
+const OpCode = chunk_h.OpCode;
 const compiler_h = @import("compiler.zig");
 const debug_h = @import("debug.zig");
 const errors = @import("errors.zig");
@@ -61,9 +62,9 @@ const Complex = value_h.Complex;
 // const memcpy = @cImport(@cInclude("string.h")).memcpy;
 // const strlen = @cImport(@cInclude("string.h")).strlen
 // printf replaced with print from std import
-var echo_enabled: bool = false; // Always disable echo in REPL
+var echo_enabled: bool = false; // Disable echo in REPL by default
 var suppress_output: bool = false; // Don't suppress output - we want to see results
-var repl_mode: bool = true; // Default to REPL mode
+var repl_mode: bool = false; // Auto-detect REPL mode
 pub const FRAMES_MAX = @as(i32, 64);
 pub const STACK_MAX = FRAMES_MAX * UINT8_COUNT;
 pub const UINT8_COUNT = UINT8_MAX + 1;
@@ -96,7 +97,7 @@ pub const VM = struct {
 };
 
 pub fn initVM() void {
-    // Clear the entire VM structure to avoid undefined behavior in debug mode
+    // Clear the entire VM structure to avoid undefined behavior
     @memset(@as([*]u8, @ptrCast(&vm))[0..@sizeOf(VM)], 0);
 
     resetStack();
@@ -198,40 +199,33 @@ pub fn zstr(s: ?*ObjString) []const u8 {
 }
 
 pub fn interpret(source: [*]const u8) InterpretResult {
-    std.debug.print("DEBUG: Entering interpret()\n", .{});
     const function: ?*ObjFunction = compiler_h.compile(source);
     if (function == null) {
-        std.debug.print("DEBUG: Compilation failed\n", .{});
         return .INTERPRET_COMPILE_ERROR;
     }
-    std.debug.print("DEBUG: Compilation successful\n", .{});
 
-    // Only echo in non-REPL mode or when explicitly enabled
+    // Only echo source in non-REPL mode when explicitly enabled
     if (echo_enabled and !repl_mode) {
-        var i: usize = 0;
-        while (source[i] != 0) : (i += 1) {}
-        print("{s}\n", .{source[0..i]});
+        if (debug_opts.trace_exec) {
+            var i: usize = 0;
+            while (source[i] != 0) : (i += 1) {}
+            print("Executing: {s}\n", .{source[0..i]});
+        }
     }
 
-    std.debug.print("DEBUG: About to push function\n", .{});
     push(Value{
         .type = .VAL_OBJ,
         .as = .{ .obj = @ptrCast(@alignCast(function)) },
     });
-    std.debug.print("DEBUG: About to create closure\n", .{});
     const closure: *ObjClosure = object_h.newClosure(@ptrCast(function));
     _ = pop();
-    std.debug.print("DEBUG: About to push closure\n", .{});
     push(Value{
         .type = .VAL_OBJ,
         .as = .{ .obj = @ptrCast(@alignCast(closure)) },
     });
-    std.debug.print("DEBUG: About to call closure\n", .{});
     if (!call(closure, 0)) {
-        std.debug.print("DEBUG: Call failed\n", .{});
         return .INTERPRET_RUNTIME_ERROR;
     }
-    std.debug.print("DEBUG: Call succeeded, about to run\n", .{});
     return run();
 }
 pub inline fn push(value: Value) void {
@@ -260,12 +254,7 @@ pub fn resetStack() void {
     vm.openUpvalues = null;
 }
 
-pub inline fn peek(distance: i32) Value {
-    return (vm.stackTop - @as(usize, @intCast(distance + 1)))[0];
-}
-
 pub fn call(closure: *ObjClosure, argCount: i32) bool {
-    std.debug.print("DEBUG: Entering call() with argCount = {}\n", .{argCount});
     if (argCount != closure.*.function.*.arity) {
         runtimeError("Expected {d} arguments but got {d}.", .{ closure.*.function.*.arity, argCount });
         return false;
@@ -274,23 +263,13 @@ pub fn call(closure: *ObjClosure, argCount: i32) bool {
         runtimeError("Stack overflow.", .{});
         return false;
     }
-    std.debug.print("DEBUG: About to get frame, frameCount before = {}\n", .{vm.frameCount});
     const frame: *CallFrame = &vm.frames[@intCast(next_frame_count())];
-    std.debug.print("DEBUG: Got frame, frameCount after = {}\n", .{vm.frameCount});
-
-    std.debug.print("DEBUG: Validating closure data...\n", .{});
-    std.debug.print("DEBUG: closure ptr = {*}\n", .{closure});
-    std.debug.print("DEBUG: closure.function ptr = {*}\n", .{closure.*.function});
-    std.debug.print("DEBUG: closure.function.chunk.code ptr = {*}\n", .{closure.*.function.*.chunk.code});
 
     frame.*.closure = closure;
-    std.debug.print("DEBUG: Set closure\n", .{});
     frame.*.ip = closure.*.function.*.chunk.code.?;
-    std.debug.print("DEBUG: Set IP\n", .{});
 
     // The slots pointer should point to the first argument, which is 'self' for methods
     frame.*.slots = @ptrFromInt(@intFromPtr(vm.stackTop) - @sizeOf(Value) * @as(usize, @intCast(argCount + 1)));
-    std.debug.print("DEBUG: Set slots to {*}\n", .{frame.*.slots});
 
     return true;
 }
@@ -435,6 +414,21 @@ fn readOffset(frame: *CallFrame) u16 {
     const byte2: u8 = frame.*.ip[0];
     frame.*.ip += 1;
     return (@as(u16, byte1) << 8) | byte2;
+}
+
+// Set REPL mode for better user experience
+pub fn setReplMode(enabled: bool) void {
+    repl_mode = enabled;
+    // In REPL mode, suppress echo and provide cleaner output
+    if (enabled) {
+        echo_enabled = false;
+        suppress_output = false;
+    }
+}
+
+// Enable or disable debug echo
+pub fn setEcho(enabled: bool) void {
+    echo_enabled = enabled;
 }
 
 // SIMD-optimized native function definitions (replacing regular versions)
@@ -602,8 +596,191 @@ pub fn vecAbsNative(argCount: i32, args: [*]Value) Value {
     return Value.init_obj(@ptrCast(result));
 }
 
-// now work on this
 pub fn run() InterpretResult {
-    print("Hello\n", .{});
-    return .INTERPRET_OK;
+    var frame = &vm.frames[@intCast(vm.frameCount - 1)];
+
+    while (true) {
+        // Read the current instruction
+        const instruction = frame.ip[0];
+        frame.ip += 1;
+
+        switch (instruction) {
+            @intFromEnum(OpCode.OP_CONSTANT) => {
+                const constant_index = frame.ip[0];
+                frame.ip += 1;
+                const constant = getConstant(frame, constant_index) orelse {
+                    runtimeError("Invalid constant index.", .{});
+                    return .INTERPRET_RUNTIME_ERROR;
+                };
+                push(constant);
+            },
+            @intFromEnum(OpCode.OP_NIL) => push(Value.init_nil()),
+            @intFromEnum(OpCode.OP_TRUE) => push(Value.init_bool(true)),
+            @intFromEnum(OpCode.OP_FALSE) => push(Value.init_bool(false)),
+            @intFromEnum(OpCode.OP_POP) => _ = pop(),
+            @intFromEnum(OpCode.OP_GET_LOCAL) => {
+                const slot = frame.ip[0];
+                frame.ip += 1;
+                push(frame.slots[slot]);
+            },
+            @intFromEnum(OpCode.OP_SET_LOCAL) => {
+                const slot = frame.ip[0];
+                frame.ip += 1;
+                frame.slots[slot] = peek(0);
+            },
+            @intFromEnum(OpCode.OP_GET_GLOBAL) => {
+                const constant_index = frame.ip[0];
+                frame.ip += 1;
+                const constant = getConstant(frame, constant_index) orelse {
+                    runtimeError("Invalid constant index.", .{});
+                    return .INTERPRET_RUNTIME_ERROR;
+                };
+                const name = constant.as_string();
+                var value: Value = undefined;
+                if (!tableGet(&vm.globals, name, &value)) {
+                    runtimeError("Undefined variable '{s}'.", .{name.chars});
+                    return .INTERPRET_RUNTIME_ERROR;
+                }
+                push(value);
+            },
+            @intFromEnum(OpCode.OP_DEFINE_GLOBAL) => {
+                const constant_index = frame.ip[0];
+                frame.ip += 1;
+                const constant = getConstant(frame, constant_index) orelse {
+                    runtimeError("Invalid constant index.", .{});
+                    return .INTERPRET_RUNTIME_ERROR;
+                };
+                const name = constant.as_string();
+                _ = tableSet(&vm.globals, name, peek(0));
+                _ = pop();
+            },
+            @intFromEnum(OpCode.OP_SET_GLOBAL) => {
+                const constant_index = frame.ip[0];
+                frame.ip += 1;
+                const constant = getConstant(frame, constant_index) orelse {
+                    runtimeError("Invalid constant index.", .{});
+                    return .INTERPRET_RUNTIME_ERROR;
+                };
+                const name = constant.as_string();
+                if (tableSet(&vm.globals, name, peek(0))) {
+                    _ = tableDelete(&vm.globals, name);
+                    runtimeError("Undefined variable '{s}'.", .{name.chars});
+                    return .INTERPRET_RUNTIME_ERROR;
+                }
+            },
+            @intFromEnum(OpCode.OP_EQUAL) => {
+                const b = pop();
+                const a = pop();
+                push(Value.init_bool(valuesEqual(a, b)));
+            },
+            @intFromEnum(OpCode.OP_GREATER) => {
+                if (!peek(0).is_prim_num() or !peek(1).is_prim_num()) {
+                    runtimeError("Operands must be numbers.", .{});
+                    return .INTERPRET_RUNTIME_ERROR;
+                }
+                const b = pop().as_num_double();
+                const a = pop().as_num_double();
+                push(Value.init_bool(a > b));
+            },
+            @intFromEnum(OpCode.OP_LESS) => {
+                if (!peek(0).is_prim_num() or !peek(1).is_prim_num()) {
+                    runtimeError("Operands must be numbers.", .{});
+                    return .INTERPRET_RUNTIME_ERROR;
+                }
+                const b = pop().as_num_double();
+                const a = pop().as_num_double();
+                push(Value.init_bool(a < b));
+            },
+            @intFromEnum(OpCode.OP_ADD) => {
+                if (peek(0).is_string() and peek(1).is_string()) {
+                    const b = pop().as_string();
+                    const a = pop().as_string();
+                    const length = a.length + b.length;
+                    const chars = memory_h.reallocate(null, 0, @intCast(@sizeOf(u8) * length));
+                    if (chars == null) {
+                        runtimeError("Out of memory.", .{});
+                        return .INTERPRET_RUNTIME_ERROR;
+                    }
+                    const chars_ptr: [*]u8 = @ptrCast(chars);
+                    @memcpy(chars_ptr[0..a.length], a.chars[0..a.length]);
+                    @memcpy(chars_ptr[a.length..length], b.chars[0..b.length]);
+                    const result = object_h.takeString(chars_ptr, length);
+                    push(Value.init_obj(@ptrCast(result)));
+                } else if (peek(0).is_prim_num() and peek(1).is_prim_num()) {
+                    const b = pop().as_num_double();
+                    const a = pop().as_num_double();
+                    push(Value.init_double(a + b));
+                } else if (peek(0).is_int() and peek(1).is_int()) {
+                    const b = pop().as_int();
+                    const a = pop().as_int();
+                    push(Value.init_int(a + b));
+                } else {
+                    runtimeError("Operands must be two numbers or two strings.", .{});
+                    return .INTERPRET_RUNTIME_ERROR;
+                }
+            },
+            @intFromEnum(OpCode.OP_SUBTRACT) => {
+                if (!peek(0).is_prim_num() or !peek(1).is_prim_num()) {
+                    runtimeError("Operands must be numbers.", .{});
+                    return .INTERPRET_RUNTIME_ERROR;
+                }
+                const b = pop().as_num_double();
+                const a = pop().as_num_double();
+                push(Value.init_double(a - b));
+            },
+            @intFromEnum(OpCode.OP_MULTIPLY) => {
+                if (!peek(0).is_prim_num() or !peek(1).is_prim_num()) {
+                    runtimeError("Operands must be numbers.", .{});
+                    return .INTERPRET_RUNTIME_ERROR;
+                }
+                const b = pop().as_num_double();
+                const a = pop().as_num_double();
+                push(Value.init_double(a * b));
+            },
+            @intFromEnum(OpCode.OP_DIVIDE) => {
+                if (!peek(0).is_prim_num() or !peek(1).is_prim_num()) {
+                    runtimeError("Operands must be numbers.", .{});
+                    return .INTERPRET_RUNTIME_ERROR;
+                }
+                const b = pop().as_num_double();
+                const a = pop().as_num_double();
+                push(Value.init_double(a / b));
+            },
+            @intFromEnum(OpCode.OP_NOT) => {
+                push(Value.init_bool(isFalsey(pop())));
+            },
+            @intFromEnum(OpCode.OP_NEGATE) => {
+                if (!peek(0).is_prim_num()) {
+                    runtimeError("Operand must be a number.", .{});
+                    return .INTERPRET_RUNTIME_ERROR;
+                }
+                push(Value.init_double(-pop().as_num_double()));
+            },
+            @intFromEnum(OpCode.OP_PRINT) => {
+                printValue(pop());
+                print("\n", .{});
+            },
+            @intFromEnum(OpCode.OP_RETURN) => {
+                const result = pop();
+                closeUpvalues(@ptrCast(&frame.slots[0]));
+                vm.frameCount -= 1;
+                if (vm.frameCount == 0) {
+                    _ = pop();
+                    return .INTERPRET_OK;
+                }
+
+                vm.stackTop = @ptrCast(&frame.slots[0]);
+                push(result);
+                frame = &vm.frames[@intCast(vm.frameCount - 1)];
+            },
+            else => {
+                runtimeError("Unknown opcode: {d}", .{instruction});
+                return .INTERPRET_RUNTIME_ERROR;
+            },
+        }
+    }
+}
+
+fn peek(distance: u32) Value {
+    return (vm.stackTop - 1 - distance)[0];
 }
