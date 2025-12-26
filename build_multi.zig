@@ -1,12 +1,12 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
-const zig_version = "0.15.1";
+const zig_version = "0.15.2";
 
 comptime {
     const supported_version = std.SemanticVersion.parse(zig_version) catch unreachable;
     if (builtin.zig_version.order(supported_version) != .eq) {
-        @compileError(std.fmt.comptimePrint("Unsupported Zig version ({}). Required Zig version 0.14.0.", .{builtin.zig_version}));
+        @compileError(std.fmt.comptimePrint("Unsupported Zig version ({}). Required Zig version {}.", .{ builtin.zig_version, zig_version }));
     }
 }
 
