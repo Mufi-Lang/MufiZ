@@ -287,9 +287,7 @@ pub fn collectGeneration(gen: __obj.Generation) void {
 
 pub fn markRootsForGeneration(gen: __obj.Generation) void {
     // Mark stack roots
-    const stackSize: usize = @intCast(@intFromPtr(vm_h.vm.stackTop) - @intFromPtr(&vm_h.vm.stack));
-    const stackItemCount = stackSize / @sizeOf(Value);
-    for (0..stackItemCount) |i| {
+    for (0..vm_h.vm.stackTop) |i| {
         markValueForGeneration(vm_h.vm.stack[i], gen);
     }
 
@@ -783,13 +781,11 @@ pub fn incrementalGC() void {
                 gcData.sweepingObject = null;
             },
             .GC_MARK_ROOTS => {
-                const stackSize: usize = @intCast(@intFromPtr(vm_h.vm.stackTop) - @intFromPtr(&vm_h.vm.stack));
-                const stackItemCount = stackSize / @sizeOf(Value);
-                while ((gcData.rootIndex < stackItemCount) and (workDone < INCREMENT_LIMIT)) : (gcData.rootIndex +%= 1) {
+                while ((gcData.rootIndex < vm_h.vm.stackTop) and (workDone < INCREMENT_LIMIT)) : (gcData.rootIndex +%= 1) {
                     markValue(vm_h.vm.stack[gcData.rootIndex]);
                     workDone += 1;
                 }
-                if (gcData.rootIndex >= stackItemCount) {
+                if (gcData.rootIndex >= vm_h.vm.stackTop) {
                     for (0..@intCast(vm_h.vm.frameCount)) |i| {
                         markObject(@ptrCast(@alignCast(vm_h.vm.frames[i].closure)));
                     }

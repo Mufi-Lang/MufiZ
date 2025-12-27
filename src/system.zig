@@ -259,7 +259,7 @@ fn executeStatement(statement_buffer: *std.ArrayList(u8), line_editor: *SimpleLi
 
     // Provide feedback based on result
     switch (result) {
-        .INTERPRET_OK => {
+        .INTERPRET_OK, .INTERPRET_FINISHED => {
             // Success - no additional message needed
         },
         .INTERPRET_COMPILE_ERROR => {
@@ -331,7 +331,7 @@ fn replSimple() !void {
         const result = vm_h.interpret(conv.cstr(exec_buffer[0..len]));
 
         switch (result) {
-            .INTERPRET_OK => {},
+            .INTERPRET_OK, .INTERPRET_FINISHED => {},
             .INTERPRET_COMPILE_ERROR => std.debug.print("💥 Compilation error\n", .{}),
             .INTERPRET_RUNTIME_ERROR => std.debug.print("🚨 Runtime error\n", .{}),
         }

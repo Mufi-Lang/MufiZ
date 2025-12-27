@@ -79,10 +79,11 @@ pub const CallFrame = struct {
 pub const VM = struct {
     frames: [64]CallFrame = undefined,
     frameCount: i32 = 0,
+    currentFrame: ?*CallFrame = null,
     chunk: ?*Chunk = null,
     ip: [*]u8,
     stack: [16384]Value,
-    stackTop: [*]Value = undefined,
+    stackTop: usize = 0,
     globals: Table,
     globalConstants: Table,
     strings: Table,
@@ -126,6 +127,7 @@ pub const InterpretResult = enum(i32) {
     INTERPRET_OK = 0,
     INTERPRET_COMPILE_ERROR = 1,
     INTERPRET_RUNTIME_ERROR = 2,
+    INTERPRET_FINISHED,
 };
 
 inline fn pow(a: f64, b: f64) f64 {
@@ -229,13 +231,13 @@ pub fn interpret(source: [*]const u8) InterpretResult {
     return run();
 }
 pub inline fn push(value: Value) void {
-    vm.stackTop[0] = value;
+    vm.stack[vm.stackTop] = value;
     vm.stackTop += 1;
 }
 
 pub inline fn pop() Value {
     vm.stackTop -= 1;
-    return vm.stackTop[0];
+    return vm.stack[vm.stackTop];
 }
 
 fn get_slot(frame: *CallFrame) u8 {
@@ -249,8 +251,9 @@ inline fn next_ip(frame: *CallFrame) void {
 }
 
 pub fn resetStack() void {
-    vm.stackTop = @ptrCast(&vm.stack);
+    vm.stackTop = 0;
     vm.frameCount = 0;
+    vm.currentFrame = null;
     vm.openUpvalues = null;
 }
 
@@ -269,7 +272,7 @@ pub fn call(closure: *ObjClosure, argCount: i32) bool {
     frame.*.ip = closure.*.function.*.chunk.code.?;
 
     // The slots pointer should point to the first argument, which is 'self' for methods
-    frame.*.slots = @ptrFromInt(@intFromPtr(vm.stackTop) - @sizeOf(Value) * @as(usize, @intCast(argCount + 1)));
+    frame.*.slots = @ptrCast(&vm.stack[vm.stackTop - @as(usize, @intCast(argCount + 1))]);
 
     return true;
 }
@@ -280,12 +283,12 @@ pub fn callValue(callee: Value, argCount: i32) bool {
             .OBJ_BOUND_METHOD => {
                 const bound: *ObjBoundMethod = @as(*ObjBoundMethod, @ptrCast(@alignCast(callee.as.obj)));
                 // Replace the receiver with the bound instance
-                (vm.stackTop - @as(usize, @intCast(argCount + 1)))[0] = bound.*.receiver;
+                vm.stack[vm.stackTop - @as(usize, @intCast(argCount + 1))] = bound.*.receiver;
                 return call(bound.*.method, argCount);
             },
             .OBJ_CLASS => {
                 const klass: *ObjClass = @as(*ObjClass, @ptrCast(@alignCast(callee.as.obj)));
-                (vm.stackTop - @as(usize, @intCast(argCount + 1)))[0] = Value.init_obj(@ptrCast(@alignCast(Instance.newInstance(klass))));
+                vm.stack[vm.stackTop - @as(usize, @intCast(argCount + 1))] = Value.init_obj(@ptrCast(@alignCast(object_h.newInstance(klass))));
                 var initializer: Value = undefined;
                 if (tableGet(&klass.*.methods, vm.initString.?, &initializer)) {
                     return call(@as(*ObjClosure, @ptrCast(@alignCast(initializer.as.obj))), argCount);
@@ -303,7 +306,7 @@ pub fn callValue(callee: Value, argCount: i32) bool {
             },
             .OBJ_NATIVE => {
                 const native: NativeFn = (@as(*ObjNative, @ptrCast(@alignCast(callee.as.obj)))).*.function;
-                const result: Value = native(argCount, vm.stackTop - @as(usize, @intCast(argCount)));
+                const result: Value = native.?(argCount, @ptrCast(&vm.stack[vm.stackTop - @as(usize, @intCast(argCount))]));
                 vm.stackTop -= @as(usize, @intCast(argCount + 1));
                 push(result);
                 return true;
@@ -370,7 +373,7 @@ fn bindMethod(klass: *ObjClass, name: *ObjString) bool {
 }
 
 fn invoke(name: *ObjString, argCount: i32) bool {
-    const receiver: Value = peek(argCount);
+    const receiver: Value = peek(@intCast(argCount));
 
     if (!isObjType(receiver, .OBJ_INSTANCE)) {
         runtimeError("Only instances have methods.", .{});
@@ -381,7 +384,7 @@ fn invoke(name: *ObjString, argCount: i32) bool {
 
     var value: Value = undefined;
     if (tableGet(&instance.*.fields, name, &value)) {
-        (vm.stackTop - @as(usize, @intCast(argCount + 1)))[0] = value;
+        vm.stack[vm.stackTop - @as(usize, @intCast(argCount + 1))] = value;
         return callValue(value, argCount);
     }
 
@@ -401,7 +404,7 @@ fn isFalsey(value: Value) bool {
     return value.type == .VAL_NIL or (value.type == .VAL_BOOL and !value.as.boolean);
 }
 
-fn getConstant(frame: *CallFrame, index: u8) ?Value {
+inline fn getConstant(frame: *CallFrame, index: u8) ?Value {
     if (index >= frame.*.closure.*.function.*.chunk.constants.count) {
         return null;
     }
@@ -596,191 +599,1244 @@ pub fn vecAbsNative(argCount: i32, args: [*]Value) Value {
     return Value.init_obj(@ptrCast(result));
 }
 
+const OpHandler = *const fn () InterpretResult;
+
+fn opConstant() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant_index = frame.ip[0];
+    frame.ip += 1;
+    const constant = getConstant(frame, constant_index) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    push(constant);
+    return .INTERPRET_OK;
+}
+
+fn opNil() InterpretResult {
+    push(Value.init_nil());
+    return .INTERPRET_OK;
+}
+
+fn opTrue() InterpretResult {
+    push(Value.init_bool(true));
+    return .INTERPRET_OK;
+}
+
+fn opFalse() InterpretResult {
+    push(Value.init_bool(false));
+    return .INTERPRET_OK;
+}
+
+fn opPop() InterpretResult {
+    _ = pop();
+    return .INTERPRET_OK;
+}
+
+fn opGetLocal() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const slot = frame.ip[0];
+    frame.ip += 1;
+    push(frame.slots[slot]);
+    return .INTERPRET_OK;
+}
+
+fn opSetLocal() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const slot = frame.ip[0];
+    frame.ip += 1;
+    frame.slots[slot] = peek(0);
+    return .INTERPRET_OK;
+}
+
+fn opGetGlobal() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant_index = frame.ip[0];
+    frame.ip += 1;
+    const constant = getConstant(frame, constant_index) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    const name = constant.as_string();
+    var value: Value = undefined;
+    if (!tableGet(&vm.globals, name, &value)) {
+        runtimeError("Undefined variable '{s}'.", .{name.chars});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    push(value);
+    return .INTERPRET_OK;
+}
+
+fn opDefineGlobal() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant_index = frame.ip[0];
+    frame.ip += 1;
+    const constant = getConstant(frame, constant_index) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    const name = constant.as_string();
+    _ = tableSet(&vm.globals, name, peek(0));
+    _ = pop();
+    return .INTERPRET_OK;
+}
+
+fn opDefineConstGlobal() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant_index = frame.ip[0];
+    frame.ip += 1;
+    const constant = getConstant(frame, constant_index) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    const name = constant.as_string();
+    _ = tableSet(&vm.globals, name, peek(0));
+    _ = tableSet(&vm.globalConstants, name, Value.init_bool(true));
+    _ = pop();
+    return .INTERPRET_OK;
+}
+
+fn opSetGlobal() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant_index = frame.ip[0];
+    frame.ip += 1;
+    const constant = getConstant(frame, constant_index) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    const name = constant.as_string();
+
+    var dummy: Value = undefined;
+    if (tableGet(&vm.globalConstants, name, &dummy)) {
+        runtimeError("Cannot assign to constant variable '{s}'.", .{name.chars});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    if (tableSet(&vm.globals, name, peek(0))) {
+        _ = tableDelete(&vm.globals, name);
+        runtimeError("Undefined variable '{s}'.", .{name.chars});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    return .INTERPRET_OK;
+}
+
+fn opGetUpvalue() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const slot = frame.ip[0];
+    frame.ip += 1;
+    push(frame.closure.upvalues.?[slot].?.location[0]);
+    return .INTERPRET_OK;
+}
+
+fn opSetUpvalue() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const slot = frame.ip[0];
+    frame.ip += 1;
+    frame.closure.upvalues.?[slot].?.location[0] = peek(0);
+    return .INTERPRET_OK;
+}
+
+fn opGetProperty() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant_index = frame.ip[0];
+    frame.ip += 1;
+    const constant = getConstant(frame, constant_index) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    const name = constant.as_string();
+    const receiver = peek(0);
+
+    if (isObjType(receiver, .OBJ_INSTANCE)) {
+        const instance: *ObjInstance = @ptrCast(@alignCast(receiver.as.obj));
+        var value: Value = undefined;
+        if (tableGet(&instance.fields, name, &value)) {
+            _ = pop(); // Instance
+            push(value);
+            return .INTERPRET_OK;
+        }
+
+        if (!bindMethod(instance.klass, name)) {
+            return .INTERPRET_RUNTIME_ERROR;
+        }
+        return .INTERPRET_OK;
+    }
+
+    runtimeError("Only instances have properties.", .{});
+    return .INTERPRET_RUNTIME_ERROR;
+}
+
+fn opSetProperty() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant_index = frame.ip[0];
+    frame.ip += 1;
+    const constant = getConstant(frame, constant_index) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    const name = constant.as_string();
+    const receiver = peek(1);
+
+    if (isObjType(receiver, .OBJ_INSTANCE)) {
+        const instance: *ObjInstance = @ptrCast(@alignCast(receiver.as.obj));
+        _ = tableSet(&instance.fields, name, peek(0));
+        const value = pop();
+        _ = pop(); // Instance
+        push(value);
+        return .INTERPRET_OK;
+    }
+
+    runtimeError("Only instances have fields.", .{});
+    return .INTERPRET_RUNTIME_ERROR;
+}
+
+fn opGetSuper() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant_index = frame.ip[0];
+    frame.ip += 1;
+    const constant = getConstant(frame, constant_index) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    const name = constant.as_string();
+    const superclass: *ObjClass = @ptrCast(@alignCast(pop().as.obj));
+
+    if (!bindMethod(superclass, name)) {
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    return .INTERPRET_OK;
+}
+
+fn opEqual() InterpretResult {
+    const b = pop();
+    const a = pop();
+    push(Value.init_bool(valuesEqual(a, b)));
+    return .INTERPRET_OK;
+}
+
+fn opGreater() InterpretResult {
+    if (!peek(0).is_prim_num() or !peek(1).is_prim_num()) {
+        runtimeError("Operands must be numbers.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    const b = pop().as_num_double();
+    const a = pop().as_num_double();
+    push(Value.init_bool(a > b));
+    return .INTERPRET_OK;
+}
+
+fn opLess() InterpretResult {
+    if (!peek(0).is_prim_num() or !peek(1).is_prim_num()) {
+        runtimeError("Operands must be numbers.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    const b = pop().as_num_double();
+    const a = pop().as_num_double();
+    push(Value.init_bool(a < b));
+    return .INTERPRET_OK;
+}
+
+fn opGreaterEqual() InterpretResult {
+    if (!peek(0).is_prim_num() or !peek(1).is_prim_num()) {
+        runtimeError("Operands must be numbers.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    const b = pop().as_num_double();
+    const a = pop().as_num_double();
+    push(Value.init_bool(a >= b));
+    return .INTERPRET_OK;
+}
+
+fn stringify(value: Value) ?*ObjString {
+    if (value.is_string()) return value.as_string();
+    if (value.is_int()) {
+        var buffer: [32]u8 = undefined;
+        const slice = std.fmt.bufPrint(&buffer, "{d}", .{value.as_int()}) catch return null;
+        return object_h.copyString(slice.ptr, slice.len);
+    }
+    if (value.is_double()) {
+        var buffer: [32]u8 = undefined;
+        const slice = std.fmt.bufPrint(&buffer, "{d}", .{value.as_num_double()}) catch return null;
+        return object_h.copyString(slice.ptr, slice.len);
+    }
+    if (value.is_bool()) {
+        const str = if (value.as_bool()) "true" else "false";
+        return object_h.copyString(str.ptr, str.len);
+    }
+    if (value.is_nil()) {
+        return object_h.copyString("nil", 3);
+    }
+
+    const str = value_h.valueToString(value);
+    return object_h.copyString(str.ptr, str.len);
+}
+
+fn opAdd() InterpretResult {
+    if (peek(0).is_string() or peek(1).is_string()) {
+        const b_val = peek(0);
+        const a_val = peek(1);
+
+        const a_str_ptr = stringify(a_val);
+        if (a_str_ptr == null) {
+            runtimeError("Operands must be two numbers or two strings.", .{});
+            return .INTERPRET_RUNTIME_ERROR;
+        }
+        push(Value.init_obj(@ptrCast(a_str_ptr.?)));
+
+        const b_str_ptr = stringify(b_val);
+        if (b_str_ptr == null) {
+            _ = pop();
+            runtimeError("Operands must be two numbers or two strings.", .{});
+            return .INTERPRET_RUNTIME_ERROR;
+        }
+        push(Value.init_obj(@ptrCast(b_str_ptr.?)));
+
+        const b_str = peek(0).as_string();
+        const a_str = peek(1).as_string();
+
+        const length = a_str.length + b_str.length;
+        const chars = reallocate(null, 0, length + 1);
+        if (chars == null) {
+            _ = pop();
+            _ = pop();
+            runtimeError("Out of memory.", .{});
+            return .INTERPRET_RUNTIME_ERROR;
+        }
+        const chars_ptr: [*]u8 = @ptrCast(chars);
+        @memcpy(chars_ptr[0..a_str.length], a_str.chars[0..a_str.length]);
+        @memcpy(chars_ptr[a_str.length..length], b_str.chars[0..b_str.length]);
+        chars_ptr[length] = 0;
+
+        const result = object_h.takeString(chars_ptr, length);
+        _ = pop();
+        _ = pop();
+        _ = pop();
+        _ = pop();
+        push(Value.init_obj(@ptrCast(result)));
+    } else if (peek(0).is_complex() or peek(1).is_complex()) {
+        const b = pop();
+        const a = pop();
+
+        const ca = if (a.is_complex()) a.as_complex() else Complex{ .r = if (a.is_int()) @floatFromInt(a.as_int()) else a.as_num_double(), .i = 0 };
+        const cb = if (b.is_complex()) b.as_complex() else Complex{ .r = if (b.is_int()) @floatFromInt(b.as_int()) else b.as_num_double(), .i = 0 };
+
+        push(Value.init_complex(Complex{ .r = ca.r + cb.r, .i = ca.i + cb.i }));
+    } else if (peek(0).is_fvec() or peek(1).is_fvec()) {
+        const b = pop();
+        const a = pop();
+
+        if (a.is_fvec() and b.is_fvec()) {
+            const vec_a: *FloatVector = @ptrCast(@alignCast(a.as.obj));
+            const vec_b: *FloatVector = @ptrCast(@alignCast(b.as.obj));
+            const res = vec_a.add(vec_b);
+            push(Value.init_obj(@ptrCast(res)));
+        } else if (a.is_fvec() and b.is_prim_num()) {
+            const vec_a: *FloatVector = @ptrCast(@alignCast(a.as.obj));
+            const val_b = if (b.is_int()) @as(f64, @floatFromInt(b.as_int())) else b.as_num_double();
+            const res = vec_a.single_add(val_b);
+            push(Value.init_obj(@ptrCast(res)));
+        } else if (a.is_prim_num() and b.is_fvec()) {
+            const val_a = if (a.is_int()) @as(f64, @floatFromInt(a.as_int())) else a.as_num_double();
+            const vec_b: *FloatVector = @ptrCast(@alignCast(b.as.obj));
+            const res = vec_b.single_add(val_a);
+            push(Value.init_obj(@ptrCast(res)));
+        } else {
+            runtimeError("Operands must be two numbers, two strings, or involve a vector.", .{});
+            return .INTERPRET_RUNTIME_ERROR;
+        }
+    } else if (peek(0).is_prim_num() and peek(1).is_prim_num()) {
+        if (peek(0).is_double() or peek(1).is_double()) {
+            const b = pop().as_num_double();
+            const a = pop().as_num_double();
+            push(Value.init_double(a + b));
+        } else {
+            const b = pop().as_int();
+            const a = pop().as_int();
+            push(Value.init_int(a + b));
+        }
+    } else {
+        runtimeError("Operands must be two numbers or two strings.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    return .INTERPRET_OK;
+}
+
+fn opSubtract() InterpretResult {
+    if (peek(0).is_complex() or peek(1).is_complex()) {
+        const b = pop();
+        const a = pop();
+
+        const ca = if (a.is_complex()) a.as_complex() else Complex{ .r = if (a.is_int()) @floatFromInt(a.as_int()) else a.as_num_double(), .i = 0 };
+        const cb = if (b.is_complex()) b.as_complex() else Complex{ .r = if (b.is_int()) @floatFromInt(b.as_int()) else b.as_num_double(), .i = 0 };
+
+        push(Value.init_complex(Complex{ .r = ca.r - cb.r, .i = ca.i - cb.i }));
+        return .INTERPRET_OK;
+    }
+
+    if (peek(0).is_fvec() or peek(1).is_fvec()) {
+        const b = pop();
+        const a = pop();
+
+        if (a.is_fvec() and b.is_fvec()) {
+            const vec_a: *FloatVector = @ptrCast(@alignCast(a.as.obj));
+            const vec_b: *FloatVector = @ptrCast(@alignCast(b.as.obj));
+            const res = vec_a.sub(vec_b);
+            push(Value.init_obj(@ptrCast(res)));
+        } else if (a.is_fvec() and b.is_prim_num()) {
+            const vec_a: *FloatVector = @ptrCast(@alignCast(a.as.obj));
+            const val_b = if (b.is_int()) @as(f64, @floatFromInt(b.as_int())) else b.as_num_double();
+            const res = vec_a.single_sub(val_b);
+            push(Value.init_obj(@ptrCast(res)));
+        } else if (a.is_prim_num() and b.is_fvec()) {
+            // Scalar - Vector -> Vector (element-wise: scalar - element)
+            // Note: single_sub usually does vector - scalar.
+            // We need to check if FloatVector supports scalar - vector or if we need to implement it.
+            // Assuming single_sub is vector - scalar.
+            // For scalar - vector, we might need to create a new vector where each element is scalar - vec[i].
+            // Let's check if we can use scale(-1) then add scalar?
+            // scalar - vec = scalar + (-vec)
+            const val_a = if (a.is_int()) @as(f64, @floatFromInt(a.as_int())) else a.as_num_double();
+            const vec_b: *FloatVector = @ptrCast(@alignCast(b.as.obj));
+            // Create a new vector with val_a
+            // This is inefficient but correct without modifying FloatVector
+            // Better: implement scalar_sub in FloatVector, but I can't modify it right now easily without seeing it.
+            // Let's try to use existing methods.
+            // vec_b.scale(-1) -> -vec_b
+            // then add val_a -> -vec_b + val_a = val_a - vec_b
+            const neg_b = vec_b.scale(-1.0);
+            const res = neg_b.single_add(val_a);
+            // neg_b is a new object, res is a new object. We should free neg_b if it's not used.
+            // But GC handles it.
+            push(Value.init_obj(@ptrCast(res)));
+        } else {
+            runtimeError("Operands must be numbers or vectors.", .{});
+            return .INTERPRET_RUNTIME_ERROR;
+        }
+        return .INTERPRET_OK;
+    }
+
+    if (!peek(0).is_prim_num() or !peek(1).is_prim_num()) {
+        runtimeError("Operands must be numbers.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    if (peek(0).is_double() or peek(1).is_double()) {
+        const b = pop().as_num_double();
+        const a = pop().as_num_double();
+        push(Value.init_double(a - b));
+    } else {
+        const b = pop().as_int();
+        const a = pop().as_int();
+        push(Value.init_int(a - b));
+    }
+    return .INTERPRET_OK;
+}
+
+fn opMultiply() InterpretResult {
+    if (peek(0).is_complex() or peek(1).is_complex()) {
+        const b = pop();
+        const a = pop();
+
+        const ca = if (a.is_complex()) a.as_complex() else Complex{ .r = if (a.is_int()) @floatFromInt(a.as_int()) else a.as_num_double(), .i = 0 };
+        const cb = if (b.is_complex()) b.as_complex() else Complex{ .r = if (b.is_int()) @floatFromInt(b.as_int()) else b.as_num_double(), .i = 0 };
+
+        // (a + bi) * (c + di) = (ac - bd) + (ad + bc)i
+        push(Value.init_complex(Complex{
+            .r = ca.r * cb.r - ca.i * cb.i,
+            .i = ca.r * cb.i + ca.i * cb.r,
+        }));
+        return .INTERPRET_OK;
+    }
+
+    if (peek(0).is_fvec() or peek(1).is_fvec()) {
+        const b = pop();
+        const a = pop();
+
+        if (a.is_fvec() and b.is_fvec()) {
+            const vec_a: *FloatVector = @ptrCast(@alignCast(a.as.obj));
+            const vec_b: *FloatVector = @ptrCast(@alignCast(b.as.obj));
+            const res = vec_a.mul(vec_b);
+            push(Value.init_obj(@ptrCast(res)));
+        } else if (a.is_fvec() and b.is_prim_num()) {
+            const vec_a: *FloatVector = @ptrCast(@alignCast(a.as.obj));
+            const val_b = if (b.is_int()) @as(f64, @floatFromInt(b.as_int())) else b.as_num_double();
+            const res = vec_a.scale(val_b);
+            push(Value.init_obj(@ptrCast(res)));
+        } else if (a.is_prim_num() and b.is_fvec()) {
+            const val_a = if (a.is_int()) @as(f64, @floatFromInt(a.as_int())) else a.as_num_double();
+            const vec_b: *FloatVector = @ptrCast(@alignCast(b.as.obj));
+            const res = vec_b.scale(val_a);
+            push(Value.init_obj(@ptrCast(res)));
+        } else {
+            runtimeError("Operands must be numbers or vectors.", .{});
+            return .INTERPRET_RUNTIME_ERROR;
+        }
+        return .INTERPRET_OK;
+    }
+
+    if (!peek(0).is_prim_num() or !peek(1).is_prim_num()) {
+        runtimeError("Operands must be numbers.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    if (peek(0).is_double() or peek(1).is_double()) {
+        const b = pop().as_num_double();
+        const a = pop().as_num_double();
+        push(Value.init_double(a * b));
+    } else {
+        const b = pop().as_int();
+        const a = pop().as_int();
+        push(Value.init_int(a * b));
+    }
+    return .INTERPRET_OK;
+}
+
+fn opDivide() InterpretResult {
+    if (peek(0).is_complex() or peek(1).is_complex()) {
+        const b = pop();
+        const a = pop();
+
+        const ca = if (a.is_complex()) a.as_complex() else Complex{ .r = if (a.is_int()) @floatFromInt(a.as_int()) else a.as_num_double(), .i = 0 };
+        const cb = if (b.is_complex()) b.as_complex() else Complex{ .r = if (b.is_int()) @floatFromInt(b.as_int()) else b.as_num_double(), .i = 0 };
+
+        // (a + bi) / (c + di) = ((ac + bd) / (c^2 + d^2)) + ((bc - ad) / (c^2 + d^2))i
+        const denom = cb.r * cb.r + cb.i * cb.i;
+        if (denom == 0) {
+            runtimeError("Division by zero.", .{});
+            return .INTERPRET_RUNTIME_ERROR;
+        }
+
+        push(Value.init_complex(Complex{
+            .r = (ca.r * cb.r + ca.i * cb.i) / denom,
+            .i = (ca.i * cb.r - ca.r * cb.i) / denom,
+        }));
+        return .INTERPRET_OK;
+    }
+
+    if (peek(0).is_fvec() or peek(1).is_fvec()) {
+        const b = pop();
+        const a = pop();
+
+        if (a.is_fvec() and b.is_fvec()) {
+            const vec_a: *FloatVector = @ptrCast(@alignCast(a.as.obj));
+            const vec_b: *FloatVector = @ptrCast(@alignCast(b.as.obj));
+            const res = vec_a.div(vec_b);
+            push(Value.init_obj(@ptrCast(res)));
+        } else if (a.is_fvec() and b.is_prim_num()) {
+            const vec_a: *FloatVector = @ptrCast(@alignCast(a.as.obj));
+            const val_b = if (b.is_int()) @as(f64, @floatFromInt(b.as_int())) else b.as_num_double();
+            const res = vec_a.single_div(val_b);
+            push(Value.init_obj(@ptrCast(res)));
+        } else if (a.is_prim_num() and b.is_fvec()) {
+            // Scalar / Vector -> Vector (element-wise: scalar / element)
+            // We need to implement this.
+            // Let's create a new vector where each element is scalar / vec[i]
+            // Since we don't have a direct method, we can iterate.
+            // But we can't easily iterate here without exposing internals or adding a method.
+            // However, we can use map-like behavior if available, or just loop manually.
+            // FloatVector has `data` field which is a slice.
+            const val_a = if (a.is_int()) @as(f64, @floatFromInt(a.as_int())) else a.as_num_double();
+            const vec_b: *FloatVector = @ptrCast(@alignCast(b.as.obj));
+
+            const res = FloatVector.init(vec_b.count);
+            res.count = vec_b.count;
+            var i: usize = 0;
+            while (i < vec_b.count) : (i += 1) {
+                res.data[i] = val_a / vec_b.data[i];
+            }
+            push(Value.init_obj(@ptrCast(res)));
+        } else {
+            runtimeError("Operands must be numbers or vectors.", .{});
+            return .INTERPRET_RUNTIME_ERROR;
+        }
+        return .INTERPRET_OK;
+    }
+
+    if (!peek(0).is_prim_num() or !peek(1).is_prim_num()) {
+        runtimeError("Operands must be numbers.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    const b = pop().as_num_double();
+    const a = pop().as_num_double();
+    push(Value.init_double(a / b));
+    return .INTERPRET_OK;
+}
+
+fn opModulo() InterpretResult {
+    if (!peek(0).is_prim_num() or !peek(1).is_prim_num()) {
+        runtimeError("Operands must be numbers.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    const b = pop().as_num_double();
+    const a = pop().as_num_double();
+    push(Value.init_double(@mod(a, b)));
+    return .INTERPRET_OK;
+}
+
+fn opExponent() InterpretResult {
+    if (!peek(0).is_prim_num() or !peek(1).is_prim_num()) {
+        runtimeError("Operands must be numbers.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    const b = pop().as_num_double();
+    const a = pop().as_num_double();
+    push(Value.init_double(pow(a, b)));
+    return .INTERPRET_OK;
+}
+
+fn opNot() InterpretResult {
+    push(Value.init_bool(isFalsey(pop())));
+    return .INTERPRET_OK;
+}
+
+fn opNegate() InterpretResult {
+    if (!peek(0).is_prim_num()) {
+        runtimeError("Operand must be a number.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    if (peek(0).is_int()) {
+        push(Value.init_int(-pop().as_int()));
+    } else {
+        push(Value.init_double(-pop().as_num_double()));
+    }
+    return .INTERPRET_OK;
+}
+
+fn opPrint() InterpretResult {
+    printValue(pop());
+    print("\n", .{});
+    return .INTERPRET_OK;
+}
+
+fn opJump() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const offset = readOffset(frame);
+    frame.ip += offset;
+    return .INTERPRET_OK;
+}
+
+fn opJumpIfFalse() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const offset = readOffset(frame);
+    if (isFalsey(peek(0))) {
+        frame.ip += offset;
+    }
+    return .INTERPRET_OK;
+}
+
+fn opLoop() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const offset = readOffset(frame);
+    frame.ip -= offset;
+    return .INTERPRET_OK;
+}
+
+fn opCall() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const argCount = frame.ip[0];
+    frame.ip += 1;
+    if (!callValue(peek(argCount), argCount)) {
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    vm.currentFrame = &vm.frames[@intCast(vm.frameCount - 1)];
+    return .INTERPRET_OK;
+}
+
+fn opInvoke() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant_index = frame.ip[0];
+    frame.ip += 1;
+    const constant = getConstant(frame, constant_index) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    const method = constant.as_string();
+    const argCount = frame.ip[0];
+    frame.ip += 1;
+    if (!invoke(method, argCount)) {
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    vm.currentFrame = &vm.frames[@intCast(vm.frameCount - 1)];
+    return .INTERPRET_OK;
+}
+
+fn opSuperInvoke() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant_index = frame.ip[0];
+    frame.ip += 1;
+    const constant = getConstant(frame, constant_index) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    const method = constant.as_string();
+    const argCount = frame.ip[0];
+    frame.ip += 1;
+    const superclass: *ObjClass = @ptrCast(@alignCast(pop().as.obj));
+    if (!invokeFromClass(superclass, method, argCount)) {
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    vm.currentFrame = &vm.frames[@intCast(vm.frameCount - 1)];
+    return .INTERPRET_OK;
+}
+
+fn opClosure() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant_index = frame.ip[0];
+    frame.ip += 1;
+    const constant = getConstant(frame, constant_index) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    const function: *ObjFunction = @ptrCast(@alignCast(constant.as.obj));
+    const closure = object_h.newClosure(function);
+    push(Value.init_obj(@ptrCast(closure)));
+
+    var i: i32 = 0;
+    while (i < closure.upvalueCount) : (i += 1) {
+        const isLocal = frame.ip[0];
+        frame.ip += 1;
+        const index = frame.ip[0];
+        frame.ip += 1;
+        if (isLocal == 1) {
+            closure.upvalues.?[@intCast(i)] = captureUpvalue(@ptrCast(&frame.slots[index]));
+        } else {
+            closure.upvalues.?[@intCast(i)] = frame.closure.upvalues.?[index];
+        }
+    }
+    return .INTERPRET_OK;
+}
+
+fn opCloseUpvalue() InterpretResult {
+    closeUpvalues(@ptrCast(&vm.stack[vm.stackTop - 1]));
+    _ = pop();
+    return .INTERPRET_OK;
+}
+
+fn opReturn() InterpretResult {
+    const result = pop();
+    closeUpvalues(@ptrCast(&vm.currentFrame.?.slots[0]));
+    vm.frameCount -= 1;
+    if (vm.frameCount == 0) {
+        _ = pop();
+        return .INTERPRET_FINISHED;
+    }
+
+    vm.stackTop = (@intFromPtr(vm.currentFrame.?.slots) - @intFromPtr(&vm.stack)) / @sizeOf(Value);
+    push(result);
+    vm.currentFrame = &vm.frames[@intCast(vm.frameCount - 1)];
+    return .INTERPRET_OK;
+}
+
+fn opClass() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant_index = frame.ip[0];
+    frame.ip += 1;
+    const constant = getConstant(frame, constant_index) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    const name = constant.as_string();
+    const klass = object_h.newClass(name);
+    push(Value.init_obj(@ptrCast(klass)));
+    return .INTERPRET_OK;
+}
+
+fn opInherit() InterpretResult {
+    const superclass = peek(1);
+    if (!isObjType(superclass, .OBJ_CLASS)) {
+        runtimeError("Superclass must be a class.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    const subclass: *ObjClass = @ptrCast(@alignCast(peek(0).as.obj));
+    const super_klass: *ObjClass = @ptrCast(@alignCast(superclass.as.obj));
+    table_h.tableAddAll(&super_klass.methods, &subclass.methods);
+    _ = pop(); // Subclass
+    return .INTERPRET_OK;
+}
+
+fn opMethod() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant_index = frame.ip[0];
+    frame.ip += 1;
+    const constant = getConstant(frame, constant_index) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    const name = constant.as_string();
+    defineMethod(name);
+    return .INTERPRET_OK;
+}
+
+fn opLength() InterpretResult {
+    const value = pop();
+    if (value.is_string()) {
+        push(Value.init_int(@intCast(value.as_string().length)));
+    } else if (value.is_obj()) {
+        switch (value.as.obj.?.type) {
+            .OBJ_RANGE => {
+                const range: *ObjRange = @ptrCast(@alignCast(value.as.obj));
+                push(range.get_length());
+            },
+            .OBJ_FVECTOR => {
+                const vec: *FloatVector = @ptrCast(@alignCast(value.as.obj));
+                push(Value.init_int(@intCast(vec.count)));
+            },
+            .OBJ_HASH_TABLE => {
+                const table: *object_h.ObjHashTable = @ptrCast(@alignCast(value.as.obj));
+                push(Value.init_int(@intCast(table.table.count)));
+            },
+            .OBJ_LINKED_LIST => {
+                const list: *ObjLinkedList = @ptrCast(@alignCast(value.as.obj));
+                push(Value.init_int(@intCast(list.count)));
+            },
+            .OBJ_PAIR => {
+                push(Value.init_int(2));
+            },
+            else => {
+                runtimeError("Object does not support length.", .{});
+                return .INTERPRET_RUNTIME_ERROR;
+            },
+        }
+    } else {
+        runtimeError("Operand must be a string or range.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    return .INTERPRET_OK;
+}
+
+fn opGetIndex() InterpretResult {
+    const index = pop();
+    const target = pop();
+
+    if (target.is_string()) {
+        if (!index.is_int()) {
+            runtimeError("Index must be an integer.", .{});
+            return .INTERPRET_RUNTIME_ERROR;
+        }
+        const str = target.as_string();
+        const idx = index.as_int();
+        if (idx < 0 or idx >= str.length) {
+            runtimeError("Index out of bounds.", .{});
+            return .INTERPRET_RUNTIME_ERROR;
+        }
+        const char_str = copyString(@ptrCast(&str.chars[@intCast(idx)]), 1);
+        push(Value.init_obj(@ptrCast(char_str)));
+    } else if (target.is_obj()) {
+        switch (target.as.obj.?.type) {
+            .OBJ_RANGE => {
+                const range: *ObjRange = @ptrCast(@alignCast(target.as.obj));
+                if (!index.is_int()) {
+                    runtimeError("Index must be an integer.", .{});
+                    return .INTERPRET_RUNTIME_ERROR;
+                }
+                push(range.index(@intCast(index.as_int())));
+            },
+            .OBJ_FVECTOR => {
+                const vec: *FloatVector = @ptrCast(@alignCast(target.as.obj));
+                if (!index.is_int()) {
+                    runtimeError("Index must be an integer.", .{});
+                    return .INTERPRET_RUNTIME_ERROR;
+                }
+                var idx = index.as_int();
+                if (idx < 0) {
+                    idx += @as(i32, @intCast(vec.count));
+                }
+                if (idx < 0 or idx >= vec.count) {
+                    runtimeError("Index out of bounds.", .{});
+                    return .INTERPRET_RUNTIME_ERROR;
+                }
+                push(Value.init_double(vec.get(@intCast(idx))));
+            },
+            .OBJ_PAIR => {
+                const pair: *object_h.ObjPair = @ptrCast(@alignCast(target.as.obj));
+                if (!index.is_int()) {
+                    runtimeError("Index must be an integer.", .{});
+                    return .INTERPRET_RUNTIME_ERROR;
+                }
+                const idx = index.as_int();
+                if (idx == 0) {
+                    push(pair.key);
+                } else if (idx == 1) {
+                    push(pair.value);
+                } else {
+                    runtimeError("Pair index out of bounds (must be 0 or 1).", .{});
+                    return .INTERPRET_RUNTIME_ERROR;
+                }
+            },
+            .OBJ_HASH_TABLE => {
+                const table: *object_h.ObjHashTable = @ptrCast(@alignCast(target.as.obj));
+                if (!index.is_string()) {
+                    runtimeError("Hash table key must be a string.", .{});
+                    return .INTERPRET_RUNTIME_ERROR;
+                }
+                if (table.get(index.as_string())) |val| {
+                    push(val);
+                } else {
+                    push(Value.init_nil());
+                }
+            },
+            else => {
+                runtimeError("Operand must be a string, range, array, or pair (got {any}).", .{target.as.obj.?.type});
+                return .INTERPRET_RUNTIME_ERROR;
+            },
+        }
+    } else {
+        runtimeError("Operand must be a string or range (got {any}).", .{target.type});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    return .INTERPRET_OK;
+}
+
+fn opSlice() InterpretResult {
+    const end = pop();
+    const start = pop();
+    const target = pop();
+
+    if (target.is_string()) {
+        if (!start.is_int() or !end.is_int()) {
+            runtimeError("Slice indices must be integers.", .{});
+            return .INTERPRET_RUNTIME_ERROR;
+        }
+        const str = target.as_string();
+        const s = start.as_int();
+        const e = end.as_int();
+
+        if (s < 0 or e > str.length or s > e) {
+            runtimeError("Invalid slice indices.", .{});
+            return .INTERPRET_RUNTIME_ERROR;
+        }
+
+        const char_str = copyString(@ptrCast(&str.chars[@intCast(s)]), @intCast(e - s));
+        push(Value.init_obj(@ptrCast(char_str)));
+    } else if (target.is_obj() and target.as.obj.?.type == .OBJ_FVECTOR) {
+        const vec: *FloatVector = @ptrCast(@alignCast(target.as.obj));
+        if (!start.is_int() or !end.is_int()) {
+            runtimeError("Slice indices must be integers.", .{});
+            return .INTERPRET_RUNTIME_ERROR;
+        }
+        var s = start.as_int();
+        var e = end.as_int();
+
+        if (s < 0) s += @as(i32, @intCast(vec.count));
+        if (e < 0) e += @as(i32, @intCast(vec.count));
+
+        if (s < 0 or e >= vec.count or s > e) {
+            runtimeError("Invalid slice indices.", .{});
+            return .INTERPRET_RUNTIME_ERROR;
+        }
+        const new_vec = vec.slice(@intCast(s), @intCast(e));
+        push(Value.init_obj(@ptrCast(new_vec)));
+    } else {
+        runtimeError("Operand must be a string or vector.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    return .INTERPRET_OK;
+}
+
+fn opRange() InterpretResult {
+    const end = pop();
+    const start = pop();
+
+    if (!start.is_int() or !end.is_int()) {
+        runtimeError("Range operands must be integers.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    const range = ObjRange.init(@intCast(start.as_int()), @intCast(end.as_int()), false);
+    push(Value.init_obj(@ptrCast(range)));
+    return .INTERPRET_OK;
+}
+
+fn opRangeInclusive() InterpretResult {
+    const end = pop();
+    const start = pop();
+
+    if (!start.is_int() or !end.is_int()) {
+        runtimeError("Range operands must be integers.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    const range = ObjRange.init(@intCast(start.as_int()), @intCast(end.as_int()), true);
+    push(Value.init_obj(@ptrCast(range)));
+    return .INTERPRET_OK;
+}
+
+fn opPair() InterpretResult {
+    const value = pop();
+    const key = pop();
+    const pair = object_h.ObjPair.create(key, value);
+    push(Value.init_obj(@ptrCast(pair)));
+    return .INTERPRET_OK;
+}
+
+fn opCheckRange() InterpretResult {
+    const value = pop();
+    const range_val = pop();
+
+    if (!range_val.is_obj() or range_val.as.obj.?.type != .OBJ_RANGE) {
+        runtimeError("Expected range operand.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    const range: *ObjRange = @ptrCast(@alignCast(range_val.as.obj));
+    push(Value.init_bool(range.equals(value)));
+    return .INTERPRET_OK;
+}
+
+fn opIsRange() InterpretResult {
+    const value = peek(0);
+    push(Value.init_bool(value.is_obj() and value.as.obj.?.type == .OBJ_RANGE));
+    return .INTERPRET_OK;
+}
+
+fn opGetRangeLength() InterpretResult {
+    const value = pop();
+    if (!value.is_obj() or value.as.obj.?.type != .OBJ_RANGE) {
+        runtimeError("Expected range operand.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    const range: *ObjRange = @ptrCast(@alignCast(value.as.obj));
+    push(range.get_length());
+    return .INTERPRET_OK;
+}
+
+fn opSetIndex() InterpretResult {
+    const value = pop();
+    const index = pop();
+    const target = pop();
+
+    if (target.is_obj()) {
+        switch (target.as.obj.?.type) {
+            .OBJ_FVECTOR => {
+                const vec: *FloatVector = @ptrCast(@alignCast(target.as.obj));
+                if (!index.is_int()) {
+                    runtimeError("Index must be an integer.", .{});
+                    return .INTERPRET_RUNTIME_ERROR;
+                }
+                var idx = index.as_int();
+                if (idx < 0) {
+                    idx += @as(i32, @intCast(vec.count));
+                }
+                if (idx < 0 or idx >= vec.count) {
+                    runtimeError("Index out of bounds.", .{});
+                    return .INTERPRET_RUNTIME_ERROR;
+                }
+                if (!value.is_prim_num()) {
+                    runtimeError("Value must be a number.", .{});
+                    return .INTERPRET_RUNTIME_ERROR;
+                }
+                vec.set(@intCast(idx), value.as_num_double());
+                push(value);
+            },
+            .OBJ_HASH_TABLE => {
+                const table: *object_h.ObjHashTable = @ptrCast(@alignCast(target.as.obj));
+                if (!index.is_string()) {
+                    runtimeError("Hash table key must be a string.", .{});
+                    return .INTERPRET_RUNTIME_ERROR;
+                }
+                _ = table.put(index.as_string(), value);
+                push(value);
+            },
+            else => {
+                runtimeError("Object does not support index assignment.", .{});
+                return .INTERPRET_RUNTIME_ERROR;
+            },
+        }
+    } else {
+        runtimeError("Operand must be an object.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    return .INTERPRET_OK;
+}
+
+fn opDup() InterpretResult {
+    push(peek(0));
+    return .INTERPRET_OK;
+}
+
+fn opInt() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant_index = frame.ip[0];
+    frame.ip += 1;
+    const constant = getConstant(frame, constant_index) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    push(constant);
+    return .INTERPRET_OK;
+}
+
+fn opHashTable() InterpretResult {
+    const table = object_h.newHashTable();
+    push(Value.init_obj(@ptrCast(table)));
+    return .INTERPRET_OK;
+}
+
+fn opAddEntry() InterpretResult {
+    const value = pop();
+    const key = pop();
+    const table_val = peek(0);
+
+    if (!table_val.is_obj() or table_val.as.obj.?.type != .OBJ_HASH_TABLE) {
+        runtimeError("Expected hash table.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    const table: *object_h.ObjHashTable = @ptrCast(@alignCast(table_val.as.obj));
+    if (key.is_string()) {
+        _ = table_h.tableSet(&table.table, key.as_string(), value);
+    } else {
+        runtimeError("Hash table keys must be strings.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    return .INTERPRET_OK;
+}
+
+fn opToString() InterpretResult {
+    const value = pop();
+    if (value.is_string()) {
+        push(value);
+    } else if (value.is_obj() and value.as.obj.?.type == .OBJ_RANGE) {
+        const range: *ObjRange = @ptrCast(@alignCast(value.as.obj));
+        push(range.toString());
+    } else {
+        // Fallback for other types if needed, or error
+        runtimeError("Cannot convert to string.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    return .INTERPRET_OK;
+}
+
+fn opBreak() InterpretResult {
+    // Should be handled by compiler emitting jumps
+    return .INTERPRET_OK;
+}
+
+fn opContinue() InterpretResult {
+    // Should be handled by compiler emitting jumps
+    return .INTERPRET_OK;
+}
+
+fn opFVector() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const count = frame.ip[0];
+    frame.ip += 1;
+
+    const vector = FloatVector.init(count);
+    var i: i32 = @intCast(count);
+    while (i > 0) : (i -= 1) {
+        const val = peek(@intCast(i - 1));
+        if (val.is_prim_num()) {
+            vector.push(@floatCast(val.as_num_double()));
+        } else {
+            vector.push(0.0);
+        }
+    }
+    vm.stackTop -= @intCast(count);
+    push(Value.init_obj(@ptrCast(vector)));
+    return .INTERPRET_OK;
+}
+
+fn opUnknown() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const instruction = (frame.ip - 1)[0];
+    runtimeError("Unknown opcode: {d}", .{instruction});
+    return .INTERPRET_RUNTIME_ERROR;
+}
+
+const jumpTable = blk: {
+    var table: [256]OpHandler = undefined;
+    for (0..256) |i| {
+        table[i] = opUnknown;
+    }
+    table[@intFromEnum(OpCode.OP_CONSTANT)] = opConstant;
+    table[@intFromEnum(OpCode.OP_NIL)] = opNil;
+    table[@intFromEnum(OpCode.OP_TRUE)] = opTrue;
+    table[@intFromEnum(OpCode.OP_FALSE)] = opFalse;
+    table[@intFromEnum(OpCode.OP_POP)] = opPop;
+    table[@intFromEnum(OpCode.OP_GET_LOCAL)] = opGetLocal;
+    table[@intFromEnum(OpCode.OP_SET_LOCAL)] = opSetLocal;
+    table[@intFromEnum(OpCode.OP_GET_GLOBAL)] = opGetGlobal;
+    table[@intFromEnum(OpCode.OP_DEFINE_GLOBAL)] = opDefineGlobal;
+    table[@intFromEnum(OpCode.OP_DEFINE_CONST_GLOBAL)] = opDefineConstGlobal;
+    table[@intFromEnum(OpCode.OP_SET_GLOBAL)] = opSetGlobal;
+    table[@intFromEnum(OpCode.OP_GET_UPVALUE)] = opGetUpvalue;
+    table[@intFromEnum(OpCode.OP_SET_UPVALUE)] = opSetUpvalue;
+    table[@intFromEnum(OpCode.OP_GET_PROPERTY)] = opGetProperty;
+    table[@intFromEnum(OpCode.OP_SET_PROPERTY)] = opSetProperty;
+    table[@intFromEnum(OpCode.OP_GET_SUPER)] = opGetSuper;
+    table[@intFromEnum(OpCode.OP_EQUAL)] = opEqual;
+    table[@intFromEnum(OpCode.OP_GREATER)] = opGreater;
+    table[@intFromEnum(OpCode.OP_LESS)] = opLess;
+    table[@intFromEnum(OpCode.OP_GREATER_EQUAL)] = opGreaterEqual;
+    table[@intFromEnum(OpCode.OP_ADD)] = opAdd;
+    table[@intFromEnum(OpCode.OP_SUBTRACT)] = opSubtract;
+    table[@intFromEnum(OpCode.OP_MULTIPLY)] = opMultiply;
+    table[@intFromEnum(OpCode.OP_DIVIDE)] = opDivide;
+    table[@intFromEnum(OpCode.OP_MODULO)] = opModulo;
+    table[@intFromEnum(OpCode.OP_EXPONENT)] = opExponent;
+    table[@intFromEnum(OpCode.OP_NOT)] = opNot;
+    table[@intFromEnum(OpCode.OP_NEGATE)] = opNegate;
+    table[@intFromEnum(OpCode.OP_PRINT)] = opPrint;
+    table[@intFromEnum(OpCode.OP_JUMP)] = opJump;
+    table[@intFromEnum(OpCode.OP_JUMP_IF_FALSE)] = opJumpIfFalse;
+    table[@intFromEnum(OpCode.OP_LOOP)] = opLoop;
+    table[@intFromEnum(OpCode.OP_CALL)] = opCall;
+    table[@intFromEnum(OpCode.OP_INVOKE)] = opInvoke;
+    table[@intFromEnum(OpCode.OP_SUPER_INVOKE)] = opSuperInvoke;
+    table[@intFromEnum(OpCode.OP_CLOSURE)] = opClosure;
+    table[@intFromEnum(OpCode.OP_CLOSE_UPVALUE)] = opCloseUpvalue;
+    table[@intFromEnum(OpCode.OP_RETURN)] = opReturn;
+    table[@intFromEnum(OpCode.OP_CLASS)] = opClass;
+    table[@intFromEnum(OpCode.OP_INHERIT)] = opInherit;
+    table[@intFromEnum(OpCode.OP_METHOD)] = opMethod;
+    table[@intFromEnum(OpCode.OP_LENGTH)] = opLength;
+    table[@intFromEnum(OpCode.OP_GET_INDEX)] = opGetIndex;
+    table[@intFromEnum(OpCode.OP_SLICE)] = opSlice;
+    table[@intFromEnum(OpCode.OP_RANGE)] = opRange;
+    table[@intFromEnum(OpCode.OP_RANGE_INCLUSIVE)] = opRangeInclusive;
+    table[@intFromEnum(OpCode.OP_PAIR)] = opPair;
+    table[@intFromEnum(OpCode.OP_CHECK_RANGE)] = opCheckRange;
+    table[@intFromEnum(OpCode.OP_IS_RANGE)] = opIsRange;
+    table[@intFromEnum(OpCode.OP_GET_RANGE_LENGTH)] = opGetRangeLength;
+    table[@intFromEnum(OpCode.OP_SET_INDEX)] = opSetIndex;
+    table[@intFromEnum(OpCode.OP_DUP)] = opDup;
+    table[@intFromEnum(OpCode.OP_INT)] = opInt;
+    table[@intFromEnum(OpCode.OP_HASH_TABLE)] = opHashTable;
+    table[@intFromEnum(OpCode.OP_ADD_ENTRY)] = opAddEntry;
+    table[@intFromEnum(OpCode.OP_TO_STRING)] = opToString;
+    table[@intFromEnum(OpCode.OP_BREAK)] = opBreak;
+    table[@intFromEnum(OpCode.OP_CONTINUE)] = opContinue;
+    table[@intFromEnum(OpCode.OP_FVECTOR)] = opFVector;
+    break :blk table;
+};
+
 pub fn run() InterpretResult {
-    var frame = &vm.frames[@intCast(vm.frameCount - 1)];
+    vm.currentFrame = &vm.frames[@intCast(vm.frameCount - 1)];
 
     while (true) {
-        // Read the current instruction
+        const frame = vm.currentFrame.?;
+        if (debug_opts.trace_exec) {
+            std.debug.print("          ", .{});
+            var i: usize = 0;
+            while (i < vm.stackTop) : (i += 1) {
+                std.debug.print("[ ", .{});
+                printValue(vm.stack[i]);
+                std.debug.print(" ]", .{});
+            }
+            std.debug.print("\n", .{});
+            const offset = @intFromPtr(frame.ip) - @intFromPtr(frame.closure.function.chunk.code);
+            _ = debug_h.disassembleInstruction(&frame.closure.function.chunk, @intCast(offset));
+        }
         const instruction = frame.ip[0];
         frame.ip += 1;
 
-        switch (instruction) {
-            @intFromEnum(OpCode.OP_CONSTANT) => {
-                const constant_index = frame.ip[0];
-                frame.ip += 1;
-                const constant = getConstant(frame, constant_index) orelse {
-                    runtimeError("Invalid constant index.", .{});
-                    return .INTERPRET_RUNTIME_ERROR;
-                };
-                push(constant);
-            },
-            @intFromEnum(OpCode.OP_NIL) => push(Value.init_nil()),
-            @intFromEnum(OpCode.OP_TRUE) => push(Value.init_bool(true)),
-            @intFromEnum(OpCode.OP_FALSE) => push(Value.init_bool(false)),
-            @intFromEnum(OpCode.OP_POP) => _ = pop(),
-            @intFromEnum(OpCode.OP_GET_LOCAL) => {
-                const slot = frame.ip[0];
-                frame.ip += 1;
-                push(frame.slots[slot]);
-            },
-            @intFromEnum(OpCode.OP_SET_LOCAL) => {
-                const slot = frame.ip[0];
-                frame.ip += 1;
-                frame.slots[slot] = peek(0);
-            },
-            @intFromEnum(OpCode.OP_GET_GLOBAL) => {
-                const constant_index = frame.ip[0];
-                frame.ip += 1;
-                const constant = getConstant(frame, constant_index) orelse {
-                    runtimeError("Invalid constant index.", .{});
-                    return .INTERPRET_RUNTIME_ERROR;
-                };
-                const name = constant.as_string();
-                var value: Value = undefined;
-                if (!tableGet(&vm.globals, name, &value)) {
-                    runtimeError("Undefined variable '{s}'.", .{name.chars});
-                    return .INTERPRET_RUNTIME_ERROR;
-                }
-                push(value);
-            },
-            @intFromEnum(OpCode.OP_DEFINE_GLOBAL) => {
-                const constant_index = frame.ip[0];
-                frame.ip += 1;
-                const constant = getConstant(frame, constant_index) orelse {
-                    runtimeError("Invalid constant index.", .{});
-                    return .INTERPRET_RUNTIME_ERROR;
-                };
-                const name = constant.as_string();
-                _ = tableSet(&vm.globals, name, peek(0));
-                _ = pop();
-            },
-            @intFromEnum(OpCode.OP_SET_GLOBAL) => {
-                const constant_index = frame.ip[0];
-                frame.ip += 1;
-                const constant = getConstant(frame, constant_index) orelse {
-                    runtimeError("Invalid constant index.", .{});
-                    return .INTERPRET_RUNTIME_ERROR;
-                };
-                const name = constant.as_string();
-                if (tableSet(&vm.globals, name, peek(0))) {
-                    _ = tableDelete(&vm.globals, name);
-                    runtimeError("Undefined variable '{s}'.", .{name.chars});
-                    return .INTERPRET_RUNTIME_ERROR;
-                }
-            },
-            @intFromEnum(OpCode.OP_EQUAL) => {
-                const b = pop();
-                const a = pop();
-                push(Value.init_bool(valuesEqual(a, b)));
-            },
-            @intFromEnum(OpCode.OP_GREATER) => {
-                if (!peek(0).is_prim_num() or !peek(1).is_prim_num()) {
-                    runtimeError("Operands must be numbers.", .{});
-                    return .INTERPRET_RUNTIME_ERROR;
-                }
-                const b = pop().as_num_double();
-                const a = pop().as_num_double();
-                push(Value.init_bool(a > b));
-            },
-            @intFromEnum(OpCode.OP_LESS) => {
-                if (!peek(0).is_prim_num() or !peek(1).is_prim_num()) {
-                    runtimeError("Operands must be numbers.", .{});
-                    return .INTERPRET_RUNTIME_ERROR;
-                }
-                const b = pop().as_num_double();
-                const a = pop().as_num_double();
-                push(Value.init_bool(a < b));
-            },
-            @intFromEnum(OpCode.OP_ADD) => {
-                if (peek(0).is_string() and peek(1).is_string()) {
-                    const b = pop().as_string();
-                    const a = pop().as_string();
-                    const length = a.length + b.length;
-                    const chars = memory_h.reallocate(null, 0, @intCast(@sizeOf(u8) * length));
-                    if (chars == null) {
-                        runtimeError("Out of memory.", .{});
-                        return .INTERPRET_RUNTIME_ERROR;
-                    }
-                    const chars_ptr: [*]u8 = @ptrCast(chars);
-                    @memcpy(chars_ptr[0..a.length], a.chars[0..a.length]);
-                    @memcpy(chars_ptr[a.length..length], b.chars[0..b.length]);
-                    const result = object_h.takeString(chars_ptr, length);
-                    push(Value.init_obj(@ptrCast(result)));
-                } else if (peek(0).is_prim_num() and peek(1).is_prim_num()) {
-                    const b = pop().as_num_double();
-                    const a = pop().as_num_double();
-                    push(Value.init_double(a + b));
-                } else if (peek(0).is_int() and peek(1).is_int()) {
-                    const b = pop().as_int();
-                    const a = pop().as_int();
-                    push(Value.init_int(a + b));
-                } else {
-                    runtimeError("Operands must be two numbers or two strings.", .{});
-                    return .INTERPRET_RUNTIME_ERROR;
-                }
-            },
-            @intFromEnum(OpCode.OP_SUBTRACT) => {
-                if (!peek(0).is_prim_num() or !peek(1).is_prim_num()) {
-                    runtimeError("Operands must be numbers.", .{});
-                    return .INTERPRET_RUNTIME_ERROR;
-                }
-                const b = pop().as_num_double();
-                const a = pop().as_num_double();
-                push(Value.init_double(a - b));
-            },
-            @intFromEnum(OpCode.OP_MULTIPLY) => {
-                if (!peek(0).is_prim_num() or !peek(1).is_prim_num()) {
-                    runtimeError("Operands must be numbers.", .{});
-                    return .INTERPRET_RUNTIME_ERROR;
-                }
-                const b = pop().as_num_double();
-                const a = pop().as_num_double();
-                push(Value.init_double(a * b));
-            },
-            @intFromEnum(OpCode.OP_DIVIDE) => {
-                if (!peek(0).is_prim_num() or !peek(1).is_prim_num()) {
-                    runtimeError("Operands must be numbers.", .{});
-                    return .INTERPRET_RUNTIME_ERROR;
-                }
-                const b = pop().as_num_double();
-                const a = pop().as_num_double();
-                push(Value.init_double(a / b));
-            },
-            @intFromEnum(OpCode.OP_NOT) => {
-                push(Value.init_bool(isFalsey(pop())));
-            },
-            @intFromEnum(OpCode.OP_NEGATE) => {
-                if (!peek(0).is_prim_num()) {
-                    runtimeError("Operand must be a number.", .{});
-                    return .INTERPRET_RUNTIME_ERROR;
-                }
-                push(Value.init_double(-pop().as_num_double()));
-            },
-            @intFromEnum(OpCode.OP_PRINT) => {
-                printValue(pop());
-                print("\n", .{});
-            },
-            @intFromEnum(OpCode.OP_RETURN) => {
-                const result = pop();
-                closeUpvalues(@ptrCast(&frame.slots[0]));
-                vm.frameCount -= 1;
-                if (vm.frameCount == 0) {
-                    _ = pop();
-                    return .INTERPRET_OK;
-                }
-
-                vm.stackTop = @ptrCast(&frame.slots[0]);
-                push(result);
-                frame = &vm.frames[@intCast(vm.frameCount - 1)];
-            },
-            else => {
-                runtimeError("Unknown opcode: {d}", .{instruction});
-                return .INTERPRET_RUNTIME_ERROR;
-            },
+        const result = jumpTable[instruction]();
+        if (result != .INTERPRET_OK) {
+            if (result == .INTERPRET_FINISHED) return .INTERPRET_OK;
+            return result;
         }
     }
 }
 
-fn peek(distance: u32) Value {
-    return (vm.stackTop - 1 - distance)[0];
+inline fn peek(distance: u32) Value {
+    return vm.stack[vm.stackTop - 1 - distance];
 }

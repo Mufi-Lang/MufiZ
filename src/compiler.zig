@@ -1929,21 +1929,18 @@ pub fn foreachStatement() void {
     const collectionSlot = current.?.localCount;
     addLocal(syntheticToken("__collection"));
     markInitialized();
-    emitBytes(@intCast(@intFromEnum(OpCode.OP_SET_LOCAL)), @intCast(collectionSlot));
-    emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
 
     // Initialize index = 0
     const indexSlot = current.?.localCount;
     addLocal(syntheticToken("__index"));
     markInitialized();
     emitConstant(Value.init_int(0));
-    emitBytes(@intCast(@intFromEnum(OpCode.OP_SET_LOCAL)), @intCast(indexSlot));
-    emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
 
     // Declare the loop item variable
     const itemSlot = current.?.localCount;
     addLocal(itemName);
     markInitialized();
+    emitByte(@intCast(@intFromEnum(OpCode.OP_NIL)));
 
     // Main loop start
     const loopStart: i32 = @intCast(currentChunk().*.count);
