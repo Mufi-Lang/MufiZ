@@ -41,6 +41,7 @@ const ObjClass = object_h.ObjClass;
 const copyString = object_h.copyString;
 const fvec = @import("objects/fvec.zig");
 const FloatVector = fvec.FloatVector;
+const Matrix = object_h.Matrix;
 const obj_range = @import("objects/range.zig");
 const ObjRange = obj_range.ObjRange;
 const simd_string = @import("simd_string.zig");
@@ -921,6 +922,41 @@ fn opAdd() InterpretResult {
         const cb = if (b.is_complex()) b.as_complex() else Complex{ .r = if (b.is_int()) @floatFromInt(b.as_int()) else b.as_num_double(), .i = 0 };
 
         push(Value.init_complex(Complex{ .r = ca.r + cb.r, .i = ca.i + cb.i }));
+    } else if (peek(0).is_matrix() or peek(1).is_matrix()) {
+        const b = pop();
+        const a = pop();
+
+        if (a.is_matrix() and b.is_matrix()) {
+            const mat_a: *Matrix = @ptrCast(@alignCast(a.as.obj));
+            const mat_b: *Matrix = @ptrCast(@alignCast(b.as.obj));
+            const res = mat_a.add(mat_b);
+            if (res == null) {
+                runtimeError("Matrix dimension mismatch for addition.", .{});
+                return .INTERPRET_RUNTIME_ERROR;
+            }
+            push(Value.init_obj(@ptrCast(res.?)));
+        } else if (a.is_matrix() and b.is_prim_num()) {
+            const mat_a: *Matrix = @ptrCast(@alignCast(a.as.obj));
+            const val_b = if (b.is_int()) @as(f64, @floatFromInt(b.as_int())) else b.as_num_double();
+            const res = mat_a.scalarMul(1.0); // Clone first
+            const size = mat_a.rows * mat_a.cols;
+            for (0..size) |i| {
+                res.data[i] = mat_a.data[i] + val_b;
+            }
+            push(Value.init_obj(@ptrCast(res)));
+        } else if (a.is_prim_num() and b.is_matrix()) {
+            const val_a = if (a.is_int()) @as(f64, @floatFromInt(a.as_int())) else a.as_num_double();
+            const mat_b: *Matrix = @ptrCast(@alignCast(b.as.obj));
+            const res = mat_b.scalarMul(1.0); // Clone first
+            const size = mat_b.rows * mat_b.cols;
+            for (0..size) |i| {
+                res.data[i] = mat_b.data[i] + val_a;
+            }
+            push(Value.init_obj(@ptrCast(res)));
+        } else {
+            runtimeError("Operands must be two numbers, two strings, or involve a vector/matrix.", .{});
+            return .INTERPRET_RUNTIME_ERROR;
+        }
     } else if (peek(0).is_fvec() or peek(1).is_fvec()) {
         const b = pop();
         const a = pop();
@@ -941,7 +977,7 @@ fn opAdd() InterpretResult {
             const res = vec_b.single_add(val_a);
             push(Value.init_obj(@ptrCast(res)));
         } else {
-            runtimeError("Operands must be two numbers, two strings, or involve a vector.", .{});
+            runtimeError("Operands must be two numbers, two strings, or involve a vector/matrix.", .{});
             return .INTERPRET_RUNTIME_ERROR;
         }
     } else if (peek(0).is_prim_num() and peek(1).is_prim_num()) {
@@ -970,6 +1006,44 @@ fn opSubtract() InterpretResult {
         const cb = if (b.is_complex()) b.as_complex() else Complex{ .r = if (b.is_int()) @floatFromInt(b.as_int()) else b.as_num_double(), .i = 0 };
 
         push(Value.init_complex(Complex{ .r = ca.r - cb.r, .i = ca.i - cb.i }));
+        return .INTERPRET_OK;
+    }
+
+    if (peek(0).is_matrix() or peek(1).is_matrix()) {
+        const b = pop();
+        const a = pop();
+
+        if (a.is_matrix() and b.is_matrix()) {
+            const mat_a: *Matrix = @ptrCast(@alignCast(a.as.obj));
+            const mat_b: *Matrix = @ptrCast(@alignCast(b.as.obj));
+            const res = mat_a.sub(mat_b);
+            if (res == null) {
+                runtimeError("Matrix dimension mismatch for subtraction.", .{});
+                return .INTERPRET_RUNTIME_ERROR;
+            }
+            push(Value.init_obj(@ptrCast(res.?)));
+        } else if (a.is_matrix() and b.is_prim_num()) {
+            const mat_a: *Matrix = @ptrCast(@alignCast(a.as.obj));
+            const val_b = if (b.is_int()) @as(f64, @floatFromInt(b.as_int())) else b.as_num_double();
+            const res = mat_a.scalarMul(1.0); // Clone first
+            const size = mat_a.rows * mat_a.cols;
+            for (0..size) |i| {
+                res.data[i] = mat_a.data[i] - val_b;
+            }
+            push(Value.init_obj(@ptrCast(res)));
+        } else if (a.is_prim_num() and b.is_matrix()) {
+            const val_a = if (a.is_int()) @as(f64, @floatFromInt(a.as_int())) else a.as_num_double();
+            const mat_b: *Matrix = @ptrCast(@alignCast(b.as.obj));
+            const res = mat_b.scalarMul(1.0); // Clone first
+            const size = mat_b.rows * mat_b.cols;
+            for (0..size) |i| {
+                res.data[i] = val_a - mat_b.data[i];
+            }
+            push(Value.init_obj(@ptrCast(res)));
+        } else {
+            runtimeError("Operands must be numbers or vectors/matrices.", .{});
+            return .INTERPRET_RUNTIME_ERROR;
+        }
         return .INTERPRET_OK;
     }
 
@@ -1009,7 +1083,7 @@ fn opSubtract() InterpretResult {
             // But GC handles it.
             push(Value.init_obj(@ptrCast(res)));
         } else {
-            runtimeError("Operands must be numbers or vectors.", .{});
+            runtimeError("Operands must be numbers or vectors/matrices.", .{});
             return .INTERPRET_RUNTIME_ERROR;
         }
         return .INTERPRET_OK;
@@ -1047,6 +1121,36 @@ fn opMultiply() InterpretResult {
         return .INTERPRET_OK;
     }
 
+    if (peek(0).is_matrix() or peek(1).is_matrix()) {
+        const b = pop();
+        const a = pop();
+
+        if (a.is_matrix() and b.is_matrix()) {
+            const mat_a: *Matrix = @ptrCast(@alignCast(a.as.obj));
+            const mat_b: *Matrix = @ptrCast(@alignCast(b.as.obj));
+            const res = mat_a.mul(mat_b);
+            if (res == null) {
+                runtimeError("Matrix dimension mismatch for multiplication.", .{});
+                return .INTERPRET_RUNTIME_ERROR;
+            }
+            push(Value.init_obj(@ptrCast(res.?)));
+        } else if (a.is_matrix() and b.is_prim_num()) {
+            const mat_a: *Matrix = @ptrCast(@alignCast(a.as.obj));
+            const val_b = if (b.is_int()) @as(f64, @floatFromInt(b.as_int())) else b.as_num_double();
+            const res = mat_a.scalarMul(val_b);
+            push(Value.init_obj(@ptrCast(res)));
+        } else if (a.is_prim_num() and b.is_matrix()) {
+            const val_a = if (a.is_int()) @as(f64, @floatFromInt(a.as_int())) else a.as_num_double();
+            const mat_b: *Matrix = @ptrCast(@alignCast(b.as.obj));
+            const res = mat_b.scalarMul(val_a);
+            push(Value.init_obj(@ptrCast(res)));
+        } else {
+            runtimeError("Operands must be numbers or vectors/matrices.", .{});
+            return .INTERPRET_RUNTIME_ERROR;
+        }
+        return .INTERPRET_OK;
+    }
+
     if (peek(0).is_fvec() or peek(1).is_fvec()) {
         const b = pop();
         const a = pop();
@@ -1067,7 +1171,7 @@ fn opMultiply() InterpretResult {
             const res = vec_b.scale(val_a);
             push(Value.init_obj(@ptrCast(res)));
         } else {
-            runtimeError("Operands must be numbers or vectors.", .{});
+            runtimeError("Operands must be numbers or vectors/matrices.", .{});
             return .INTERPRET_RUNTIME_ERROR;
         }
         return .INTERPRET_OK;
@@ -1735,6 +1839,123 @@ fn opFVector() InterpretResult {
     return .INTERPRET_OK;
 }
 
+fn opMatrix() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const rows = frame.ip[0];
+    const cols = frame.ip[1];
+    frame.ip += 2;
+
+    const matrix = Matrix.init(rows, cols);
+
+    // Pop values from stack in reverse order (last pushed = first row)
+    const total_elements = rows * cols;
+    var i: usize = 0;
+    while (i < total_elements) {
+        const val = peek(@intCast(total_elements - 1 - i));
+        if (val.is_prim_num()) {
+            const row = i / cols;
+            const col = i % cols;
+            matrix.set(row, col, @floatCast(val.as_num_double()));
+        } else {
+            const row = i / cols;
+            const col = i % cols;
+            matrix.set(row, col, 0.0);
+        }
+        i += 1;
+    }
+
+    vm.stackTop -= total_elements;
+    push(Value.init_obj(@ptrCast(matrix)));
+    return .INTERPRET_OK;
+}
+
+fn opGetMatrixIndex() InterpretResult {
+    const col_val = peek(0); // Column index (j)
+    const row_val = peek(1); // Row index (i)
+    const matrix_val = peek(2); // Matrix
+
+    if (!matrix_val.is_matrix()) {
+        runtimeError("Can only index matrices.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    if (!row_val.is_int() or !col_val.is_int()) {
+        runtimeError("Matrix indices must be integers.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    const matrix = matrix_val.as_matrix();
+    var row = row_val.as_int();
+    var col = col_val.as_int();
+
+    // Convert to 0-based indexing (MufiZ uses 1-based)
+    row -= 1;
+    col -= 1;
+
+    // Handle negative indices (from end)
+    if (row < 0) row += @intCast(matrix.rows);
+    if (col < 0) col += @intCast(matrix.cols);
+
+    if (row < 0 or row >= @as(i32, @intCast(matrix.rows)) or col < 0 or col >= @as(i32, @intCast(matrix.cols))) {
+        runtimeError("Matrix index out of bounds.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    const element = matrix.get(@intCast(row), @intCast(col));
+
+    // Pop the three values and push result
+    vm.stackTop -= 3;
+    push(Value.init_double(element));
+    return .INTERPRET_OK;
+}
+
+fn opSetMatrixIndex() InterpretResult {
+    const value_val = peek(0); // Value to set
+    const col_val = peek(1); // Column index (j)
+    const row_val = peek(2); // Row index (i)
+    const matrix_val = peek(3); // Matrix
+
+    if (!matrix_val.is_matrix()) {
+        runtimeError("Can only index matrices.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    if (!row_val.is_int() or !col_val.is_int()) {
+        runtimeError("Matrix indices must be integers.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    if (!value_val.is_prim_num()) {
+        runtimeError("Matrix elements must be numbers.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    const matrix = matrix_val.as_matrix();
+    var row = row_val.as_int();
+    var col = col_val.as_int();
+
+    // Convert to 0-based indexing (MufiZ uses 1-based)
+    row -= 1;
+    col -= 1;
+
+    // Handle negative indices (from end)
+    if (row < 0) row += @intCast(matrix.rows);
+    if (col < 0) col += @intCast(matrix.cols);
+
+    if (row < 0 or row >= @as(i32, @intCast(matrix.rows)) or col < 0 or col >= @as(i32, @intCast(matrix.cols))) {
+        runtimeError("Matrix index out of bounds.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    const value = @as(f64, @floatCast(value_val.as_num_double()));
+    matrix.set(@intCast(row), @intCast(col), value);
+
+    // Pop the four values and push the matrix back
+    vm.stackTop -= 4;
+    push(matrix_val);
+    return .INTERPRET_OK;
+}
+
 fn opUnknown() InterpretResult {
     const frame = vm.currentFrame.?;
     const instruction = (frame.ip - 1)[0];
@@ -1806,6 +2027,9 @@ const jumpTable = blk: {
     table[@intFromEnum(OpCode.OP_BREAK)] = opBreak;
     table[@intFromEnum(OpCode.OP_CONTINUE)] = opContinue;
     table[@intFromEnum(OpCode.OP_FVECTOR)] = opFVector;
+    table[@intFromEnum(OpCode.OP_MATRIX)] = opMatrix;
+    table[@intFromEnum(OpCode.OP_GET_MATRIX_INDEX)] = opGetMatrixIndex;
+    table[@intFromEnum(OpCode.OP_SET_MATRIX_INDEX)] = opSetMatrixIndex;
     break :blk table;
 };
 

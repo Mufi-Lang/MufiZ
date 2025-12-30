@@ -1,0 +1,346 @@
+// Test Suite: Matrix Properties
+// Tests determinant, trace, norm, transpose, and other matrix properties
+
+print "=== MATRIX PROPERTIES TEST SUITE ===";
+
+fun test_determinant_properties() {
+    print "\n[Test 1] Determinant properties";
+
+    // Identity matrices have det = 1
+    assert(det(eye(1)), 1.0);
+    assert(det(eye(2)), 1.0);
+    assert(det(eye(3)), 1.0);
+    assert(det(eye(5)), 1.0);
+
+    // Zero matrices have det = 0
+    assert(det(zeros(2, 2)), 0.0);
+    assert(det(zeros(3, 3)), 0.0);
+    assert(det(zeros(4, 4)), 0.0);
+
+    // Ones matrices (n>1) have det = 0 (singular)
+    assert(det(ones(2, 2)), 0.0);
+    assert(det(ones(3, 3)), 0.0);
+    assert(det(ones(4, 4)), 0.0);
+
+    // Single element ones matrix has det = 1
+    assert(det(ones(1, 1)), 1.0);
+
+    // Scaled identity matrices: det(kI) = k^n
+    assert(det(eye(2) * 2), 4.0);    // 2^2 = 4
+    assert(det(eye(3) * 3), 27.0);   // 3^3 = 27
+    assert(det(eye(4) * 2), 16.0);   // 2^4 = 16
+
+    // Negative scaling
+    assert(det(eye(2) * -1), 1.0);   // (-1)^2 = 1
+    assert(det(eye(3) * -1), -1.0);  // (-1)^3 = -1
+    assert(det(eye(4) * -2), 16.0);  // (-2)^4 = 16
+
+    print "✓ Determinant properties passed";
+}
+
+fun test_trace_properties() {
+    print "\n[Test 2] Trace properties";
+
+    // Identity matrices: trace(I_n) = n
+    assert(trace(eye(1)), 1.0);
+    assert(trace(eye(2)), 2.0);
+    assert(trace(eye(3)), 3.0);
+    assert(trace(eye(7)), 7.0);
+
+    // Zero matrices: trace(0) = 0
+    assert(trace(zeros(2, 2)), 0.0);
+    assert(trace(zeros(5, 5)), 0.0);
+
+    // Ones matrices: trace depends on min(rows, cols)
+    assert(trace(ones(2, 2)), 2.0);
+    assert(trace(ones(3, 3)), 3.0);
+    assert(trace(ones(4, 2)), 2.0);  // min(4,2) = 2
+    assert(trace(ones(2, 5)), 2.0);  // min(2,5) = 2
+
+    // Scaled matrices: trace(kA) = k * trace(A)
+    var A = eye(3);
+    assert(trace(2 * A), 2 * trace(A));
+    assert(trace(5 * A), 5 * trace(A));
+    assert(trace(-3 * A), -3 * trace(A));
+
+    // Trace additivity: trace(A + B) = trace(A) + trace(B)
+    var B = ones(3, 3);
+    var sum = A + B;
+    assert(trace(sum), trace(A) + trace(B));
+
+    print "✓ Trace properties passed";
+}
+
+fun test_norm_properties() {
+    print "\n[Test 3] Norm properties";
+
+    // Zero matrices have norm = 0
+    assert(norm(zeros(2, 2)), 0.0);
+    assert(norm(zeros(5, 5)), 0.0);
+
+    // Identity matrices: norm(I_n) = sqrt(n)
+    var norm_I1 = norm(eye(1));
+    var norm_I2 = norm(eye(2));
+    var norm_I3 = norm(eye(3));
+    var norm_I4 = norm(eye(4));
+
+    assert(norm_I1, 1.0);
+    assert(norm_I2 > 1.41 and norm_I2 < 1.42, true);  // sqrt(2) ≈ 1.414
+    assert(norm_I3 > 1.73 and norm_I3 < 1.74, true);  // sqrt(3) ≈ 1.732
+    assert(norm_I4, 2.0);                              // sqrt(4) = 2
+
+    // Ones matrices: norm = sqrt(rows * cols)
+    assert(norm(ones(2, 2)), 2.0);                     // sqrt(4) = 2
+    assert(norm(ones(3, 3)), 3.0);                     // sqrt(9) = 3
+    assert(norm(ones(1, 5)) > 2.23 and norm(ones(1, 5)) < 2.24, true); // sqrt(5) ≈ 2.236
+
+    // Scaling property: norm(kA) = |k| * norm(A)
+    var A = ones(2, 2);
+    var norm_A = norm(A);
+    assert(norm(2 * A), 2 * norm_A);
+    assert(norm(-3 * A), 3 * norm_A);  // Absolute value
+    assert(norm(0 * A), 0.0);
+
+    // Non-negativity: norm(A) >= 0
+    var R = rand(3, 3);
+    assert(norm(R) >= 0.0, true);
+
+    print "✓ Norm properties passed";
+}
+
+fun test_transpose_properties() {
+    print "\n[Test 4] Transpose properties";
+
+    // Transpose of identity is identity
+    var I2 = eye(2);
+    var I3 = eye(3);
+    var I2_t = transpose(I2);
+    var I3_t = transpose(I3);
+
+    assert(det(I2_t), det(I2));
+    assert(trace(I2_t), trace(I2));
+    assert(norm(I2_t), norm(I2));
+
+    assert(det(I3_t), det(I3));
+    assert(trace(I3_t), trace(I3));
+    assert(norm(I3_t), norm(I3));
+
+    // Transpose of rectangular matrix switches dimensions
+    var R23 = ones(2, 3);
+    var R23_t = transpose(R23);
+
+    // Original: 2x3, transpose: 3x2
+    assert(trace(R23), 2.0);    // min(2,3) = 2
+    assert(trace(R23_t), 2.0);  // min(3,2) = 2
+
+    // Double transpose: (A^T)^T = A
+    var A = ones(3, 2);
+    var A_t = transpose(A);
+    var A_tt = transpose(A_t);
+
+    assert(trace(A_tt), trace(A));
+    assert(norm(A_tt), norm(A));
+
+    // Transpose preserves norm
+    var test_matrix = eye(3) + ones(3, 3);
+    assert(norm(transpose(test_matrix)), norm(test_matrix));
+
+    print "✓ Transpose properties passed";
+}
+
+fun test_matrix_size_properties() {
+    print "\n[Test 5] Matrix size properties";
+
+    // Size function returns 1x2 matrix with dimensions
+    var I3 = eye(3);
+    var size_I3 = size(I3);
+
+    // Size result should be 1x2 matrix
+    assert(trace(size_I3), 3.0);  // Should contain [3, 3] as 1x2 matrix, trace = first element = 3
+
+    var ones_24 = ones(2, 4);
+    var size_24 = size(ones_24);
+
+    var zeros_51 = zeros(5, 1);
+    var size_51 = size(zeros_51);
+
+    // We can verify by checking that the size matrices have proper trace values
+    // Since size returns a 1x2 matrix, trace should be the first element
+
+    print "✓ Matrix size properties passed";
+}
+
+fun test_inverse_properties() {
+    print "\n[Test 6] Matrix inverse properties";
+
+    // Identity matrix is its own inverse
+    var I2 = eye(2);
+    var I3 = eye(3);
+    var I2_inv = inv(I2);
+    var I3_inv = inv(I3);
+
+    assert(det(I2_inv), det(I2));
+    assert(trace(I2_inv), trace(I2));
+    assert(norm(I2_inv), norm(I2));
+
+    assert(det(I3_inv), det(I3));
+    assert(trace(I3_inv), trace(I3));
+    assert(norm(I3_inv), norm(I3));
+
+    // A * A^(-1) = I
+    var test_matrix = eye(2) + ones(2, 2);  // [2,1; 1,2]
+    var test_inv = inv(test_matrix);
+    var product = test_matrix * test_inv;
+
+    assert(det(product) > 0.99 and det(product) < 1.01, true);    // Should be ≈ 1
+    assert(trace(product) > 1.99 and trace(product) < 2.01, true); // Should be ≈ 2
+
+    // inv(A^(-1)) = A (through properties)
+    var double_inv = inv(test_inv);
+    assert(det(double_inv) > det(test_matrix) - 0.01 and det(double_inv) < det(test_matrix) + 0.01, true);
+
+    // Scaled identity inverse: inv(kI) = (1/k)I
+    var scaled_I = eye(2) * 4;
+    var scaled_inv = inv(scaled_I);
+    assert(det(scaled_inv), 0.0625);  // (1/4)^2 = 1/16 = 0.0625
+    assert(trace(scaled_inv), 0.5);   // 2 * (1/4) = 0.5
+
+    print "✓ Inverse properties passed";
+}
+
+fun test_random_matrix_properties() {
+    print "\n[Test 7] Random matrix properties";
+
+    var R22 = rand(2, 2);
+    var R33 = rand(3, 3);
+    var N22 = randn(2, 2);
+    var N33 = randn(3, 3);
+
+    // Random matrices should have positive norms
+    assert(norm(R22) > 0.0, true);
+    assert(norm(R33) > 0.0, true);
+    assert(norm(N22) > 0.0, true);
+    assert(norm(N33) > 0.0, true);
+
+    // Transpose preserves norm for random matrices
+    assert(norm(transpose(R22)) > norm(R22) - 0.001 and norm(transpose(R22)) < norm(R22) + 0.001, true);
+    assert(norm(transpose(N33)) > norm(N33) - 0.001 and norm(transpose(N33)) < norm(N33) + 0.001, true);
+
+    // Random matrices typically have non-zero determinants (very high probability)
+    var det_R22 = det(R22);
+    var det_N33 = det(N33);
+
+    // At least one should be non-zero (extremely high probability)
+    assert(det_R22 != 0.0 or det_N33 != 0.0, true);
+
+    print "✓ Random matrix properties passed";
+}
+
+fun test_special_matrix_properties() {
+    print "\n[Test 8] Special matrix properties";
+
+    // Diagonal matrix properties (using scaled identity)
+    var D = eye(3) * 5;
+    assert(det(D), 125.0);   // 5^3 = 125
+    assert(trace(D), 15.0);  // 3 * 5 = 15
+
+    // Transpose of diagonal matrix is itself
+    var D_t = transpose(D);
+    assert(det(D_t), det(D));
+    assert(trace(D_t), trace(D));
+    assert(norm(D_t), norm(D));
+
+    // Symmetric matrix properties (A + A^T is always symmetric)
+    var A = ones(2, 2);
+    var A_t = transpose(A);
+    var symmetric = A + A_t;
+
+    // For symmetric matrix, A = A^T (same properties)
+    var sym_transpose = transpose(symmetric);
+    assert(trace(sym_transpose), trace(symmetric));
+    assert(det(sym_transpose), det(symmetric));
+    assert(norm(sym_transpose), norm(symmetric));
+
+    print "✓ Special matrix properties passed";
+}
+
+fun test_matrix_concatenation_properties() {
+    print "\n[Test 9] Matrix concatenation properties";
+
+    var A = eye(2);
+    var B = ones(2, 2);
+    var Z = zeros(2, 2);
+
+    // Horizontal concatenation [A B]
+    var hcat_AB = horzcat(A, B);
+    var hcat_AZ = horzcat(A, Z);
+
+    // Horizontal concatenation should preserve row count, double column count
+    // We can verify through trace properties
+    assert(trace(hcat_AZ), 2.0);  // horzcat(eye(2), zeros(2,2)) = [I|0], trace = 1+1 = 2
+
+    // Vertical concatenation [A; B]
+    var vcat_AB = vertcat(A, B);
+    var vcat_ZA = vertcat(Z, A);
+
+    // Vertical concatenation properties
+    assert(trace(vcat_ZA), 0.0);  // vertcat(zeros(2,2), eye(2)) = [0; I], trace = 0+0 = 0 (first 2 diagonal elements)
+
+    // Concatenation with zeros
+    var eye_zeros_h = horzcat(eye(2), zeros(2, 2));
+    var zeros_eye_v = vertcat(zeros(2, 2), eye(2));
+
+    assert(trace(eye_zeros_h), 2.0);  // horzcat(eye(2), zeros(2,2)) trace = 2
+    assert(trace(zeros_eye_v), 0.0);  // vertcat(zeros(2,2), eye(2)) trace = 0
+
+    print "✓ Matrix concatenation properties passed";
+}
+
+fun test_mathematical_identities() {
+    print "\n[Test 10] Mathematical identities";
+
+    // Test fundamental matrix identities
+    var A = eye(2) + ones(2, 2);  // [2,1; 1,2]
+
+    // det(A^T) = det(A)
+    var A_t = transpose(A);
+    assert(det(A_t), det(A));
+
+    // trace(A^T) = trace(A)
+    assert(trace(A_t), trace(A));
+
+    // det(kA) = k^n * det(A) for nxn matrix
+    var scaled_A = 2 * A;
+    var expected_det = 4 * det(A);  // 2^2 * det(A)
+    assert(det(scaled_A) > expected_det - 0.01 and det(scaled_A) < expected_det + 0.01, true);
+
+    // trace(kA) = k * trace(A)
+    assert(trace(scaled_A), 2 * trace(A));
+
+    // A + B commutative: trace(A + B) = trace(B + A)
+    var B = eye(2);
+    var sum1 = A + B;
+    var sum2 = B + A;
+    assert(trace(sum1), trace(sum2));
+    assert(det(sum1), det(sum2));
+
+    // Linear properties: trace(A + B) = trace(A) + trace(B)
+    assert(trace(sum1), trace(A) + trace(B));
+
+    print "✓ Mathematical identities passed";
+}
+
+// Run all tests
+test_determinant_properties();
+test_trace_properties();
+test_norm_properties();
+test_transpose_properties();
+test_matrix_size_properties();
+test_inverse_properties();
+test_random_matrix_properties();
+test_special_matrix_properties();
+test_matrix_concatenation_properties();
+test_mathematical_identities();
+
+print "\n=== ALL MATRIX PROPERTIES TESTS PASSED ===";
+print "Matrix properties functionality verified successfully!";

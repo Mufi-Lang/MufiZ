@@ -37,6 +37,7 @@ pub fn main() !void {
     stdlib.addFs();
     stdlib.addUtils();
     stdlib.addNet();
+    stdlib.addMatrix();
     defer {
         const check = Global.deinit();
         // Temporarily disabled for testing: if (check == .leak) @panic("memory leak!");

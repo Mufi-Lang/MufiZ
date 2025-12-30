@@ -15,6 +15,7 @@ pub const network = @import("stdlib/network.zig");
 pub const time = @import("stdlib/time.zig");
 pub const types = @import("stdlib/types.zig");
 pub const utils = @import("stdlib/utils.zig");
+pub const matrix = @import("stdlib/matrix.zig");
 const Value = @import("value.zig").Value;
 const vm = @import("vm.zig");
 
@@ -151,6 +152,26 @@ pub const NETWORK_FUNCTIONS = [_]BuiltinDef{
     .{ .name = "open_url", .func = network.open_url, .params = "url", .description = "Opens URL in default browser", .module = "network" },
 };
 
+pub const MATRIX_FUNCTIONS = [_]BuiltinDef{
+    .{ .name = "eye", .func = matrix.nativeEye, .params = "n or m,n", .description = "Creates identity matrix", .module = "matrix" },
+    .{ .name = "ones", .func = matrix.nativeOnes, .params = "m,n", .description = "Creates matrix of ones", .module = "matrix" },
+    .{ .name = "zeros", .func = matrix.nativeZeros, .params = "m,n", .description = "Creates matrix of zeros", .module = "matrix" },
+    .{ .name = "rand", .func = matrix.nativeRand, .params = "m,n", .description = "Creates random matrix", .module = "matrix" },
+    .{ .name = "randn", .func = matrix.nativeRandn, .params = "m,n", .description = "Creates random normal matrix", .module = "matrix" },
+    .{ .name = "transpose", .func = matrix.nativeTranspose, .params = "A", .description = "Matrix transpose", .module = "matrix" },
+    .{ .name = "det", .func = matrix.nativeDet, .params = "A", .description = "Matrix determinant", .module = "matrix" },
+    .{ .name = "inv", .func = matrix.nativeInv, .params = "A", .description = "Matrix inverse", .module = "matrix" },
+    .{ .name = "trace", .func = matrix.nativeTrace, .params = "A", .description = "Matrix trace", .module = "matrix" },
+    .{ .name = "size", .func = matrix.nativeSize, .params = "A", .description = "Matrix dimensions", .module = "matrix" },
+    .{ .name = "norm", .func = matrix.nativeNorm, .params = "A", .description = "Frobenius norm", .module = "matrix" },
+    .{ .name = "horzcat", .func = matrix.nativeHorzcat, .params = "A,B", .description = "Horizontal concatenation", .module = "matrix" },
+    .{ .name = "vertcat", .func = matrix.nativeVertcat, .params = "A,B", .description = "Vertical concatenation", .module = "matrix" },
+    .{ .name = "matrix", .func = matrix.nativeMatrix, .params = "data,rows,cols", .description = "Create matrix from data", .module = "matrix" },
+    .{ .name = "reshape", .func = matrix.nativeReshape, .params = "A,m,n", .description = "Reshape matrix", .module = "matrix" },
+    .{ .name = "rref", .func = matrix.nativeRref, .params = "A", .description = "Reduced row echelon form", .module = "matrix" },
+    .{ .name = "rank", .func = matrix.nativeRank, .params = "A", .description = "Matrix rank", .module = "matrix" },
+};
+
 // Helper function to register functions
 fn defineNative(name: []const u8, func: NativeFn) void {
     vm.defineNative(@ptrCast(@constCast(name)), @ptrCast(func));
@@ -195,8 +216,12 @@ pub fn addNet() void {
     if (enable_net) {
         registerFunctions(&NETWORK_FUNCTIONS);
     } else {
-        std.log.warn("Network functions are disabled!", .{});
+        std.debug.print("Network module is disabled. Enable with -Denable_net\n", .{});
     }
+}
+
+pub fn addMatrix() void {
+    registerFunctions(&MATRIX_FUNCTIONS);
 }
 
 // Documentation functions
@@ -208,6 +233,7 @@ pub fn printDocs() void {
     if (enable_net) printModuleDocs("Network", &NETWORK_FUNCTIONS);
     printModuleDocs("Time", &TIME_FUNCTIONS);
     printModuleDocs("Utils", &UTIL_FUNCTIONS);
+    printModuleDocs("Matrix", &MATRIX_FUNCTIONS);
 }
 
 fn printModuleDocs(module_name: []const u8, functions: []const BuiltinDef) void {
@@ -222,7 +248,7 @@ fn printModuleDocs(module_name: []const u8, functions: []const BuiltinDef) void 
 }
 
 pub fn getTotalFunctionCount() usize {
-    var count: usize = CORE_FUNCTIONS.len + MATH_FUNCTIONS.len + COLLECTION_FUNCTIONS.len + TIME_FUNCTIONS.len + UTIL_FUNCTIONS.len;
+    var count: usize = CORE_FUNCTIONS.len + MATH_FUNCTIONS.len + COLLECTION_FUNCTIONS.len + TIME_FUNCTIONS.len + UTIL_FUNCTIONS.len + MATRIX_FUNCTIONS.len;
     if (enable_fs) count += FILESYSTEM_FUNCTIONS.len;
     if (enable_net) count += NETWORK_FUNCTIONS.len;
     return count;

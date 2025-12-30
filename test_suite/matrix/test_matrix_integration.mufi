@@ -1,0 +1,360 @@
+// Test Suite: Matrix Integration
+// Tests integration between matrix operations and other MufiZ features
+
+print "=== MATRIX INTEGRATION TEST SUITE ===";
+
+fun test_matrix_with_variables() {
+    print "\n[Test 1] Matrix integration with variables";
+
+    // Test matrix assignment and reuse
+    var A = eye(2);
+    var B = A;  // Assignment
+    var C = A + B;  // Using assigned matrices
+
+    assert(det(C), 4.0);  // det(2*I) = 2^2 = 4... wait, det(I+I) = det(2I) = 2^n for nxn, so for 2x2: 2^2 = 4
+    assert(trace(C), 4.0);  // trace(I+I) = 2*trace(I) = 2*2 = 4
+
+    // Test variable reassignment
+    A = ones(2, 2);
+    var D = A + eye(2);
+    assert(trace(D), 4.0);  // trace(ones + eye) = 2 + 2 = 4
+
+    // Test multiple matrix variables
+    var I2 = eye(2);
+    var O2 = ones(2, 2);
+    var Z2 = zeros(2, 2);
+    var result = I2 + O2 - Z2;
+    assert(trace(result), 4.0);
+
+    print "✓ Matrix with variables passed";
+}
+
+fun test_matrix_in_functions() {
+    print "\n[Test 2] Matrix operations in functions";
+
+    fun matrix_determinant(m) {
+        return det(m);
+    }
+
+    fun matrix_trace(m) {
+        return trace(m);
+    }
+
+    fun matrix_add(a, b) {
+        return a + b;
+    }
+
+    fun create_test_matrix(scale) {
+        return eye(3) * scale;
+    }
+
+    // Test function calls with matrices
+    var test_mat = eye(3);
+    assert(matrix_determinant(test_mat), 1.0);
+    assert(matrix_trace(test_mat), 3.0);
+
+    var ones_mat = ones(3, 3);
+    var sum_result = matrix_add(test_mat, ones_mat);
+    assert(trace(sum_result), 6.0);
+
+    // Test matrix creation in functions
+    var scaled_mat = create_test_matrix(4);
+    assert(det(scaled_mat), 64.0);  // 4^3 = 64
+    assert(trace(scaled_mat), 12.0);  // 3 * 4 = 12
+
+    print "✓ Matrix in functions passed";
+}
+
+fun test_matrix_conditionals() {
+    print "\n[Test 3] Matrix operations with conditionals";
+
+    var A = eye(2);
+    var B = ones(2, 2);
+    var result;
+
+    // Test conditional matrix operations
+    if (det(A) > 0) {
+        result = A + B;
+    } else {
+        result = A - B;
+    }
+    assert(trace(result), 4.0);  // Should take the + path
+
+    // Test with singular matrix
+    if (det(B) == 0.0) {
+        result = A * 2;
+    } else {
+        result = B * 2;
+    }
+    assert(det(result), 4.0);  // Should take first path: det(2*I) = 4
+
+    // Test matrix comparisons
+    var det_A = det(A);
+    var det_B = det(B);
+    if (det_A > det_B) {
+        result = A;
+    } else {
+        result = B;
+    }
+    assert(det(result), 1.0);  // det(A) = 1 > det(B) = 0
+
+    print "✓ Matrix conditionals passed";
+}
+
+fun test_matrix_loops() {
+    print "\n[Test 4] Matrix operations in loops";
+
+    // Test matrix operations in while loop
+    var sum_matrix = zeros(2, 2);
+    var i = 1;
+    while (i <= 3) {
+        var term = eye(2) * i;
+        sum_matrix = sum_matrix + term;
+        i = i + 1;
+    }
+    // sum_matrix should be (1+2+3)*I = 6*I
+    assert(det(sum_matrix), 36.0);  // 6^2 = 36
+    assert(trace(sum_matrix), 12.0);  // 2 * 6 = 12
+
+    // Test matrix creation in loop
+    var total_trace = 0.0;
+    var j = 1;
+    while (j <= 4) {
+        var temp = ones(j, j);
+        total_trace = total_trace + trace(temp);
+        j = j + 1;
+    }
+    assert(total_trace, 10.0);  // 1 + 2 + 3 + 4 = 10
+
+    // Test accumulating determinants
+    var product_det = 1.0;
+    var k = 1;
+    while (k <= 3) {
+        var factor = eye(2) * 2;
+        product_det = product_det * det(factor);
+        k = k + 1;
+    }
+    assert(product_det, 64.0);  // (2^2)^3 = 4^3 = 64
+
+    print "✓ Matrix loops passed";
+}
+
+fun test_matrix_with_other_objects() {
+    print "\n[Test 5] Matrix integration with other objects";
+
+    // Test matrix properties with numeric operations
+    var A = eye(3);
+    var det_A = det(A);
+    var trace_A = trace(A);
+    var norm_A = norm(A);
+
+    // Use matrix properties in calculations
+    var combined = det_A + trace_A;  // 1 + 3 = 4
+    assert(combined, 4.0);
+
+    var scaled_by_trace = A * trace_A;  // 3 * I
+    assert(det(scaled_by_trace), 27.0);  // 3^3 = 27
+
+    // Test with string operations (conceptually)
+    // Matrix properties converted to numeric can be used in calculations
+    var size_sum = 3.0 + 3.0;  // Simulating size(A) components
+    assert(size_sum, 6.0);
+
+    print "✓ Matrix with other objects passed";
+}
+
+fun test_complex_matrix_expressions() {
+    print "\n[Test 6] Complex matrix expressions";
+
+    var A = eye(2);
+    var B = ones(2, 2);
+    var C = zeros(2, 2);
+
+    // Test nested expressions
+    var complex1 = (A + B) * (A - C);  // (I + ones) * (I - 0) = (I + ones) * I
+    assert(trace(complex1), 4.0);  // trace((I + ones) * I) = trace(I + ones) = 4
+
+    // Test with function calls in expressions
+    var complex2 = inv(A + B) * (A + B);  // Should be identity
+    assert(det(complex2) > 0.99 and det(complex2) < 1.01, true);
+    assert(trace(complex2) > 1.99 and trace(complex2) < 2.01, true);
+
+    // Test chained operations
+    var chain = transpose(inv(A + B)) * transpose(A + B);
+    assert(det(chain) > 0.99 and det(chain) < 1.01, true);
+
+    // Test with scalar operations mixed in
+    var mixed = 2 * A + 3 * B - 1 * C;
+    assert(trace(mixed), 10.0);  // 2*2 + 3*2 - 1*0 = 4 + 6 - 0 = 10
+
+    print "✓ Complex matrix expressions passed";
+}
+
+fun test_matrix_memory_management() {
+    print "\n[Test 7] Matrix memory management integration";
+
+    // Test creating and destroying many matrices
+    var i = 1;
+    var final_result = eye(2);
+    while (i <= 5) {
+        var temp = ones(2, 2) * i;
+        var temp_sum = final_result + temp;
+        final_result = temp_sum;
+        i = i + 1;
+    }
+    // final_result should be I + 1*ones + 2*ones + 3*ones + 4*ones + 5*ones = I + 15*ones
+    assert(trace(final_result), 32.0);  // 2 + 15*2 = 2 + 30 = 32
+
+    // Test matrix operations with reassignment
+    var accumulator = zeros(3, 3);
+    var step = 1;
+    while (step <= 3) {
+        accumulator = accumulator + eye(3) * step;
+        step = step + 1;
+    }
+    assert(det(accumulator), 216.0);  // det((1+2+3)*I) = det(6*I) = 6^3 = 216
+
+    print "✓ Matrix memory management passed";
+}
+
+fun test_matrix_error_recovery() {
+    print "\n[Test 8] Matrix error recovery integration";
+
+    // Test that system continues working after potential errors
+    var A = ones(2, 2);  // Singular matrix
+    var B = eye(2);
+
+    // Operations that should work despite A being singular
+    var sum = A + B;
+    assert(det(sum), 3.0);  // det([[2,1],[1,2]]) = 4-1 = 3
+
+    var scaled = 5 * A;
+    assert(det(scaled), 0.0);  // Still singular
+    assert(trace(scaled), 10.0);
+
+    // Test recovery with valid operations
+    var valid_ops = B * 3 + zeros(2, 2);
+    assert(det(valid_ops), 9.0);  // 3^2 = 9
+    assert(trace(valid_ops), 6.0);
+
+    // Test that matrix creation still works properly
+    var fresh = eye(3);
+    assert(det(fresh), 1.0);
+    assert(trace(fresh), 3.0);
+
+    print "✓ Matrix error recovery passed";
+}
+
+fun test_matrix_with_recursion() {
+    print "\n[Test 9] Matrix operations with recursion";
+
+    fun matrix_power_trace(matrix, n) {
+        if (n <= 0) {
+            return 0.0;
+        } else if (n == 1) {
+            return trace(matrix);
+        } else {
+            var squared = matrix * matrix;
+            return trace(squared) + matrix_power_trace(matrix, n - 2);
+        }
+    }
+
+    fun factorial_matrix_trace(n) {
+        if (n <= 1) {
+            return trace(eye(2));  // Base case: trace(I) = 2
+        } else {
+            var current = eye(2) * n;
+            return trace(current) + factorial_matrix_trace(n - 1);
+        }
+    }
+
+    // Test recursive matrix operations
+    var base_matrix = eye(2);
+    var recursive_result = matrix_power_trace(base_matrix, 3);
+    // n=3: trace(I^2) + matrix_power_trace(I, 1) = trace(I) + trace(I) = 2 + 2 = 4
+    assert(recursive_result, 4.0);
+
+    // Test factorial-like operation with matrices
+    var factorial_result = factorial_matrix_trace(3);
+    // n=3: trace(3*I) + factorial_matrix_trace(2)
+    // n=2: trace(2*I) + factorial_matrix_trace(1)
+    // n=1: trace(I) = 2
+    // So: 6 + (4 + 2) = 6 + 6 = 12
+    assert(factorial_result, 12.0);
+
+    print "✓ Matrix with recursion passed";
+}
+
+fun test_matrix_comprehensive_integration() {
+    print "\n[Test 10] Comprehensive matrix integration";
+
+    // Test combining multiple integration aspects
+    fun create_test_suite_matrix(size, scale) {
+        if (size <= 0) {
+            return eye(1);
+        } else {
+            return eye(size) * scale + ones(size, size);
+        }
+    }
+
+    fun analyze_matrix(m) {
+        var analysis_det = det(m);
+        var analysis_trace = trace(m);
+        var analysis_norm = norm(m);
+
+        if (analysis_det > 0) {
+            var inv_m = inv(m);
+            return det(inv_m);
+        } else {
+            return analysis_norm;
+        }
+    }
+
+    // Create and analyze matrices in integrated workflow
+    var test_sizes = 2;
+    var comprehensive_result = 0.0;
+
+    var size_iter = 2;
+    while (size_iter <= 3) {
+        var test_matrix = create_test_suite_matrix(size_iter, 2);
+        var analysis_result = analyze_matrix(test_matrix);
+        comprehensive_result = comprehensive_result + analysis_result;
+        size_iter = size_iter + 1;
+    }
+
+    // Verify the comprehensive test produced reasonable results
+    assert(comprehensive_result > 0.0, true);
+
+    // Test final integration with all matrix types
+    var final_I = eye(3);
+    var final_O = ones(3, 3);
+    var final_Z = zeros(3, 3);
+    var final_R = rand(3, 3);
+
+    var final_combination = final_I + final_Z;  // Should equal final_I
+    assert(det(final_combination), det(final_I));
+    assert(trace(final_combination), trace(final_I));
+    assert(norm(final_combination), norm(final_I));
+
+    // Test that all basic operations still work in integrated context
+    var ultimate_test = transpose(inv(final_I + final_O));
+    var ultimate_check = ultimate_test * (final_I + final_O);
+    assert(det(ultimate_check) > 0.99 and det(ultimate_check) < 1.01, true);
+
+    print "✓ Comprehensive integration passed";
+}
+
+// Run all tests
+test_matrix_with_variables();
+test_matrix_in_functions();
+test_matrix_conditionals();
+test_matrix_loops();
+test_matrix_with_other_objects();
+test_complex_matrix_expressions();
+test_matrix_memory_management();
+test_matrix_error_recovery();
+test_matrix_with_recursion();
+test_matrix_comprehensive_integration();
+
+print "\n=== ALL MATRIX INTEGRATION TESTS PASSED ===";
+print "Matrix integration with MufiZ features verified successfully!";

@@ -1389,13 +1389,78 @@ pub fn objectLiteral(canAssign: bool) void {
     consume(.TOKEN_RIGHT_BRACE, "Expect '}' after object literal");
 }
 
-// Note: This function appears to be unused but is left for historical reference
-// Float vectors are now handled by objectLiteral when isDict is false
+// Handle both vector literals [1, 2, 3] and matrix literals [[1, 2], [3, 4]]
 pub fn fvector(canAssign: bool) void {
     _ = canAssign;
 
+    // Check if this is a matrix literal (starts with [[)
+    if (check(.TOKEN_LEFT_SQPAREN)) {
+        // This is a matrix literal [[...], [...], ...]
+        matrixLiteral();
+    } else {
+        // This is a regular vector literal [1, 2, 3]
+        regularVector();
+    }
+}
+
+fn matrixLiteral() void {
+    var rowCount: u8 = 0;
+    var colCount: u8 = 0;
+    var firstRow = true;
+
+    // Parse rows
+    while (true) {
+        if (!match(.TOKEN_LEFT_SQPAREN)) {
+            errorAtCurrent(@ptrCast(@constCast("Expect '[' at start of matrix row")));
+            return;
+        }
+
+        var currentRowCols: u8 = 0;
+
+        // Parse elements in this row
+        if (!check(.TOKEN_RIGHT_SQPAREN)) {
+            while (true) {
+                expression();
+                currentRowCols +%= 1;
+
+                if (!match(.TOKEN_COMMA)) break;
+            }
+        }
+
+        consume(.TOKEN_RIGHT_SQPAREN, "Expect ']' after matrix row");
+
+        // Check column count consistency
+        if (firstRow) {
+            colCount = currentRowCols;
+            firstRow = false;
+        } else if (currentRowCols != colCount) {
+            errorAtCurrent(@ptrCast(@constCast("All matrix rows must have same number of columns")));
+            return;
+        }
+
+        rowCount +%= 1;
+
+        if (@as(i32, @bitCast(@as(c_uint, rowCount))) > 255 or @as(i32, @bitCast(@as(c_uint, colCount))) > 255) {
+            const suggestions = [_]errors.ErrorSuggestion{
+                .{ .message = "Matrix dimensions are limited to 255x255" },
+                .{ .message = "Use smaller matrices or break into blocks" },
+            };
+            errorWithSuggestions(&parser.previous, .TOO_MANY_ARGUMENTS, "Matrix too large", &suggestions);
+        }
+
+        if (!match(.TOKEN_COMMA)) break;
+    }
+
+    consume(.TOKEN_RIGHT_SQPAREN, "Expect ']' after matrix literal");
+
+    // Emit matrix creation instruction with dimensions
+    emitBytes(@intCast(@intFromEnum(OpCode.OP_MATRIX)), rowCount);
+    emitByte(colCount);
+}
+
+fn regularVector() void {
     var argCount: u8 = 0;
-    if (!check(.TOKEN_RIGHT_BRACE)) {
+    if (!check(.TOKEN_RIGHT_SQPAREN)) {
         while (true) {
             expression();
             argCount +%= 1;
@@ -1410,7 +1475,7 @@ pub fn fvector(canAssign: bool) void {
             if (!match(.TOKEN_COMMA)) break;
         }
     }
-    consume(.TOKEN_RIGHT_BRACE, "Expect '}' after vector elements.");
+    consume(.TOKEN_RIGHT_SQPAREN, "Expect ']' after vector elements.");
     emitBytes(@intCast(@intFromEnum(OpCode.OP_FVECTOR)), argCount);
 }
 pub fn namedVariable(name: Token, canAssign: bool) void {
@@ -1614,10 +1679,11 @@ pub fn item_(canAssign: bool) void {
     variable(false);
 }
 pub fn index_(canAssign: bool) void {
-    // Check if we're doing a slice operation or a regular index
+    // Check if we're doing a slice operation, matrix indexing, or regular index
     var isSlice = false;
+    var isMatrixIndex = false;
 
-    // Parse the start index
+    // Parse the first index
     if (check(.TOKEN_END)) {
         advance(); // consume 'end'
 
@@ -1636,8 +1702,29 @@ pub fn index_(canAssign: bool) void {
         expression();
     }
 
-    // Check if we have a slice with colon
-    if (match(.TOKEN_COLON)) {
+    // Check if we have a comma for matrix indexing A[i,j]
+    if (match(.TOKEN_COMMA)) {
+        isMatrixIndex = true;
+
+        // Parse the second index (column)
+        if (check(.TOKEN_END)) {
+            advance(); // consume 'end'
+
+            if (match(.TOKEN_MINUS)) {
+                // Parse the offset value for 'end - offset'
+                emitConstant(Value.init_int(-1));
+                parsePrecedence(@as(c_uint, @bitCast(PREC_UNARY)));
+                emitByte(@intCast(@intFromEnum(OpCode.OP_SUBTRACT)));
+            } else {
+                // Simple 'end', use -1 as sentinel value
+                emitConstant(Value.init_int(-1));
+            }
+        } else {
+            // Regular second index
+            expression();
+        }
+    } else if (match(.TOKEN_COLON)) {
+        // Check if we have a slice with colon
         isSlice = true;
 
         // Parse the end index
@@ -1662,7 +1749,17 @@ pub fn index_(canAssign: bool) void {
 
     consume(.TOKEN_RIGHT_SQPAREN, "Expect ']' after index expression.");
 
-    if (isSlice) {
+    if (isMatrixIndex) {
+        // Handle 2D matrix indexing A[i,j]
+        if (canAssign and match(.TOKEN_EQUAL)) {
+            // Handle assignment to matrix element
+            expression();
+            emitByte(@intCast(@intFromEnum(OpCode.OP_SET_MATRIX_INDEX)));
+        } else {
+            // Handle matrix element access
+            emitByte(@intCast(@intFromEnum(OpCode.OP_GET_MATRIX_INDEX)));
+        }
+    } else if (isSlice) {
         // Handle slice operation
         emitByte(@intCast(@intFromEnum(OpCode.OP_SLICE)));
     } else if (canAssign and match(.TOKEN_EQUAL)) {

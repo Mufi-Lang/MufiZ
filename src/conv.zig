@@ -33,6 +33,7 @@ pub fn what_is(val: Value) []const u8 {
                 .OBJ_LINKED_LIST => return "Linked List",
                 .OBJ_HASH_TABLE => return "Hash Table",
                 .OBJ_FVECTOR => return "Float Vector",
+                .OBJ_MATRIX => return "Matrix",
                 .OBJ_RANGE => return "Range",
                 .OBJ_PAIR => return "Pair",
             }

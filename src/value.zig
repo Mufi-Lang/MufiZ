@@ -11,6 +11,7 @@ const ObjFunction = obj_h.ObjFunction;
 const ObjLinkedList = obj_h.LinkedList;
 const Node = obj_h.Node;
 const FloatVector = obj_h.FloatVector;
+const Matrix = obj_h.Matrix;
 const fvec = @import("objects/fvec.zig");
 const obj_range = @import("objects/range.zig");
 const reallocate = @import("memory.zig").reallocate;
@@ -162,6 +163,25 @@ pub const Value = struct {
                     const scalar = other.as_num_double();
                     const result = a.single_add(scalar);
                     return Value.init_obj(@ptrCast(result));
+                } else if (self.is_matrix() and other.is_matrix()) {
+                    // Matrix + Matrix
+                    const a = self.as_matrix();
+                    const b = other.as_matrix();
+                    const result = a.add(b);
+                    if (result == null) {
+                        @panic("Matrix dimension mismatch for addition");
+                    }
+                    return Value.init_obj(@ptrCast(result.?));
+                } else if (self.is_matrix() and other.is_prim_num()) {
+                    // Matrix + scalar
+                    const a = self.as_matrix();
+                    const scalar = other.as_num_double();
+                    const result = a.scalarMul(1.0); // Clone first
+                    const size = a.rows * a.cols;
+                    for (0..size) |i| {
+                        result.data[i] = a.data[i] + scalar;
+                    }
+                    return Value.init_obj(@ptrCast(result));
                 } else {
                     // Handle hash table or any object + string concatenation
                     // Convert object to string representation and concatenate
@@ -231,6 +251,21 @@ pub const Value = struct {
                     const a = self.as_fvec();
                     const scalar = other.as_num_double();
                     const result = a.scale(scalar);
+                    return Value.init_obj(@ptrCast(result));
+                } else if (self.is_matrix() and other.is_matrix()) {
+                    // Matrix * Matrix
+                    const a = self.as_matrix();
+                    const b = other.as_matrix();
+                    const result = a.mul(b);
+                    if (result == null) {
+                        @panic("Matrix dimension mismatch for multiplication");
+                    }
+                    return Value.init_obj(@ptrCast(result.?));
+                } else if (self.is_matrix() and other.is_prim_num()) {
+                    // Matrix * scalar
+                    const a = self.as_matrix();
+                    const scalar = other.as_num_double();
+                    const result = a.scalarMul(scalar);
                     return Value.init_obj(@ptrCast(result));
                 } else {
                     @panic("Cannot multiply these object types");
@@ -352,6 +387,10 @@ pub const Value = struct {
         return self.is_obj_type(.OBJ_FVECTOR);
     }
 
+    pub fn is_matrix(self: Self) bool {
+        return self.is_obj_type(.OBJ_MATRIX);
+    }
+
     pub fn is_range(self: Self) bool {
         return self.is_obj_type(.OBJ_RANGE);
     }
@@ -381,6 +420,10 @@ pub const Value = struct {
     }
 
     pub fn as_fvec(self: Self) *FloatVector {
+        return @ptrCast(@alignCast(self.as.obj));
+    }
+
+    pub fn as_matrix(self: Self) *Matrix {
         return @ptrCast(@alignCast(self.as.obj));
     }
 

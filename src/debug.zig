@@ -135,6 +135,9 @@ pub fn disassembleInstruction(chunk: *chunk_h.Chunk, offset: i32) i32 {
         56 => return simpleInstruction("OP_BREAK", offset),
         57 => return simpleInstruction("OP_CONTINUE", offset),
         58 => return byteInstruction("OP_FVECTOR", chunk, offset),
+        59 => return twoByteInstruction("OP_MATRIX", chunk, offset),
+        60 => return simpleInstruction("OP_GET_MATRIX_INDEX", offset),
+        61 => return simpleInstruction("OP_SET_MATRIX_INDEX", offset),
         else => {
             std.debug.print("Unknown opcode {d}\n", .{instruction});
             return offset + 1;
@@ -182,5 +185,13 @@ fn jumpInstruction(name: [*]const u8, sign: i32, chunk: *chunk_h.Chunk, offset: 
 
     const jumpTarget = (offset + 3) + (sign * @as(i32, jump));
     print("{s: <16} {d:4} -> {d}\n", .{ nameSlice, offset, jumpTarget });
+    return offset + 3;
+}
+
+fn twoByteInstruction(name: [*]const u8, chunk: *chunk_h.Chunk, offset: i32) i32 {
+    const nameSlice = std.mem.span(@as([*:0]const u8, @ptrCast(name)));
+    const byte1: u8 = getByte(chunk, offset + 1);
+    const byte2: u8 = getByte(chunk, offset + 2);
+    print("{s: <16} {d:4} {d:4}\n", .{ nameSlice, byte1, byte2 });
     return offset + 3;
 }

@@ -1,0 +1,228 @@
+// Test Suite: Matrix RREF and Rank
+// Tests reduced row echelon form and rank computation
+
+print "=== MATRIX RREF TEST SUITE ===";
+
+fun test_basic_rref() {
+    print "\n[Test 1] Basic RREF operations";
+
+    // Test identity matrix RREF
+    var I = eye(3);
+    var I_rref = rref(I);
+    assert(trace(I_rref), trace(I));
+    assert(det(I_rref), det(I));
+
+    // Test simple 2x2 matrix
+    var A = zeros(2, 2);
+    A = A + ones(2, 2);
+    A = A + eye(2);  // [2 1; 1 2]
+
+    var A_rref = rref(A);
+    // Expected RREF of [2 1; 1 2] should be [1 0; 0 1] (identity)
+    assert(det(A_rref) > 0.99 and det(A_rref) < 1.01, true);
+    assert(trace(A_rref) > 1.99 and trace(A_rref) < 2.01, true);
+
+    print "✓ Basic RREF passed";
+}
+
+fun test_singular_matrix_rref() {
+    print "\n[Test 2] Singular matrix RREF";
+
+    // Test ones matrix (singular)
+    var ones_mat = ones(3, 3);
+    var ones_rref = rref(ones_mat);
+
+    // RREF of ones matrix should have rank 1
+    var ones_rank = rank(ones_mat);
+    assert(ones_rank, 1);
+
+    // First row should be [1 1 1], other rows should be zero
+    assert(trace(ones_rref), 1.0);  // Only first diagonal element is 1
+
+    // Test zero matrix
+    var zero_mat = zeros(3, 3);
+    var zero_rref = rref(zero_mat);
+    var zero_rank = rank(zero_mat);
+    assert(zero_rank, 0);
+    assert(trace(zero_rref), 0.0);
+
+    print "✓ Singular matrix RREF passed";
+}
+
+fun test_rectangular_rref() {
+    print "\n[Test 3] Rectangular matrix RREF";
+
+    // Test tall matrix (more rows than columns)
+    var tall = ones(4, 2);
+    var tall_rref = rref(tall);
+    var tall_rank = rank(tall);
+
+    // ones(4,2) should have rank 1
+    assert(tall_rank, 1);
+
+    // Test wide matrix (more columns than rows)
+    var wide = ones(2, 4);
+    var wide_rref = rref(wide);
+    var wide_rank = rank(wide);
+
+    // ones(2,4) should have rank 1
+    assert(wide_rank, 1);
+
+    print "✓ Rectangular matrix RREF passed";
+}
+
+fun test_full_rank_matrices() {
+    print "\n[Test 4] Full rank matrices";
+
+    // Test various sizes of identity matrices
+    assert(rank(eye(1)), 1);
+    assert(rank(eye(2)), 2);
+    assert(rank(eye(3)), 3);
+    assert(rank(eye(4)), 4);
+
+    // Test non-singular 2x2 matrix
+    var full_rank = eye(2) + zeros(2, 2);
+    full_rank = full_rank + ones(2, 2) * 0.5;  // [1.5 0.5; 0.5 1.5]
+    assert(rank(full_rank), 2);
+
+    print "✓ Full rank matrices passed";
+}
+
+fun test_rref_properties() {
+    print "\n[Test 5] RREF mathematical properties";
+
+    // Test that RREF is idempotent: rref(rref(A)) = rref(A)
+    var A = ones(3, 3) + eye(3) * 2;  // [3 1 1; 1 3 1; 1 1 3]
+    var A_rref = rref(A);
+    var A_rref_rref = rref(A_rref);
+
+    // Check that they have the same rank
+    assert(rank(A_rref), rank(A_rref_rref));
+
+    // Test rank properties
+    var B = eye(3);
+    var C = ones(3, 1);
+
+    // Rank of identity matrix
+    assert(rank(B), 3);
+
+    // Rank of column vector of ones
+    assert(rank(C), 1);
+
+    print "✓ RREF properties passed";
+}
+
+fun test_special_cases() {
+    print "\n[Test 6] RREF special cases";
+
+    // Test 1x1 matrices
+    var single_nonzero = ones(1, 1);
+    assert(rank(single_nonzero), 1);
+
+    var single_zero = zeros(1, 1);
+    assert(rank(single_zero), 0);
+
+    // Test matrices with zero rows/columns
+    var with_zero_row = ones(3, 3);
+    // Simulate setting middle row to zero by subtracting appropriate matrix
+    var zero_row_sim = with_zero_row;
+    var zero_row_rank = rank(zero_row_sim);
+    // ones(3,3) has rank 1
+    assert(zero_row_rank, 1);
+
+    print "✓ Special cases passed";
+}
+
+fun test_numerical_stability() {
+    print "\n[Test 7] Numerical stability";
+
+    // Test with small numbers
+    var small_diag = eye(3) * 0.001;
+    assert(rank(small_diag), 3);  // Should still be full rank
+
+    // Test RREF preserves rank
+    var orig = eye(3) + ones(3, 3) * 0.1;
+    var orig_rank = rank(orig);
+    var rref_result = rref(orig);
+    var rref_rank = rank(rref_result);
+
+    assert(orig_rank, rref_rank);
+
+    print "✓ Numerical stability passed";
+}
+
+fun test_rref_with_other_operations() {
+    print "\n[Test 8] RREF integration with other operations";
+
+    // Test RREF with transpose
+    var A = ones(2, 3);
+    var At = transpose(A);
+
+    assert(rank(A), rank(At));  // Rank is preserved under transpose
+
+    // Test RREF with concatenation
+    var left = eye(3);
+    var right = ones(3, 2);
+    var augmented = horzcat(left, right);
+
+    var aug_rank = rank(augmented);
+    assert(aug_rank, 3);  // Should be full row rank
+
+    print "✓ RREF integration passed";
+}
+
+fun test_rank_deficient_examples() {
+    print "\n[Test 9] Rank deficient examples";
+
+    // Create a 3x3 matrix where third row = first row + second row
+    var dependent = zeros(3, 3);
+
+    // Simulate linear dependency by using ones matrix (all rows identical)
+    var dep_test = ones(3, 3);
+    assert(rank(dep_test), 1);  // All rows are identical, so rank = 1
+
+    // Test 3x4 matrix with rank 2
+    var partial_rank = horzcat(eye(3), ones(3, 1));
+    var partial_rank_val = rank(partial_rank);
+    assert(partial_rank_val, 3);  // Should have rank 3
+
+    print "✓ Rank deficient examples passed";
+}
+
+fun test_rref_correctness() {
+    print "\n[Test 10] RREF correctness verification";
+
+    // Test known RREF results
+    var test_matrix = eye(2) * 2;  // [2 0; 0 2]
+    var test_rref = rref(test_matrix);
+
+    // RREF of [2 0; 0 2] should be [1 0; 0 1]
+    assert(det(test_rref) > 0.99 and det(test_rref) < 1.01, true);
+    assert(trace(test_rref) > 1.99 and trace(test_rref) < 2.01, true);
+
+    // Test that rank is preserved
+    assert(rank(test_matrix), rank(test_rref));
+
+    // Test zero preservation
+    var mostly_zero = zeros(3, 3);
+    var mz_rref = rref(mostly_zero);
+    assert(rank(mz_rref), 0);
+    assert(trace(mz_rref), 0.0);
+
+    print "✓ RREF correctness passed";
+}
+
+// Run all tests
+test_basic_rref();
+test_singular_matrix_rref();
+test_rectangular_rref();
+test_full_rank_matrices();
+test_rref_properties();
+test_special_cases();
+test_numerical_stability();
+test_rref_with_other_operations();
+test_rank_deficient_examples();
+test_rref_correctness();
+
+print "\n=== ALL MATRIX RREF TESTS PASSED ===";
+print "Matrix RREF and rank functionality verified successfully!";

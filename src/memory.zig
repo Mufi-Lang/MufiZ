@@ -689,6 +689,11 @@ pub fn freeObject(object: *Obj) void {
             pair.value.release();
             _ = reallocate(@ptrCast(object), @sizeOf(obj_h.ObjPair), 0);
         },
+        .OBJ_MATRIX => {
+            const matrix: *obj_h.Matrix = @ptrCast(@alignCast(object));
+            matrix.deinit();
+            _ = reallocate(@ptrCast(object), @sizeOf(obj_h.Matrix), 0);
+        },
     }
 }
 
@@ -758,6 +763,9 @@ pub fn blackenObject(object: *Obj) void {
             const pair: *obj_h.ObjPair = @ptrCast(@alignCast(object));
             markValue(pair.key);
             markValue(pair.value);
+        },
+        .OBJ_MATRIX => {
+            // Matrix has no GC-managed fields to mark (only contains f64 data)
         },
 
         else => {},
