@@ -1,0 +1,74 @@
+name: Test Suite (Next Branch)
+
+on:
+  push:
+    branches:
+      - next
+  pull_request:
+    branches:
+      - next
+
+jobs:
+  test-suite:
+    name: Run MufiZ Test Suite
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Zig
+        uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: 0.15.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
+
+      - name: Cache Zig build artifacts
+        uses: actions/cache@v3
+        with:
+          path: |
+            zig-cache
+            .zig-cache
+            ~/.cache/zig
+          key: ${{ runner.os }}-zig-next-${{ hashFiles('build.zig', 'build.zig.zon') }}
+          restore-keys: |
+            ${{ runner.os }}-zig-next-
+            ${{ runner.os }}-zig-
+
+      - name: Run test_suite.py
+        run: python3 test_suite.py
+
+      - name: Upload test artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-suite-failure-artifacts
+          path: |
+            *.mufi
+            zig-out/
+            test_suite/
+          retention-days: 7
+
+      - name: Test Results Summary
+        if: always()
+        run: |
+          echo "## MufiZ Test Suite Results" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** next" >> $GITHUB_STEP_SUMMARY
+          echo "**Runner:** Ubuntu Latest" >> $GITHUB_STEP_SUMMARY
+          echo "**Zig Version:** 0.15.2" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ ${{ job.status }} == 'success' ]; then
+            echo "✅ **All tests passed successfully!**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Some tests failed.** Check the workflow output above for details." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Troubleshooting:**" >> $GITHUB_STEP_SUMMARY
+            echo "- Download the failure artifacts to investigate" >> $GITHUB_STEP_SUMMARY
+            echo "- Run \`python3 test_suite.py\` locally to reproduce" >> $GITHUB_STEP_SUMMARY
+            echo "- Check individual test files in test_suite/ directory" >> $GITHUB_STEP_SUMMARY
+          fi
