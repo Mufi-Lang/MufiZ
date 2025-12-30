@@ -17,7 +17,6 @@ pub const Instance = @import("objects/instance.zig").Instance;
 pub const ObjInstance = Instance;
 pub const LinkedList = @import("objects/linked_list.zig").LinkedList;
 pub const Node = @import("objects/linked_list.zig").Node;
-pub const ObjLinkedList = LinkedList;
 const __obj = @import("objects/obj.zig");
 pub const Obj = __obj.Obj;
 pub const ObjType = __obj.ObjType;
@@ -198,102 +197,6 @@ pub fn newUpvalue(slot: [*]Value) *ObjUpvalue {
     return upvalue;
 }
 
-pub fn split(list: *ObjLinkedList, left: *ObjLinkedList, right: *ObjLinkedList) void {
-    // Safety checks
-    if (list.head == null or list.count <= 1) {
-        // Handle empty or single-element lists
-        left.head = list.head;
-        left.tail = list.tail;
-        left.count = list.count;
-        right.head = null;
-        right.tail = null;
-        right.count = 0;
-        return;
-    }
-
-    const count = list.count;
-    const middle = @divTrunc(count, 2);
-
-    // Set up left half
-    left.head = list.head;
-    left.count = middle;
-
-    // Set up right half
-    right.count = count - middle;
-
-    // Find the middle node
-    var current = list.head;
-    for (0..@intCast(middle - 1)) |_| {
-        if (current.?.next == null) break;
-        current = current.?.next;
-    }
-
-    // Split the list at the middle
-    left.tail = current;
-    right.head = current.?.next;
-
-    // Break the connection between halves
-    if (current.?.next) |next_node| {
-        next_node.prev = null;
-        current.?.next = null;
-    }
-
-    // Set right tail (use original list's tail since right half goes to the end)
-    right.tail = list.tail;
-}
-pub fn merge(left: ?*Node, right: ?*Node) ?*Node {
-    // Base cases: if one list is empty, return the other
-    if (left == null) return right;
-    if (right == null) return left;
-
-    // Use separate variables to avoid modifying const parameters
-    var leftPtr = left;
-    var rightPtr = right;
-
-    // Determine the head of the merged list
-    var head: ?*Node = undefined;
-    var current: ?*Node = undefined;
-
-    if (value_h.valueCompare(leftPtr.?.data, rightPtr.?.data) < 0) {
-        head = leftPtr;
-        current = leftPtr;
-        leftPtr = leftPtr.?.next;
-    } else {
-        head = rightPtr;
-        current = rightPtr;
-        rightPtr = rightPtr.?.next;
-    }
-
-    // Set head's prev to null
-    head.?.prev = null;
-
-    // Iteratively merge the remaining nodes
-    while (leftPtr != null and rightPtr != null) {
-        if (value_h.valueCompare(leftPtr.?.data, rightPtr.?.data) < 0) {
-            current.?.next = leftPtr;
-            leftPtr.?.prev = current;
-            current = leftPtr;
-            leftPtr = leftPtr.?.next;
-        } else {
-            current.?.next = rightPtr;
-            rightPtr.?.prev = current;
-            current = rightPtr;
-            rightPtr = rightPtr.?.next;
-        }
-    }
-
-    // Append remaining nodes
-    if (leftPtr) |left_node| {
-        current.?.next = left_node;
-        left_node.prev = current;
-    } else if (rightPtr) |right_node| {
-        current.?.next = right_node;
-        right_node.prev = current;
-    }
-
-    return head;
-}
-
 pub fn printFunction(function: *ObjFunction) void {
     if (function.*.name == null) {
         print("<script>", .{});
@@ -302,104 +205,6 @@ pub fn printFunction(function: *ObjFunction) void {
     const nameStr = zstr(function.*.name);
     print("<fn {s}>", .{nameStr});
 }
-
-pub fn newLinkedList() *LinkedList {
-    return LinkedList.init();
-}
-pub fn cloneLinkedList(list: *LinkedList) *LinkedList {
-    return list.clone();
-}
-
-pub fn clearLinkedList(list: *LinkedList) void {
-    list.clear();
-}
-
-pub fn pushFront(list: *LinkedList, value: Value) void {
-    list.push_front(value);
-}
-
-pub fn pushBack(list: *LinkedList, value: Value) void {
-    list.push(value);
-}
-
-pub fn popFront(list: *LinkedList) Value {
-    return list.pop_front();
-}
-
-pub fn popBack(list: *LinkedList) Value {
-    return list.pop();
-}
-
-pub fn equalLinkedList(a: *LinkedList, b: *LinkedList) bool {
-    return a.equal(b);
-}
-
-pub fn freeObjectLinkedList(list: *LinkedList) void {
-    list.clear();
-}
-
-pub fn mergeSort(list: *ObjLinkedList) void {
-    list.sort();
-}
-
-pub fn searchLinkedList(list: *ObjLinkedList, value: Value) i32 {
-    return list.search(value);
-}
-
-pub fn reverseLinkedList(list: *ObjLinkedList) void {
-    list.reverse();
-}
-
-pub fn mergeLinkedList(a: *ObjLinkedList, b: *ObjLinkedList) *ObjLinkedList {
-    const result = newLinkedList();
-    // Copy all elements from a
-    var currentA = a.head;
-    while (currentA) |node| {
-        result.push(node.data);
-        currentA = node.next;
-    }
-    // Copy all elements from b
-    var currentB = b.head;
-    while (currentB) |node| {
-        result.push(node.data);
-        currentB = node.next;
-    }
-    return result;
-}
-pub fn sliceLinkedList(list: *ObjLinkedList, start: i32, end: i32) *ObjLinkedList {
-    return list.slice(start, end);
-}
-pub fn spliceLinkedList(list: *ObjLinkedList, start: i32, end: i32) *ObjLinkedList {
-    return list.splice(start, end);
-}
-pub fn newHashTable() *ObjHashTable {
-    return HashTable.init();
-}
-pub fn cloneHashTable(table: *ObjHashTable) *ObjHashTable {
-    return table.clone();
-}
-pub fn clearHashTable(table: *ObjHashTable) void {
-    table.clear();
-}
-pub fn putHashTable(table: *ObjHashTable, key: *ObjString, value: Value) bool {
-    return table.put(key, value);
-}
-pub fn getHashTable(table: *ObjHashTable, key: *ObjString) Value {
-    if (table.get(key)) |value| {
-        return value;
-    } else {
-        return Value.init_nil();
-    }
-}
-pub fn removeHashTable(table: *ObjHashTable, key: *ObjString) bool {
-    return table.remove(key);
-}
-pub fn freeObjectHashTable(table: *ObjHashTable) void {
-    table.deinit();
-}
-// pub  fn mergeHashTable(a: *ObjHashTable, b: *ObjHashTable) *ObjHashTable;
-// pub  fn keysHashTable(table: *ObjHashTable) *ObjArray;
-// pub  fn valuesHashTable(table: *ObjHashTable) *ObjArray;
 
 inline fn zstr(s: ?*ObjString) []const u8 {
     if (s) |str| {
@@ -447,52 +252,14 @@ pub fn printObject(value: Value) void {
         .OBJ_FVECTOR => {
             const vector = @as(*FloatVector, @ptrCast(@alignCast(value.as.obj)));
             vector.print();
-            // print("{", .{});
-            // for (0..@intCast(vector.*.count)) |i| {
-            //     print("{d:.2}", .{vector.*.data[i]});
-            //     if (i != @as(usize, @intCast(vector.*.count - 1))) {
-            //         print(", ", .{});
-            //     }
-            // }
-            // print("}", .{});
         },
         .OBJ_LINKED_LIST => {
-            const list = @as(*ObjLinkedList, @ptrCast(@alignCast(value.as.obj)));
-            print("[", .{});
-            var current = list.head;
-            while (current) |node| {
-                value_h.printValue(node.data);
-                if (node.next != null) {
-                    print(", ", .{});
-                }
-                current = node.next;
-            }
-            print("]", .{});
+            const list = @as(*LinkedList, @ptrCast(@alignCast(value.as.obj)));
+            LinkedList.print(list);
         },
         .OBJ_HASH_TABLE => {
             const ht = @as(*ObjHashTable, @ptrCast(@alignCast(value.as.obj)));
-            print("{{", .{});
-            if (ht.*.table.entries) |entries| {
-                var count: i32 = 0;
-
-                for (0..@intCast(ht.*.table.capacity)) |i| {
-                    if (entries[i].key != null) {
-                        if (count > 0) {
-                            print(", ", .{});
-                        }
-                        value_h.printValue(Value{
-                            .type = .VAL_OBJ,
-                            .as = .{
-                                .obj = @ptrCast(entries[i].key),
-                            },
-                        });
-                        print(": ", .{});
-                        value_h.printValue(entries[i].value);
-                        count += 1;
-                    }
-                }
-            }
-            print("}}", .{});
+            ObjHashTable.print(ht);
         },
         .OBJ_RANGE => {
             const range = @as(*ObjRange, @ptrCast(@alignCast(value.as.obj)));
@@ -514,7 +281,7 @@ pub fn isObjType(value: Value, type_: ObjType) bool {
 }
 
 // Convert a hash table to a linked list of pairs for iteration
-pub fn hashTableToPairs(hashTable: *ObjHashTable) *ObjLinkedList {
+pub fn hashTableToPairs(hashTable: *ObjHashTable) *LinkedList {
     return hashTable.toPairs();
 }
 

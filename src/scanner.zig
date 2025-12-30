@@ -284,7 +284,6 @@ pub fn skip_whitespace() void {
     }
 }
 
-/// TODO: need to simply without converting so much
 pub fn match(arg_expected: u8) bool {
     const expected = arg_expected;
     if (is_at_end()) return false;
@@ -333,21 +332,27 @@ pub fn number() Token {
         return make_token(.TOKEN_INT);
     }
 }
+// Helper function to skip number at current position
+inline fn skip_number(pos: [*]u8, start_idx: *usize) void {
+    // Skip digits
+    while (pos[start_idx.*] != 0 and is_digit(pos[start_idx.*])) {
+        start_idx.* += 1;
+    }
+    // Skip decimal part if present
+    if (pos[start_idx.*] == '.' and pos[start_idx.* + 1] != 0 and is_digit(pos[start_idx.* + 1])) {
+        start_idx.* += 1; // Skip '.'
+        while (pos[start_idx.*] != 0 and is_digit(pos[start_idx.*])) {
+            start_idx.* += 1;
+        }
+    }
+}
 
 pub fn peek_for_complex() bool {
     var i: usize = 0;
     const start_pos = scanner.current;
 
     // Skip over first number
-    while (start_pos[i] != 0 and is_digit(start_pos[i])) {
-        i += 1;
-    }
-    if (start_pos[i] == '.' and is_digit(start_pos[i + 1])) {
-        i += 1;
-        while (start_pos[i] != 0 and is_digit(start_pos[i])) {
-            i += 1;
-        }
-    }
+    skip_number(start_pos, &i);
 
     // Check for immediate 'i' (pure imaginary)
     if (start_pos[i] == 'i') {
@@ -357,22 +362,10 @@ pub fn peek_for_complex() bool {
     // Look for operator
     if (start_pos[i] == '+' or start_pos[i] == '-') {
         i += 1;
-
-        // Skip optional digits for coefficient
-        while (start_pos[i] != 0 and is_digit(start_pos[i])) {
-            i += 1;
-        }
-        if (start_pos[i] == '.' and is_digit(start_pos[i + 1])) {
-            i += 1;
-            while (start_pos[i] != 0 and is_digit(start_pos[i])) {
-                i += 1;
-            }
-        }
-
+        // Skip optional second number for coefficient
+        skip_number(start_pos, &i);
         // Must end with 'i'
-        if (start_pos[i] == 'i') {
-            return true;
-        }
+        return start_pos[i] == 'i';
     }
 
     return false;

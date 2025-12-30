@@ -1,17 +1,13 @@
 const std = @import("std");
 
 const mem_utils = @import("mem_utils.zig");
-
+const Vec16 = @Vector(16, u8);
 // SIMD-optimized string operations for high-performance text processing
 pub const SIMDString = struct {
-
     // SIMD-optimized string search using Boyer-Moore-like algorithm with SIMD acceleration
     pub fn findSIMD(haystack: []const u8, needle: []const u8) ?usize {
         if (needle.len == 0) return 0;
         if (haystack.len < needle.len) return null;
-
-        const Vec16 = @Vector(16, u8);
-        _ = Vec16; // autofix
 
         // For small needles, use optimized SIMD search
         if (needle.len == 1) {
@@ -44,7 +40,6 @@ pub const SIMDString = struct {
 
     // SIMD-optimized single character search
     pub fn findCharSIMD(haystack: []const u8, needle_char: u8) ?usize {
-        const Vec16 = @Vector(16, u8);
         const needle_vec: Vec16 = @splat(needle_char);
 
         var i: usize = 0;
@@ -94,7 +89,6 @@ pub const SIMDString = struct {
         if (a.len != b.len) return false;
         if (a.len == 0) return true;
 
-        const Vec16 = @Vector(16, u8);
         const vec_iterations = a.len / 16;
 
         var i: usize = 0;
@@ -133,7 +127,6 @@ pub const SIMDString = struct {
     // SIMD-optimized string comparison (lexicographic)
     pub fn compareSIMD(a: []const u8, b: []const u8) i32 {
         const min_len = @min(a.len, b.len);
-        const Vec16 = @Vector(16, u8);
         const vec_iterations = min_len / 16;
 
         var i: usize = 0;
@@ -179,7 +172,6 @@ pub const SIMDString = struct {
     // SIMD-optimized case-insensitive string comparison
     pub fn compareIgnoreCaseSIMD(a: []const u8, b: []const u8) i32 {
         const min_len = @min(a.len, b.len);
-        const Vec16 = @Vector(16, u8);
         const vec_iterations = min_len / 16;
 
         // ASCII case conversion masks
@@ -239,7 +231,6 @@ pub const SIMDString = struct {
     pub fn toLowerSIMD(input: []const u8, output: []u8) void {
         if (input.len != output.len) return;
 
-        const Vec16 = @Vector(16, u8);
         const vec_iterations = input.len / 16;
 
         // ASCII case conversion masks
@@ -281,7 +272,6 @@ pub const SIMDString = struct {
     pub fn toUpperSIMD(input: []const u8, output: []u8) void {
         if (input.len != output.len) return;
 
-        const Vec16 = @Vector(16, u8);
         const vec_iterations = input.len / 16;
 
         // ASCII case conversion masks
@@ -342,7 +332,6 @@ pub const SIMDString = struct {
 
     // SIMD-optimized character counting
     pub fn countCharSIMD(haystack: []const u8, needle_char: u8) usize {
-        const Vec16 = @Vector(16, u8);
         const needle_vec: Vec16 = @splat(needle_char);
 
         var count: usize = 0;
@@ -382,7 +371,6 @@ pub const SIMDString = struct {
     pub fn reverseSIMD(input: []const u8, output: []u8) void {
         if (input.len != output.len or input.len == 0) return;
 
-        const Vec16 = @Vector(16, u8);
         const len = input.len;
 
         // For strings shorter than 32 bytes, use simple approach

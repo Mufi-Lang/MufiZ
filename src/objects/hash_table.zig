@@ -10,6 +10,7 @@ const Table = table_h.Table;
 const Value = @import("../value.zig").Value;
 const obj_h = @import("obj.zig");
 const Obj = obj_h.Obj;
+const printValue = @import("../value.zig").printValue;
 
 /// HashTable struct with bounded methods, following the FloatVector/LinkedList pattern
 pub const HashTable = struct {
@@ -251,33 +252,5 @@ pub const HashTable = struct {
 };
 
 // Helper function to print a Value (simplified version)
-fn printValue(value: Value) void {
-    if (value.is_number()) {
-        if (value.is_int()) {
-            std.debug.print("{d}", .{value.as.number});
-        } else {
-            std.debug.print("{d:.2}", .{value.as_num_double()});
-        }
-    } else if (value.is_bool()) {
-        std.debug.print("{}", .{value.as.boolean});
-    } else if (value.is_nil()) {
-        std.debug.print("nil", .{});
-    } else if (value.is_obj()) {
-        // Handle object printing based on type
-        if (value.as.obj) |obj| {
-            switch (obj.type) {
-                .OBJ_STRING => {
-                    const str = @as(*ObjString, @ptrCast(obj));
-                    std.debug.print("\"", .{});
-                    for (0..str.length) |i| {
-                        std.debug.print("{c}", .{str.chars[i]});
-                    }
-                    std.debug.print("\"", .{});
-                },
-                else => std.debug.print("<object>", .{}),
-            }
-        }
-    }
-}
 
 // Import ObjString type

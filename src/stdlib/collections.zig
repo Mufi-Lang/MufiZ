@@ -6,7 +6,7 @@ const GlobalAlloc = @import("../main.zig").GlobalAlloc;
 const reallocate = @import("../memory.zig").reallocate;
 const obj_h = @import("../object.zig");
 const ObjType = obj_h.ObjType;
-const ObjLinkedList = obj_h.ObjLinkedList;
+const ObjLinkedList = obj_h.LinkedList;
 const ObjHashTable = obj_h.ObjHashTable;
 const FloatVector = obj_h.FloatVector;
 const fvector = @import("../objects/fvec.zig");
@@ -21,7 +21,7 @@ pub fn linked_list(argc: i32, args: [*]Value) Value {
     _ = args;
     if (argc != 0) return stdlib_error("linked_list() expects no arguments!", .{ .argn = argc });
 
-    const ll: *ObjLinkedList = obj_h.newLinkedList();
+    const ll: *ObjLinkedList = ObjLinkedList.init();
     return Value.init_obj(@ptrCast(ll));
 }
 
@@ -69,7 +69,7 @@ pub fn push(argc: i32, args: [*]Value) Value {
     } else if (Value.is_obj_type(args[0], .OBJ_LINKED_LIST)) {
         const list = args[0].as_linked_list();
         for (1..@intCast(argc)) |i| {
-            obj_h.pushBack(list, args[i]);
+            ObjLinkedList.push(list, args[i]);
         }
     }
 
@@ -91,7 +91,7 @@ pub fn pop(argc: i32, args: [*]Value) Value {
         return Value.init_double(vector.pop());
     } else {
         const list = args[0].as_linked_list();
-        return obj_h.popBack(list);
+        return ObjLinkedList.pop(list);
     }
 }
 
@@ -107,7 +107,7 @@ pub fn push_front(argc: i32, args: [*]Value) Value {
 
     if (Value.is_obj_type(args[0], .OBJ_LINKED_LIST)) {
         const list = args[0].as_linked_list();
-        obj_h.pushFront(list, args[1]);
+        ObjLinkedList.push_front(list, args[1]);
     } else {
         // For vectors, we insert at index 0
         const vector = args[0].as_vector();
@@ -131,7 +131,7 @@ pub fn pop_front(argc: i32, args: [*]Value) Value {
 
     if (Value.is_obj_type(args[0], .OBJ_LINKED_LIST)) {
         const list = args[0].as_linked_list();
-        return obj_h.popFront(list);
+        return ObjLinkedList.pop_front(list);
     } else {
         const vector = args[0].as_vector();
         if (vector.count == 0) {
@@ -188,8 +188,7 @@ pub fn put(argc: i32, args: [*]Value) Value {
 
     const table = args[0].as_hash_table();
     const key = args[1].as_string();
-
-    _ = obj_h.putHashTable(table, key, args[2]);
+    _ = ObjHashTable.put(table, key, args[2]);
     return Value.init_nil();
 }
 
@@ -211,7 +210,7 @@ pub fn remove(argc: i32, args: [*]Value) Value {
         const table = args[0].as_hash_table();
         const key = args[1].as_string();
 
-        return Value.init_bool(obj_h.removeHashTable(table, key));
+        return Value.init_bool(obj_h.ObjHashTable.remove(table, key));
     } else {
         if (!type_check(1, args + 1, 6)) {
             return stdlib_error("Vector index must be a number!", .{ .value_type = conv.what_is(args[1]) });
@@ -243,7 +242,7 @@ pub fn get(argc: i32, args: [*]Value) Value {
     const table = args[0].as_hash_table();
     const key = args[1].as_string();
 
-    return obj_h.getHashTable(table, key);
+    return ObjHashTable.get(table, key) orelse Value.init_nil();
 }
 
 // nth(list, index) - Gets the element at the specified index
@@ -317,9 +316,9 @@ pub fn insert(argc: i32, args: [*]Value) Value {
         }
 
         if (index == 0) {
-            obj_h.pushFront(list, args[2]);
+            ObjLinkedList.push_front(list, args[2]);
         } else if (index == list.count) {
-            obj_h.pushBack(list, args[2]);
+            ObjLinkedList.push(list, args[2]);
         } else {
             var current = list.head;
             var i: i32 = 0;
@@ -378,7 +377,7 @@ pub fn contains(argc: i32, args: [*]Value) Value {
         const table = args[0].as_hash_table();
         const key = args[1].as_string();
 
-        return Value.init_bool(obj_h.getHashTable(table, key).type != .VAL_NIL);
+        return Value.init_bool(ObjHashTable.get(table, key).?.type != .VAL_NIL);
     } else if (Value.is_obj_type(args[0], .OBJ_FVECTOR)) {
         if (!type_check(1, args + 1, 6)) {
             return stdlib_error("Vector value must be numeric!", .{ .value_type = conv.what_is(args[1]) });
@@ -418,7 +417,7 @@ pub fn sort(argc: i32, args: [*]Value) Value {
 
     if (Value.is_obj_type(args[0], .OBJ_LINKED_LIST)) {
         const list = args[0].as_linked_list();
-        obj_h.mergeSort(list);
+        ObjLinkedList.sort(list);
 
         // Update tail and fix prev pointers
         var current = list.head;
@@ -447,7 +446,7 @@ pub fn reverse(argc: i32, args: [*]Value) Value {
 
     if (Value.is_obj_type(args[0], .OBJ_LINKED_LIST)) {
         const list = args[0].as_linked_list();
-        obj_h.reverseLinkedList(list);
+        ObjLinkedList.reverse(list);
         return Value.init_nil();
     } else if (Value.is_obj_type(args[0], .OBJ_FVECTOR)) {
         const vector = args[0].as_vector();
@@ -497,7 +496,7 @@ pub fn slice_fn(argc: i32, args: [*]Value) Value {
         }
 
         const actual_end = @min(end, @as(i32, @intCast(list.count)));
-        const result = obj_h.sliceLinkedList(list, @intCast(start), @intCast(actual_end));
+        const result = ObjLinkedList.slice(list, @intCast(start), @intCast(actual_end));
         return Value.init_obj(@ptrCast(result));
     }
 }
@@ -529,7 +528,7 @@ pub fn clone(argc: i32, args: [*]Value) Value {
         return Value.init_obj(@ptrCast(new_vector));
     } else {
         const list = args[0].as_linked_list();
-        const new_list = obj_h.cloneLinkedList(list);
+        const new_list = ObjLinkedList.clone(list);
         return Value.init_obj(@ptrCast(new_list));
     }
 }
@@ -547,13 +546,13 @@ pub fn clear(argc: i32, args: [*]Value) Value {
 
     if (Value.is_obj_type(args[0], .OBJ_HASH_TABLE)) {
         const table = args[0].as_hash_table();
-        obj_h.clearHashTable(table);
+        ObjHashTable.clear(table);
     } else if (Value.is_obj_type(args[0], .OBJ_FVECTOR)) {
         const vector = args[0].as_vector();
         vector.clear();
     } else {
         const list = args[0].as_linked_list();
-        obj_h.clearLinkedList(list);
+        ObjLinkedList.clear(list);
     }
 
     return Value.init_nil();
@@ -899,7 +898,7 @@ pub fn merge(argc: i32, args: [*]Value) Value {
         const l1 = args[0].as_linked_list();
         const l2 = args[1].as_linked_list();
 
-        const result = obj_h.mergeLinkedList(l1, l2);
+        const result = ObjLinkedList.merge_lists(l1, l2);
         return Value.init_obj(@ptrCast(result));
     } else {
         return stdlib_error("Both arguments must be of the same type (vectors or lists)!", .{ .value_type = conv.what_is(args[0]) });
@@ -984,7 +983,7 @@ pub fn splice(argc: i32, args: [*]Value) Value {
         }
 
         const actual_end = @min(end, @as(i32, @intCast(list.count)));
-        const result = obj_h.spliceLinkedList(list, @intCast(start), @intCast(actual_end));
+        const result = ObjLinkedList.splice(list, @intCast(start), @intCast(actual_end));
         return Value.init_obj(@ptrCast(result));
     }
 }

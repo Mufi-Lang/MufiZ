@@ -8,7 +8,7 @@ const Obj = obj_h.Obj;
 const ObjString = obj_h.ObjString;
 const ObjArray = obj_h.ObjArray;
 const ObjFunction = obj_h.ObjFunction;
-const ObjLinkedList = obj_h.ObjLinkedList;
+const ObjLinkedList = obj_h.LinkedList;
 const Node = obj_h.Node;
 const FloatVector = obj_h.FloatVector;
 const fvec = @import("objects/fvec.zig");
@@ -412,7 +412,7 @@ pub const Value = struct {
         return @ptrCast(@alignCast(self.as.obj));
     }
 
-    pub fn as_linked_list(self: Self) *obj_h.ObjLinkedList {
+    pub fn as_linked_list(self: Self) *ObjLinkedList {
         return @ptrCast(@alignCast(self.as.obj));
     }
 

@@ -472,4 +472,13 @@ pub const LinkedList = struct {
 
         return spliced;
     }
+
+    pub fn merge_lists(self: Self, other: Self) Self {
+        var current = other.head;
+        while (current) |node| {
+            self.push(node.data);
+            current = node.next;
+        }
+        return self;
+    }
 };

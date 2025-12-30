@@ -668,12 +668,13 @@ pub fn freeObject(object: *Obj) void {
         },
 
         .OBJ_LINKED_LIST => {
-            const linkedList: *obj_h.ObjLinkedList = @ptrCast(@alignCast(object));
-            obj_h.freeObjectLinkedList(linkedList);
+            const linkedList: *obj_h.LinkedList = @ptrCast(@alignCast(object));
+            obj_h.LinkedList.deinit(linkedList);
         },
         .OBJ_HASH_TABLE => {
-            const hashTable: *obj_h.ObjHashTable = @ptrCast(@alignCast(object));
-            obj_h.freeObjectHashTable(hashTable);
+            const hashTable: *ObjHashTable = @ptrCast(@alignCast(object));
+
+            ObjHashTable.deinit(hashTable);
         },
         .OBJ_FVECTOR => {
             const fvector: *obj_h.FloatVector = @ptrCast(@alignCast(object));
@@ -742,7 +743,7 @@ pub fn blackenObject(object: *Obj) void {
         //     }
         // },
         .OBJ_LINKED_LIST => {
-            const linkedList: *obj_h.ObjLinkedList = @ptrCast(@alignCast(object));
+            const linkedList: *obj_h.LinkedList = @ptrCast(@alignCast(object));
             var current: ?*Node = linkedList.head;
             while (current) |node| {
                 markValue(node.data);

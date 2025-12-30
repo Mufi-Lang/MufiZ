@@ -32,7 +32,7 @@ const newBoundMethod = object_h.newBoundMethod;
 const ObjInstance = object_h.ObjInstance;
 const Instance = object_h.Instance;
 const takeString = object_h.takeString;
-const ObjLinkedList = object_h.ObjLinkedList;
+const ObjLinkedList = object_h.LinkedList;
 const equalLinkedList = object_h.equalLinkedList;
 const Obj = object_h.Obj;
 const NativeFn = object_h.NativeFn;
@@ -1665,7 +1665,7 @@ fn opInt() InterpretResult {
 }
 
 fn opHashTable() InterpretResult {
-    const table = object_h.newHashTable();
+    const table = object_h.ObjHashTable.init();
     push(Value.init_obj(@ptrCast(table)));
     return .INTERPRET_OK;
 }
