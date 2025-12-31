@@ -77,7 +77,7 @@ jobs:
 
       - name: Upload test artifacts on test failure
         if: failure()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: test-failure-blocking-release
           path: |
