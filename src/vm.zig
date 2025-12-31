@@ -1485,7 +1485,7 @@ fn opLength() InterpretResult {
             },
             .OBJ_HASH_TABLE => {
                 const table: *object_h.ObjHashTable = @ptrCast(@alignCast(value.as.obj));
-                push(Value.init_int(@intCast(table.table.count)));
+                push(Value.init_int(@intCast(table.len())));
             },
             .OBJ_LINKED_LIST => {
                 const list: *ObjLinkedList = @ptrCast(@alignCast(value.as.obj));
@@ -1786,7 +1786,7 @@ fn opAddEntry() InterpretResult {
 
     const table: *object_h.ObjHashTable = @ptrCast(@alignCast(table_val.as.obj));
     if (key.is_string()) {
-        _ = table_h.tableSet(&table.table, key.as_string(), value);
+        _ = table.put(key.as_string(), value);
     } else {
         runtimeError("Hash table keys must be strings.", .{});
         return .INTERPRET_RUNTIME_ERROR;

@@ -1,28 +1,49 @@
 const std = @import("std");
+const Allocator = std.mem.Allocator;
 
 const reallocate = @import("../memory.zig").reallocate;
 const allocateObject = @import("../object.zig").allocateObject;
 const ObjString = @import("../object.zig").ObjString;
 const LinkedList = @import("../object.zig").LinkedList;
 const ObjPair = @import("../object.zig").ObjPair;
-const table_h = @import("../table.zig");
-const Table = table_h.Table;
 const Value = @import("../value.zig").Value;
 const obj_h = @import("obj.zig");
 const Obj = obj_h.Obj;
 const printValue = @import("../value.zig").printValue;
 
-/// HashTable struct with bounded methods, following the FloatVector/LinkedList pattern
+/// String hash context for ObjString keys
+const StringHashContext = struct {
+    pub fn hash(self: @This(), key: *ObjString) u64 {
+        _ = self;
+        return key.hash;
+    }
+
+    pub fn eql(self: @This(), a: *ObjString, b: *ObjString) bool {
+        _ = self;
+        if (a.length != b.length) return false;
+        if (a.hash != b.hash) return false;
+        return std.mem.eql(u8, a.chars[0..a.length], b.chars[0..b.length]);
+    }
+};
+
+/// HashTable struct using std.HashMap internally
 pub const HashTable = struct {
     obj: Obj,
-    table: Table,
+    map: std.HashMap(*ObjString, Value, StringHashContext, std.hash_map.default_max_load_percentage),
+    allocator: Allocator,
 
     const Self = *@This();
+    const InternalMap = std.HashMap(*ObjString, Value, StringHashContext, std.hash_map.default_max_load_percentage);
 
     /// Creates a new empty hash table
     pub fn init() Self {
         const htable: Self = @ptrCast(@alignCast(allocateObject(@sizeOf(HashTable), .OBJ_HASH_TABLE)));
-        table_h.initTable(&htable.table);
+
+        // Use a custom allocator that wraps the reallocate function
+        const allocator = CustomAllocator.init();
+        htable.allocator = allocator;
+        htable.map = InternalMap.init(allocator);
+
         return htable;
     }
 
@@ -33,94 +54,96 @@ pub const HashTable = struct {
 
     /// Frees the hash table
     pub fn deinit(self: Self) void {
-        table_h.freeTable(&self.table);
+        self.map.deinit();
         _ = reallocate(@as(?*anyopaque, @ptrCast(self)), @sizeOf(HashTable), 0);
     }
 
     /// Clears all entries from the hash table
     pub fn clear(self: Self) void {
-        table_h.freeTable(&self.table);
-        table_h.initTable(&self.table);
+        self.map.clearRetainingCapacity();
     }
 
     /// Puts a key-value pair into the hash table
     pub fn put(self: Self, key: *ObjString, value: Value) bool {
-        return table_h.tableSet(&self.table, key, value);
+        const result = self.map.getOrPut(key) catch {
+            // Handle allocation failure gracefully
+            return false;
+        };
+        const is_new = !result.found_existing;
+        result.value_ptr.* = value;
+        return is_new;
     }
 
     /// Gets a value from the hash table by key
     pub fn get(self: Self, key: *ObjString) ?Value {
-        var value: Value = undefined;
-        if (table_h.tableGet(&self.table, key, &value)) {
-            return value;
-        }
-        return null;
+        return self.map.get(key);
     }
 
     /// Gets a value from the hash table, returns default if not found
     pub fn getOrDefault(self: Self, key: *ObjString, default: Value) Value {
-        var value: Value = undefined;
-        if (table_h.tableGet(&self.table, key, &value)) {
-            return value;
-        }
-        return default;
+        return self.map.get(key) orelse default;
     }
 
     /// Removes a key-value pair from the hash table
     pub fn remove(self: Self, key: *ObjString) bool {
-        return table_h.tableDelete(&self.table, key);
+        return self.map.remove(key);
     }
 
     /// Checks if the hash table contains a key
     pub fn contains(self: Self, key: *ObjString) bool {
-        var value: Value = undefined;
-        return table_h.tableGet(&self.table, key, &value);
+        return self.map.contains(key);
     }
 
     /// Returns the number of entries in the hash table
     pub fn len(self: Self) usize {
-        return self.table.count;
+        return self.map.count();
     }
 
     /// Checks if the hash table is empty
     pub fn is_empty(self: Self) bool {
-        return self.table.count == 0;
+        return self.map.count() == 0;
     }
 
     /// Creates a copy of the hash table
     pub fn clone(self: Self) Self {
         const newTable = HashTable.init();
-        table_h.tableAddAll(&self.table, &newTable.table);
+
+        var iter = self.map.iterator();
+        while (iter.next()) |entry| {
+            _ = newTable.put(entry.key_ptr.*, entry.value_ptr.*);
+        }
+
         return newTable;
     }
 
     /// Merges another hash table into this one
     pub fn merge(self: Self, other: Self) void {
-        table_h.tableAddAll(&other.table, &self.table);
+        var iter = other.map.iterator();
+        while (iter.next()) |entry| {
+            _ = self.put(entry.key_ptr.*, entry.value_ptr.*);
+        }
     }
 
     /// Prints the hash table (for debugging)
     pub fn print(self: Self) void {
-        std.debug.print("{{", .{});
+        std.debug.print("#{{", .{});
 
-        if (self.table.entries) |entries| {
-            var first = true;
-            for (0..@intCast(self.table.capacity)) |i| {
-                if (entries[i].key != null and entries[i].isActive()) {
-                    if (!first) std.debug.print(", ", .{});
-                    first = false;
+        var iter = self.map.iterator();
+        var first = true;
 
-                    // Print key
-                    std.debug.print("\"", .{});
-                    for (0..entries[i].key.?.length) |j| {
-                        std.debug.print("{c}", .{entries[i].key.?.chars[j]});
-                    }
-                    std.debug.print("\": ", .{});
+        while (iter.next()) |entry| {
+            if (!first) std.debug.print(", ", .{});
+            first = false;
 
-                    // Print value (simplified)
-                    printValue(entries[i].value);
-                }
+            // Print key
+            std.debug.print("\"", .{});
+            for (0..entry.key_ptr.*.length) |j| {
+                std.debug.print("{c}", .{entry.key_ptr.*.chars[j]});
             }
+            std.debug.print("\": ", .{});
+
+            // Print value
+            printValue(entry.value_ptr.*);
         }
 
         std.debug.print("}}", .{});
@@ -130,15 +153,12 @@ pub const HashTable = struct {
     pub fn toPairs(self: Self) *LinkedList {
         const list = LinkedList.init();
 
-        if (self.table.entries) |entries| {
-            for (0..@intCast(self.table.capacity)) |i| {
-                if (entries[i].key != null and entries[i].isActive()) {
-                    const keyValue = Value.init_obj(@ptrCast(entries[i].key));
-                    const pair = ObjPair.create(keyValue, entries[i].value);
-                    const pairValue = Value.init_obj(@ptrCast(pair));
-                    list.push(pairValue);
-                }
-            }
+        var iter = self.map.iterator();
+        while (iter.next()) |entry| {
+            const keyValue = Value.init_obj(@ptrCast(entry.key_ptr.*));
+            const pair = ObjPair.create(keyValue, entry.value_ptr.*);
+            const pairValue = Value.init_obj(@ptrCast(pair));
+            list.push(pairValue);
         }
 
         return list;
@@ -148,13 +168,10 @@ pub const HashTable = struct {
     pub fn keys(self: Self) *LinkedList {
         const list = LinkedList.init();
 
-        if (self.table.entries) |entries| {
-            for (0..@intCast(self.table.capacity)) |i| {
-                if (entries[i].key != null and entries[i].isActive()) {
-                    const keyValue = Value.init_obj(@ptrCast(entries[i].key));
-                    list.push(keyValue);
-                }
-            }
+        var iter = self.map.iterator();
+        while (iter.next()) |entry| {
+            const keyValue = Value.init_obj(@ptrCast(entry.key_ptr.*));
+            list.push(keyValue);
         }
 
         return list;
@@ -164,35 +181,24 @@ pub const HashTable = struct {
     pub fn values(self: Self) *LinkedList {
         const list = LinkedList.init();
 
-        if (self.table.entries) |entries| {
-            for (0..@intCast(self.table.capacity)) |i| {
-                if (entries[i].key != null and entries[i].isActive()) {
-                    list.push(entries[i].value);
-                }
-            }
+        var iter = self.map.iterator();
+        while (iter.next()) |entry| {
+            list.push(entry.value_ptr.*);
         }
 
         return list;
     }
 
-    /// Iterator support
+    /// Iterator support (wraps std.HashMap iterator)
     pub const Iterator = struct {
-        table: *const Table,
-        index: usize,
+        internal_iterator: InternalMap.Iterator,
 
         pub fn next(self: *Iterator) ?struct { key: *ObjString, value: Value } {
-            if (self.table.entries) |entries| {
-                while (self.index < self.table.capacity) {
-                    const i = self.index;
-                    self.index += 1;
-
-                    if (entries[i].key != null and entries[i].isActive()) {
-                        return .{
-                            .key = entries[i].key.?,
-                            .value = entries[i].value,
-                        };
-                    }
-                }
+            if (self.internal_iterator.next()) |entry| {
+                return .{
+                    .key = entry.key_ptr.*,
+                    .value = entry.value_ptr.*,
+                };
             }
             return null;
         }
@@ -201,19 +207,15 @@ pub const HashTable = struct {
     /// Creates an iterator for the hash table
     pub fn iterator(self: Self) Iterator {
         return Iterator{
-            .table = &self.table,
-            .index = 0,
+            .internal_iterator = self.map.iterator(),
         };
     }
 
     /// Applies a function to each key-value pair
     pub fn foreach(self: Self, func: fn (key: *ObjString, value: Value) void) void {
-        if (self.table.entries) |entries| {
-            for (0..@intCast(self.table.capacity)) |i| {
-                if (entries[i].key != null and entries[i].isActive()) {
-                    func(entries[i].key.?, entries[i].value);
-                }
-            }
+        var iter = self.map.iterator();
+        while (iter.next()) |entry| {
+            func(entry.key_ptr.*, entry.value_ptr.*);
         }
     }
 
@@ -221,13 +223,10 @@ pub const HashTable = struct {
     pub fn mapValues(self: Self, func: fn (key: *ObjString, value: Value) Value) Self {
         const newTable = HashTable.init();
 
-        if (self.table.entries) |entries| {
-            for (0..@intCast(self.table.capacity)) |i| {
-                if (entries[i].key != null and entries[i].isActive()) {
-                    const newValue = func(entries[i].key.?, entries[i].value);
-                    _ = newTable.put(entries[i].key.?, newValue);
-                }
-            }
+        var iter = self.map.iterator();
+        while (iter.next()) |entry| {
+            const newValue = func(entry.key_ptr.*, entry.value_ptr.*);
+            _ = newTable.put(entry.key_ptr.*, newValue);
         }
 
         return newTable;
@@ -237,20 +236,117 @@ pub const HashTable = struct {
     pub fn filter(self: Self, predicate: fn (key: *ObjString, value: Value) bool) Self {
         const newTable = HashTable.init();
 
-        if (self.table.entries) |entries| {
-            for (0..@intCast(self.table.capacity)) |i| {
-                if (entries[i].key != null and entries[i].isActive()) {
-                    if (predicate(entries[i].key.?, entries[i].value)) {
-                        _ = newTable.put(entries[i].key.?, entries[i].value);
-                    }
-                }
+        var iter = self.map.iterator();
+        while (iter.next()) |entry| {
+            if (predicate(entry.key_ptr.*, entry.value_ptr.*)) {
+                _ = newTable.put(entry.key_ptr.*, entry.value_ptr.*);
             }
         }
 
         return newTable;
     }
+
+    /// Gets the capacity of the internal hash map
+    pub fn capacity(self: Self) usize {
+        return self.map.capacity();
+    }
+
+    /// Gets the load factor of the internal hash map
+    pub fn loadFactor(self: Self) f32 {
+        const cap = self.map.capacity();
+        if (cap == 0) return 0.0;
+        return @as(f32, @floatFromInt(self.map.count())) / @as(f32, @floatFromInt(cap));
+    }
+
+    /// Ensures the hash table has at least the specified capacity
+    pub fn ensureCapacity(self: Self, new_capacity: usize) bool {
+        self.map.ensureTotalCapacity(@intCast(new_capacity)) catch return false;
+        return true;
+    }
+
+    /// Shrinks the hash table to fit its current size
+    pub fn shrinkToFit(self: Self) void {
+        // std.HashMap doesn't have a direct shrink method, but we can clone to a new one
+        // This is an expensive operation and should be used sparingly
+        const newTable = self.clone();
+        self.map.deinit();
+        self.map = newTable.map;
+        // Don't deinit newTable since we've stolen its map
+        _ = reallocate(@as(?*anyopaque, @ptrCast(newTable)), @sizeOf(HashTable), 0);
+    }
 };
 
-// Helper function to print a Value (simplified version)
+/// Custom allocator that wraps the MufiZ memory management
+const CustomAllocator = struct {
+    const Self = @This();
 
-// Import ObjString type
+    pub fn init() Allocator {
+        return Allocator{
+            .ptr = undefined,
+            .vtable = &vtable,
+        };
+    }
+
+    const vtable = Allocator.VTable{
+        .alloc = alloc,
+        .resize = resize,
+        .free = free,
+        .remap = remap,
+    };
+
+    fn alloc(ctx: *anyopaque, len: usize, ptr_align: std.mem.Alignment, ret_addr: usize) ?[*]u8 {
+        _ = ctx;
+        _ = ptr_align;
+        _ = ret_addr;
+
+        if (len == 0) return null;
+
+        const ptr = reallocate(null, 0, len);
+        if (ptr == null) return null;
+        return @as([*]u8, @ptrCast(ptr));
+    }
+
+    fn resize(ctx: *anyopaque, buf: []u8, buf_align: std.mem.Alignment, new_len: usize, ret_addr: usize) bool {
+        _ = ctx;
+        _ = buf_align;
+        _ = ret_addr;
+
+        if (new_len == 0) return false;
+        if (new_len <= buf.len) return true;
+
+        // For MufiZ's reallocate, we need to check if it can resize in place
+        // If not, std.HashMap will handle the copy via alloc + free
+        const new_ptr = reallocate(buf.ptr, buf.len, new_len);
+        return @as(?*anyopaque, @ptrCast(new_ptr)) == @as(?*anyopaque, @ptrCast(buf.ptr));
+    }
+
+    fn free(ctx: *anyopaque, buf: []u8, buf_align: std.mem.Alignment, ret_addr: usize) void {
+        _ = ctx;
+        _ = buf_align;
+        _ = ret_addr;
+
+        if (buf.len == 0) return;
+        _ = reallocate(buf.ptr, buf.len, 0);
+    }
+
+    fn remap(ctx: *anyopaque, buf: []u8, buf_align: std.mem.Alignment, new_len: usize, ret_addr: usize) ?[*]u8 {
+        _ = ctx;
+        _ = buf_align;
+        _ = ret_addr;
+
+        if (new_len == 0) return null;
+        if (new_len <= buf.len) return buf.ptr;
+
+        // Allocate new memory and copy
+        const new_ptr = reallocate(null, 0, new_len);
+        if (new_ptr == null) return null;
+
+        const copy_len = @min(buf.len, new_len);
+        @memcpy(@as([*]u8, @ptrCast(new_ptr))[0..copy_len], buf[0..copy_len]);
+
+        // Free old memory
+        _ = reallocate(buf.ptr, buf.len, 0);
+
+        return @as([*]u8, @ptrCast(new_ptr));
+    }
+};

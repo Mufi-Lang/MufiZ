@@ -687,26 +687,23 @@ fn objToString(value: Value) []const u8 {
             const ht = @as(*obj_h.ObjHashTable, @ptrCast(@alignCast(value.as.obj)));
             var result = std.fmt.allocPrint(std.heap.page_allocator, "{{", .{}) catch unreachable;
 
-            if (ht.*.table.entries) |entries| {
-                var count: i32 = 0;
+            var count: i32 = 0;
+            var iter = ht.*.map.iterator();
 
-                for (0..@intCast(ht.*.table.capacity)) |i| {
-                    if (entries[i].key != null) {
-                        if (count > 0) {
-                            const temp = result;
-                            result = std.fmt.allocPrint(std.heap.page_allocator, "{s}, ", .{temp}) catch unreachable;
-                        }
-
-                        const key = entries[i].key.?.chars[0..@intCast(entries[i].key.?.length)];
-                        const keyStr = std.fmt.allocPrint(std.heap.page_allocator, "\"{s}\": ", .{key}) catch unreachable;
-
-                        const valStr = valueToString(entries[i].value);
-
-                        const temp = result;
-                        result = std.fmt.allocPrint(std.heap.page_allocator, "{s}{s}{s}", .{ temp, keyStr, valStr }) catch unreachable;
-                        count += 1;
-                    }
+            while (iter.next()) |entry| {
+                if (count > 0) {
+                    const temp = result;
+                    result = std.fmt.allocPrint(std.heap.page_allocator, "{s}, ", .{temp}) catch unreachable;
                 }
+
+                const key = entry.key_ptr.*.chars[0..@intCast(entry.key_ptr.*.length)];
+                const keyStr = std.fmt.allocPrint(std.heap.page_allocator, "\"{s}\": ", .{key}) catch unreachable;
+
+                const valStr = valueToString(entry.value_ptr.*);
+
+                const temp = result;
+                result = std.fmt.allocPrint(std.heap.page_allocator, "{s}{s}{s}", .{ temp, keyStr, valStr }) catch unreachable;
+                count += 1;
             }
 
             const temp = result;

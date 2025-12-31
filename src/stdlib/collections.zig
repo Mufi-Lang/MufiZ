@@ -158,7 +158,7 @@ pub fn len(argc: i32, args: [*]Value) Value {
 
     if (Value.is_obj_type(args[0], .OBJ_HASH_TABLE)) {
         const table = args[0].as_hash_table();
-        return Value.init_int(@intCast(table.table.count));
+        return Value.init_int(@intCast(table.len()));
     } else if (Value.is_obj_type(args[0], .OBJ_FVECTOR)) {
         const vector = args[0].as_vector();
         return Value.init_int(@intCast(vector.count));
@@ -571,7 +571,7 @@ pub fn is_empty(argc: i32, args: [*]Value) Value {
 
     if (Value.is_obj_type(args[0], .OBJ_HASH_TABLE)) {
         const table = args[0].as_hash_table();
-        return Value.init_bool(table.table.count == 0);
+        return Value.init_bool(table.is_empty());
     } else if (Value.is_obj_type(args[0], .OBJ_FVECTOR)) {
         const vector = args[0].as_vector();
         return Value.init_bool(vector.count == 0);

@@ -757,7 +757,7 @@ pub fn blackenObject(object: *Obj) void {
         },
         .OBJ_HASH_TABLE => {
             const hashTable: *ObjHashTable = @ptrCast(@alignCast(object));
-            markTable(&hashTable.*.table);
+            markHashMap(hashTable);
         },
         .OBJ_PAIR => {
             const pair: *obj_h.ObjPair = @ptrCast(@alignCast(object));
@@ -769,6 +769,21 @@ pub fn blackenObject(object: *Obj) void {
         },
 
         else => {},
+    }
+}
+
+/// Mark all entries in a std.HashMap-based hash table
+pub fn markHashMap(hashTable: *ObjHashTable) void {
+    // Get iterator from the std.HashMap
+    var iterator = hashTable.map.iterator();
+
+    // Mark each key and value
+    while (iterator.next()) |entry| {
+        // Mark the key (ObjString)
+        markObject(@ptrCast(entry.key_ptr.*));
+
+        // Mark the value if it contains objects
+        markValue(entry.value_ptr.*);
     }
 }
 
