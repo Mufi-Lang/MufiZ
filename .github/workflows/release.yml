@@ -92,6 +92,44 @@ jobs:
       - name: Run Package Man
         run: python3 pkgman.py
 
+      - name: Delete previous experimental releases
+        run: |
+          echo "🗑️ Cleaning up previous experimental releases..."
+          # Get all releases and filter for experimental ones
+          RELEASES=$(curl -s \
+            -H "Authorization: token ${{ secrets.SECRET }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${{ github.repository }}/releases" \
+            | jq -r '.[] | select(.tag_name | startswith("next-experimental-")) | "\(.id) \(.tag_name)"')
+
+          if [ -n "$RELEASES" ]; then
+            echo "Found experimental releases to delete:"
+            echo "$RELEASES"
+
+            # Delete each experimental release and its tag
+            echo "$RELEASES" | while read -r release_id tag_name; do
+              if [ -n "$release_id" ] && [ -n "$tag_name" ]; then
+                echo "Deleting release: $tag_name (ID: $release_id)"
+
+                # Delete the release
+                curl -s -X DELETE \
+                  -H "Authorization: token ${{ secrets.SECRET }}" \
+                  -H "Accept: application/vnd.github.v3+json" \
+                  "https://api.github.com/repos/${{ github.repository }}/releases/$release_id"
+
+                # Delete the tag
+                curl -s -X DELETE \
+                  -H "Authorization: token ${{ secrets.SECRET }}" \
+                  -H "Accept: application/vnd.github.v3+json" \
+                  "https://api.github.com/repos/${{ github.repository }}/git/refs/tags/$tag_name"
+
+                echo "✅ Deleted $tag_name"
+              fi
+            done
+          else
+            echo "No previous experimental releases found to delete"
+          fi
+
       - name: Create release (only if tests passed)
         id: create_release
         uses: softprops/action-gh-release@v1
@@ -107,6 +145,8 @@ jobs:
             📦 Generated from commit: ${{ github.sha }}
 
             **⚠️ This is a pre-release build for testing purposes**
+
+            🗑️ Previous experimental releases have been automatically cleaned up
           generate_release_notes: true
           draft: false
           prerelease: true
