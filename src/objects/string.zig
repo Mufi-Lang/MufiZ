@@ -4,6 +4,7 @@ const debug_opts = @import("debug");
 
 const reallocate = @import("../memory.zig").reallocate;
 const mem_utils = @import("../mem_utils.zig");
+const string_hash = @import("../string_hash.zig");
 const allocateObject = @import("../object.zig").allocateObject;
 const LinkedList = @import("../object.zig").LinkedList;
 const Table = @import("../table.zig").Table;
@@ -350,14 +351,14 @@ pub const String = struct {
         std.debug.print("\"", .{});
     }
 
-    /// Hashes a string of characters
+    /// Hashes a string of characters using optimized hash functions
+    /// Uses the string_hash module for best performance and distribution
     pub fn hashChars(chars: []const u8, length: usize) u64 {
-        var hash: u64 = 2166136261;
-        for (0..length) |i| {
-            hash ^= @as(u64, chars[i]);
-            hash *%= 16777619;
-        }
-        return hash;
+        if (length == 0) return 0;
+
+        // Use the optimized string hash utilities
+        // Auto-selects the best hash algorithm based on string length
+        return string_hash.StringHash.hashFast(chars[0..length]);
     }
 
     /// Iterator for characters

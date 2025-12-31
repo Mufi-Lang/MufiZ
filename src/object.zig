@@ -9,6 +9,9 @@ const memcpy = @import("mem_utils.zig").memcpyFast;
 const memory_h = @import("memory.zig");
 const reallocate = memory_h.reallocate;
 const vm_allocator = @import("vm_allocator.zig");
+
+// Import string hash utilities for consistent hashing
+const string_hash = @import("string_hash.zig");
 pub const Class = @import("objects/class.zig").Class;
 pub const ObjClass = Class;
 pub const FloatVector = @import("objects/fvec.zig").FloatVector;
@@ -167,17 +170,11 @@ pub fn newNative(function: NativeFn) *ObjNative {
 // String allocation is now handled internally by String bounded methods
 
 pub fn hashString(key: [*]const u8, length: usize) u64 {
-    const FNV_OFFSET_BASIS: u64 = 0xcbf29ce484222325;
-    const FNV_PRIME: u64 = 0x100000001b3;
+    if (length == 0) return 0;
 
-    var hash = FNV_OFFSET_BASIS;
-    if (length > 0) {
-        for (0..@intCast(@as(u32, @intCast(length)))) |i| {
-            hash ^= @intCast(key[i]);
-            hash = hash *% FNV_PRIME;
-        }
-    }
-    return hash;
+    // Use same hash function as String.hashChars for consistency
+    const slice = key[0..length];
+    return string_hash.StringHash.hashFast(slice);
 }
 
 pub fn takeString(chars: [*]u8, length: usize) *ObjString {

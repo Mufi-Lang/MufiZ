@@ -11,20 +11,9 @@ const obj_h = @import("obj.zig");
 const Obj = obj_h.Obj;
 const printValue = @import("../value.zig").printValue;
 
-/// String hash context for ObjString keys
-const StringHashContext = struct {
-    pub fn hash(self: @This(), key: *ObjString) u64 {
-        _ = self;
-        return key.hash;
-    }
-
-    pub fn eql(self: @This(), a: *ObjString, b: *ObjString) bool {
-        _ = self;
-        if (a.length != b.length) return false;
-        if (a.hash != b.hash) return false;
-        return std.mem.eql(u8, a.chars[0..a.length], b.chars[0..b.length]);
-    }
-};
+// Use improved string hash context from string_hash module
+const string_hash = @import("../string_hash.zig");
+const StringHashContext = string_hash.ObjStringHashContext;
 
 /// HashTable struct using std.HashMap internally
 pub const HashTable = struct {
