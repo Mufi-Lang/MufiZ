@@ -1,13 +1,15 @@
 const std = @import("std");
 const allocator_mod = @import("allocator.zig");
 
-// Use a simple GPA for now to avoid comptime configuration issues
+// Use a simple GPA for dynamic allocations and arena for VM-lifetime objects
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+var arena_allocator: ?std.heap.ArenaAllocator = null;
 var is_initialized = false;
 
 /// Initialize the global allocator with configuration
 pub fn initAllocator(config: allocator_mod.AllocatorConfig) void {
     _ = config; // Ignore config for now
+    arena_allocator = std.heap.ArenaAllocator.init(gpa.allocator());
     is_initialized = true;
 }
 
@@ -19,17 +21,30 @@ pub fn getAllocator() std.mem.Allocator {
 /// Check for memory leaks and cleanup
 pub fn checkForLeaks() bool {
     if (!is_initialized) return false;
+    // Clean up arena first
+    if (arena_allocator) |*arena| {
+        arena.deinit();
+    }
     return gpa.deinit() == .leak;
 }
 
 /// Deinitialize the memory system
 pub fn deinit() void {
-    // Nothing to do since we handle cleanup in checkForLeaks
+    // Arena cleanup is handled in checkForLeaks
 }
 
 /// Get memory statistics - simplified version
 pub fn getMemStats() allocator_mod.MemoryStats {
     return .{}; // Return empty stats for now
+}
+
+/// Get the VM arena allocator for long-lived objects (VM lifetime)
+pub fn getVMArenaAllocator() std.mem.Allocator {
+    if (arena_allocator) |*arena| {
+        return arena.allocator();
+    }
+    // Fallback to GPA if arena not initialized
+    return gpa.allocator();
 }
 
 /// Print memory statistics for debugging
@@ -218,6 +233,73 @@ pub fn strlen(str: [*]const u8) usize {
     return len;
 }
 
+/// VM-specific allocation helpers using arena for appropriate objects
+/// Allocate memory for VM-lifetime objects (native functions, constants, etc.)
+pub fn allocVMObject(comptime T: type, count: usize) ![]T {
+    const vm_allocator = getVMArenaAllocator();
+    return try vm_allocator.alloc(T, count);
+}
+
+/// Allocate a single VM-lifetime object
+pub fn allocVMSingle(comptime T: type) !*T {
+    const vm_allocator = getVMArenaAllocator();
+    const result = try vm_allocator.alloc(T, 1);
+    return &result[0];
+}
+
+/// Duplicate data using VM arena allocator
+pub fn dupeVMString(data: []const u8) ![]u8 {
+    const vm_allocator = getVMArenaAllocator();
+    return try vm_allocator.dupe(u8, data);
+}
+
+/// Check if we should use arena for a given allocation type
+pub fn shouldUseArena(allocation_type: enum { native_function, global_constant, string_literal, dynamic_object, temporary }) bool {
+    return switch (allocation_type) {
+        .native_function, .global_constant, .string_literal => true,
+        .dynamic_object, .temporary => false,
+    };
+}
+
+/// Arena Allocator Usage Statistics
+pub const ArenaStats = struct {
+    vm_arena_bytes: usize = 0,
+    vm_arena_allocations: u32 = 0,
+
+    pub fn print(self: @This()) void {
+        std.debug.print("Arena Allocator Statistics:\n", .{});
+        std.debug.print("  VM Arena bytes: {}\n", .{self.vm_arena_bytes});
+        std.debug.print("  VM Arena allocations: {}\n", .{self.vm_arena_allocations});
+    }
+};
+
+/// Get arena allocator statistics
+pub fn getArenaStats() ArenaStats {
+    // For now, return empty stats - could be enhanced to track actual usage
+    return ArenaStats{};
+}
+
+/// Example usage of arena allocators for memory optimization:
+///
+/// 1. For VM-lifetime objects (globals, natives, constants):
+///    ```zig
+///    const global_string = try dupeVMString("global_constant");
+///    ```
+///
+/// 2. For temporary compilation data:
+///    ```zig
+///    const compiler_arena = @import("compiler_arena.zig");
+///    compiler_arena.initCompilerArena();
+///    defer compiler_arena.deinitCompilerArena();
+///
+///    const temp_data = try compiler_arena.allocCompilerTemp(u8, 1024);
+///    ```
+///
+/// 3. Benefits:
+///    - Faster allocation (no bookkeeping overhead)
+///    - Automatic bulk deallocation
+///    - Reduced memory fragmentation
+///    - Better cache locality for related allocations
 /// Legacy compatibility - use allocUtils from allocator.zig instead
 pub const allocUtils = allocator_mod.allocUtils;
 

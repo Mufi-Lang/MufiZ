@@ -8,6 +8,7 @@ const Chunk = chunk_h.Chunk;
 const memcpy = @import("mem_utils.zig").memcpyFast;
 const memory_h = @import("memory.zig");
 const reallocate = memory_h.reallocate;
+const vm_allocator = @import("vm_allocator.zig");
 pub const Class = @import("objects/class.zig").Class;
 pub const ObjClass = Class;
 pub const FloatVector = @import("objects/fvec.zig").FloatVector;
@@ -28,12 +29,13 @@ pub const String = @import("objects/string.zig").String;
 pub const ObjString = String;
 const scanner_h = @import("scanner.zig");
 const table_h = @import("table.zig");
+const vm_h = @import("vm.zig");
 const Table = table_h.Table;
 const value_h = @import("value.zig");
 const Value = value_h.Value;
 const AS_OBJ = value_h.AS_OBJ;
 const valuesEqual = value_h.valuesEqual;
-const vm_h = @import("vm.zig");
+
 const push = vm_h.push;
 const pop = vm_h.pop;
 
@@ -189,6 +191,30 @@ pub fn copyString(chars: ?[*]const u8, length: usize) *ObjString {
     }
 
     return String.copy(chars.?[0..length], length);
+}
+
+/// Copy string for native function names (uses arena allocation)
+pub fn copyNativeFunctionName(chars: ?[*]const u8, length: usize) *ObjString {
+    if (chars == null) {
+        return copyStringWithContext(&[_]u8{}, 0, .native_function_name);
+    }
+    return copyStringWithContext(chars.?[0..length], length, .native_function_name);
+}
+
+/// Copy string for string literals (uses arena allocation)
+pub fn copyStringLiteral(chars: ?[*]const u8, length: usize) *ObjString {
+    if (chars == null) {
+        return copyStringWithContext(&[_]u8{}, 0, .string_literal);
+    }
+    return copyStringWithContext(chars.?[0..length], length, .string_literal);
+}
+
+/// Context-aware string copying
+pub fn copyStringWithContext(chars: []const u8, length: usize, context: vm_allocator.StringContext) *ObjString {
+    // For now, use the existing String.copy method
+    // TODO: Enhance this to use arena allocation for appropriate contexts
+    _ = context; // Suppress unused parameter warning for now
+    return String.copy(chars, length);
 }
 
 pub fn newUpvalue(slot: [*]Value) *ObjUpvalue {

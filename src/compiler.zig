@@ -365,7 +365,7 @@ pub fn initCompiler(compiler: *Compiler, type_: FunctionType) void {
 
     // Set function name if not a script
     if (type_ != .TYPE_SCRIPT) {
-        current.?.function.*.name = object_h.copyString(parser.previous.start, @intCast(parser.previous.length));
+        current.?.function.*.name = object_h.copyStringLiteral(parser.previous.start, @intCast(parser.previous.length));
     }
 
     // Create first local slot - used for 'self' in methods
@@ -616,7 +616,7 @@ pub fn identifierConstant(name: *Token) u8 {
     return makeConstant(Value{
         .type = .VAL_OBJ,
         .as = .{
-            .obj = @ptrCast(object_h.copyString(name.*.start, @intCast(name.*.length))),
+            .obj = @ptrCast(object_h.copyStringLiteral(name.*.start, @intCast(name.*.length))),
         },
     });
 }
@@ -1103,7 +1103,7 @@ pub fn string(canAssign: bool) void {
         }
     }
 
-    emitConstant(Value.init_obj(@ptrCast(object_h.copyString(start, @intCast(length)))));
+    emitConstant(Value.init_obj(@ptrCast(object_h.copyStringLiteral(start, @intCast(length)))));
 }
 
 pub fn fstring(canAssign: bool) void {
@@ -1187,10 +1187,10 @@ pub fn fstring(canAssign: bool) void {
     }
 
     // Emit format function call
-    emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_GLOBAL)), makeConstant(Value.init_obj(@ptrCast(object_h.copyString("format", 6)))));
+    emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_GLOBAL)), makeConstant(Value.init_obj(@ptrCast(object_h.copyStringLiteral("format", 6)))));
 
     // Emit template string as first argument
-    const template_value = Value.init_obj(@ptrCast(object_h.copyString(template_buffer[0..template_pos].ptr, template_pos)));
+    const template_value = Value.init_obj(@ptrCast(object_h.copyStringLiteral(template_buffer[0..template_pos].ptr, template_pos)));
     emitConstant(template_value);
 
     // Parse and emit each expression
@@ -1339,13 +1339,13 @@ pub fn objectLiteral(canAssign: bool) void {
                 // Parse key - either a string literal or an identifier
                 if (match(.TOKEN_STRING)) {
                     // String literal is already parsed and on stack as a string
-                    emitConstant(Value.init_obj(@ptrCast(object_h.copyString(parser.previous.start + 1, // Skip opening quote
+                    emitConstant(Value.init_obj(@ptrCast(object_h.copyStringLiteral(parser.previous.start + 1, // Skip opening quote
                         @intCast(parser.previous.length - 2) // Skip both quotes
                     ))));
                 } else if (match(.TOKEN_IDENTIFIER)) {
                     // Convert identifier to string literal
                     const name = parser.previous.start[0..@intCast(parser.previous.length)];
-                    emitConstant(Value.init_obj(@ptrCast(object_h.copyString(name.ptr, name.len))));
+                    emitConstant(Value.init_obj(@ptrCast(object_h.copyStringLiteral(name.ptr, name.len))));
                 } else {
                     errorAtCurrent(@ptrCast(@constCast("Dictionary key must be a string or identifier")));
                     return;

@@ -167,7 +167,7 @@ pub fn runtimeError(comptime format: []const u8, args: anytype) void {
 
 pub fn defineNative(name: [*]const u8, function: NativeFn) void {
     const nameSlice = std.mem.span(@as([*:0]const u8, @ptrCast(name)));
-    const nameString = copyString(@ptrCast(nameSlice.ptr), @intCast(nameSlice.len));
+    const nameString = object_h.copyNativeFunctionName(@ptrCast(nameSlice.ptr), @intCast(nameSlice.len));
     push(Value{
         .type = .VAL_OBJ,
         .as = .{ .obj = @ptrCast(@alignCast(nameString)) },

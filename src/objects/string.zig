@@ -3,6 +3,7 @@ const std = @import("std");
 const debug_opts = @import("debug");
 
 const reallocate = @import("../memory.zig").reallocate;
+const mem_utils = @import("../mem_utils.zig");
 const allocateObject = @import("../object.zig").allocateObject;
 const LinkedList = @import("../object.zig").LinkedList;
 const Table = @import("../table.zig").Table;
@@ -67,6 +68,40 @@ pub const String = struct {
             @panic("Failed to allocate memory for string");
         }
         const heapChars = @as([*]u8, @ptrCast(@alignCast(heapCharsPtr)));
+        @memcpy(heapChars[0..length], chars[0..length]);
+        heapChars[length] = 0; // Null terminate
+
+        return allocateString(.{
+            .chars = heapChars[0..length],
+            .length = length,
+            .hash = hash,
+        });
+    }
+
+    /// Creates a new string using arena allocation for literals/constants
+    pub fn copyLiteral(chars: []const u8, length: usize) Self {
+        if (length == 0) {
+            // Return the empty string singleton
+            const vm_allocator = mem_utils.getVMArenaAllocator();
+            const emptyChars = vm_allocator.alloc(u8, 1) catch @panic("Failed to allocate empty string");
+            emptyChars[0] = 0; // Null terminate
+            return allocateString(.{
+                .chars = emptyChars[0..0], // Empty slice
+                .length = 0,
+                .hash = hashChars(&[_]u8{}, 0),
+            });
+        }
+
+        const hash = hashChars(chars, length);
+
+        // Check if string already exists in intern table
+        if (findString(chars, length, hash)) |interned| {
+            return interned;
+        }
+
+        // Use arena allocation for literals/constants
+        const vm_allocator = mem_utils.getVMArenaAllocator();
+        const heapChars = vm_allocator.alloc(u8, length + 1) catch @panic("Failed to allocate literal string");
         @memcpy(heapChars[0..length], chars[0..length]);
         heapChars[length] = 0; // Null terminate
 
