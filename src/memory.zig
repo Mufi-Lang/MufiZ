@@ -664,39 +664,63 @@ pub fn freeObject(object: *Obj) void {
 
     switch (object.*.type) {
         .OBJ_BOUND_METHOD => {
-            _ = reallocate(@ptrCast(object), @sizeOf(obj_h.ObjBoundMethod), 0);
+            const allocator = mem_utils.getAllocator();
+            const bound_method_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(obj_h.ObjBoundMethod)];
+            mem_utils.free(allocator, bound_method_slice);
         },
         .OBJ_CLASS => {
             const klass: *obj_h.ObjClass = @ptrCast(object);
             freeTable(&klass.*.methods);
-            _ = reallocate(@ptrCast(object), @sizeOf(obj_h.ObjClass), 0);
+            const allocator = mem_utils.getAllocator();
+            const class_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(obj_h.ObjClass)];
+            mem_utils.free(allocator, class_slice);
         },
         .OBJ_CLOSURE => {
             const closure: *obj_h.ObjClosure = @ptrCast(@alignCast(object));
-            _ = reallocate(@ptrCast(closure.*.upvalues), @intCast(@sizeOf(?*obj_h.ObjUpvalue) *% closure.*.upvalueCount), 0);
-            _ = reallocate(@ptrCast(object), @sizeOf(obj_h.ObjClosure), 0);
+            const allocator = mem_utils.getAllocator();
+            if (closure.*.upvalues) |upvalues| {
+                const upvalues_slice = @as([*]u8, @ptrCast(upvalues))[0..@intCast(@sizeOf(?*obj_h.ObjUpvalue) *% closure.*.upvalueCount)];
+                mem_utils.free(allocator, upvalues_slice);
+            }
+            const closure_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(obj_h.ObjClosure)];
+            mem_utils.free(allocator, closure_slice);
         },
         .OBJ_FUNCTION => {
             const function: *obj_h.ObjFunction = @ptrCast(@alignCast(object));
 
             chunk_h.freeChunk(&function.*.chunk);
-            _ = reallocate(@ptrCast(object), @sizeOf(obj_h.ObjFunction), 0);
+            const allocator = mem_utils.getAllocator();
+            const function_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(obj_h.ObjFunction)];
+            mem_utils.free(allocator, function_slice);
         },
         .OBJ_INSTANCE => {
             const instance: *obj_h.ObjInstance = @ptrCast(@alignCast(object));
             freeTable(&instance.*.fields);
-            _ = reallocate(@ptrCast(object), @sizeOf(obj_h.ObjInstance), 0);
+            const allocator = mem_utils.getAllocator();
+            const instance_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(obj_h.ObjInstance)];
+            mem_utils.free(allocator, instance_slice);
         },
         .OBJ_NATIVE => {
-            _ = reallocate(@ptrCast(object), @sizeOf(obj_h.ObjNative), 0);
+            const allocator = mem_utils.getAllocator();
+            const native_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(obj_h.ObjNative)];
+            mem_utils.free(allocator, native_slice);
         },
         .OBJ_STRING => {
             const string: *obj_h.ObjString = @ptrCast(@alignCast(object));
-            _ = reallocate(@ptrCast(string.chars), @intCast(@sizeOf(u8) *% string.length + 1), 0);
-            _ = reallocate(@ptrCast(object), @sizeOf(obj_h.ObjString), 0);
+            const allocator = mem_utils.getAllocator();
+            if (string.chars.len > 0) {
+                // String chars were allocated with length + 1 for null terminator
+                // but stored as slice of length. We need to free the original allocation size.
+                const chars_with_null = string.chars.ptr[0 .. string.length + 1];
+                mem_utils.free(allocator, chars_with_null);
+            }
+            const string_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(obj_h.ObjString)];
+            mem_utils.free(allocator, string_slice);
         },
         .OBJ_UPVALUE => {
-            _ = reallocate(@ptrCast(object), @sizeOf(obj_h.ObjUpvalue), 0);
+            const allocator = mem_utils.getAllocator();
+            const upvalue_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(obj_h.ObjUpvalue)];
+            mem_utils.free(allocator, upvalue_slice);
         },
 
         .OBJ_LINKED_LIST => {
@@ -713,18 +737,24 @@ pub fn freeObject(object: *Obj) void {
             fvec.FloatVector.deinit(fvector);
         },
         .OBJ_RANGE => {
-            _ = reallocate(@ptrCast(object), @sizeOf(obj_h.ObjRange), 0);
+            const allocator = mem_utils.getAllocator();
+            const range_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(obj_h.ObjRange)];
+            mem_utils.free(allocator, range_slice);
         },
         .OBJ_PAIR => {
             const pair: *obj_h.ObjPair = @ptrCast(@alignCast(object));
             pair.key.release();
             pair.value.release();
-            _ = reallocate(@ptrCast(object), @sizeOf(obj_h.ObjPair), 0);
+            const allocator = mem_utils.getAllocator();
+            const pair_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(obj_h.ObjPair)];
+            mem_utils.free(allocator, pair_slice);
         },
         .OBJ_MATRIX => {
             const matrix: *obj_h.Matrix = @ptrCast(@alignCast(object));
             matrix.deinit();
-            _ = reallocate(@ptrCast(object), @sizeOf(obj_h.Matrix), 0);
+            const allocator = mem_utils.getAllocator();
+            const matrix_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(obj_h.Matrix)];
+            mem_utils.free(allocator, matrix_slice);
         },
     }
 }

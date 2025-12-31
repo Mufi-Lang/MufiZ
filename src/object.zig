@@ -6,8 +6,7 @@ const debug_opts = @import("debug");
 const chunk_h = @import("chunk.zig");
 const Chunk = chunk_h.Chunk;
 const memcpy = @import("mem_utils.zig").memcpyFast;
-const memory_h = @import("memory.zig");
-const reallocate = memory_h.reallocate;
+const mem_utils = @import("mem_utils.zig");
 const vm_allocator = @import("vm_allocator.zig");
 
 // Import string hash utilities for consistent hashing
@@ -79,15 +78,15 @@ pub const ObjBoundMethod = struct {
 };
 
 pub fn allocateObject(size: usize, type_: ObjType) *Obj {
-    const mem = reallocate(null, 0, size);
-    if (mem == null) {
+    const allocator = mem_utils.getAllocator();
+    const mem_slice = mem_utils.alloc(allocator, u8, size) catch {
         @panic("Failed to allocate object memory");
-    }
+    };
 
     // Zero out the allocated memory to prevent uninitialized data issues
-    @memset(@as([*]u8, @ptrCast(mem))[0..size], 0);
+    @memset(mem_slice, 0);
 
-    const object: *Obj = @ptrCast(@alignCast(mem));
+    const object: *Obj = @ptrCast(@alignCast(mem_slice.ptr));
     object.*.type = type_;
     object.*.isMarked = false;
     object.*.next = vm_h.vm.objects;
@@ -100,6 +99,7 @@ pub fn allocateObject(size: usize, type_: ObjType) *Obj {
     object.*.cycleColor = .White;
 
     // Add to young generation list for generational GC
+    const memory_h = @import("memory.zig");
     memory_h.gcData.youngGen.add(object);
 
     vm_h.vm.objects = object;
@@ -126,12 +126,12 @@ pub fn newClosure(function: *ObjFunction) *ObjClosure {
 
     // Then allocate upvalues if needed
     if (upvalueCount > 0) {
-        const upvalue_mem = reallocate(null, 0, @intCast(@sizeOf(?*ObjUpvalue) * @as(usize, @intCast(upvalueCount))));
-        if (upvalue_mem == null) {
+        const allocator = mem_utils.getAllocator();
+        const upvalue_slice = mem_utils.alloc(allocator, ?*ObjUpvalue, @intCast(upvalueCount)) catch {
             @panic("Failed to allocate upvalues memory");
-        }
+        };
 
-        closure.*.upvalues = @ptrCast(@alignCast(upvalue_mem));
+        closure.*.upvalues = upvalue_slice.ptr;
 
         // Initialize upvalues to null
         var i: i32 = 0;

@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const reallocate = @import("../memory.zig").reallocate;
+const mem_utils = @import("../mem_utils.zig");
 const allocateObject = @import("../object.zig").allocateObject;
 const ObjString = @import("../object.zig").ObjString;
 const ObjClass = @import("../object.zig").ObjClass;
@@ -35,7 +35,9 @@ pub const Instance = struct {
     /// Frees the instance
     pub fn deinit(self: Self) void {
         table_h.freeTable(&self.fields);
-        _ = reallocate(@as(?*anyopaque, @ptrCast(self)), @sizeOf(Instance), 0);
+        const allocator = mem_utils.getAllocator();
+        const self_slice = @as([*]u8, @ptrCast(self))[0..@sizeOf(Instance)];
+        mem_utils.free(allocator, self_slice);
     }
 
     /// Sets a field value

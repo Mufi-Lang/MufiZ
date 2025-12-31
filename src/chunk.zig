@@ -1,4 +1,4 @@
-const memory_h = @import("memory.zig");
+const mem_utils = @import("mem_utils.zig");
 const value_h = @import("value.zig");
 const vm_h = @import("vm.zig");
 
@@ -84,11 +84,14 @@ pub fn initChunk(chunk: *Chunk) void {
 }
 
 pub fn freeChunk(chunk: *Chunk) void {
+    const allocator = mem_utils.getAllocator();
     if (chunk.*.code) |code| {
-        _ = memory_h.reallocate(@ptrCast(code), @intCast(@sizeOf(u8) *% chunk.*.capacity), 0);
+        const code_slice = code[0..@intCast(chunk.*.capacity)];
+        mem_utils.free(allocator, code_slice);
     }
     if (chunk.*.lines) |lines| {
-        _ = memory_h.reallocate(@ptrCast(lines), @intCast(@sizeOf(i32) *% chunk.*.capacity), 0);
+        const lines_slice = lines[0..@intCast(chunk.*.capacity)];
+        mem_utils.free(allocator, lines_slice);
     }
     value_h.freeValueArray(&chunk.*.constants);
     initChunk(chunk);
@@ -98,8 +101,36 @@ pub fn writeChunk(chunk: *Chunk, byte: u8, line: i32) void {
     if (chunk.*.capacity < (chunk.*.count + 1)) {
         const oldCapacity: i32 = chunk.*.capacity;
         chunk.*.capacity = if (oldCapacity < 8) 8 else oldCapacity * 2;
-        chunk.*.code = @ptrCast(@alignCast(memory_h.reallocate(@ptrCast(chunk.*.code), @intCast(@sizeOf(u8) *% oldCapacity), @intCast(@sizeOf(u8) *% chunk.*.capacity))));
-        chunk.*.lines = @ptrCast(@alignCast(memory_h.reallocate(@ptrCast(chunk.*.lines), @intCast(@sizeOf(i32) *% oldCapacity), @intCast(@sizeOf(i32) *% chunk.*.capacity))));
+        const allocator = mem_utils.getAllocator();
+
+        // Reallocate code array
+        if (chunk.*.code) |old_code| {
+            const old_code_slice = old_code[0..@intCast(oldCapacity)];
+            const new_code_slice = mem_utils.realloc(allocator, old_code_slice, @intCast(chunk.*.capacity)) catch {
+                // Handle allocation failure - could implement fallback or error handling
+                return;
+            };
+            chunk.*.code = new_code_slice.ptr;
+        } else {
+            const new_code_slice = mem_utils.alloc(allocator, u8, @intCast(chunk.*.capacity)) catch {
+                return;
+            };
+            chunk.*.code = new_code_slice.ptr;
+        }
+
+        // Reallocate lines array
+        if (chunk.*.lines) |old_lines| {
+            const old_lines_slice = old_lines[0..@intCast(oldCapacity)];
+            const new_lines_slice = mem_utils.realloc(allocator, old_lines_slice, @intCast(chunk.*.capacity)) catch {
+                return;
+            };
+            chunk.*.lines = new_lines_slice.ptr;
+        } else {
+            const new_lines_slice = mem_utils.alloc(allocator, i32, @intCast(chunk.*.capacity)) catch {
+                return;
+            };
+            chunk.*.lines = new_lines_slice.ptr;
+        }
     }
     if (chunk.*.code) |code| {
         code[@intCast(chunk.*.count)] = byte;

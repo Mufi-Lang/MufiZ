@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const reallocate = @import("../memory.zig").reallocate;
+const mem_utils = @import("../mem_utils.zig");
 const allocateObject = @import("../object.zig").allocateObject;
 const ObjString = @import("../object.zig").ObjString;
 const LinkedList = @import("../object.zig").LinkedList;
@@ -34,7 +34,9 @@ pub const HashTable = struct {
     /// Frees the hash table
     pub fn deinit(self: Self) void {
         table_h.freeTable(&self.table);
-        _ = reallocate(@as(?*anyopaque, @ptrCast(self)), @sizeOf(HashTable), 0);
+        const allocator = mem_utils.getAllocator();
+        const self_slice = @as([*]u8, @ptrCast(self))[0..@sizeOf(HashTable)];
+        mem_utils.free(allocator, self_slice);
     }
 
     /// Clears all entries from the hash table

@@ -124,32 +124,3 @@ pub fn printCompilerArenaStats() void {
     std.debug.print("  Peak usage: {} bytes\n", .{stats.peak_usage});
     std.debug.print("  Allocations: {}\n", .{stats.allocations_count});
 }
-
-/// Usage examples and patterns:
-///
-/// During compilation:
-/// ```zig
-/// initCompilerArena();
-/// defer deinitCompilerArena();
-///
-/// // Allocate temporary compilation data
-/// const temp_buffer = try allocCompilerTemp(u8, 1024);
-/// const temp_string = try dupeCompilerString("temporary string");
-///
-/// // All memory freed automatically when arena is deinitialized
-/// ```
-///
-/// For multiple compilation units:
-/// ```zig
-/// initCompilerArena();
-/// defer deinitCompilerArena();
-///
-/// for (files) |file| {
-///     // Use arena for this file
-///     const temp_data = try allocCompilerTemp(u8, file.size);
-///     compileFile(file, temp_data);
-///
-///     // Reset arena between files to prevent memory buildup
-///     resetCompilerArena();
-/// }
-/// ```

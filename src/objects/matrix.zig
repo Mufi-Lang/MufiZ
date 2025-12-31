@@ -1,7 +1,7 @@
 const std = @import("std");
 const debug_print = std.debug.print;
 const Random = std.Random;
-const reallocate = @import("../memory.zig").reallocate;
+const mem_utils = @import("../mem_utils.zig");
 const allocateObject = @import("../object.zig").allocateObject;
 const obj_h = @import("obj.zig");
 const Obj = obj_h.Obj;
@@ -31,14 +31,12 @@ pub const Matrix = struct {
         matrix.cols = cols;
 
         const total_size = rows * cols;
-        const byte_size = @sizeOf(f64) * total_size;
-        const raw_ptr = reallocate(null, 0, byte_size);
-        if (raw_ptr == null) {
+        const allocator = mem_utils.getAllocator();
+        const data_slice = mem_utils.alloc(allocator, f64, total_size) catch {
             std.debug.print("Failed to allocate memory for Matrix data\n", .{});
             std.process.exit(1);
-        }
-
-        matrix.data = @as([*]f64, @ptrCast(@alignCast(raw_ptr.?)))[0..total_size];
+        };
+        matrix.data = data_slice;
 
         // Initialize to zeros
         for (0..total_size) |i| {
@@ -125,8 +123,8 @@ pub const Matrix = struct {
 
     /// Deallocate matrix memory
     pub fn deinit(self: Self) void {
-        const byte_size = @sizeOf(f64) * self.data.len;
-        _ = reallocate(self.data.ptr, byte_size, 0);
+        const allocator = mem_utils.getAllocator();
+        mem_utils.free(allocator, self.data);
     }
 
     /// Print matrix in Octave format

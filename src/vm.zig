@@ -18,7 +18,6 @@ const mem_utils = @import("mem_utils.zig");
 const memcpy = mem_utils.memcpyFast;
 const strlen = mem_utils.strlen;
 const memory_h = @import("memory.zig");
-const reallocate = memory_h.reallocate;
 const freeObjects = memory_h.freeObjects;
 const object_h = @import("object.zig");
 const ObjClosure = object_h.ObjClosure;
@@ -896,14 +895,14 @@ fn opAdd() InterpretResult {
         const a_str = peek(1).as_string();
 
         const length = a_str.length + b_str.length;
-        const chars = reallocate(null, 0, length + 1);
-        if (chars == null) {
+        const allocator = mem_utils.getAllocator();
+        const chars_slice = mem_utils.alloc(allocator, u8, length + 1) catch {
             _ = pop();
             _ = pop();
             runtimeError("Out of memory.", .{});
             return .INTERPRET_RUNTIME_ERROR;
-        }
-        const chars_ptr: [*]u8 = @ptrCast(chars);
+        };
+        const chars_ptr: [*]u8 = chars_slice.ptr;
         @memcpy(chars_ptr[0..a_str.length], a_str.chars[0..a_str.length]);
         @memcpy(chars_ptr[a_str.length..length], b_str.chars[0..b_str.length]);
         chars_ptr[length] = 0;

@@ -1,7 +1,6 @@
 const std = @import("std");
 
-const memory = @import("../memory.zig");
-const reallocate = memory.reallocate;
+const mem_utils = @import("../mem_utils.zig");
 const obj_h = @import("../object.zig");
 const Obj = obj_h.Obj;
 const allocateObject = obj_h.allocateObject;
@@ -37,7 +36,9 @@ pub const ObjPair = struct {
     pub fn free(self: *Self) void {
         self.key.release();
         self.value.release();
-        _ = reallocate(@ptrCast(self), @sizeOf(ObjPair), 0);
+        const allocator = mem_utils.getAllocator();
+        const self_slice = @as([*]u8, @ptrCast(self))[0..@sizeOf(ObjPair)];
+        mem_utils.free(allocator, self_slice);
     }
 
     /// Returns the first element of the pair (key)

@@ -2,7 +2,7 @@ const std = @import("std");
 const print = std.debug.print;
 
 const memcpy = @import("mem_utils.zig").memcpyFast;
-const memory_h = @import("memory.zig");
+const mem_utils = @import("mem_utils.zig");
 const obj_h = @import("object.zig");
 const Obj = obj_h.Obj;
 const ObjString = obj_h.ObjString;
@@ -14,7 +14,7 @@ const FloatVector = obj_h.FloatVector;
 const Matrix = obj_h.Matrix;
 const fvec = @import("objects/fvec.zig");
 const obj_range = @import("objects/range.zig");
-const reallocate = @import("memory.zig").reallocate;
+
 const scanner_h = @import("scanner.zig");
 const simd_string = @import("simd_string.zig");
 const SIMDString = simd_string.SIMDString;
@@ -72,13 +72,15 @@ pub const Value = struct {
     // Reference counting support
     pub fn retain(self: Self) void {
         if (self.is_obj()) {
-            memory_h.incRef(self.as.obj);
+            // TODO: Implement reference counting with new allocator approach
+            // For now, skip reference counting - will be handled by GC
         }
     }
 
     pub fn release(self: Self) void {
         if (self.is_obj()) {
-            memory_h.decRef(self.as.obj);
+            // TODO: Implement reference counting with new allocator approach
+            // For now, skip reference counting - will be handled by GC
         }
     }
 
@@ -144,7 +146,9 @@ pub const Value = struct {
                     const a = self.as_string();
                     const b = other.as_string();
                     const length: usize = a.*.length + b.*.length;
-                    const chars: [*]u8 = @as([*]u8, @ptrCast(@alignCast(reallocate(null, 0, @intCast(@sizeOf(u8) *% length + 1)))));
+                    const allocator = mem_utils.getAllocator();
+                    const chars_slice = mem_utils.alloc(allocator, u8, length + 1) catch return Value.init_nil();
+                    const chars: [*]u8 = chars_slice.ptr;
                     // Use regular memory copy to avoid alignment issues
                     _ = memcpy(@ptrCast(chars), @ptrCast(a.*.chars), @intCast(a.*.length));
                     _ = memcpy(@ptrCast(chars + @as(usize, @bitCast(@as(isize, @intCast(a.*.length))))), @ptrCast(b.*.chars), @intCast(b.*.length));
@@ -196,7 +200,9 @@ pub const Value = struct {
                         valueToString(other);
 
                     const length: usize = self_str.len + other_str.len;
-                    const chars: [*]u8 = @as([*]u8, @ptrCast(@alignCast(reallocate(null, 0, @intCast(@sizeOf(u8) *% length + 1)))));
+                    const allocator = mem_utils.getAllocator();
+                    const chars_slice = mem_utils.alloc(allocator, u8, length + 1) catch return Value.init_nil();
+                    const chars: [*]u8 = chars_slice.ptr;
                     _ = memcpy(@ptrCast(chars), @ptrCast(self_str.ptr), @intCast(self_str.len));
                     _ = memcpy(@ptrCast(chars + @as(usize, @intCast(self_str.len))), @ptrCast(other_str.ptr), @intCast(other_str.len));
                     chars[@intCast(length)] = '\x00';
@@ -629,14 +635,32 @@ pub fn writeValueArray(array: *ValueArray, value: Value) void {
     if (array.capacity < (array.count + 1)) {
         const oldCapacity: i32 = array.capacity;
         array.capacity = if (oldCapacity < 8) 8 else oldCapacity * 2;
-        array.values = @ptrCast(@alignCast(reallocate(@ptrCast(array.values), @intCast(@sizeOf(Value) * oldCapacity), @intCast(@sizeOf(Value) * array.capacity))));
+        const allocator = mem_utils.getAllocator();
+
+        if (@intFromPtr(array.values) != 0) {
+            const old_values_slice = array.values[0..@intCast(oldCapacity)];
+            const new_values_slice = mem_utils.realloc(allocator, old_values_slice, @intCast(array.capacity)) catch {
+                // Handle allocation failure
+                return;
+            };
+            array.values = new_values_slice.ptr;
+        } else {
+            const new_values_slice = mem_utils.alloc(allocator, Value, @intCast(array.capacity)) catch {
+                return;
+            };
+            array.values = new_values_slice.ptr;
+        }
     }
     array.values[@intCast(array.count)] = value;
     array.count += 1;
 }
 
 pub fn freeValueArray(array: *ValueArray) void {
-    _ = reallocate(@ptrCast(@alignCast(array.values)), @intCast(@sizeOf(Value) * array.capacity), 0);
+    if (@intFromPtr(array.values) != 0 and array.capacity > 0) {
+        const allocator = mem_utils.getAllocator();
+        const values_slice = array.values[0..@intCast(array.capacity)];
+        mem_utils.free(allocator, values_slice);
+    }
     initValueArray(array);
 }
 

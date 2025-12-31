@@ -1,7 +1,7 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 
-const reallocate = @import("../memory.zig").reallocate;
+const mem_utils = @import("../mem_utils.zig");
 const allocateObject = @import("../object.zig").allocateObject;
 const ObjString = @import("../object.zig").ObjString;
 const LinkedList = @import("../object.zig").LinkedList;
@@ -28,8 +28,8 @@ pub const HashTable = struct {
     pub fn init() Self {
         const htable: Self = @ptrCast(@alignCast(allocateObject(@sizeOf(HashTable), .OBJ_HASH_TABLE)));
 
-        // Use a custom allocator that wraps the reallocate function
-        const allocator = CustomAllocator.init();
+        // Use our global allocator directly
+        const allocator = mem_utils.getAllocator();
         htable.allocator = allocator;
         htable.map = InternalMap.init(allocator);
 
@@ -44,7 +44,9 @@ pub const HashTable = struct {
     /// Frees the hash table
     pub fn deinit(self: Self) void {
         self.map.deinit();
-        _ = reallocate(@as(?*anyopaque, @ptrCast(self)), @sizeOf(HashTable), 0);
+        const allocator = mem_utils.getAllocator();
+        const self_slice = @as([*]u8, @ptrCast(self))[0..@sizeOf(HashTable)];
+        mem_utils.free(allocator, self_slice);
     }
 
     /// Clears all entries from the hash table
@@ -261,81 +263,7 @@ pub const HashTable = struct {
         self.map.deinit();
         self.map = newTable.map;
         // Don't deinit newTable since we've stolen its map
-        _ = reallocate(@as(?*anyopaque, @ptrCast(newTable)), @sizeOf(HashTable), 0);
-    }
-};
-
-/// Custom allocator that wraps the MufiZ memory management
-const CustomAllocator = struct {
-    const Self = @This();
-
-    pub fn init() Allocator {
-        return Allocator{
-            .ptr = undefined,
-            .vtable = &vtable,
-        };
-    }
-
-    const vtable = Allocator.VTable{
-        .alloc = alloc,
-        .resize = resize,
-        .free = free,
-        .remap = remap,
-    };
-
-    fn alloc(ctx: *anyopaque, len: usize, ptr_align: std.mem.Alignment, ret_addr: usize) ?[*]u8 {
-        _ = ctx;
-        _ = ptr_align;
-        _ = ret_addr;
-
-        if (len == 0) return null;
-
-        const ptr = reallocate(null, 0, len);
-        if (ptr == null) return null;
-        return @as([*]u8, @ptrCast(ptr));
-    }
-
-    fn resize(ctx: *anyopaque, buf: []u8, buf_align: std.mem.Alignment, new_len: usize, ret_addr: usize) bool {
-        _ = ctx;
-        _ = buf_align;
-        _ = ret_addr;
-
-        if (new_len == 0) return false;
-        if (new_len <= buf.len) return true;
-
-        // For MufiZ's reallocate, we need to check if it can resize in place
-        // If not, std.HashMap will handle the copy via alloc + free
-        const new_ptr = reallocate(buf.ptr, buf.len, new_len);
-        return @as(?*anyopaque, @ptrCast(new_ptr)) == @as(?*anyopaque, @ptrCast(buf.ptr));
-    }
-
-    fn free(ctx: *anyopaque, buf: []u8, buf_align: std.mem.Alignment, ret_addr: usize) void {
-        _ = ctx;
-        _ = buf_align;
-        _ = ret_addr;
-
-        if (buf.len == 0) return;
-        _ = reallocate(buf.ptr, buf.len, 0);
-    }
-
-    fn remap(ctx: *anyopaque, buf: []u8, buf_align: std.mem.Alignment, new_len: usize, ret_addr: usize) ?[*]u8 {
-        _ = ctx;
-        _ = buf_align;
-        _ = ret_addr;
-
-        if (new_len == 0) return null;
-        if (new_len <= buf.len) return buf.ptr;
-
-        // Allocate new memory and copy
-        const new_ptr = reallocate(null, 0, new_len);
-        if (new_ptr == null) return null;
-
-        const copy_len = @min(buf.len, new_len);
-        @memcpy(@as([*]u8, @ptrCast(new_ptr))[0..copy_len], buf[0..copy_len]);
-
-        // Free old memory
-        _ = reallocate(buf.ptr, buf.len, 0);
-
-        return @as([*]u8, @ptrCast(new_ptr));
+        const self_slice = @as([*]u8, @ptrCast(newTable))[0..@sizeOf(HashTable)];
+        mem_utils.free(self.allocator, self_slice);
     }
 };

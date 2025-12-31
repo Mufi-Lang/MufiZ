@@ -3,7 +3,6 @@ const std = @import("std");
 const conv = @import("../conv.zig");
 const type_check = conv.type_check;
 const mem_utils = @import("../mem_utils.zig");
-const reallocate = @import("../memory.zig").reallocate;
 const obj_h = @import("../object.zig");
 const ObjType = obj_h.ObjType;
 const ObjLinkedList = obj_h.LinkedList;
@@ -327,7 +326,11 @@ pub fn insert(argc: i32, args: [*]Value) Value {
             }
 
             if (current != null) {
-                const node = @as(*obj_h.Node, @ptrCast(@alignCast(reallocate(null, 0, @sizeOf(obj_h.Node) *% 1))));
+                const allocator = mem_utils.getAllocator();
+                const node_slice = mem_utils.alloc(allocator, u8, @sizeOf(obj_h.Node)) catch {
+                    return stdlib_error("Memory allocation failed", .{ .value_type = "Node" });
+                };
+                const node = @as(*obj_h.Node, @ptrCast(@alignCast(node_slice.ptr)));
                 node.data = args[2];
                 node.next = current.?.next;
                 node.prev = current;

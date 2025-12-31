@@ -2,13 +2,13 @@ const object_h = @import("object.zig");
 const memory = @import("memory.zig");
 const value_h = @import("value.zig");
 const memcmp = @import("mem_utils.zig").memcmp;
+const mem_utils = @import("mem_utils.zig");
 const std = @import("std");
 
 const ObjString = object_h.ObjString;
 const Obj = object_h.Obj;
 const Value = value_h.Value;
 
-const reallocate = memory.reallocate;
 const markObject = memory.markObject;
 
 const VAL_NIL: i32 = 1;
@@ -75,9 +75,11 @@ pub fn initTable(table: *Table) void {
 
 pub fn freeTable(table: *Table) void {
     if (table.entries) |entries| {
-        _ = reallocate(@ptrCast(entries), @intCast(@sizeOf(Entry) * table.capacity), 0);
+        const allocator = mem_utils.getAllocator();
+        const entries_slice = entries[0..@intCast(table.capacity)];
+        mem_utils.free(allocator, entries_slice);
     }
-    table.* = Table.init();
+    initTable(table);
 }
 
 fn nextPowerOfTwo(n: usize) usize {
@@ -154,9 +156,11 @@ fn adjustCapacity(table: *Table, new_capacity: i32) void {
     }
 
     const capacity = @as(usize, @intCast(new_capacity));
-    const new_size = capacity * @sizeOf(Entry);
-    const entries_ptr = reallocate(null, 0, new_size);
-    const new_entries: [*]Entry = @ptrCast(@alignCast(entries_ptr));
+    const allocator = mem_utils.getAllocator();
+    const new_entries_slice = mem_utils.alloc(allocator, Entry, capacity) catch {
+        return; // Handle allocation failure gracefully
+    };
+    const new_entries: [*]Entry = new_entries_slice.ptr;
 
     // Initialize all entries
     for (0..capacity) |i| {
@@ -181,7 +185,8 @@ fn adjustCapacity(table: *Table, new_capacity: i32) void {
             }
         }
         // Free old entries
-        _ = reallocate(@ptrCast(@alignCast(entries)), @intCast(old_capacity * @sizeOf(Entry)), 0);
+        const old_entries_slice = entries[0..old_capacity];
+        mem_utils.free(allocator, old_entries_slice);
     }
 }
 

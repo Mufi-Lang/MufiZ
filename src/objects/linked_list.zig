@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const reallocate = @import("../memory.zig").reallocate;
+const mem_utils = @import("../mem_utils.zig");
 const allocateObject = @import("../object.zig").allocateObject;
 const Value = @import("../value.zig").Value;
 const printValue = @import("../value.zig").printValue;
@@ -43,12 +43,15 @@ pub const LinkedList = struct {
     /// Frees the linked list and all its nodes
     pub fn deinit(self: Self) void {
         var current: ?*Node = self.head;
+        const allocator = mem_utils.getAllocator();
         while (current) |node| {
             const next: ?*Node = node.next;
-            _ = reallocate(@as(?*anyopaque, @ptrCast(node)), @sizeOf(Node), 0);
+            const node_slice = @as([*]u8, @ptrCast(node))[0..@sizeOf(Node)];
+            mem_utils.free(allocator, node_slice);
             current = next;
         }
-        _ = reallocate(@as(?*anyopaque, @ptrCast(self)), @sizeOf(LinkedList), 0);
+        const self_slice = @as([*]u8, @ptrCast(self))[0..@sizeOf(LinkedList)];
+        mem_utils.free(allocator, self_slice);
     }
 
     /// Prints the linked list
@@ -67,7 +70,11 @@ pub const LinkedList = struct {
 
     /// Adds a value to the front of the list
     pub fn push_front(self: Self, value: Value) void {
-        const node: *Node = @as(*Node, @ptrCast(@alignCast(reallocate(null, 0, @sizeOf(Node)))));
+        const allocator = mem_utils.getAllocator();
+        const node_slice = mem_utils.alloc(allocator, u8, @sizeOf(Node)) catch {
+            @panic("Failed to allocate memory for LinkedList node");
+        };
+        const node: *Node = @as(*Node, @ptrCast(@alignCast(node_slice.ptr)));
         node.data = value;
         node.prev = null;
         node.next = self.head;
@@ -85,7 +92,11 @@ pub const LinkedList = struct {
 
     /// Adds a value to the back of the list
     pub fn push(self: Self, value: Value) void {
-        const node: *Node = @as(*Node, @ptrCast(@alignCast(reallocate(null, 0, @sizeOf(Node)))));
+        const allocator = mem_utils.getAllocator();
+        const node_slice = mem_utils.alloc(allocator, u8, @sizeOf(Node)) catch {
+            @panic("Failed to allocate memory for LinkedList node");
+        };
+        const node: *Node = @as(*Node, @ptrCast(@alignCast(node_slice.ptr)));
         node.data = value;
         node.prev = self.tail;
         node.next = null;
@@ -121,7 +132,9 @@ pub const LinkedList = struct {
             self.tail = null;
         }
         self.count -= 1;
-        _ = reallocate(@as(?*anyopaque, @ptrCast(node)), @sizeOf(Node), 0);
+        const allocator = mem_utils.getAllocator();
+        const node_slice = @as([*]u8, @ptrCast(node))[0..@sizeOf(Node)];
+        mem_utils.free(allocator, node_slice);
         return data;
     }
 
@@ -138,7 +151,9 @@ pub const LinkedList = struct {
             self.head = null;
         }
         self.count -= 1;
-        _ = reallocate(@as(?*anyopaque, @ptrCast(node)), @sizeOf(Node), 0);
+        const allocator = mem_utils.getAllocator();
+        const node_slice = @as([*]u8, @ptrCast(node))[0..@sizeOf(Node)];
+        mem_utils.free(allocator, node_slice);
         return data;
     }
 
@@ -192,7 +207,11 @@ pub const LinkedList = struct {
             current = current.?.next;
         }
 
-        const node: *Node = @as(*Node, @ptrCast(@alignCast(reallocate(null, 0, @sizeOf(Node)))));
+        const allocator = mem_utils.getAllocator();
+        const node_slice = mem_utils.alloc(allocator, u8, @sizeOf(Node)) catch {
+            @panic("Failed to allocate memory for LinkedList node");
+        };
+        const node: *Node = @as(*Node, @ptrCast(@alignCast(node_slice.ptr)));
         node.data = value;
         node.prev = current;
         node.next = current.?.next;
@@ -236,7 +255,9 @@ pub const LinkedList = struct {
         }
 
         self.count -= 1;
-        _ = reallocate(@as(?*anyopaque, @ptrCast(node)), @sizeOf(Node), 0);
+        const allocator = mem_utils.getAllocator();
+        const node_slice = @as([*]u8, @ptrCast(node))[0..@sizeOf(Node)];
+        mem_utils.free(allocator, node_slice);
         return data;
     }
 
@@ -245,7 +266,9 @@ pub const LinkedList = struct {
         var current: ?*Node = self.head;
         while (current) |node| {
             const next: ?*Node = node.next;
-            _ = reallocate(@as(?*anyopaque, @ptrCast(node)), @sizeOf(Node), 0);
+            const allocator = mem_utils.getAllocator();
+            const node_slice = @as([*]u8, @ptrCast(node))[0..@sizeOf(Node)];
+            mem_utils.free(allocator, node_slice);
             current = next;
         }
         self.head = null;
@@ -463,7 +486,9 @@ pub const LinkedList = struct {
                 }
 
                 self.count -= 1;
-                _ = reallocate(@as(?*anyopaque, @ptrCast(node)), @sizeOf(Node), 0);
+                const allocator = mem_utils.getAllocator();
+                const node_slice = @as([*]u8, @ptrCast(node))[0..@sizeOf(Node)];
+                mem_utils.free(allocator, node_slice);
             }
 
             current = next;

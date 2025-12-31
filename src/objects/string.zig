@@ -2,7 +2,6 @@ const std = @import("std");
 
 const debug_opts = @import("debug");
 
-const reallocate = @import("../memory.zig").reallocate;
 const mem_utils = @import("../mem_utils.zig");
 const string_hash = @import("../string_hash.zig");
 const allocateObject = @import("../object.zig").allocateObject;
@@ -31,7 +30,8 @@ pub const String = struct {
 
         // Check if string already exists in intern table
         if (findString(chars, length, hash)) |interned| {
-            _ = reallocate(@as(?*anyopaque, @ptrCast(chars.ptr)), length, 0);
+            const allocator = mem_utils.getAllocator();
+            mem_utils.free(allocator, chars);
             return interned;
         }
 
@@ -46,10 +46,11 @@ pub const String = struct {
     pub fn copy(chars: []const u8, length: usize) Self {
         if (length == 0) {
             // Return the empty string singleton
-            const emptyChars = @as([*]u8, @ptrCast(@alignCast(reallocate(null, 0, 1))));
-            emptyChars[0] = 0; // Null terminate
+            const allocator = mem_utils.getAllocator();
+            const emptyChars_slice = mem_utils.alloc(allocator, u8, 1) catch @panic("Failed to allocate empty string");
+            emptyChars_slice[0] = 0; // Null terminate
             return allocateString(.{
-                .chars = emptyChars[0..0], // Empty slice
+                .chars = emptyChars_slice[0..0], // Empty slice
                 .length = 0,
                 .hash = hashChars(&[_]u8{}, 0),
             });
@@ -63,17 +64,15 @@ pub const String = struct {
         }
 
         // Allocate memory for the new string
-        const heapCharsPtr = reallocate(null, 0, length + 1);
-        if (heapCharsPtr == null) {
-            // This shouldn't happen since reallocate exits on failure, but just in case
+        const allocator = mem_utils.getAllocator();
+        const heapChars_slice = mem_utils.alloc(allocator, u8, length + 1) catch {
             @panic("Failed to allocate memory for string");
-        }
-        const heapChars = @as([*]u8, @ptrCast(@alignCast(heapCharsPtr)));
-        @memcpy(heapChars[0..length], chars[0..length]);
-        heapChars[length] = 0; // Null terminate
+        };
+        @memcpy(heapChars_slice[0..length], chars[0..length]);
+        heapChars_slice[length] = 0; // Null terminate
 
         return allocateString(.{
-            .chars = heapChars[0..length],
+            .chars = heapChars_slice[0..length],
             .length = length,
             .hash = hash,
         });
@@ -127,12 +126,14 @@ pub const String = struct {
     /// Concatenates two strings
     pub fn concat(self: Self, other: Self) Self {
         const newLength = self.length + other.length;
-        const chars = @as([*]u8, @ptrCast(@alignCast(reallocate(null, 0, newLength))));
+        const allocator = mem_utils.getAllocator();
+        const chars_slice = mem_utils.alloc(allocator, u8, newLength + 1) catch @panic("Failed to allocate string for concat");
 
-        @memcpy(chars[0..self.length], self.chars[0..self.length]);
-        @memcpy(chars[self.length..newLength], other.chars[0..other.length]);
+        @memcpy(chars_slice[0..self.length], self.chars[0..self.length]);
+        @memcpy(chars_slice[self.length..newLength], other.chars[0..other.length]);
+        chars_slice[newLength] = 0; // Null terminate
 
-        return String.take(chars[0..newLength], newLength);
+        return String.take(chars_slice[0..newLength], newLength);
     }
 
     /// Returns a substring (creates a new string)
@@ -194,24 +195,28 @@ pub const String = struct {
 
     /// Converts string to lowercase (creates a new string)
     pub fn toLower(self: Self) Self {
-        const chars = @as([*]u8, @ptrCast(@alignCast(reallocate(null, 0, self.length))));
+        const allocator = mem_utils.getAllocator();
+        const chars_slice = mem_utils.alloc(allocator, u8, self.length + 1) catch @panic("Failed to allocate string for toLower");
 
         for (0..self.length) |i| {
-            chars[i] = std.ascii.toLower(self.chars[i]);
+            chars_slice[i] = std.ascii.toLower(self.chars[i]);
         }
+        chars_slice[self.length] = 0; // Null terminate
 
-        return String.take(chars[0..self.length], self.length);
+        return String.take(chars_slice[0..self.length], self.length);
     }
 
     /// Converts string to uppercase (creates a new string)
     pub fn toUpper(self: Self) Self {
-        const chars = @as([*]u8, @ptrCast(@alignCast(reallocate(null, 0, self.length))));
+        const allocator = mem_utils.getAllocator();
+        const chars_slice = mem_utils.alloc(allocator, u8, self.length + 1) catch @panic("Failed to allocate string for toUpper");
 
         for (0..self.length) |i| {
-            chars[i] = std.ascii.toUpper(self.chars[i]);
+            chars_slice[i] = std.ascii.toUpper(self.chars[i]);
         }
+        chars_slice[self.length] = 0; // Null terminate
 
-        return String.take(chars[0..self.length], self.length);
+        return String.take(chars_slice[0..self.length], self.length);
     }
 
     /// Trims whitespace from both ends (creates a new string)
@@ -283,7 +288,8 @@ pub const String = struct {
 
         // Calculate new length
         const newLength = self.length - (count * needle.length) + (count * replacement.length);
-        const chars = @as([*]u8, @ptrCast(@alignCast(reallocate(null, 0, newLength))));
+        const allocator = mem_utils.getAllocator();
+        const chars_slice = mem_utils.alloc(allocator, u8, newLength + 1) catch @panic("Failed to allocate string for replace");
 
         // Build new string
         var srcPos: usize = 0;
@@ -291,11 +297,11 @@ pub const String = struct {
 
         while (srcPos <= self.length - needle.length) {
             if (std.mem.eql(u8, self.chars[srcPos .. srcPos + needle.length], needle.chars[0..needle.length])) {
-                @memcpy(chars[dstPos .. dstPos + replacement.length], replacement.chars[0..replacement.length]);
+                @memcpy(chars_slice[dstPos .. dstPos + replacement.length], replacement.chars[0..replacement.length]);
                 dstPos += replacement.length;
                 srcPos += needle.length;
             } else {
-                chars[dstPos] = self.chars[srcPos];
+                chars_slice[dstPos] = self.chars[srcPos];
                 dstPos += 1;
                 srcPos += 1;
             }
@@ -303,12 +309,13 @@ pub const String = struct {
 
         // Copy remaining characters
         while (srcPos < self.length) {
-            chars[dstPos] = self.chars[srcPos];
+            chars_slice[dstPos] = self.chars[srcPos];
             dstPos += 1;
             srcPos += 1;
         }
 
-        return String.take(chars[0..newLength], newLength);
+        chars_slice[newLength] = 0; // Null terminate
+        return String.take(chars_slice[0..newLength], newLength);
     }
 
     /// Gets a character at the given index

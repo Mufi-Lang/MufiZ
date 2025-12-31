@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const reallocate = @import("../memory.zig").reallocate;
+const mem_utils = @import("../mem_utils.zig");
 const allocateObject = @import("../object.zig").allocateObject;
 const obj_h = @import("obj.zig");
 const Obj = obj_h.Obj;
@@ -29,13 +29,12 @@ pub const FloatVector = struct {
         vector.pos = 0;
         vector.sorted = false;
 
-        const byte_size = @sizeOf(f64) * capacity;
-        const raw_ptr = reallocate(null, 0, byte_size);
-        if (raw_ptr == null) {
-            std.debug.print("Failed to reallocate memory for FloatVector data\n", .{});
+        const allocator = mem_utils.getAllocator();
+        const data_slice = mem_utils.alloc(allocator, f64, capacity) catch {
+            std.debug.print("Failed to allocate memory for FloatVector data\n", .{});
             std.process.exit(1);
-        }
-        vector.data = @as([*]f64, @ptrCast(@alignCast(raw_ptr.?)))[0..capacity];
+        };
+        vector.data = data_slice;
 
         return vector;
     }
@@ -52,10 +51,12 @@ pub const FloatVector = struct {
     }
 
     pub fn deinit(self: Self) void {
+        const allocator = mem_utils.getAllocator();
         if (self.data.len > 0) {
-            _ = reallocate(@as(?*anyopaque, @ptrCast(self.data.ptr)), @sizeOf(f64) * self.data.len, 0);
+            mem_utils.free(allocator, self.data);
         }
-        _ = reallocate(@as(?*anyopaque, @ptrCast(self)), @sizeOf(FloatVector), 0);
+        const self_slice = @as([*]u8, @ptrCast(self))[0..@sizeOf(FloatVector)];
+        mem_utils.free(allocator, self_slice);
     }
 
     pub fn print(self: Self) void {
@@ -123,14 +124,12 @@ pub const FloatVector = struct {
         if (self.size >= needed_capacity) return;
 
         const new_size = @max(needed_capacity, self.size * 2);
-        const new_byte_size = @sizeOf(f64) * new_size;
-        const old_byte_size = @sizeOf(f64) * self.size;
-        const raw_ptr = reallocate(@as(?*anyopaque, @ptrCast(self.data.ptr)), old_byte_size, new_byte_size);
-        if (raw_ptr == null) {
+        const allocator = mem_utils.getAllocator();
+        const new_data = mem_utils.realloc(allocator, self.data, new_size) catch {
             std.debug.print("Failed to reallocate memory for FloatVector data\n", .{});
             std.process.exit(1);
-        }
-        self.data = @as([*]f64, @ptrCast(@alignCast(raw_ptr.?)))[0..new_size];
+        };
+        self.data = new_data;
         self.size = new_size;
     }
 
@@ -149,7 +148,8 @@ pub const FloatVector = struct {
     pub fn shrinkToFit(self: Self, extra_buffer: usize) void {
         if (self.count == 0) {
             if (self.size > 0) {
-                _ = reallocate(@as(?*anyopaque, @ptrCast(self.data.ptr)), @sizeOf(f64) * self.size, 0);
+                const allocator = mem_utils.getAllocator();
+                mem_utils.free(allocator, self.data);
                 self.data = &[_]f64{};
                 self.size = 0;
             }
@@ -159,14 +159,12 @@ pub const FloatVector = struct {
         const new_size = self.count + extra_buffer;
         if (new_size >= self.size) return;
 
-        const new_byte_size = @sizeOf(f64) * new_size;
-        const old_byte_size = @sizeOf(f64) * self.size;
-        const raw_ptr = reallocate(@as(?*anyopaque, @ptrCast(self.data.ptr)), old_byte_size, new_byte_size);
-        if (raw_ptr == null) {
+        const allocator = mem_utils.getAllocator();
+        const new_data = mem_utils.realloc(allocator, self.data, new_size) catch {
             std.debug.print("Failed to reallocate memory for FloatVector data\n", .{});
             std.process.exit(1);
-        }
-        self.data = @as([*]f64, @ptrCast(@alignCast(raw_ptr.?)))[0..new_size];
+        };
+        self.data = new_data;
         self.size = new_size;
     }
 
