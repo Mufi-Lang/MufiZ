@@ -31,11 +31,10 @@ const params = clap.parseParamsComptime(
 );
 /// Main function
 pub fn main() !void {
-    // Initialize allocator with debugging enabled but safety disabled to avoid alignment issues
     mem_utils.initAllocator(.{
         .enable_leak_detection = true,
         .enable_tracking = true,
-        .enable_safety = false,
+        .enable_safety = true,
     });
     defer {
         if (mem_utils.checkForLeaks()) {

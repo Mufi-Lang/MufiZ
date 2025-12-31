@@ -14,7 +14,7 @@
      257 src/arena_demo.zig
      149 src/chunk.zig
      126 src/compiler_arena.zig
-    2771 src/compiler.zig
+    2799 src/compiler.zig
       68 src/conv.zig
      197 src/debug.zig
      515 src/errors.zig
@@ -23,7 +23,7 @@
      935 src/memory.zig
      110 src/net.zig
      332 src/object.zig
-     632 src/scanner.zig
+     639 src/scanner.zig
      480 src/simd_string.zig
      153 src/simple_line.zig
      282 src/stdlib.zig
@@ -44,4 +44,4 @@
       29 src/stdlib/time.zig
       77 src/stdlib/types.zig
      246 src/stdlib/utils.zig
-   19460 total
+   19495 total
