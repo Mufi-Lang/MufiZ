@@ -9,14 +9,17 @@ const features = @import("features");
 const conv = @import("conv.zig");
 const stdlib = @import("stdlib.zig");
 const system = @import("system.zig");
+const mem_utils = @import("mem_utils.zig");
 const InterpreterError = system.InterpreterError;
 pub const vm_h = @import("vm.zig");
 pub const OK: u8 = vm_h.INTERPRET_OK;
 pub const COMPILE_ERROR: u8 = vm_h.INTERPRET_COMPILE_ERROR;
 pub const RUNTIME_ERROR: u8 = vm_h.INTERPRET_RUNTIME_ERROR;
 
-var Global = heap.GeneralPurposeAllocator(.{}){};
-pub const GlobalAlloc = Global.allocator();
+// Use the unified allocator from mem_utils - get it at runtime to avoid comptime issues
+pub fn getGlobalAlloc() std.mem.Allocator {
+    return mem_utils.getAllocator();
+}
 
 const params = clap.parseParamsComptime(
     \\-h, --help             Displays this help and exit.
@@ -28,6 +31,20 @@ const params = clap.parseParamsComptime(
 );
 /// Main function
 pub fn main() !void {
+    // Initialize allocator with debugging enabled but safety disabled to avoid alignment issues
+    mem_utils.initAllocator(.{
+        .enable_leak_detection = true,
+        .enable_tracking = true,
+        .enable_safety = false,
+    });
+    defer {
+        if (mem_utils.checkForLeaks()) {
+            std.debug.print("Warning: Memory leaks detected!\n", .{});
+            mem_utils.printMemStats();
+        }
+        mem_utils.deinit();
+    }
+
     vm_h.initVM();
     defer vm_h.freeVM();
     stdlib.prelude();
@@ -38,17 +55,12 @@ pub fn main() !void {
     stdlib.addUtils();
     stdlib.addNet();
     stdlib.addMatrix();
-    defer {
-        const check = Global.deinit();
-        // Temporarily disabled for testing: if (check == .leak) @panic("memory leak!");
-        _ = check;
-    }
     if (features.sandbox) {
         try system.repl();
     } else {
         var diag = clap.Diagnostic{};
         var res = clap.parse(clap.Help, &params, clap.parsers.default, .{
-            .allocator = GlobalAlloc,
+            .allocator = getGlobalAlloc(),
             .diagnostic = &diag,
         }) catch |err| {
             std.debug.print("Error: {any}\n", .{err});
@@ -59,7 +71,7 @@ pub fn main() !void {
         if (res.args.version != 0) {
             system.version();
         } else if (res.args.run) |s| {
-            var runner = system.Runner.init(GlobalAlloc);
+            var runner = system.Runner.init(getGlobalAlloc());
             defer runner.deinit();
             try runner.setMain(@constCast(s));
             if (res.args.link) |l| {

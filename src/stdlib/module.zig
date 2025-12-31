@@ -2,7 +2,7 @@ const std = @import("std");
 
 const compiler_h = @import("../compiler.zig");
 const conv = @import("../conv.zig");
-const GlobalAlloc = @import("../main.zig").GlobalAlloc;
+const mem_utils = @import("../mem_utils.zig");
 const object_h = @import("../object.zig");
 const ObjClass = object_h.ObjClass;
 const ObjInstance = object_h.ObjInstance;
@@ -26,7 +26,7 @@ var module_class_initialized: bool = false;
 
 fn ensureModuleCacheInitialized() void {
     if (!module_cache_initialized) {
-        module_cache = std.StringHashMap(*ObjInstance).init(GlobalAlloc);
+        module_cache = std.StringHashMap(*ObjInstance).init(mem_utils.getAllocator());
         module_cache_initialized = true;
     }
 }
@@ -71,7 +71,7 @@ pub fn import(argc: i32, args: [*]Value) Value {
             else => return stdlib_error("Error reading module file", .{ .value_type = "file" }),
         }
     };
-    defer GlobalAlloc.free(module_source);
+    defer mem_utils.getAllocator().free(module_source);
 
     // Parse the module and create instance
     const module_instance = parseModuleSource(module_source, filename_slice) catch {
@@ -79,11 +79,11 @@ pub fn import(argc: i32, args: [*]Value) Value {
     };
 
     // Cache the module (only cache if successful)
-    const filename_copy = GlobalAlloc.dupe(u8, filename_slice) catch {
+    const filename_copy = mem_utils.getAllocator().dupe(u8, filename_slice) catch {
         return stdlib_error("Out of memory", .{ .value_type = "memory" });
     };
     module_cache.?.put(filename_copy, module_instance) catch {
-        GlobalAlloc.free(filename_copy);
+        mem_utils.getAllocator().free(filename_copy);
         return stdlib_error("Out of memory", .{ .value_type = "memory" });
     };
 
@@ -436,7 +436,7 @@ fn createGreeting(name: *object_h.ObjString) Value {
     const greeting_suffix = "!";
     const total_len = greeting_prefix.len + name.length + greeting_suffix.len;
 
-    const result_chars = GlobalAlloc.alloc(u8, total_len) catch {
+    const result_chars = mem_utils.getAllocator().alloc(u8, total_len) catch {
         return Value.init_nil();
     };
 
@@ -477,7 +477,7 @@ fn createAdvancedGreeting(name: *object_h.ObjString, title: *object_h.ObjString)
     const suffix = ", welcome!";
     const total_len = title.length + space.len + name.length + suffix.len;
 
-    const result_chars = GlobalAlloc.alloc(u8, total_len) catch {
+    const result_chars = mem_utils.getAllocator().alloc(u8, total_len) catch {
         return Value.init_nil();
     };
 
@@ -513,7 +513,7 @@ fn readModuleFile(path: []const u8) ![]u8 {
         return error.FileTooLarge;
     }
 
-    const contents = try GlobalAlloc.alloc(u8, @intCast(file_size));
+    const contents = try mem_utils.getAllocator().alloc(u8, @intCast(file_size));
     _ = try file.readAll(contents);
 
     return contents;
@@ -524,7 +524,7 @@ pub fn clearModuleCache() void {
     if (module_cache_initialized and module_cache != null) {
         var iterator = module_cache.?.iterator();
         while (iterator.next()) |entry| {
-            GlobalAlloc.free(entry.key_ptr.*);
+            mem_utils.getAllocator().free(entry.key_ptr.*);
         }
         module_cache.?.clearAndFree();
         module_cache = null;

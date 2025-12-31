@@ -9,6 +9,7 @@ const OpCode = chunk_h.OpCode;
 const debug_h = @import("debug.zig");
 const errors = @import("errors.zig");
 const mem_utils = @import("mem_utils.zig");
+const allocator_mod = @import("allocator.zig");
 const memcmp = mem_utils.memcmp;
 const object_h = @import("object.zig");
 const ObjFunction = object_h.ObjFunction;
@@ -29,7 +30,8 @@ pub var errorManagerInitialized: bool = false;
 // Track all declared variables for suggestion system
 pub fn addKnownVariable(name: []const u8) void {
     if (errorManagerInitialized) {
-        knownVariables.append(std.heap.page_allocator, name) catch {};
+        const allocator = mem_utils.getAllocator();
+        knownVariables.append(allocator, name) catch {};
     }
 }
 
@@ -143,14 +145,16 @@ pub const Loop = struct {
             .continueJumps = undefined,
             .loopType = loopType,
         };
-        loop.breakJumps = std.ArrayList(i32).initCapacity(std.heap.page_allocator, 0) catch unreachable;
-        loop.continueJumps = std.ArrayList(i32).initCapacity(std.heap.page_allocator, 0) catch unreachable;
+        const allocator = mem_utils.getAllocator();
+        loop.breakJumps = std.ArrayList(i32).initCapacity(allocator, 0) catch unreachable;
+        loop.continueJumps = std.ArrayList(i32).initCapacity(allocator, 0) catch unreachable;
         return loop;
     }
 
     pub fn deinit(self: *Loop) void {
-        self.breakJumps.deinit(std.heap.page_allocator);
-        self.continueJumps.deinit(std.heap.page_allocator);
+        const allocator = mem_utils.getAllocator();
+        self.breakJumps.deinit(allocator);
+        self.continueJumps.deinit(allocator);
     }
 };
 
@@ -618,7 +622,7 @@ pub fn identifierConstant(name: *Token) u8 {
 }
 pub fn identifiersEqual(a: *Token, b: *Token) bool {
     if (a.*.length != b.*.length) return false;
-    return scanner_h.memcmp(@as(?*const anyopaque, @ptrCast(a.*.start)), @as(?*const anyopaque, @ptrCast(b.*.start)), @as(c_ulong, @bitCast(@as(c_long, a.*.length)))) == 0;
+    return mem_utils.memcmp(@ptrCast(a.*.start), @ptrCast(b.*.start), @as(usize, @intCast(a.*.length))) == 0;
 }
 pub fn resolveLocal(compiler: *Compiler, name: *Token) i32 {
     var i: i32 = compiler.*.localCount - 1;
@@ -735,9 +739,9 @@ pub fn declareVariable() void {
                 const suggestions = [_]errors.ErrorSuggestion{
                     .{ .message = "Use a different variable name" },
                     .{ .message = "Variables in the same scope must have unique names" },
-                    .{ .message = "Try alternative names", .example = std.fmt.allocPrint(std.heap.page_allocator, "{s}2, new{s}, {s}Value", .{ varName, varName, varName }) catch "newName, value2" },
+                    .{ .message = "Try alternative names", .example = std.fmt.allocPrint(mem_utils.getAllocator(), "{s}2, new{s}, {s}Value", .{ varName, varName, varName }) catch "newName, value2" },
                 };
-                errorWithSuggestions(&parser.previous, .REDEFINED_VARIABLE, std.fmt.allocPrint(std.heap.page_allocator, "Variable '{s}' already declared in this scope", .{varName}) catch "Variable already declared", &suggestions);
+                errorWithSuggestions(&parser.previous, .REDEFINED_VARIABLE, std.fmt.allocPrint(mem_utils.getAllocator(), "Variable '{s}' already declared in this scope", .{varName}) catch "Variable already declared", &suggestions);
                 return;
             }
         }
@@ -762,9 +766,9 @@ pub fn declareConstVariable() void {
                 const suggestions = [_]errors.ErrorSuggestion{
                     .{ .message = "Use a different constant name" },
                     .{ .message = "Constants in the same scope must have unique names" },
-                    .{ .message = "Try alternative names", .example = std.fmt.allocPrint(std.heap.page_allocator, "{s}2, new{s}, {s}Value", .{ varName, varName, varName }) catch "newName, value2" },
+                    .{ .message = "Try alternative names", .example = std.fmt.allocPrint(mem_utils.getAllocator(), "{s}2, new{s}, {s}Value", .{ varName, varName, varName }) catch "newName, value2" },
                 };
-                errorWithSuggestions(&parser.previous, .REDEFINED_VARIABLE, std.fmt.allocPrint(std.heap.page_allocator, "Constant '{s}' already declared in this scope", .{varName}) catch "Constant already declared", &suggestions);
+                errorWithSuggestions(&parser.previous, .REDEFINED_VARIABLE, std.fmt.allocPrint(mem_utils.getAllocator(), "Constant '{s}' already declared in this scope", .{varName}) catch "Constant already declared", &suggestions);
                 return;
             }
         }
@@ -1510,7 +1514,7 @@ pub fn namedVariable(name: Token, canAssign: bool) void {
                 .{ .message = "Constants cannot be modified after declaration" },
                 .{ .message = "Declare as mutable", .example = "var myVariable = value;" },
             };
-            errorWithSuggestions(&parser.previous, .INVALID_ASSIGNMENT, std.fmt.allocPrint(std.heap.page_allocator, "Cannot assign to constant variable '{s}'", .{varName}) catch "Cannot assign to constant variable", &suggestions);
+            errorWithSuggestions(&parser.previous, .INVALID_ASSIGNMENT, std.fmt.allocPrint(mem_utils.getAllocator(), "Cannot assign to constant variable '{s}'", .{varName}) catch "Cannot assign to constant variable", &suggestions);
             return;
         }
         expression();
@@ -1524,7 +1528,7 @@ pub fn namedVariable(name: Token, canAssign: bool) void {
                 .{ .message = "Constants cannot be modified with assignment operators" },
                 .{ .message = "Declare as mutable", .example = "var myVariable = value;" },
             };
-            errorWithSuggestions(&parser.previous, .INVALID_ASSIGNMENT, std.fmt.allocPrint(std.heap.page_allocator, "Cannot assign to constant variable '{s}'", .{varName}) catch "Cannot assign to constant variable", &suggestions);
+            errorWithSuggestions(&parser.previous, .INVALID_ASSIGNMENT, std.fmt.allocPrint(mem_utils.getAllocator(), "Cannot assign to constant variable '{s}'", .{varName}) catch "Cannot assign to constant variable", &suggestions);
             return;
         }
         emitBytes(getOp, @as(u8, @bitCast(@as(i8, @truncate(arg)))));
@@ -1561,7 +1565,7 @@ pub fn namedVariable(name: Token, canAssign: bool) void {
                 .{ .message = "Constants cannot be incremented" },
                 .{ .message = "Declare as mutable", .example = "var myVariable = value;" },
             };
-            errorWithSuggestions(&parser.previous, .INVALID_ASSIGNMENT, std.fmt.allocPrint(std.heap.page_allocator, "Cannot assign to constant variable '{s}'", .{varName}) catch "Cannot assign to constant variable", &suggestions);
+            errorWithSuggestions(&parser.previous, .INVALID_ASSIGNMENT, std.fmt.allocPrint(mem_utils.getAllocator(), "Cannot assign to constant variable '{s}'", .{varName}) catch "Cannot assign to constant variable", &suggestions);
             return;
         }
         emitBytes(getOp, @as(u8, @bitCast(@as(i8, @truncate(arg)))));
@@ -1583,7 +1587,7 @@ pub fn namedVariable(name: Token, canAssign: bool) void {
                 .{ .message = "Constants cannot be decremented" },
                 .{ .message = "Declare as mutable", .example = "var myVariable = value;" },
             };
-            errorWithSuggestions(&parser.previous, .INVALID_ASSIGNMENT, std.fmt.allocPrint(std.heap.page_allocator, "Cannot assign to constant variable '{s}'", .{varName}) catch "Cannot assign to constant variable", &suggestions);
+            errorWithSuggestions(&parser.previous, .INVALID_ASSIGNMENT, std.fmt.allocPrint(mem_utils.getAllocator(), "Cannot assign to constant variable '{s}'", .{varName}) catch "Cannot assign to constant variable", &suggestions);
             return;
         }
         emitBytes(getOp, @as(u8, @bitCast(@as(i8, @truncate(arg)))));
@@ -1607,7 +1611,7 @@ pub fn variable(canAssign: bool) void {
 
 pub fn syntheticToken(text: [*]const u8) Token {
     // Calculate the length to create a proper slice
-    const length = scanner_h.strlen(text);
+    const length = mem_utils.strlen(text);
     var token: Token = Token{
         .type = .TOKEN_IDENTIFIER,
         .start = @ptrCast(@constCast(text)),
@@ -1843,7 +1847,7 @@ pub fn method() void {
     _ = &constant;
     var type_: FunctionType = .TYPE_METHOD;
     _ = &type_;
-    if ((parser.previous.length == @as(i32, 4)) and (scanner_h.memcmp(@as(?*const anyopaque, @ptrCast(parser.previous.start)), @as(?*const anyopaque, @ptrCast("init")), @as(c_ulong, @bitCast(@as(c_long, @as(i32, 4))))) == 0)) {
+    if ((parser.previous.length == @as(i32, 4)) and (mem_utils.memcmp(@ptrCast(parser.previous.start), @ptrCast("init"), 4) == 0)) {
         type_ = .TYPE_INITIALIZER;
     }
     function(type_);
@@ -1879,7 +1883,7 @@ pub fn classDeclaration() void {
                 .{ .message = "Remove the inheritance if not needed" },
                 .{ .message = "Classes cannot inherit from themselves" },
             };
-            errorWithSuggestions(&parser.previous, .CLASS_INHERITANCE_ERROR, std.fmt.allocPrint(std.heap.page_allocator, "Class '{s}' cannot inherit from itself", .{className_str}) catch "Class cannot inherit from itself", &suggestions);
+            errorWithSuggestions(&parser.previous, .CLASS_INHERITANCE_ERROR, std.fmt.allocPrint(mem_utils.getAllocator(), "Class '{s}' cannot inherit from itself", .{className_str}) catch "Class cannot inherit from itself", &suggestions);
         }
 
         // Store the superclass in a local variable named "super"
@@ -2195,7 +2199,7 @@ pub fn breakStatement() void {
 
     // Emit a jump that will be patched to jump to the end of the loop
     const jump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
-    current.?.innermostLoop.?.breakJumps.append(std.heap.page_allocator, jump) catch unreachable;
+    current.?.innermostLoop.?.breakJumps.append(mem_utils.getAllocator(), jump) catch unreachable;
 }
 
 pub fn continueStatement() void {
@@ -2212,7 +2216,7 @@ pub fn continueStatement() void {
     if (current.?.innermostLoop.?.loopType == .FOREACH) {
         // Emit a jump that will be patched to jump to the increment section
         const jump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
-        current.?.innermostLoop.?.continueJumps.append(std.heap.page_allocator, jump) catch unreachable;
+        current.?.innermostLoop.?.continueJumps.append(mem_utils.getAllocator(), jump) catch unreachable;
     } else {
         // Emit a loop instruction to jump back to the start of the loop
         emitLoop(current.?.innermostLoop.?.start);
@@ -2735,7 +2739,7 @@ pub fn synchronize() void {
 pub fn compile(source: [*]const u8) ?*ObjFunction {
     // Initialize error manager if not already done
     if (!errorManagerInitialized) {
-        globalErrorManager = errors.ErrorManager.init(std.heap.page_allocator);
+        globalErrorManager = errors.ErrorManager.init(mem_utils.getAllocator());
         knownVariables = std.ArrayList([]const u8){};
         knownVariables.items = &[_][]const u8{};
         knownVariables.capacity = 0;

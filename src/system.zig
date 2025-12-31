@@ -3,7 +3,7 @@ const fs = std.fs;
 const mem = std.mem;
 
 const conv = @import("conv.zig");
-const GlobalAlloc = @import("main.zig").GlobalAlloc;
+const mem_utils = @import("mem_utils.zig");
 const SimpleLineEditor = @import("simple_line.zig").SimpleLineEditor;
 const syntax = @import("syntax_min.zig");
 const vm_h = @import("vm.zig");

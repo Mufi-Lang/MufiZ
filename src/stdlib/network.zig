@@ -2,7 +2,7 @@ const std = @import("std");
 
 const enable_net = @import("features").enable_net;
 
-const GlobalAlloc = @import("../main.zig").GlobalAlloc;
+const mem_utils = @import("../mem_utils.zig");
 const net = @import("../net.zig");
 const ContentType = net.ContentType;
 const obj_h = @import("../object.zig");
@@ -260,7 +260,7 @@ pub fn url_encode(argc: i32, args: [*]Value) Value {
     const max_size = input.len * 3; // Worst case: every char becomes %XX
     const buffer = allocator.alloc(u8, max_size) catch return Value.init_nil();
     defer allocator.free(buffer);
-    
+
     var pos: usize = 0;
     // URL encoding (RFC 3986)
     for (input) |c| {
@@ -268,14 +268,20 @@ pub fn url_encode(argc: i32, args: [*]Value) Value {
             buffer[pos] = c;
             pos += 1;
         } else if (c == ' ') {
-            buffer[pos] = '%'; pos += 1;
-            buffer[pos] = '2'; pos += 1;
-            buffer[pos] = '0'; pos += 1;
+            buffer[pos] = '%';
+            pos += 1;
+            buffer[pos] = '2';
+            pos += 1;
+            buffer[pos] = '0';
+            pos += 1;
         } else {
-            buffer[pos] = '%'; pos += 1;
+            buffer[pos] = '%';
+            pos += 1;
             const hex_chars = "0123456789ABCDEF";
-            buffer[pos] = hex_chars[(c >> 4) & 0xF]; pos += 1;
-            buffer[pos] = hex_chars[c & 0xF]; pos += 1;
+            buffer[pos] = hex_chars[(c >> 4) & 0xF];
+            pos += 1;
+            buffer[pos] = hex_chars[c & 0xF];
+            pos += 1;
         }
     }
 
@@ -294,11 +300,11 @@ pub fn url_decode(argc: i32, args: [*]Value) Value {
 
     const input_obj = args[0].as_string();
     const input = input_obj.chars[0..input_obj.length];
-    // Simplified URL decoding - allocate buffer same size as input  
+    // Simplified URL decoding - allocate buffer same size as input
     const allocator = std.heap.page_allocator;
     const buffer = allocator.alloc(u8, input.len) catch return Value.init_nil();
     defer allocator.free(buffer);
-    
+
     var i: usize = 0;
     var pos: usize = 0;
     while (i < input.len) {
@@ -340,7 +346,7 @@ pub fn open_url(argc: i32, args: [*]Value) Value {
     const url = url_obj.chars[0..url_obj.length];
 
     // Allocate memory for URL that we can pass to Open
-    const url_copy = GlobalAlloc.dupe(u8, url) catch {
+    const url_copy = mem_utils.getAllocator().dupe(u8, url) catch {
         vm.runtimeError("Memory allocation failed", .{});
         return Value.init_nil();
     };

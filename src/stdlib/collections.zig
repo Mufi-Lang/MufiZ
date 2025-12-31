@@ -2,7 +2,7 @@ const std = @import("std");
 
 const conv = @import("../conv.zig");
 const type_check = conv.type_check;
-const GlobalAlloc = @import("../main.zig").GlobalAlloc;
+const mem_utils = @import("../mem_utils.zig");
 const reallocate = @import("../memory.zig").reallocate;
 const obj_h = @import("../object.zig");
 const ObjType = obj_h.ObjType;

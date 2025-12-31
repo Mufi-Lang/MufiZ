@@ -4,7 +4,7 @@ const Uri = std.Uri;
 const http = std.http;
 const Header = http.Header;
 const Client = http.Client;
-const GlobalAlloc = @import("main.zig").GlobalAlloc;
+const mem_utils = @import("mem_utils.zig");
 const builtin = @import("builtin");
 const cp = std.process.Child;
 
@@ -56,7 +56,7 @@ pub fn get(url: []const u8, ct: ContentType, op: Options) ![]u8 {
     _ = ct;
     _ = op;
     // HTTP client disabled for Zig 0.15 compatibility
-    return try GlobalAlloc.dupe(u8, "HTTP functionality disabled");
+    return try mem_utils.getAllocator().dupe(u8, "HTTP functionality disabled");
 }
 
 pub fn post(url: []const u8, data: []const u8, ct: ContentType, op: Options) ![]u8 {
@@ -65,7 +65,7 @@ pub fn post(url: []const u8, data: []const u8, ct: ContentType, op: Options) ![]
     _ = ct;
     _ = op;
     // HTTP client disabled for Zig 0.15 compatibility
-    return try GlobalAlloc.dupe(u8, "HTTP functionality disabled");
+    return try mem_utils.getAllocator().dupe(u8, "HTTP functionality disabled");
 }
 
 pub fn put(url: []const u8, data: []const u8, ct: ContentType, op: Options) ![]u8 {
@@ -74,7 +74,7 @@ pub fn put(url: []const u8, data: []const u8, ct: ContentType, op: Options) ![]u
     _ = ct;
     _ = op;
     // HTTP client disabled for Zig 0.15 compatibility
-    return try GlobalAlloc.dupe(u8, "HTTP functionality disabled");
+    return try mem_utils.getAllocator().dupe(u8, "HTTP functionality disabled");
 }
 
 pub fn delete(url: []const u8, ct: ContentType, op: Options) ![]u8 {
@@ -82,7 +82,7 @@ pub fn delete(url: []const u8, ct: ContentType, op: Options) ![]u8 {
     _ = ct;
     _ = op;
     // HTTP client disabled for Zig 0.15 compatibility
-    return try GlobalAlloc.dupe(u8, "HTTP functionality disabled");
+    return try mem_utils.getAllocator().dupe(u8, "HTTP functionality disabled");
 }
 
 /// Inspired by `open-rs`
@@ -104,7 +104,7 @@ pub const Open = struct {
     }
 
     pub fn that(self: Open) !void {
-        var proc = cp.init(&.{ self.os_cmd(), self.url }, GlobalAlloc);
+        var proc = cp.init(&.{ self.os_cmd(), self.url }, mem_utils.getAllocator());
         try proc.spawn();
     }
 };

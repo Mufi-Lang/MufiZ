@@ -1,6 +1,7 @@
 const std = @import("std");
 
 const errors = @import("errors.zig");
+const mem_utils = @import("mem_utils.zig");
 pub const memcmp = @import("mem_utils.zig").memcmp;
 pub const strlen = @import("mem_utils.zig").strlen;
 
@@ -194,7 +195,7 @@ pub fn make_token(type_: TokenType) Token {
 pub fn errorToken(message: [*]u8) Token {
     // Also report enhanced error through error system if available
     if (errorManagerInitialized and globalErrorManager != null) {
-        const msg_len = strlen(message);
+        const msg_len = mem_utils.strlen(message);
         const msg_slice = message[0..msg_len];
 
         const errorInfo = errors.ErrorInfo{

@@ -1,6 +1,7 @@
 const std = @import("std");
 const print = std.debug.print;
 const Allocator = std.mem.Allocator;
+const mem_utils = @import("mem_utils.zig");
 
 pub const ErrorCategory = enum {
     SYNTAX,
@@ -211,7 +212,7 @@ pub const ErrorManager = struct {
 // Predefined error templates with suggestions
 pub const ErrorTemplates = struct {
     pub fn unexpectedToken(actual: []const u8, expected: []const u8) ErrorInfo {
-        const message = std.fmt.allocPrint(std.heap.page_allocator, "Unexpected token '{s}', expected '{s}'", .{ actual, expected }) catch "Unexpected token";
+        const message = std.fmt.allocPrint(mem_utils.getAllocator(), "Unexpected token '{s}', expected '{s}'", .{ actual, expected }) catch "Unexpected token";
 
         return ErrorInfo{
             .code = .UNEXPECTED_TOKEN,
@@ -222,37 +223,37 @@ pub const ErrorTemplates = struct {
             .length = @intCast(actual.len),
             .message = message,
             .suggestions = &[_]ErrorSuggestion{
-                .{ .message = std.fmt.allocPrint(std.heap.page_allocator, "Replace '{s}' with '{s}'", .{ actual, expected }) catch "Check syntax" },
+                .{ .message = std.fmt.allocPrint(mem_utils.getAllocator(), "Replace '{s}' with '{s}'", .{ actual, expected }) catch "Check syntax" },
             },
         };
     }
 
     pub fn undefinedVariable(name: []const u8, similar_names: []const []const u8) ErrorInfo {
-        const message = std.fmt.allocPrint(std.heap.page_allocator, "Undefined variable '{s}'", .{name}) catch "Undefined variable";
+        const message = std.fmt.allocPrint(mem_utils.getAllocator(), "Undefined variable '{s}'", .{name}) catch "Undefined variable";
 
-        var suggestions = std.ArrayList(ErrorSuggestion).initCapacity(std.heap.page_allocator, 0) catch unreachable;
-        suggestions.append(std.heap.page_allocator, .{ .message = "Declare the variable before using it" }) catch {};
+        var suggestions = std.ArrayList(ErrorSuggestion).initCapacity(mem_utils.getAllocator(), 0) catch unreachable;
+        suggestions.append(mem_utils.getAllocator(), .{ .message = "Declare the variable before using it" }) catch {};
 
         if (similar_names.len > 0) {
-            const suggestion_msg = std.fmt.allocPrint(std.heap.page_allocator, "Did you mean '{s}'?", .{similar_names[0]}) catch "Check spelling";
-            suggestions.append(std.heap.page_allocator, .{ .message = suggestion_msg }) catch {};
-            defer suggestions.deinit(std.heap.page_allocator);
+            const suggestion_msg = std.fmt.allocPrint(mem_utils.getAllocator(), "Did you mean '{s}'?", .{similar_names[0]}) catch "Check spelling";
+            suggestions.append(mem_utils.getAllocator(), .{ .message = suggestion_msg }) catch {};
+            defer suggestions.deinit(mem_utils.getAllocator());
 
             // Add fix suggestion if there's a close match
-            const fix_msg = std.fmt.allocPrint(std.heap.page_allocator, "Replace '{s}' with '{s}'", .{ name, similar_names[0] }) catch "Fix variable name";
-            suggestions.append(std.heap.page_allocator, .{ .message = fix_msg }) catch {};
+            const fix_msg = std.fmt.allocPrint(mem_utils.getAllocator(), "Replace '{s}' with '{s}'", .{ name, similar_names[0] }) catch "Fix variable name";
+            suggestions.append(mem_utils.getAllocator(), .{ .message = fix_msg }) catch {};
         } else {
             // No similar names found, provide more general suggestions
-            suggestions.append(std.heap.page_allocator, .{ .message = "Check the variable name spelling" }) catch {};
-            suggestions.append(std.heap.page_allocator, .{ .message = "Ensure the variable is in the correct scope" }) catch {};
+            suggestions.append(mem_utils.getAllocator(), .{ .message = "Check the variable name spelling" }) catch {};
+            suggestions.append(mem_utils.getAllocator(), .{ .message = "Ensure the variable is in the correct scope" }) catch {};
         }
 
         // Add context-specific suggestions
         if (name.len <= 2) {
-            suggestions.append(std.heap.page_allocator, .{ .message = "Variable names should be descriptive and longer than 2 characters" }) catch {};
+            suggestions.append(mem_utils.getAllocator(), .{ .message = "Variable names should be descriptive and longer than 2 characters" }) catch {};
         }
 
-        suggestions.append(std.heap.page_allocator, .{ .message = "Example variable declaration", .example = std.fmt.allocPrint(std.heap.page_allocator, "var {s} = value;", .{name}) catch "var myVar = value;" }) catch {};
+        suggestions.append(mem_utils.getAllocator(), .{ .message = "Example variable declaration", .example = std.fmt.allocPrint(mem_utils.getAllocator(), "var {s} = value;", .{name}) catch "var myVar = value;" }) catch {};
 
         return ErrorInfo{
             .code = .UNDEFINED_VARIABLE,
@@ -262,17 +263,17 @@ pub const ErrorTemplates = struct {
             .column = 0,
             .length = @intCast(name.len),
             .message = message,
-            .suggestions = suggestions.toOwnedSlice(std.heap.page_allocator) catch &[_]ErrorSuggestion{},
+            .suggestions = suggestions.toOwnedSlice(mem_utils.getAllocator()) catch &[_]ErrorSuggestion{},
         };
     }
 
     pub fn wrongArgumentCount(function_name: []const u8, expected: u32, actual: u32) ErrorInfo {
-        const message = std.fmt.allocPrint(std.heap.page_allocator, "Function '{s}' expects {d} arguments, but {d} were provided", .{ function_name, expected, actual }) catch "Wrong argument count";
+        const message = std.fmt.allocPrint(mem_utils.getAllocator(), "Function '{s}' expects {d} arguments, but {d} were provided", .{ function_name, expected, actual }) catch "Wrong argument count";
 
         const fix_msg = if (actual > expected)
-            std.fmt.allocPrint(std.heap.page_allocator, "Remove {} argument{s}", .{ actual - expected, if (actual - expected == 1) "" else "s" }) catch "Adjust arguments"
+            std.fmt.allocPrint(mem_utils.getAllocator(), "Remove {} argument{s}", .{ actual - expected, if (actual - expected == 1) "" else "s" }) catch "Adjust arguments"
         else
-            std.fmt.allocPrint(std.heap.page_allocator, "Add {} argument{s}", .{ expected - actual, if (expected - actual == 1) "" else "s" }) catch "Adjust arguments";
+            std.fmt.allocPrint(mem_utils.getAllocator(), "Add {} argument{s}", .{ expected - actual, if (expected - actual == 1) "" else "s" }) catch "Adjust arguments";
 
         return ErrorInfo{
             .code = .WRONG_ARGUMENT_COUNT,
@@ -342,7 +343,7 @@ pub const ErrorTemplates = struct {
     }
 
     pub fn indexOutOfBounds(index: i32, size: i32) ErrorInfo {
-        const message = std.fmt.allocPrint(std.heap.page_allocator, "Index {d} is out of bounds for size {d}", .{ index, size }) catch "Index out of bounds";
+        const message = std.fmt.allocPrint(mem_utils.getAllocator(), "Index {d} is out of bounds for size {d}", .{ index, size }) catch "Index out of bounds";
 
         return ErrorInfo{
             .code = .INDEX_OUT_OF_BOUNDS,
@@ -353,7 +354,7 @@ pub const ErrorTemplates = struct {
             .length = 1,
             .message = message,
             .suggestions = &[_]ErrorSuggestion{
-                .{ .message = std.fmt.allocPrint(std.heap.page_allocator, "Valid indices are 0 to {d}", .{size - 1}) catch "Check bounds" },
+                .{ .message = std.fmt.allocPrint(mem_utils.getAllocator(), "Valid indices are 0 to {d}", .{size - 1}) catch "Check bounds" },
                 .{ .message = "Check array/vector size before accessing elements" },
                 .{ .message = "Use bounds checking", .example = "if (index >= 0 && index < size) { ... }" },
             },

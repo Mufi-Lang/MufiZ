@@ -2,7 +2,7 @@ const std = @import("std");
 
 const conv = @import("../conv.zig");
 const type_check = conv.type_check;
-const GlobalAlloc = @import("../main.zig").GlobalAlloc;
+const mem_utils = @import("../mem_utils.zig");
 const stdlib_error = @import("../stdlib.zig").stdlib_error;
 const Value = @import("../value.zig").Value;
 
@@ -39,6 +39,6 @@ pub fn input(argc: i32, args: [*]Value) Value {
     const trimmed = std.mem.trim(u8, input_buffer[0..pos], " \t\r\n");
 
     // Allocate and copy the string
-    const result = GlobalAlloc.dupe(u8, trimmed) catch return Value.init_nil();
+    const result = mem_utils.getAllocator().dupe(u8, trimmed) catch return Value.init_nil();
     return Value.init_string(result);
 }

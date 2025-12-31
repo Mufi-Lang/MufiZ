@@ -6,8 +6,6 @@ const debug_opts = @import("debug");
 
 const chunk_h = @import("chunk.zig");
 const mem_utils = @import("mem_utils.zig");
-const realloc = mem_utils.realloc;
-const free = mem_utils.free;
 const obj_h = @import("object.zig");
 const Obj = obj_h.Obj;
 const Node = obj_h.Node;
@@ -105,6 +103,8 @@ pub fn debugObjectGeneration(obj: *Obj, action: []const u8) void {
 
 //todo: fix collect garbage debugging
 pub fn reallocate(pointer: ?*anyopaque, oldSize: usize, newSize: usize) ?*anyopaque {
+    const allocator = mem_utils.getAllocator();
+
     if (newSize > oldSize) {
         if (debug_opts.stress_gc) collectGarbage();
 
@@ -128,7 +128,10 @@ pub fn reallocate(pointer: ?*anyopaque, oldSize: usize, newSize: usize) ?*anyopa
             // Accounting bug - prevent underflow
             vm_h.vm.bytesAllocated = 0;
         }
-        if (pointer != null) free(pointer);
+        if (pointer != null) {
+            const old_slice = @as([*]u8, @ptrCast(pointer))[0..oldSize];
+            mem_utils.free(allocator, old_slice);
+        }
         return null;
     }
 
@@ -136,11 +139,33 @@ pub fn reallocate(pointer: ?*anyopaque, oldSize: usize, newSize: usize) ?*anyopa
         collectGarbage();
     }
 
-    var result = realloc(pointer, newSize);
+    var result: ?*anyopaque = null;
+
+    if (pointer == null) {
+        // Act like malloc
+        const new_memory = mem_utils.alloc(allocator, u8, newSize) catch null;
+        result = if (new_memory) |mem| mem.ptr else null;
+    } else {
+        // Reallocate existing memory
+        const old_slice = @as([*]u8, @ptrCast(pointer))[0..oldSize];
+        const new_memory = mem_utils.realloc(allocator, old_slice, newSize) catch null;
+        result = if (new_memory) |mem| mem.ptr else null;
+    }
+
     if (result == null and newSize > 0) {
         std.debug.print("Memory allocation failed. Attempted to allocate {} bytes.\n", .{newSize});
         collectGarbage();
-        result = realloc(pointer, newSize);
+
+        // Try again after GC
+        if (pointer == null) {
+            const new_memory = mem_utils.alloc(allocator, u8, newSize) catch null;
+            result = if (new_memory) |mem| mem.ptr else null;
+        } else {
+            const old_slice = @as([*]u8, @ptrCast(pointer))[0..oldSize];
+            const new_memory = mem_utils.realloc(allocator, old_slice, newSize) catch null;
+            result = if (new_memory) |mem| mem.ptr else null;
+        }
+
         if (result == null) {
             std.debug.print("Critical error: Memory allocation failed after garbage collection attempt.\n", .{});
             std.process.exit(1);
@@ -204,7 +229,9 @@ pub fn markObject(object: ?*Obj) void {
     obj.isMarked = true;
     if (vm_h.vm.grayCapacity < (vm_h.vm.grayCount + 1)) {
         vm_h.vm.grayCapacity = if (vm_h.vm.grayCapacity < 8) 8 else vm_h.vm.grayCapacity * 2;
-        vm_h.vm.grayStack = @ptrCast(@alignCast(realloc(@ptrCast(vm_h.vm.grayStack), @intCast(@sizeOf(*Obj) *% vm_h.vm.grayCapacity))));
+        const old_capacity: usize = @intCast(@divTrunc(vm_h.vm.grayCapacity, 2));
+        const new_capacity: usize = @intCast(vm_h.vm.grayCapacity);
+        vm_h.vm.grayStack = @ptrCast(@alignCast(mem_utils.c_realloc(@ptrCast(vm_h.vm.grayStack), @sizeOf(*Obj) * old_capacity, @sizeOf(*Obj) * new_capacity)));
     }
     vm_h.vm.grayCount += 1;
     if (vm_h.vm.grayStack) |stack| {
@@ -320,7 +347,9 @@ pub fn markObjectForGeneration(object: ?*Obj, gen: __obj.Generation) void {
     // Add to gray stack for processing
     if (vm_h.vm.grayCapacity < (vm_h.vm.grayCount + 1)) {
         vm_h.vm.grayCapacity = if (vm_h.vm.grayCapacity < 8) 8 else vm_h.vm.grayCapacity * 2;
-        vm_h.vm.grayStack = @ptrCast(@alignCast(realloc(@ptrCast(vm_h.vm.grayStack), @intCast(@sizeOf(*Obj) *% vm_h.vm.grayCapacity))));
+        const old_capacity: usize = @intCast(@divTrunc(vm_h.vm.grayCapacity, 2));
+        const new_capacity: usize = @intCast(vm_h.vm.grayCapacity);
+        vm_h.vm.grayStack = @ptrCast(@alignCast(mem_utils.c_realloc(@ptrCast(vm_h.vm.grayStack), @sizeOf(*Obj) * old_capacity, @sizeOf(*Obj) * new_capacity)));
     }
     vm_h.vm.grayCount += 1;
     if (vm_h.vm.grayStack) |stack| {
@@ -617,7 +646,10 @@ pub fn freeObjects() void {
     gcData.cycleRoots.count = 0;
 
     if (vm_h.vm.grayStack) |stack| {
-        free(@ptrCast(stack));
+        mem_utils.c_free(@ptrCast(stack), @sizeOf(*Obj) * @as(usize, @intCast(vm_h.vm.grayCapacity)));
+        vm_h.vm.grayStack = null;
+        vm_h.vm.grayCapacity = 0;
+        vm_h.vm.grayCount = 0;
     }
 }
 
