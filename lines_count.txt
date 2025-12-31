@@ -1,40 +1,47 @@
       86 build.zig
-     216 src/objects/class.zig
-     403 src/objects/complex_array.zig
-    1219 src/objects/fvec.zig
-     283 src/objects/hash_table.zig
-     339 src/objects/instance.zig
-     475 src/objects/linked_list.zig
-      44 src/objects/obj.zig
-     103 src/objects/pair.zig
+     218 src/objects/class.zig
+    1217 src/objects/fvec.zig
+     258 src/objects/hash_table_legacy.zig
+     269 src/objects/hash_table.zig
+     341 src/objects/instance.zig
+     509 src/objects/linked_list.zig
+     632 src/objects/matrix.zig
+      45 src/objects/obj.zig
+     104 src/objects/pair.zig
      203 src/objects/range.zig
-     380 src/objects/string.zig
-     115 src/chunk.zig
-    2673 src/compiler.zig
-      67 src/conv.zig
-     186 src/debug.zig
-     514 src/errors.zig
-      79 src/main.zig
-     656 src/mem_utils.zig
-     853 src/memory.zig
+     423 src/objects/string.zig
+     334 src/allocator.zig
+     257 src/arena_demo.zig
+     149 src/chunk.zig
+     126 src/compiler_arena.zig
+    2771 src/compiler.zig
+      68 src/conv.zig
+     197 src/debug.zig
+     515 src/errors.zig
+      92 src/main.zig
+     380 src/mem_utils.zig
+     935 src/memory.zig
      110 src/net.zig
-     536 src/object.zig
-     638 src/scanner.zig
-     492 src/simd_string.zig
-      83 src/simple_line.zig
-     256 src/stdlib.zig
+     332 src/object.zig
+     632 src/scanner.zig
+     480 src/simd_string.zig
+     153 src/simple_line.zig
+     282 src/stdlib.zig
+     249 src/string_hash.zig
      151 src/syntax_min.zig
-     208 src/system.zig
-     325 src/table.zig
-     707 src/value.zig
-     609 src/vm.zig
-    1236 src/stdlib/collections.zig
+     339 src/system.zig
+     330 src/table.zig
+     771 src/value.zig
+     156 src/vm_allocator.zig
+    2065 src/vm.zig
+    1238 src/stdlib/collections.zig
       66 src/stdlib/fs.zig
-      27 src/stdlib/io.zig
+      44 src/stdlib/io.zig
      208 src/stdlib/math.zig
+     469 src/stdlib/matrix.zig
      533 src/stdlib/module.zig
-     365 src/stdlib/network.zig
+     371 src/stdlib/network.zig
       29 src/stdlib/time.zig
       77 src/stdlib/types.zig
      246 src/stdlib/utils.zig
-   15796 total
+   19460 total

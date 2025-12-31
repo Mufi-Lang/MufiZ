@@ -146,12 +146,19 @@ pub const Scanner = struct {
 };
 
 pub var scanner: Scanner = undefined;
+var source_start: [*]u8 = undefined;
 
 pub fn init_scanner(source: [*]u8) void {
     scanner.start = @ptrCast(source);
     scanner.current = @ptrCast(source);
     scanner.line = 1;
+    source_start = @ptrCast(source);
     initKeywordMap();
+}
+
+/// Get the start of the source code for column calculation
+pub fn getSourceStart() [*]const u8 {
+    return source_start;
 }
 
 pub fn is_alpha(c: u8) bool {

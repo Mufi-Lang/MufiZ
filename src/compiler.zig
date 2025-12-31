@@ -10,6 +10,7 @@ const debug_h = @import("debug.zig");
 const errors = @import("errors.zig");
 const mem_utils = @import("mem_utils.zig");
 const allocator_mod = @import("allocator.zig");
+const compiler_arena = @import("compiler_arena.zig");
 const memcmp = mem_utils.memcmp;
 const object_h = @import("object.zig");
 const ObjFunction = object_h.ObjFunction;
@@ -30,7 +31,8 @@ pub var errorManagerInitialized: bool = false;
 // Track all declared variables for suggestion system
 pub fn addKnownVariable(name: []const u8) void {
     if (errorManagerInitialized) {
-        const allocator = mem_utils.getAllocator();
+        // Use compiler arena for temporary variable tracking
+        const allocator = compiler_arena.getCompilerAllocator();
         knownVariables.append(allocator, name) catch {};
     }
 }
@@ -91,8 +93,6 @@ pub const PREC_INDEX: i32 = 12;
 pub const PREC_PRIMARY: i32 = 13;
 pub const Precedence = u32;
 
-// We'll remove the OP_ROT_THREE opcode and use a simpler approach
-
 pub const ParseFn = ?*const fn (bool) void;
 pub const ParseRule = struct {
     prefix: ParseFn = null,
@@ -145,16 +145,15 @@ pub const Loop = struct {
             .continueJumps = undefined,
             .loopType = loopType,
         };
-        const allocator = mem_utils.getAllocator();
+        const allocator = compiler_arena.getCompilerAllocator();
         loop.breakJumps = std.ArrayList(i32).initCapacity(allocator, 0) catch unreachable;
         loop.continueJumps = std.ArrayList(i32).initCapacity(allocator, 0) catch unreachable;
         return loop;
     }
 
     pub fn deinit(self: *Loop) void {
-        const allocator = mem_utils.getAllocator();
-        self.breakJumps.deinit(allocator);
-        self.continueJumps.deinit(allocator);
+        // No need to manually deinit - arena will clean up automatically
+        _ = self;
     }
 };
 
@@ -176,6 +175,31 @@ pub var currentClass: ?*ClassCompiler = null;
 pub fn currentChunk() *Chunk {
     return &current.?.function.*.chunk;
 }
+
+/// Calculate the column position of a token by finding the start of its line
+fn calculateTokenColumn(token: *Token, source_start: [*]const u8) u32 {
+    if (@intFromPtr(token.start) < @intFromPtr(source_start)) return 1; // Safety check
+
+    // Walk backwards from token start to find the beginning of the line
+    var pos: [*]const u8 = token.start;
+    var column: u32 = 1;
+
+    // Walk backwards until we hit the start of source or a newline
+    while (@intFromPtr(pos) > @intFromPtr(source_start)) {
+        pos -= 1;
+        if (pos[0] == '\n') {
+            break;
+        }
+        column += 1;
+    }
+
+    // If we hit a newline, the column is the distance from newline + 1
+    if (@intFromPtr(pos) > @intFromPtr(source_start) and pos[0] == '\n') {
+        column = @intCast(@intFromPtr(token.start) - @intFromPtr(pos));
+    }
+
+    return if (column == 0) 1 else column;
+}
 pub fn errorAt(token: *Token, message: [*]const u8) void {
     if (parser.panicMode) return;
 
@@ -190,7 +214,7 @@ pub fn errorAt(token: *Token, message: [*]const u8) void {
         .category = .SYNTAX,
         .severity = .ERROR,
         .line = @intCast(@as(u32, @bitCast(token.*.line))),
-        .column = 1, // TODO: Calculate actual column from token position
+        .column = calculateTokenColumn(token, scanner_h.getSourceStart()),
         .length = @intCast(@as(u32, @bitCast(token.*.length))),
         .message = msg,
         .suggestions = &[_]errors.ErrorSuggestion{},
@@ -739,9 +763,9 @@ pub fn declareVariable() void {
                 const suggestions = [_]errors.ErrorSuggestion{
                     .{ .message = "Use a different variable name" },
                     .{ .message = "Variables in the same scope must have unique names" },
-                    .{ .message = "Try alternative names", .example = std.fmt.allocPrint(mem_utils.getAllocator(), "{s}2, new{s}, {s}Value", .{ varName, varName, varName }) catch "newName, value2" },
+                    .{ .message = "Try alternative names", .example = std.fmt.allocPrint(compiler_arena.getCompilerAllocator(), "{s}2, new{s}, {s}Value", .{ varName, varName, varName }) catch "newName, value2" },
                 };
-                errorWithSuggestions(&parser.previous, .REDEFINED_VARIABLE, std.fmt.allocPrint(mem_utils.getAllocator(), "Variable '{s}' already declared in this scope", .{varName}) catch "Variable already declared", &suggestions);
+                errorWithSuggestions(&parser.previous, .REDEFINED_VARIABLE, std.fmt.allocPrint(compiler_arena.getCompilerAllocator(), "Variable '{s}' already declared in this scope", .{varName}) catch "Variable already declared", &suggestions);
                 return;
             }
         }
@@ -766,9 +790,9 @@ pub fn declareConstVariable() void {
                 const suggestions = [_]errors.ErrorSuggestion{
                     .{ .message = "Use a different constant name" },
                     .{ .message = "Constants in the same scope must have unique names" },
-                    .{ .message = "Try alternative names", .example = std.fmt.allocPrint(mem_utils.getAllocator(), "{s}2, new{s}, {s}Value", .{ varName, varName, varName }) catch "newName, value2" },
+                    .{ .message = "Try alternative names", .example = std.fmt.allocPrint(compiler_arena.getCompilerAllocator(), "{s}2, new{s}, {s}Value", .{ varName, varName, varName }) catch "newName, value2" },
                 };
-                errorWithSuggestions(&parser.previous, .REDEFINED_VARIABLE, std.fmt.allocPrint(mem_utils.getAllocator(), "Constant '{s}' already declared in this scope", .{varName}) catch "Constant already declared", &suggestions);
+                errorWithSuggestions(&parser.previous, .REDEFINED_VARIABLE, std.fmt.allocPrint(compiler_arena.getCompilerAllocator(), "Constant '{s}' already declared in this scope", .{varName}) catch "Constant already declared", &suggestions);
                 return;
             }
         }
@@ -1514,7 +1538,7 @@ pub fn namedVariable(name: Token, canAssign: bool) void {
                 .{ .message = "Constants cannot be modified after declaration" },
                 .{ .message = "Declare as mutable", .example = "var myVariable = value;" },
             };
-            errorWithSuggestions(&parser.previous, .INVALID_ASSIGNMENT, std.fmt.allocPrint(mem_utils.getAllocator(), "Cannot assign to constant variable '{s}'", .{varName}) catch "Cannot assign to constant variable", &suggestions);
+            errorWithSuggestions(&parser.previous, .INVALID_ASSIGNMENT, std.fmt.allocPrint(compiler_arena.getCompilerAllocator(), "Cannot assign to constant variable '{s}'", .{varName}) catch "Cannot assign to constant variable", &suggestions);
             return;
         }
         expression();
@@ -1528,7 +1552,7 @@ pub fn namedVariable(name: Token, canAssign: bool) void {
                 .{ .message = "Constants cannot be modified with assignment operators" },
                 .{ .message = "Declare as mutable", .example = "var myVariable = value;" },
             };
-            errorWithSuggestions(&parser.previous, .INVALID_ASSIGNMENT, std.fmt.allocPrint(mem_utils.getAllocator(), "Cannot assign to constant variable '{s}'", .{varName}) catch "Cannot assign to constant variable", &suggestions);
+            errorWithSuggestions(&parser.previous, .INVALID_ASSIGNMENT, std.fmt.allocPrint(compiler_arena.getCompilerAllocator(), "Cannot assign to constant variable '{s}'", .{varName}) catch "Cannot assign to constant variable", &suggestions);
             return;
         }
         emitBytes(getOp, @as(u8, @bitCast(@as(i8, @truncate(arg)))));
@@ -1565,7 +1589,7 @@ pub fn namedVariable(name: Token, canAssign: bool) void {
                 .{ .message = "Constants cannot be incremented" },
                 .{ .message = "Declare as mutable", .example = "var myVariable = value;" },
             };
-            errorWithSuggestions(&parser.previous, .INVALID_ASSIGNMENT, std.fmt.allocPrint(mem_utils.getAllocator(), "Cannot assign to constant variable '{s}'", .{varName}) catch "Cannot assign to constant variable", &suggestions);
+            errorWithSuggestions(&parser.previous, .INVALID_ASSIGNMENT, std.fmt.allocPrint(compiler_arena.getCompilerAllocator(), "Cannot assign to constant variable '{s}'", .{varName}) catch "Cannot assign to constant variable", &suggestions);
             return;
         }
         emitBytes(getOp, @as(u8, @bitCast(@as(i8, @truncate(arg)))));
@@ -1587,7 +1611,7 @@ pub fn namedVariable(name: Token, canAssign: bool) void {
                 .{ .message = "Constants cannot be decremented" },
                 .{ .message = "Declare as mutable", .example = "var myVariable = value;" },
             };
-            errorWithSuggestions(&parser.previous, .INVALID_ASSIGNMENT, std.fmt.allocPrint(mem_utils.getAllocator(), "Cannot assign to constant variable '{s}'", .{varName}) catch "Cannot assign to constant variable", &suggestions);
+            errorWithSuggestions(&parser.previous, .INVALID_ASSIGNMENT, std.fmt.allocPrint(compiler_arena.getCompilerAllocator(), "Cannot assign to constant variable '{s}'", .{varName}) catch "Cannot assign to constant variable", &suggestions);
             return;
         }
         emitBytes(getOp, @as(u8, @bitCast(@as(i8, @truncate(arg)))));
@@ -1883,7 +1907,7 @@ pub fn classDeclaration() void {
                 .{ .message = "Remove the inheritance if not needed" },
                 .{ .message = "Classes cannot inherit from themselves" },
             };
-            errorWithSuggestions(&parser.previous, .CLASS_INHERITANCE_ERROR, std.fmt.allocPrint(mem_utils.getAllocator(), "Class '{s}' cannot inherit from itself", .{className_str}) catch "Class cannot inherit from itself", &suggestions);
+            errorWithSuggestions(&parser.previous, .CLASS_INHERITANCE_ERROR, std.fmt.allocPrint(compiler_arena.getCompilerAllocator(), "Class '{s}' cannot inherit from itself", .{className_str}) catch "Class cannot inherit from itself", &suggestions);
         }
 
         // Store the superclass in a local variable named "super"
@@ -2199,7 +2223,7 @@ pub fn breakStatement() void {
 
     // Emit a jump that will be patched to jump to the end of the loop
     const jump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
-    current.?.innermostLoop.?.breakJumps.append(mem_utils.getAllocator(), jump) catch unreachable;
+    current.?.innermostLoop.?.breakJumps.append(compiler_arena.getCompilerAllocator(), jump) catch unreachable;
 }
 
 pub fn continueStatement() void {
@@ -2216,7 +2240,7 @@ pub fn continueStatement() void {
     if (current.?.innermostLoop.?.loopType == .FOREACH) {
         // Emit a jump that will be patched to jump to the increment section
         const jump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
-        current.?.innermostLoop.?.continueJumps.append(mem_utils.getAllocator(), jump) catch unreachable;
+        current.?.innermostLoop.?.continueJumps.append(compiler_arena.getCompilerAllocator(), jump) catch unreachable;
     } else {
         // Emit a loop instruction to jump back to the start of the loop
         emitLoop(current.?.innermostLoop.?.start);
@@ -2737,6 +2761,10 @@ pub fn synchronize() void {
 }
 
 pub fn compile(source: [*]const u8) ?*ObjFunction {
+    // Initialize compiler arena for temporary allocations
+    compiler_arena.initCompilerArena();
+    defer compiler_arena.deinitCompilerArena();
+
     // Initialize error manager if not already done
     if (!errorManagerInitialized) {
         globalErrorManager = errors.ErrorManager.init(mem_utils.getAllocator());
