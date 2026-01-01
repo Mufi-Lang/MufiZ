@@ -1,0 +1,43 @@
+// Debug test for equality comparison issues
+print("=== EQUALITY DEBUG TEST ===");
+
+// Test 1: Simple integer equality
+print("\n[Test 1] Simple integer equality");
+var a = 0;
+var b = 0;
+var result1 = a == b;
+print("0 == 0: " + result1);
+
+var c = 1;
+var d = 1;
+var result2 = c == d;
+print("1 == 1: " + result2);
+
+var e = 1;
+var f = 2;
+var result3 = e == f;
+print("1 == 2: " + result3);
+
+// Test 2: Literal equality
+print("\n[Test 2] Literal equality");
+var lit1 = 0 == 0;
+print("literal 0 == 0: " + lit1);
+
+var lit2 = 1 == 1;
+print("literal 1 == 1: " + lit2);
+
+var lit3 = 1 == 0;
+print("literal 1 == 0: " + lit3);
+
+// Test 3: Boolean equality
+print("\n[Test 3] Boolean equality");
+var bool_eq1 = true == true;
+print("true == true: " + bool_eq1);
+
+var bool_eq2 = false == false;
+print("false == false: " + bool_eq2);
+
+var bool_eq3 = true == false;
+print("true == false: " + bool_eq3);
+
+print("\n✓ Equality debug test completed");

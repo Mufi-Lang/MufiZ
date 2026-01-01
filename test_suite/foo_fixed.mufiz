@@ -1,8 +1,0 @@
-// Simple module with add function
-fun add(a, b) {
-    return a + b;
-}
-
-// Add constants like in working module
-const PI = 3.14159;
-const VERSION = "1.0.0";

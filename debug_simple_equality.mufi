@@ -1,0 +1,20 @@
+// Simple test to trigger debug output for equality comparison
+print("=== SIMPLE EQUALITY DEBUG ===");
+
+var a = 0;
+var b = 0;
+var result = a == b;
+print("Direct comparison 0 == 0: " + result);
+
+// Test modulo case
+var mod_result = 4 % 2;
+var modulo_eq = mod_result == 0;
+print("Modulo comparison (4 % 2) == 0: " + modulo_eq);
+
+// Test step by step
+var four = 4;
+var two = 2;
+var mod_val = four % two;
+var zero = 0;
+var step_eq = mod_val == zero;
+print("Step by step: " + four + " % " + two + " = " + mod_val + ", then " + mod_val + " == " + zero + " = " + step_eq);

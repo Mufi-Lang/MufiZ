@@ -10,7 +10,7 @@ pub const collections = @import("stdlib/collections.zig");
 pub const fs = @import("stdlib/fs.zig");
 pub const io = @import("stdlib/io.zig");
 pub const math = @import("stdlib/math.zig");
-pub const module = @import("stdlib/module.zig");
+
 pub const network = @import("stdlib/network.zig");
 pub const time = @import("stdlib/time.zig");
 pub const types = @import("stdlib/types.zig");
@@ -36,7 +36,6 @@ pub const CORE_FUNCTIONS = [_]BuiltinDef{
     .{ .name = "double", .func = types.double, .params = "value", .description = "Converts value to double", .module = "core" },
     .{ .name = "int", .func = types.int, .params = "value", .description = "Converts value to int", .module = "core" },
     .{ .name = "str", .func = types.str, .params = "value", .description = "Converts value to string", .module = "core" },
-    .{ .name = "import", .func = module.import, .params = "filepath", .description = "Imports a MufiZ module file and returns it as an object", .module = "core" },
 };
 
 pub const MATH_FUNCTIONS = [_]BuiltinDef{

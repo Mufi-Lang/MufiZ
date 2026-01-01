@@ -138,6 +138,7 @@ pub fn disassembleInstruction(chunk: *chunk_h.Chunk, offset: i32) i32 {
         59 => return twoByteInstruction("OP_MATRIX", chunk, offset),
         60 => return simpleInstruction("OP_GET_MATRIX_INDEX", offset),
         61 => return simpleInstruction("OP_SET_MATRIX_INDEX", offset),
+
         else => {
             std.debug.print("Unknown opcode {d}\n", .{instruction});
             return offset + 1;

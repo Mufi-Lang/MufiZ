@@ -1,0 +1,41 @@
+// Debug test for stack underflow issue
+print("=== STACK DEBUG TEST ===");
+
+// Test 1: Simple math operations
+print("\n[Test 1] Simple math operations");
+var a = 4;
+var b = 4;
+var sum = a + b;
+print("4 + 4 = " + sum);
+
+// Test 2: Function call with arguments
+print("\n[Test 2] Function calls");
+fun simple_add(x, y) {
+    print("In simple_add: x=" + x + ", y=" + y);
+    return x + y;
+}
+
+var result = simple_add(2, 3);
+print("simple_add(2, 3) = " + result);
+
+// Test 3: Multiple argument function
+print("\n[Test 3] Multiple arguments");
+fun add_three(x, y, z) {
+    print("In add_three: x=" + x + ", y=" + y + ", z=" + z);
+    return x + y + z;
+}
+
+var result3 = add_three(1, 2, 3);
+print("add_three(1, 2, 3) = " + result3);
+
+// Test 4: Zero argument function
+print("\n[Test 4] Zero arguments");
+fun get_constant() {
+    print("In get_constant");
+    return 42;
+}
+
+var const_result = get_constant();
+print("get_constant() = " + const_result);
+
+print("\n✓ Stack debug test completed");

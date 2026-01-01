@@ -28,6 +28,7 @@ const ObjNative = object_h.ObjNative;
 const isObjType = object_h.isObjType;
 const newUpvalue = object_h.newUpvalue;
 const newBoundMethod = object_h.newBoundMethod;
+const conv = @import("conv.zig");
 const ObjInstance = object_h.ObjInstance;
 const Instance = object_h.Instance;
 const takeString = object_h.takeString;
@@ -307,7 +308,15 @@ pub fn callValue(callee: Value, argCount: i32) bool {
             .OBJ_NATIVE => {
                 const native: NativeFn = (@as(*ObjNative, @ptrCast(@alignCast(callee.as.obj)))).*.function;
                 const result: Value = native.?(argCount, @ptrCast(&vm.stack[vm.stackTop - @as(usize, @intCast(argCount))]));
-                vm.stackTop -= @as(usize, @intCast(argCount + 1));
+
+                // Safety check for stack underflow
+                const popCount = @as(usize, @intCast(argCount + 1));
+                if (vm.stackTop < popCount) {
+                    runtimeError("Stack underflow in native function call. StackTop: {d}, PopCount: {d}", .{ vm.stackTop, popCount });
+                    return false;
+                }
+
+                vm.stackTop -= popCount;
                 push(result);
                 return true;
             },
@@ -1268,9 +1277,17 @@ fn opModulo() InterpretResult {
         runtimeError("Operands must be numbers.", .{});
         return .INTERPRET_RUNTIME_ERROR;
     }
-    const b = pop().as_num_double();
-    const a = pop().as_num_double();
-    push(Value.init_double(@mod(a, b)));
+
+    // Preserve integer type when both operands are integers
+    if (peek(0).is_int() and peek(1).is_int()) {
+        const b = pop().as_int();
+        const a = pop().as_int();
+        push(Value.init_int(@mod(a, b)));
+    } else {
+        const b = pop().as_num_double();
+        const a = pop().as_num_double();
+        push(Value.init_double(@mod(a, b)));
+    }
     return .INTERPRET_OK;
 }
 

@@ -1,0 +1,66 @@
+// Debug test for modulo + equality combination issues
+print("=== MODULO + EQUALITY DEBUG TEST ===");
+
+// Test 1: Basic modulo operations
+print("\n[Test 1] Basic modulo operations");
+var mod1 = 4 % 2;
+var mod2 = 5 % 2;
+print("4 % 2 = " + mod1);
+print("5 % 2 = " + mod2);
+
+// Test 2: Modulo results equality with zero
+print("\n[Test 2] Modulo results equality with zero");
+var zero = 0;
+var mod_result = 4 % 2;
+print("mod_result = " + mod_result);
+print("zero = " + zero);
+var eq_result = mod_result == zero;
+print("mod_result == zero: " + eq_result);
+
+// Test 3: Direct modulo equality comparison
+print("\n[Test 3] Direct modulo equality comparison");
+var direct1 = (4 % 2) == 0;
+var direct2 = (5 % 2) == 0;
+print("(4 % 2) == 0: " + direct1);
+print("(5 % 2) == 0: " + direct2);
+
+// Test 4: Step by step breakdown
+print("\n[Test 4] Step by step breakdown");
+print("Step 1: 4 % 2");
+var step1 = 4 % 2;
+print("Result: " + step1);
+
+print("Step 2: result == 0");
+var step2 = step1 == 0;
+print("Result: " + step2);
+
+// Test 5: Different numbers
+print("\n[Test 5] Different numbers");
+var test_nums = [2, 3, 4, 5, 6];
+var i = 0;
+while (i < 5) {
+    var num = test_nums[i];
+    var mod_val = num % 2;
+    var is_even = mod_val == 0;
+    print(num + " % 2 = " + mod_val + ", is_even = " + is_even);
+    i = i + 1;
+}
+
+// Test 6: Function context
+print("\n[Test 6] Function context");
+fun test_modulo_in_function(n) {
+    print("  Input: " + n);
+    var mod_result = n % 2;
+    print("  " + n + " % 2 = " + mod_result);
+    var eq_result = mod_result == 0;
+    print("  " + mod_result + " == 0 = " + eq_result);
+    return eq_result;
+}
+
+var func_result1 = test_modulo_in_function(4);
+print("Function result for 4: " + func_result1);
+
+var func_result2 = test_modulo_in_function(5);
+print("Function result for 5: " + func_result2);
+
+print("\n✓ Modulo + Equality debug test completed");
