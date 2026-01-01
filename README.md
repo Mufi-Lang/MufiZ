@@ -1,6 +1,6 @@
 # MufiZ
 
-> This project uses the Zig `v0.14.0`
+> This project uses the Zig `v0.15.2`
 
 🌐 [mufi-lang.mokareads.org](https://mufi-lang.mokareads.org)
 
