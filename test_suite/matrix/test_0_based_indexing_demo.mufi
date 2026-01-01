@@ -1,0 +1,128 @@
+// 0-Based Matrix Indexing Demo
+// Demonstrates the new 0-based indexing system in MufiZ matrices
+
+print("=== 0-BASED MATRIX INDEXING DEMO ===");
+
+// Create a 3x3 matrix for demonstration
+var M = [[10, 20, 30], [40, 50, 60], [70, 80, 90]];
+
+print("Matrix M:");
+print(M);
+print("Visual layout:");
+print("  10  20  30   <- Row 0");
+print("  40  50  60   <- Row 1");
+print("  70  80  90   <- Row 2");
+print("  ^   ^   ^");
+print("Col0 Col1 Col2");
+
+print("\n--- 0-BASED INDEXING EXAMPLES ---");
+
+print("First element (top-left corner):");
+print("M[0][0] = " + M[0][0]);
+print("Expected: 10, Got: " + M[0][0]);
+
+print("First row, second column:");
+print("M[0][1] = " + M[0][1]);
+print("Expected: 20, Got: " + M[0][1]);
+
+print("Second row, first column:");
+print("M[1][0] = " + M[1][0]);
+print("Expected: 40, Got: " + M[1][0]);
+
+print("Center element:");
+print("M[1][1] = " + M[1][1]);
+print("Expected: 50, Got: " + M[1][1]);
+
+print("Last element (bottom-right corner):");
+print("M[2][2] = " + M[2][2]);
+print("Expected: 90, Got: " + M[2][2]);
+
+print("\n--- CORNER ELEMENTS TEST ---");
+print("Top-left:     M[0][0] = " + M[0][0]);
+print("Top-right:    M[0][2] = " + M[0][2]);
+print("Bottom-left:  M[2][0] = " + M[2][0]);
+print("Bottom-right: M[2][2] = " + M[2][2]);
+
+print("\n--- MATRIX MODIFICATION WITH 0-BASED INDEXING ---");
+var A = zeros(2, 2);
+print("Created 2x2 zero matrix:");
+print(A);
+
+A[0][0] = 100;  // Top-left
+A[0][1] = 200;  // Top-right
+A[1][0] = 300;  // Bottom-left
+A[1][1] = 400;  // Bottom-right
+
+print("After setting values:");
+print("A[0][0] = 100, A[0][1] = 200");
+print("A[1][0] = 300, A[1][1] = 400");
+print("Result:");
+print(A);
+
+print("\n--- MATRIX_GET AND MATRIX_SET WITH 0-BASED INDEXING ---");
+var B = zeros(2, 3);
+print("Initial 2x3 matrix:");
+print(B);
+
+print("Setting values using matrix_set (0-based):");
+matrix_set(B, 0, 0, 11);
+matrix_set(B, 0, 1, 22);
+matrix_set(B, 0, 2, 33);
+matrix_set(B, 1, 0, 44);
+matrix_set(B, 1, 1, 55);
+matrix_set(B, 1, 2, 66);
+
+print("Matrix after matrix_set:");
+print(B);
+
+print("Reading values using matrix_get (0-based):");
+print("matrix_get(B, 0, 0) = " + matrix_get(B, 0, 0));
+print("matrix_get(B, 0, 2) = " + matrix_get(B, 0, 2));
+print("matrix_get(B, 1, 1) = " + matrix_get(B, 1, 1));
+
+print("\n--- FOREACH WITH FLATTEN STILL WORKS ---");
+var C = [[1, 2], [3, 4]];
+print("Matrix C:");
+print(C);
+print("Direct access: C[0][0] = " + C[0][0] + ", C[1][1] = " + C[1][1]);
+print("Foreach iteration:");
+foreach (element in flatten(C)) {
+    print("  " + element);
+}
+
+print("\n--- ADVANTAGES OF 0-BASED INDEXING ---");
+print("✓ Familiar to programmers (C, Java, Python, JavaScript)");
+print("✓ Natural array-style indexing: A[0] is first element");
+print("✓ Easy loop construction: for i = 0 to rows-1");
+print("✓ Consistent with most programming languages");
+print("✓ Memory address calculations are simpler");
+
+print("\n--- COMMON 0-BASED PATTERNS ---");
+print("Iterate through all elements:");
+print("for row = 0 to 1:");
+print("  for col = 0 to 1:");
+print("    element = matrix[row][col]");
+
+var sum = 0;
+for (var row = 0; row < 2; row = row + 1) {
+    for (var col = 0; col < 2; col = col + 1) {
+        sum = sum + C[row][col];
+    }
+}
+print("Sum using nested loops: " + sum);
+
+print("\n--- EDGE CASE HANDLING ---");
+print("For a 3x3 matrix:");
+print("• Valid indices: [0][0] to [2][2]");
+print("• Invalid: [3][0], [0][3], [-1][0] (unless using negative indexing)");
+print("• Last element: [rows-1][cols-1] = [2][2]");
+
+print("\n--- MIGRATION NOTES ---");
+print("Old 1-based code -> New 0-based code:");
+print("  A[1][1] -> A[0][0]  (first element)");
+print("  A[1][2] -> A[0][1]  (first row, second column)");
+print("  A[2][1] -> A[1][0]  (second row, first column)");
+print("  A[n][m] -> A[n-1][m-1]  (subtract 1 from both indices)");
+
+print("\n=== 0-BASED INDEXING DEMO COMPLETED ===");
+print("Matrix indexing is now consistent with programming language standards!");

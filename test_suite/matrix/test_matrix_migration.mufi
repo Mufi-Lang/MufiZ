@@ -1,0 +1,149 @@
+// Matrix Migration Test (Short Version)
+// Shows how to migrate from 1-based to 0-based indexing and use matrix foreach with flatten()
+
+print("=== MATRIX MIGRATION TEST ===");
+
+// Test 1: Understanding the change from 1-based to 0-based indexing
+print("");
+print("Test 1: Indexing Migration - 1-based vs 0-based");
+print("MufiZ now uses 0-based indexing (like most programming languages)");
+var A = [[1, 2], [3, 4]];
+print("Matrix A:");
+print(A);
+
+print("");
+print("OLD (1-based) -> NEW (0-based) Index Mapping:");
+print("A(1,1) -> A[0][0] = ");
+print(A[0][0]);
+print("A(1,2) -> A[0][1] = ");
+print(A[0][1]);
+print("A(2,1) -> A[1][0] = ");
+print(A[1][0]);
+print("A(2,2) -> A[1][1] = ");
+print(A[1][1]);
+
+// Test 2: Matrix element access methods (all 0-based)
+print("");
+print("Test 2: Element Access Methods");
+print("Method 1: Direct indexing A[row][col] (0-based):");
+print("A[0][0] = ");
+print(A[0][0]);
+print("A[1][1] = ");
+print(A[1][1]);
+
+print("Method 2: Using matrix_get function (0-based):");
+print("matrix_get(A, 0, 0) = ");
+print(matrix_get(A, 0, 0));
+print("matrix_get(A, 1, 1) = ");
+print(matrix_get(A, 1, 1));
+
+// Test 3: Matrix element modification (0-based)
+print("");
+print("Test 3: Matrix Modification Methods");
+var B = zeros(2, 2);
+print("Initial B (zeros):");
+print(B);
+
+print("Method 1: Direct assignment A[row][col] = value (0-based):");
+B[0][0] = 10;
+B[1][1] = 40;
+print("After direct modification:");
+print(B);
+
+print("Method 2: Using matrix_set function (0-based):");
+var C = zeros(2, 2);
+matrix_set(C, 0, 0, 100);
+matrix_set(C, 1, 1, 400);
+print("Matrix C after matrix_set calls:");
+print(C);
+
+// Test 4: NEW capability - foreach over matrix elements using flatten()
+print("");
+print("Test 4: NEW - Matrix Iteration with foreach");
+var D = [[1, 2, 3], [4, 5, 6]];
+print("Matrix D:");
+print(D);
+
+print("Direct element access (0-based):");
+print("D[0][2] = ");
+print(D[0][2]);
+print("D[1][0] = ");
+print(D[1][0]);
+
+print("Iterate over ALL elements using foreach(flatten(matrix)):");
+foreach (element in flatten(D)) {
+    print(element);
+}
+
+// Test 5: Foreach for matrix calculations
+print("");
+print("Test 5: Matrix Calculations with foreach");
+var E = [[2, 4], [6, 8]];
+print("Matrix E:");
+print(E);
+
+// Traditional calculation (0-based indexing)
+var manual_sum = E[0][0] + E[0][1] + E[1][0] + E[1][1];
+print("Manual sum (using direct indexing): ");
+print(manual_sum);
+
+// Using foreach with flatten()
+var foreach_sum = 0;
+var count = 0;
+foreach (element in flatten(E)) {
+    foreach_sum = foreach_sum + element;
+    count = count + 1;
+}
+print("Sum using foreach(flatten(E)): ");
+print(foreach_sum);
+print("Element count: ");
+print(count);
+
+// Test 6: Matrix creation functions (all use 0-based access)
+print("");
+print("Test 6: Matrix Creation Functions");
+
+print("Identity matrix:");
+var I = eye(2);
+print(I);
+print("Diagonal check (0-based): I[0][0] = ");
+print(I[0][0]);
+print("I[1][1] = ");
+print(I[1][1]);
+
+print("Ones matrix:");
+var ones_mat = ones(2, 2);
+print(ones_mat);
+print("Sample element: ones_mat[1][0] = ");
+print(ones_mat[1][0]);
+
+print("");
+print("=== MIGRATION SUMMARY ===");
+print("");
+print("1. INDEX CONVERSION:");
+print("   OLD (1-based): A(1,1) -> NEW (0-based): A[0][0]");
+print("   OLD (1-based): A(i,j) -> NEW (0-based): A[i-1][j-1]");
+
+print("");
+print("2. ELEMENT ACCESS:");
+print("   Direct: A[row][col] (0-based)");
+print("   Function: matrix_get(A, row, col) (0-based)");
+
+print("");
+print("3. ELEMENT MODIFICATION:");
+print("   Direct: A[row][col] = value (0-based)");
+print("   Function: matrix_set(A, row, col, value) (0-based)");
+
+print("");
+print("4. ITERATION:");
+print("   Use: foreach (element in flatten(matrix))");
+print("   Order: Row-major (left-to-right, top-to-bottom)");
+
+print("");
+print("5. COMPATIBILITY:");
+print("   ✓ All methods work together");
+print("   ✓ Consistent 0-based indexing throughout");
+print("   ✓ Compatible with matrix creation functions");
+
+print("");
+print("=== MATRIX MIGRATION TEST COMPLETED ===");

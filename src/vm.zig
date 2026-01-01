@@ -1507,6 +1507,7 @@ fn opLength() InterpretResult {
                 const list: *ObjLinkedList = @ptrCast(@alignCast(value.as.obj));
                 push(Value.init_int(@intCast(list.count)));
             },
+
             .OBJ_PAIR => {
                 push(Value.init_int(2));
             },
@@ -1593,8 +1594,53 @@ fn opGetIndex() InterpretResult {
                     push(Value.init_nil());
                 }
             },
+            .OBJ_MATRIX => {
+                const matrix: *object_h.Matrix = @ptrCast(@alignCast(target.as.obj));
+                if (!index.is_int()) {
+                    runtimeError("Matrix row index must be an integer.", .{});
+                    return .INTERPRET_RUNTIME_ERROR;
+                }
+                var row = index.as_int();
+
+                // MufiZ now uses 0-based indexing (like most programming languages)
+                // row is already 0-based, no conversion needed
+
+                // Handle negative indices (from end)
+                if (row < 0) row += @intCast(matrix.rows);
+
+                if (row < 0 or row >= @as(i32, @intCast(matrix.rows))) {
+                    runtimeError("Matrix row index out of bounds.", .{});
+                    return .INTERPRET_RUNTIME_ERROR;
+                }
+
+                // Create and return a matrix row object
+                const matrix_row = object_h.MatrixRow.init(matrix, @intCast(row));
+                push(Value.init_obj(@ptrCast(matrix_row)));
+            },
+            .OBJ_MATRIX_ROW => {
+                const matrix_row: *object_h.MatrixRow = @ptrCast(@alignCast(target.as.obj));
+                if (!index.is_int()) {
+                    runtimeError("Matrix column index must be an integer.", .{});
+                    return .INTERPRET_RUNTIME_ERROR;
+                }
+                var col = index.as_int();
+
+                // MufiZ now uses 0-based indexing (like most programming languages)
+                // col is already 0-based, no conversion needed
+
+                // Handle negative indices (from end)
+                if (col < 0) col += @intCast(matrix_row.matrix.cols);
+
+                if (col < 0 or col >= @as(i32, @intCast(matrix_row.matrix.cols))) {
+                    runtimeError("Matrix column index out of bounds.", .{});
+                    return .INTERPRET_RUNTIME_ERROR;
+                }
+
+                const element = matrix_row.get(@intCast(col));
+                push(Value.init_double(element));
+            },
             else => {
-                runtimeError("Operand must be a string, range, array, or pair (got {any}).", .{target.as.obj.?.type});
+                runtimeError("Operand must be a string, range, array, pair, or matrix (got {any}).", .{target.as.obj.?.type});
                 return .INTERPRET_RUNTIME_ERROR;
             },
         }
@@ -1755,6 +1801,33 @@ fn opSetIndex() InterpretResult {
                 _ = table.put(index.as_string(), value);
                 push(value);
             },
+            .OBJ_MATRIX_ROW => {
+                const matrix_row: *object_h.MatrixRow = @ptrCast(@alignCast(target.as.obj));
+                if (!index.is_int()) {
+                    runtimeError("Matrix column index must be an integer.", .{});
+                    return .INTERPRET_RUNTIME_ERROR;
+                }
+                if (!value.is_prim_num()) {
+                    runtimeError("Matrix elements must be numbers.", .{});
+                    return .INTERPRET_RUNTIME_ERROR;
+                }
+                var col = index.as_int();
+
+                // MufiZ now uses 0-based indexing (like most programming languages)
+                // col is already 0-based, no conversion needed
+
+                // Handle negative indices (from end)
+                if (col < 0) col += @intCast(matrix_row.matrix.cols);
+
+                if (col < 0 or col >= @as(i32, @intCast(matrix_row.matrix.cols))) {
+                    runtimeError("Matrix column index out of bounds.", .{});
+                    return .INTERPRET_RUNTIME_ERROR;
+                }
+
+                const val = @as(f64, @floatCast(value.as_num_double()));
+                matrix_row.set(@intCast(col), val);
+                push(value);
+            },
             else => {
                 runtimeError("Object does not support index assignment.", .{});
                 return .INTERPRET_RUNTIME_ERROR;
@@ -1885,93 +1958,6 @@ fn opMatrix() InterpretResult {
     return .INTERPRET_OK;
 }
 
-fn opGetMatrixIndex() InterpretResult {
-    const col_val = peek(0); // Column index (j)
-    const row_val = peek(1); // Row index (i)
-    const matrix_val = peek(2); // Matrix
-
-    if (!matrix_val.is_matrix()) {
-        runtimeError("Can only index matrices.", .{});
-        return .INTERPRET_RUNTIME_ERROR;
-    }
-
-    if (!row_val.is_int() or !col_val.is_int()) {
-        runtimeError("Matrix indices must be integers.", .{});
-        return .INTERPRET_RUNTIME_ERROR;
-    }
-
-    const matrix = matrix_val.as_matrix();
-    var row = row_val.as_int();
-    var col = col_val.as_int();
-
-    // Convert to 0-based indexing (MufiZ uses 1-based)
-    row -= 1;
-    col -= 1;
-
-    // Handle negative indices (from end)
-    if (row < 0) row += @intCast(matrix.rows);
-    if (col < 0) col += @intCast(matrix.cols);
-
-    if (row < 0 or row >= @as(i32, @intCast(matrix.rows)) or col < 0 or col >= @as(i32, @intCast(matrix.cols))) {
-        runtimeError("Matrix index out of bounds.", .{});
-        return .INTERPRET_RUNTIME_ERROR;
-    }
-
-    const element = matrix.get(@intCast(row), @intCast(col));
-
-    // Pop the three values and push result
-    vm.stackTop -= 3;
-    push(Value.init_double(element));
-    return .INTERPRET_OK;
-}
-
-fn opSetMatrixIndex() InterpretResult {
-    const value_val = peek(0); // Value to set
-    const col_val = peek(1); // Column index (j)
-    const row_val = peek(2); // Row index (i)
-    const matrix_val = peek(3); // Matrix
-
-    if (!matrix_val.is_matrix()) {
-        runtimeError("Can only index matrices.", .{});
-        return .INTERPRET_RUNTIME_ERROR;
-    }
-
-    if (!row_val.is_int() or !col_val.is_int()) {
-        runtimeError("Matrix indices must be integers.", .{});
-        return .INTERPRET_RUNTIME_ERROR;
-    }
-
-    if (!value_val.is_prim_num()) {
-        runtimeError("Matrix elements must be numbers.", .{});
-        return .INTERPRET_RUNTIME_ERROR;
-    }
-
-    const matrix = matrix_val.as_matrix();
-    var row = row_val.as_int();
-    var col = col_val.as_int();
-
-    // Convert to 0-based indexing (MufiZ uses 1-based)
-    row -= 1;
-    col -= 1;
-
-    // Handle negative indices (from end)
-    if (row < 0) row += @intCast(matrix.rows);
-    if (col < 0) col += @intCast(matrix.cols);
-
-    if (row < 0 or row >= @as(i32, @intCast(matrix.rows)) or col < 0 or col >= @as(i32, @intCast(matrix.cols))) {
-        runtimeError("Matrix index out of bounds.", .{});
-        return .INTERPRET_RUNTIME_ERROR;
-    }
-
-    const value = @as(f64, @floatCast(value_val.as_num_double()));
-    matrix.set(@intCast(row), @intCast(col), value);
-
-    // Pop the four values and push the matrix back
-    vm.stackTop -= 4;
-    push(matrix_val);
-    return .INTERPRET_OK;
-}
-
 fn opUnknown() InterpretResult {
     const frame = vm.currentFrame.?;
     const instruction = (frame.ip - 1)[0];
@@ -2044,10 +2030,38 @@ const jumpTable = blk: {
     table[@intFromEnum(OpCode.OP_CONTINUE)] = opContinue;
     table[@intFromEnum(OpCode.OP_FVECTOR)] = opFVector;
     table[@intFromEnum(OpCode.OP_MATRIX)] = opMatrix;
-    table[@intFromEnum(OpCode.OP_GET_MATRIX_INDEX)] = opGetMatrixIndex;
-    table[@intFromEnum(OpCode.OP_SET_MATRIX_INDEX)] = opSetMatrixIndex;
+    table[@intFromEnum(OpCode.OP_GET_MATRIX_FLAT)] = opGetMatrixFlat;
+
     break :blk table;
 };
+
+fn opGetMatrixFlat() InterpretResult {
+    const index = pop();
+    const target = pop();
+
+    if (!target.is_obj() or !object_h.isObjType(target, .OBJ_MATRIX)) {
+        runtimeError("Operand must be a matrix.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    if (!index.is_int()) {
+        runtimeError("Matrix flat index must be an integer.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    const matrix: *object_h.Matrix = @ptrCast(@alignCast(target.as.obj));
+    const idx = index.as_int();
+    const total_elements = @as(i32, @intCast(matrix.rows * matrix.cols));
+
+    if (idx < 0 or idx >= total_elements) {
+        runtimeError("Matrix flat index out of bounds.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    const element = matrix.getFlat(@intCast(idx));
+    push(Value.init_double(element));
+    return .INTERPRET_OK;
+}
 
 pub fn run() InterpretResult {
     vm.currentFrame = &vm.frames[@intCast(vm.frameCount - 1)];

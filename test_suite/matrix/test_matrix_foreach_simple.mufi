@@ -1,0 +1,42 @@
+// Minimal Matrix Foreach Test
+// Tests basic matrix foreach functionality using flatten() and 0-based indexing
+
+print("=== MINIMAL MATRIX FOREACH TEST ===");
+
+// Test 1: Basic 2x2 matrix
+var A = [[1, 2], [3, 4]];
+print("Matrix A:");
+print(A);
+print("A[0][0] = ");
+print(A[0][0]);
+print("A[1][1] = ");
+print(A[1][1]);
+
+print("Elements via flatten():");
+foreach (element in flatten(A)) {
+    print(element);
+}
+
+// Test 2: Matrix calculations
+var sum = 0;
+foreach (element in flatten(A)) {
+    sum = sum + element;
+}
+print("Sum: ");
+print(sum);
+
+// Test 3: Matrix modification
+var B = zeros(2, 2);
+B[0][0] = 10;
+B[1][1] = 20;
+print("Modified matrix:");
+print(B);
+
+// Test 4: matrix_get and matrix_set
+print("matrix_get(B, 0, 0) = ");
+print(matrix_get(B, 0, 0));
+matrix_set(B, 0, 1, 15);
+print("After matrix_set(B, 0, 1, 15):");
+print(B);
+
+print("=== TEST COMPLETED ===");

@@ -1,0 +1,48 @@
+// Matrix indexing calculations and operations - Part 2
+// Tests for matrix calculations, row/column operations, and arithmetic
+
+// Test 1: Row sum calculations
+var A = zeros(3, 3);
+A[0][0] = 1.0;
+A[0][1] = 2.0;
+A[0][2] = 3.0;
+A[1][0] = 4.0;
+A[1][1] = 5.0;
+A[1][2] = 6.0;
+
+var row1_sum = A[0][0] + A[0][1] + A[0][2];
+var row2_sum = A[1][0] + A[1][1] + A[1][2];
+assert(row1_sum, 6.0);
+assert(row2_sum, 15.0);
+
+// Test 2: Column sum calculations
+var col1_sum = A[0][0] + A[1][0];
+var col2_sum = A[0][1] + A[1][1];
+assert(col1_sum, 5.0);
+assert(col2_sum, 7.0);
+
+// Test 3: Diagonal calculations
+var diag_sum = A[0][0] + A[1][1];
+assert(diag_sum, 6.0);
+
+// Test 4: Matrix arithmetic with elements
+var B = zeros(2, 2);
+B[0][0] = 10.0;
+B[0][1] = 20.0;
+B[1][0] = 30.0;
+B[1][1] = 40.0;
+
+var product = B[0][0] * B[1][1];
+var difference = B[1][1] - B[0][0];
+assert(product, 400.0);
+assert(difference, 30.0);
+
+// Test 5: Negative number operations
+var C = zeros(2, 2);
+C[0][0] = -5.0;
+C[1][1] = -20.0;
+
+var neg_sum = C[0][0] + C[1][1];
+assert(neg_sum, -25.0);
+
+print("Matrix calculations tests passed (0-based)!");

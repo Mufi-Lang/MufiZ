@@ -48,6 +48,7 @@ pub fn main() !void {
     defer vm_h.freeVM();
     stdlib.prelude();
     stdlib.addMath();
+    stdlib.addMatrix();
     stdlib.addCollections();
     stdlib.addTime();
     stdlib.addFs();

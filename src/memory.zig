@@ -756,6 +756,12 @@ pub fn freeObject(object: *Obj) void {
             const matrix_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(obj_h.Matrix)];
             mem_utils.free(allocator, matrix_slice);
         },
+        .OBJ_MATRIX_ROW => {
+            // Matrix row objects don't own data, just free the object itself
+            const allocator = mem_utils.getAllocator();
+            const matrix_row_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(obj_h.MatrixRow)];
+            mem_utils.free(allocator, matrix_row_slice);
+        },
     }
 }
 
@@ -828,6 +834,11 @@ pub fn blackenObject(object: *Obj) void {
         },
         .OBJ_MATRIX => {
             // Matrix has no GC-managed fields to mark (only contains f64 data)
+        },
+        .OBJ_MATRIX_ROW => {
+            const matrix_row: *obj_h.MatrixRow = @ptrCast(@alignCast(object));
+            // Mark the parent matrix to keep it alive
+            markObject(@ptrCast(matrix_row.matrix));
         },
 
         else => {},

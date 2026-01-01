@@ -63,8 +63,7 @@ pub const OpCode = enum(i32) {
     OP_CONTINUE = 57,
     OP_FVECTOR = 58,
     OP_MATRIX = 59,
-    OP_GET_MATRIX_INDEX = 60,
-    OP_SET_MATRIX_INDEX = 61,
+    OP_GET_MATRIX_FLAT = 60,
 };
 
 pub const Chunk = struct {

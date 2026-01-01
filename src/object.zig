@@ -25,6 +25,8 @@ pub const Obj = __obj.Obj;
 pub const ObjType = __obj.ObjType;
 pub const Matrix = @import("objects/matrix.zig").Matrix;
 pub const ObjMatrix = Matrix;
+pub const MatrixRow = @import("objects/matrix_row.zig").MatrixRow;
+pub const ObjMatrixRow = MatrixRow;
 pub const ObjPair = @import("objects/pair.zig").ObjPair;
 pub const ObjRange = @import("objects/range.zig").ObjRange;
 pub const String = @import("objects/string.zig").String;
@@ -294,6 +296,10 @@ pub fn printObject(value: Value) void {
         .OBJ_MATRIX => {
             const matrix = @as(*Matrix, @ptrCast(@alignCast(value.as.obj)));
             matrix.print();
+        },
+        .OBJ_MATRIX_ROW => {
+            const matrix_row = @as(*MatrixRow, @ptrCast(@alignCast(value.as.obj)));
+            print("MatrixRow[{}] from {}x{} matrix", .{ matrix_row.row_index + 1, matrix_row.matrix.rows, matrix_row.matrix.cols });
         },
         .OBJ_PAIR => {
             const pair = @as(*ObjPair, @ptrCast(@alignCast(value.as.obj)));

@@ -1706,9 +1706,8 @@ pub fn item_(canAssign: bool) void {
     variable(false);
 }
 pub fn index_(canAssign: bool) void {
-    // Check if we're doing a slice operation, matrix indexing, or regular index
+    // Check if we're doing a slice operation or regular index
     var isSlice = false;
-    var isMatrixIndex = false;
 
     // Parse the first index
     if (check(.TOKEN_END)) {
@@ -1729,29 +1728,8 @@ pub fn index_(canAssign: bool) void {
         expression();
     }
 
-    // Check if we have a comma for matrix indexing A[i,j]
-    if (match(.TOKEN_COMMA)) {
-        isMatrixIndex = true;
-
-        // Parse the second index (column)
-        if (check(.TOKEN_END)) {
-            advance(); // consume 'end'
-
-            if (match(.TOKEN_MINUS)) {
-                // Parse the offset value for 'end - offset'
-                emitConstant(Value.init_int(-1));
-                parsePrecedence(@as(c_uint, @bitCast(PREC_UNARY)));
-                emitByte(@intCast(@intFromEnum(OpCode.OP_SUBTRACT)));
-            } else {
-                // Simple 'end', use -1 as sentinel value
-                emitConstant(Value.init_int(-1));
-            }
-        } else {
-            // Regular second index
-            expression();
-        }
-    } else if (match(.TOKEN_COLON)) {
-        // Check if we have a slice with colon
+    // Check if we have a colon for slice operation
+    if (match(.TOKEN_COLON)) {
         isSlice = true;
 
         // Parse the end index
@@ -1776,17 +1754,7 @@ pub fn index_(canAssign: bool) void {
 
     consume(.TOKEN_RIGHT_SQPAREN, "Expect ']' after index expression.");
 
-    if (isMatrixIndex) {
-        // Handle 2D matrix indexing A[i,j]
-        if (canAssign and match(.TOKEN_EQUAL)) {
-            // Handle assignment to matrix element
-            expression();
-            emitByte(@intCast(@intFromEnum(OpCode.OP_SET_MATRIX_INDEX)));
-        } else {
-            // Handle matrix element access
-            emitByte(@intCast(@intFromEnum(OpCode.OP_GET_MATRIX_INDEX)));
-        }
-    } else if (isSlice) {
+    if (isSlice) {
         // Handle slice operation
         emitByte(@intCast(@intFromEnum(OpCode.OP_SLICE)));
     } else if (canAssign and match(.TOKEN_EQUAL)) {
@@ -1794,7 +1762,7 @@ pub fn index_(canAssign: bool) void {
         expression();
         emitByte(@intCast(@intFromEnum(OpCode.OP_SET_INDEX)));
     } else {
-        // Handle regular indexing
+        // Handle regular indexing (VM will detect matrices and return matrix row objects)
         emitByte(@intCast(@intFromEnum(OpCode.OP_GET_INDEX)));
     }
 }

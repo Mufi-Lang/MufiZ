@@ -169,6 +169,9 @@ pub const MATRIX_FUNCTIONS = [_]BuiltinDef{
     .{ .name = "reshape", .func = matrix.nativeReshape, .params = "A,m,n", .description = "Reshape matrix", .module = "matrix" },
     .{ .name = "rref", .func = matrix.nativeRref, .params = "A", .description = "Reduced row echelon form", .module = "matrix" },
     .{ .name = "rank", .func = matrix.nativeRank, .params = "A", .description = "Matrix rank", .module = "matrix" },
+    .{ .name = "matrix_get", .func = matrix.nativeMatrixGet, .params = "A,row,col", .description = "Get matrix element", .module = "matrix" },
+    .{ .name = "matrix_set", .func = matrix.nativeMatrixSet, .params = "A,row,col,value", .description = "Set matrix element", .module = "matrix" },
+    .{ .name = "flatten", .func = matrix.nativeFlatten, .params = "A", .description = "Flatten matrix to vector", .module = "matrix" },
 };
 
 // Helper function to register functions

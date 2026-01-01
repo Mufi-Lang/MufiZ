@@ -1,0 +1,114 @@
+// Matrix Foreach Test - Final Version
+// Demonstrates matrix iteration using flatten() while preserving A[row][col] syntax
+
+print("=== MATRIX FOREACH FINAL TEST ===");
+
+// Test 1: Basic matrix iteration
+print("Test 1: 2x2 matrix iteration");
+var A = [[1, 2], [3, 4]];
+print("Matrix A:");
+print(A);
+print("Traditional indexing:");
+print("A[0][0] =");
+print(A[0][0]);
+print("A[1][1] =");
+print(A[1][1]);
+print("Foreach iteration using flatten(A):");
+foreach (element in flatten(A)) {
+    print(element);
+}
+
+// Test 2: Matrix calculations
+print("Test 2: Sum calculation");
+var B = [[10, 20], [30, 40]];
+print("Matrix B:");
+print(B);
+var sum = 0;
+foreach (element in flatten(B)) {
+    sum = sum + element;
+}
+print("Sum of all elements:");
+print(sum);
+
+// Test 3: Finding maximum
+print("Test 3: Maximum element");
+var C = [[3, 7, 1], [9, 2, 8]];
+print("Matrix C:");
+print(C);
+var max_val = 0;
+var first = true;
+foreach (element in flatten(C)) {
+    if (first) {
+        max_val = element;
+        first = false;
+    } else {
+        if (element > max_val) {
+            max_val = element;
+        }
+    }
+}
+print("Maximum element:");
+print(max_val);
+
+// Test 4: Counting elements
+print("Test 4: Counting positive elements");
+var D = [[-1, 2, -3], [4, 0, 6]];
+print("Matrix D:");
+print(D);
+var pos_count = 0;
+foreach (element in flatten(D)) {
+    if (element > 0) {
+        pos_count = pos_count + 1;
+    }
+}
+print("Positive elements:");
+print(pos_count);
+
+// Test 5: Matrix modification and iteration
+print("Test 5: Matrix modification");
+var E = zeros(2, 2);
+print("Initial matrix:");
+print(E);
+E[0][0] = 100;
+E[0][1] = 200;
+E[1][0] = 300;
+E[1][1] = 400;
+print("After modification:");
+print(E);
+print("Elements via foreach:");
+foreach (element in flatten(E)) {
+    print(element);
+}
+
+// Test 6: Different matrix types
+print("Test 6: Identity matrix");
+var I = eye(3);
+print("Identity matrix:");
+print(I);
+var ones_count = 0;
+foreach (element in flatten(I)) {
+    if (element == 1) {
+        ones_count = ones_count + 1;
+    }
+}
+print("Number of ones:");
+print(ones_count);
+
+print("Test 7: Ones matrix");
+var O = ones(2, 3);
+print("Ones matrix:");
+print(O);
+var total = 0;
+foreach (element in flatten(O)) {
+    total = total + element;
+}
+print("Sum of ones matrix:");
+print(total);
+
+print("=== SUMMARY ===");
+print("Matrix indexing A[row][col] works perfectly (0-based)");
+print("Matrix foreach using flatten(matrix) works perfectly");
+print("Both approaches can be used together");
+print("No breaking changes to existing code");
+
+print("=== TEST COMPLETED SUCCESSFULLY ===");

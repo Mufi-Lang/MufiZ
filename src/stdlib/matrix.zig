@@ -271,8 +271,8 @@ pub fn nativeMatrixGet(arg_count: i32, args: [*]Value) Value {
     }
 
     const matrix = args[0].as_matrix();
-    const row = @as(usize, @intCast(args[1].as_int() - 1)); // Convert to 0-based
-    const col = @as(usize, @intCast(args[2].as_int() - 1)); // Convert to 0-based
+    const row = @as(usize, @intCast(args[1].as_int())); // 0-based indexing
+    const col = @as(usize, @intCast(args[2].as_int())); // 0-based indexing
 
     if (row >= matrix.rows or col >= matrix.cols) {
         std.debug.print("matrix_get: index out of bounds\n", .{});
@@ -296,8 +296,8 @@ pub fn nativeMatrixSet(arg_count: i32, args: [*]Value) Value {
     }
 
     const matrix = args[0].as_matrix();
-    const row = @as(usize, @intCast(args[1].as_int() - 1)); // Convert to 0-based
-    const col = @as(usize, @intCast(args[2].as_int() - 1)); // Convert to 0-based
+    const row = @as(usize, @intCast(args[1].as_int())); // 0-based indexing
+    const col = @as(usize, @intCast(args[2].as_int())); // 0-based indexing
 
     if (row >= matrix.rows or col >= matrix.cols) {
         std.debug.print("matrix_set: index out of bounds\n", .{});
@@ -316,6 +316,23 @@ pub fn nativeMatrixSet(arg_count: i32, args: [*]Value) Value {
 
     matrix.set(row, col, value);
     return args[0]; // Return the matrix
+}
+
+/// Flatten matrix to vector for foreach loops: flatten(matrix)
+pub fn nativeFlatten(arg_count: i32, args: [*]Value) Value {
+    if (arg_count != 1) {
+        std.debug.print("flatten: wrong number of arguments\n", .{});
+        return Value.init_nil();
+    }
+
+    if (!args[0].is_matrix()) {
+        std.debug.print("flatten: argument must be a matrix\n", .{});
+        return Value.init_nil();
+    }
+
+    const matrix = args[0].as_matrix();
+    const flat_vector = matrix.toFlat();
+    return Value.init_obj(@ptrCast(flat_vector));
 }
 
 /// Horizontal concatenation: horzcat(A, B) or [A B]

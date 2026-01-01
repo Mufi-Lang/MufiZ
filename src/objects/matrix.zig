@@ -172,6 +172,34 @@ pub const Matrix = struct {
         self.data[self.rowColToIndex(row, col)] = value;
     }
 
+    /// Get element by flat index in row-major order (for foreach loops)
+    /// Index 0 = element at (0,0), index 1 = element at (0,1), etc.
+    pub fn getFlat(self: Self, flat_index: usize) f64 {
+        if (flat_index >= self.rows * self.cols) {
+            std.debug.print("Matrix flat index out of bounds: {d} for {}x{} matrix\n", .{ flat_index, self.rows, self.cols });
+            return 0.0;
+        }
+        // Convert flat index (row-major) to (row, col)
+        const row = flat_index / self.cols;
+        const col = flat_index % self.cols;
+        return self.get(row, col);
+    }
+
+    /// Get matrix as flat array for foreach loops
+    /// Returns a new FloatVector containing all matrix elements in row-major order
+    pub fn toFlat(self: Self) *@import("fvec.zig").FloatVector {
+        const fvec = @import("fvec.zig");
+        const total_elements = self.rows * self.cols;
+        const flat_vector = fvec.FloatVector.init(@intCast(total_elements));
+
+        for (0..total_elements) |i| {
+            const element = self.getFlat(i);
+            flat_vector.push(element);
+        }
+
+        return flat_vector;
+    }
+
     /// Clone matrix (deep copy)
     pub fn clone(self: Self) Self {
         const new_matrix = Matrix.init(self.rows, self.cols);

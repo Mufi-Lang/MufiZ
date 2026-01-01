@@ -12,6 +12,7 @@ const ObjLinkedList = obj_h.LinkedList;
 const Node = obj_h.Node;
 const FloatVector = obj_h.FloatVector;
 const Matrix = obj_h.Matrix;
+const MatrixRow = obj_h.MatrixRow;
 const fvec = @import("objects/fvec.zig");
 const obj_range = @import("objects/range.zig");
 
@@ -397,6 +398,10 @@ pub const Value = struct {
         return self.is_obj_type(.OBJ_MATRIX);
     }
 
+    pub fn is_matrix_row(self: Self) bool {
+        return self.is_obj_type(.OBJ_MATRIX_ROW);
+    }
+
     pub fn is_range(self: Self) bool {
         return self.is_obj_type(.OBJ_RANGE);
     }
@@ -430,6 +435,10 @@ pub const Value = struct {
     }
 
     pub fn as_matrix(self: Self) *Matrix {
+        return @ptrCast(@alignCast(self.as.obj));
+    }
+
+    pub fn as_matrix_row(self: Self) *MatrixRow {
         return @ptrCast(@alignCast(self.as.obj));
     }
 
