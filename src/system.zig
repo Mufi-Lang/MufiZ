@@ -9,9 +9,9 @@ const syntax = @import("syntax_min.zig");
 const vm_h = @import("vm.zig");
 
 const MAJOR: u8 = 0;
-const MINOR: u8 = 10;
+const MINOR: u8 = 11;
 const PATCH: u8 = 0;
-const CODENAME: []const u8 = "Echo";
+const CODENAME: []const u8 = "Dusk";
 
 pub inline fn version() void {
     std.debug.print("MufiZ v{d}.{d}.{d} ({s} Release)\n", .{ MAJOR, MINOR, PATCH, CODENAME });
