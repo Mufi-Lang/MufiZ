@@ -1,4 +1,7 @@
 const std = @import("std");
+
+const errors = @import("errors.zig");
+const mem_utils = @import("mem_utils.zig");
 pub const memcmp = @import("mem_utils.zig").memcmp;
 pub const strlen = @import("mem_utils.zig").strlen;
 
@@ -7,6 +10,10 @@ const KeywordMap = std.HashMap([]const u8, TokenType, std.hash_map.StringContext
 
 var keyword_map: KeywordMap = undefined;
 var keyword_map_initialized: bool = false;
+
+// External declarations for error manager (defined in compiler.zig)
+pub var globalErrorManager: ?*errors.ErrorManager = null;
+pub var errorManagerInitialized: bool = false;
 
 fn initKeywordMap() void {
     if (keyword_map_initialized) return;
@@ -32,6 +39,14 @@ fn initKeywordMap() void {
     keyword_map.put("true", .TOKEN_TRUE) catch unreachable;
     keyword_map.put("var", .TOKEN_VAR) catch unreachable;
     keyword_map.put("while", .TOKEN_WHILE) catch unreachable;
+    keyword_map.put("foreach", .TOKEN_FOREACH) catch unreachable;
+    keyword_map.put("in", .TOKEN_IN) catch unreachable;
+    keyword_map.put("end", .TOKEN_END) catch unreachable;
+    keyword_map.put("const", .TOKEN_CONST) catch unreachable;
+    keyword_map.put("switch", .TOKEN_SWITCH) catch unreachable;
+    keyword_map.put("case", .TOKEN_CASE) catch unreachable;
+    keyword_map.put("break", .TOKEN_BREAK) catch unreachable;
+    keyword_map.put("continue", .TOKEN_CONTINUE) catch unreachable;
 
     keyword_map_initialized = true;
 }
@@ -84,19 +99,35 @@ pub const TokenType = enum(c_int) {
     TOKEN_VAR = 40,
     TOKEN_WHILE = 41,
     TOKEN_ITEM = 42,
+    TOKEN_FOREACH = 43,
+    TOKEN_IN = 44,
+    TOKEN_END = 45,
+    TOKEN_CONST = 46,
+    TOKEN_SWITCH = 47,
+    TOKEN_CASE = 48,
+    TOKEN_BREAK = 49,
+    TOKEN_CONTINUE = 50,
     // Misc
-    TOKEN_ERROR = 43,
-    TOKEN_EOF = 44,
-    TOKEN_PLUS_EQUAL = 45,
-    TOKEN_MINUS_EQUAL = 46,
-    TOKEN_STAR_EQUAL = 47,
-    TOKEN_SLASH_EQUAL = 48,
-    TOKEN_PLUS_PLUS = 49,
-    TOKEN_MINUS_MINUS = 50,
-    TOKEN_HAT = 51,
-    TOKEN_LEFT_SQPAREN = 52,
-    TOKEN_RIGHT_SQPAREN = 53,
-    TOKEN_COLON = 54,
+    TOKEN_ERROR = 51,
+    TOKEN_EOF = 52,
+    TOKEN_PLUS_EQUAL = 53,
+    TOKEN_MINUS_EQUAL = 54,
+    TOKEN_STAR_EQUAL = 55,
+    TOKEN_SLASH_EQUAL = 56,
+    TOKEN_PLUS_PLUS = 57,
+    TOKEN_MINUS_MINUS = 58,
+    TOKEN_HAT = 59,
+    TOKEN_LEFT_SQPAREN = 60,
+    TOKEN_RIGHT_SQPAREN = 61,
+    TOKEN_COLON = 62,
+    TOKEN_IMAGINARY = 63,
+    TOKEN_MULTILINE_STRING = 64,
+    TOKEN_BACKTICK_STRING = 65,
+    TOKEN_F_STRING = 66,
+    TOKEN_ARROW = 67,
+    TOKEN_HASH = 68,
+    TOKEN_RANGE_EXCLUSIVE = 69,
+    TOKEN_RANGE_INCLUSIVE = 70,
 };
 
 pub const Token = struct {
@@ -112,13 +143,20 @@ pub const Scanner = struct {
     line: i32,
 };
 
-var scanner: Scanner = undefined;
+pub var scanner: Scanner = undefined;
+var source_start: [*]u8 = undefined;
 
 pub fn init_scanner(source: [*]u8) void {
     scanner.start = @ptrCast(source);
     scanner.current = @ptrCast(source);
     scanner.line = 1;
+    source_start = @ptrCast(source);
     initKeywordMap();
+}
+
+/// Get the start of the source code for column calculation
+pub fn getSourceStart() [*]const u8 {
+    return source_start;
 }
 
 pub fn is_alpha(c: u8) bool {
@@ -149,7 +187,7 @@ pub fn peekNext() u8 {
     if (is_at_end()) return 0;
     return scanner.current[1];
 }
-/// TODO: need to simply without converting so much
+
 pub fn make_token(type_: TokenType) Token {
     return .{
         .type = type_,
@@ -160,6 +198,28 @@ pub fn make_token(type_: TokenType) Token {
 }
 
 pub fn errorToken(message: [*]u8) Token {
+    // Also report enhanced error through error system if available
+    if (errorManagerInitialized and globalErrorManager != null) {
+        const msg_len = mem_utils.strlen(message);
+        const msg_slice = message[0..msg_len];
+
+        const errorInfo = errors.ErrorInfo{
+            .code = .INVALID_CHARACTER,
+            .category = .SYNTAX,
+            .severity = .ERROR,
+            .line = @intCast(@as(u32, @bitCast(scanner.line))),
+            .column = @intCast(scanner.current - scanner.start + 1),
+            .length = 1,
+            .message = msg_slice,
+            .suggestions = &[_]errors.ErrorSuggestion{
+                .{ .message = "Remove or replace the invalid character" },
+                .{ .message = "Check for non-ASCII characters or symbols" },
+            },
+        };
+
+        globalErrorManager.?.reportError(errorInfo);
+    }
+
     return .{
         .type = TokenType.TOKEN_ERROR,
         .start = @ptrCast(message),
@@ -179,7 +239,48 @@ pub fn skip_whitespace() void {
             },
             '/' => {
                 if (peekNext() == '/') {
+                    // Single-line comment
                     while (peek() != '\n' and !is_at_end()) _ = advance();
+                } else if (peekNext() == '#') {
+                    // Multi-line comment
+                    _ = advance(); // Consume '/'
+                    _ = advance(); // Consume '#'
+
+                    var nesting: u32 = 1;
+                    while (nesting > 0 and !is_at_end()) {
+                        if (peek() == '/' and peekNext() == '#') {
+                            // Nested comment start
+                            _ = advance(); // Consume '/'
+                            _ = advance(); // Consume '#'
+                            nesting += 1;
+                        } else if (peek() == '#' and peekNext() == '/') {
+                            // Comment end
+                            _ = advance(); // Consume '#'
+                            _ = advance(); // Consume '/'
+                            nesting -= 1;
+                        } else {
+                            if (peek() == '\n') scanner.line += 1;
+                            _ = advance();
+                        }
+                    }
+
+                    if (is_at_end() and nesting > 0) {
+                        if (errorManagerInitialized and globalErrorManager != null) {
+                            const errorInfo = errors.ErrorInfo{
+                                .code = .UNTERMINATED_COMMENT,
+                                .category = .SYNTAX,
+                                .severity = .ERROR,
+                                .line = @intCast(@as(u32, @bitCast(scanner.line))),
+                                .column = 1,
+                                .length = 2,
+                                .message = "Unterminated multi-line comment",
+                                .suggestions = &[_]errors.ErrorSuggestion{
+                                    .{ .message = "Add #/ to close the multi-line comment" },
+                                },
+                            };
+                            globalErrorManager.?.reportError(errorInfo);
+                        }
+                    }
                 } else {
                     return;
                 }
@@ -189,7 +290,6 @@ pub fn skip_whitespace() void {
     }
 }
 
-/// TODO: need to simply without converting so much
 pub fn match(arg_expected: u8) bool {
     const expected = arg_expected;
     if (is_at_end()) return false;
@@ -223,22 +323,189 @@ pub fn number() Token {
         _ = advance();
         while (is_digit(peek())) _ = advance();
 
+        // Check for imaginary unit 'i'
+        if (peek() == 'i') {
+            _ = advance();
+            return make_token(.TOKEN_IMAGINARY);
+        }
         return make_token(.TOKEN_DOUBLE);
     } else {
+        // Check for imaginary unit 'i' after integer
+        if (peek() == 'i') {
+            _ = advance();
+            return make_token(.TOKEN_IMAGINARY);
+        }
         return make_token(.TOKEN_INT);
     }
 }
+// Helper function to skip number at current position
+inline fn skip_number(pos: [*]u8, start_idx: *usize) void {
+    // Skip digits
+    while (pos[start_idx.*] != 0 and is_digit(pos[start_idx.*])) {
+        start_idx.* += 1;
+    }
+    // Skip decimal part if present
+    if (pos[start_idx.*] == '.' and pos[start_idx.* + 1] != 0 and is_digit(pos[start_idx.* + 1])) {
+        start_idx.* += 1; // Skip '.'
+        while (pos[start_idx.*] != 0 and is_digit(pos[start_idx.*])) {
+            start_idx.* += 1;
+        }
+    }
+}
+
+pub fn peek_for_complex() bool {
+    var i: usize = 0;
+    const start_pos = scanner.current;
+
+    // Skip over first number
+    skip_number(start_pos, &i);
+
+    // Check for immediate 'i' (pure imaginary)
+    if (start_pos[i] == 'i') {
+        return true;
+    }
+
+    // Look for operator
+    if (start_pos[i] == '+' or start_pos[i] == '-') {
+        i += 1;
+        // Skip optional second number for coefficient
+        skip_number(start_pos, &i);
+        // Must end with 'i'
+        return start_pos[i] == 'i';
+    }
+
+    return false;
+}
+
+pub fn parse_complex_token() Token {
+    // Start by parsing the first number
+    while (is_digit(peek())) {
+        _ = advance();
+    }
+    if (peek() == '.' and is_digit(peekNext())) {
+        _ = advance();
+        while (is_digit(peek())) _ = advance();
+    }
+
+    // Check for 'i' (pure imaginary)
+    if (peek() == 'i') {
+        _ = advance();
+        return make_token(.TOKEN_IMAGINARY);
+    }
+
+    // Check for operator
+    if (peek() == '+' or peek() == '-') {
+        _ = advance();
+
+        // Parse second number (imaginary coefficient)
+        while (is_digit(peek())) {
+            _ = advance();
+        }
+        if (peek() == '.' and is_digit(peekNext())) {
+            _ = advance();
+            while (is_digit(peek())) _ = advance();
+        }
+
+        // Must end with 'i'
+        if (peek() == 'i') {
+            _ = advance();
+            return make_token(.TOKEN_IMAGINARY);
+        }
+    }
+
+    // Enhanced error for complex numbers
+    if (errorManagerInitialized and globalErrorManager != null) {
+        const errorInfo = errors.ErrorInfo{
+            .code = .INVALID_CHARACTER,
+            .category = .SYNTAX,
+            .severity = .ERROR,
+            .line = @intCast(@as(u32, @bitCast(scanner.line))),
+            .column = @intCast(scanner.current - scanner.start + 1),
+            .length = @intCast(@intFromPtr(scanner.current) - @intFromPtr(scanner.start)),
+            .message = "Invalid complex number format",
+            .suggestions = &[_]errors.ErrorSuggestion{
+                .{ .message = "Complex numbers should be in format: real+imagi or real-imagi" },
+                .{ .message = "Use proper complex number format", .example = "3+4i, 2.5-1.2i, 0+5i" },
+                .{ .message = "Ensure both real and imaginary parts are valid numbers" },
+            },
+        };
+        globalErrorManager.?.reportError(errorInfo);
+    }
+
+    return errorToken(@ptrCast(@constCast("Invalid complex number.")));
+}
 
 pub fn string() Token {
+    // Regular string processing
     while (peek() != '"' and !is_at_end()) {
         if (peek() == '\n') {
             scanner.line += 1;
         }
         _ = advance();
     }
-    if (is_at_end()) return errorToken(@ptrCast(@constCast("Unterminated string.")));
+    if (is_at_end()) {
+        // Enhanced error for unterminated string
+        if (errorManagerInitialized and globalErrorManager != null) {
+            const errorInfo = errors.ErrorInfo{
+                .code = .UNTERMINATED_STRING,
+                .category = .SYNTAX,
+                .severity = .ERROR,
+                .line = @intCast(@as(u32, @bitCast(scanner.line))),
+                .column = 1,
+                .length = @intCast(@intFromPtr(scanner.current) - @intFromPtr(scanner.start)),
+                .message = "Unterminated string literal",
+                .suggestions = &[_]errors.ErrorSuggestion{
+                    .{ .message = "Add a closing quote (\") to end the string" },
+                    .{ .message = "Check for escaped quotes that should be \\\"" },
+                    .{ .message = "Use proper string syntax", .example = "\"Hello, world!\"" },
+                },
+            };
+            globalErrorManager.?.reportError(errorInfo);
+        }
+        return errorToken(@ptrCast(@constCast("Unterminated string.")));
+    }
     _ = advance();
     return make_token(.TOKEN_STRING);
+}
+
+// f-string functionality moved to the 'f' case in scanToken
+// and uses the string() function with a modified token type
+
+pub fn processMultilineString() Token {
+    // Process multi-line string content
+    while (!is_at_end()) {
+        // Check for closing backtick
+        if (peek() == '`') {
+            // Found closing backtick
+            _ = advance(); // Consume `
+            return make_token(.TOKEN_BACKTICK_STRING);
+        }
+
+        if (peek() == '\n') {
+            scanner.line += 1;
+        }
+        _ = advance();
+    }
+
+    // Unterminated multi-line string
+    if (errorManagerInitialized and globalErrorManager != null) {
+        const errorInfo = errors.ErrorInfo{
+            .code = .UNTERMINATED_STRING,
+            .category = .SYNTAX,
+            .severity = .ERROR,
+            .line = @intCast(@as(u32, @bitCast(scanner.line))),
+            .column = 1,
+            .length = @intCast(@intFromPtr(scanner.current) - @intFromPtr(scanner.start)),
+            .message = "Unterminated multi-line string literal",
+            .suggestions = &[_]errors.ErrorSuggestion{
+                .{ .message = "Add closing backtick (`) to end the multi-line string" },
+                .{ .message = "Check that opening and closing backticks match" },
+                .{ .message = "Multi-line strings use backticks (`) not quotes (\")" },
+            },
+        };
+        globalErrorManager.?.reportError(errorInfo);
+    }
+    return errorToken(@ptrCast(@constCast("Unterminated backtick string.")));
 }
 
 pub fn scanToken() Token {
@@ -248,7 +515,14 @@ pub fn scanToken() Token {
     const c = advance();
 
     if (is_alpha(c)) return identifier();
-    if (is_digit(c)) return number();
+    if (is_digit(c)) {
+        // Look ahead to see if this could be a complex number
+        if (peek_for_complex()) {
+            return parse_complex_token();
+        } else {
+            return number();
+        }
+    }
 
     switch (c) {
         '(' => return make_token(.TOKEN_LEFT_PAREN),
@@ -260,7 +534,17 @@ pub fn scanToken() Token {
         ';' => return make_token(.TOKEN_SEMICOLON),
         ':' => return make_token(.TOKEN_COLON),
         ',' => return make_token(.TOKEN_COMMA),
-        '.' => return make_token(.TOKEN_DOT),
+        '.' => {
+            if (match('.')) {
+                if (match('=')) {
+                    return make_token(.TOKEN_RANGE_INCLUSIVE);
+                } else {
+                    return make_token(.TOKEN_RANGE_EXCLUSIVE);
+                }
+            } else {
+                return make_token(.TOKEN_DOT);
+            }
+        },
         '-' => {
             if (match('=')) {
                 return make_token(.TOKEN_MINUS_EQUAL);
@@ -280,7 +564,13 @@ pub fn scanToken() Token {
             }
         },
         '/' => {
-            if (match('=')) return make_token(.TOKEN_SLASH_EQUAL) else return make_token(.TOKEN_SLASH);
+            if (match('=')) return make_token(.TOKEN_SLASH_EQUAL) else if (match('#')) {
+                // Handle multi-line comment start in token context
+                // We'll unread the '#' and let skip_whitespace handle it
+                scanner.current -= 1;
+                skip_whitespace();
+                return scanToken();
+            } else return make_token(.TOKEN_SLASH);
         },
         '*' => {
             if (match('=')) return make_token(.TOKEN_STAR_EQUAL) else return make_token(.TOKEN_STAR);
@@ -289,7 +579,7 @@ pub fn scanToken() Token {
             if (match('=')) return make_token(.TOKEN_BANG_EQUAL) else return make_token(.TOKEN_BANG);
         },
         '=' => {
-            if (match('=')) return make_token(.TOKEN_EQUAL_EQUAL) else return make_token(.TOKEN_EQUAL);
+            if (match('=')) return make_token(.TOKEN_EQUAL_EQUAL) else if (match('>')) return make_token(.TOKEN_ARROW) else return make_token(.TOKEN_EQUAL);
         },
         '<' => {
             if (match('=')) return make_token(.TOKEN_LESS_EQUAL) else return make_token(.TOKEN_LESS);
@@ -299,8 +589,49 @@ pub fn scanToken() Token {
         },
         '%' => return make_token(.TOKEN_PERCENT),
         '^' => return make_token(.TOKEN_HAT),
-        '"' => return string(),
+        '#' => return make_token(.TOKEN_HASH), // Used as a prefix for hashtable literals (#{})
+        'f' => {
+            // Check for f-string pattern (f followed immediately by ")
+            if (peek() == '"') {
+                _ = advance(); // Consume the quote character
+                // Create a string token but mark it as f-string
+                var token = string();
+                // Change the token type to F_STRING
+                token.type = .TOKEN_F_STRING;
+                return token;
+            } else {
+                return identifier();
+            }
+        },
+        '"' => {
+            return string();
+        },
+        '`' => {
+            return processMultilineString();
+        },
         else => {},
     }
+    // Enhanced error for unexpected character
+    if (errorManagerInitialized and globalErrorManager != null) {
+        const current_char = if (@intFromPtr(scanner.current) > @intFromPtr(scanner.start)) (scanner.current - 1)[0] else scanner.current[0];
+        const message = std.fmt.allocPrint(std.heap.page_allocator, "Unexpected character '{c}' (ASCII {d})", .{ current_char, current_char }) catch "Unexpected character";
+
+        const errorInfo = errors.ErrorInfo{
+            .code = .UNEXPECTED_TOKEN,
+            .category = .SYNTAX,
+            .severity = .ERROR,
+            .line = @intCast(@as(u32, @bitCast(scanner.line))),
+            .column = @intCast(scanner.current - scanner.start),
+            .length = 1,
+            .message = message,
+            .suggestions = &[_]errors.ErrorSuggestion{
+                .{ .message = "Remove the unexpected character" },
+                .{ .message = "Check if you meant to use a different operator or symbol" },
+                .{ .message = "Ensure all characters are valid in the current context" },
+            },
+        };
+        globalErrorManager.?.reportError(errorInfo);
+    }
+
     return errorToken(@ptrCast(@constCast("Unexpected Character.")));
 }

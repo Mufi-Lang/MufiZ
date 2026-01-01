@@ -1,0 +1,122 @@
+// Matrix Indexing Demo - 0-based Indexing (Short Version)
+// Demonstrates the current 0-based indexing behavior in MufiZ
+
+print("=== MATRIX INDEXING DEMO ===");
+
+// Create a simple 3x3 matrix for demonstration
+var A = [[10, 20, 30], [40, 50, 60], [70, 80, 90]];
+
+print("Matrix A:");
+print(A);
+print("Visual representation:");
+print("  10  20  30");  // Row 0
+print("  40  50  60");  // Row 1
+print("  70  80  90");  // Row 2
+
+print("");
+print("--- CURRENT BEHAVIOR (0-based indexing) ---");
+print("MufiZ uses 0-based indexing (like C/Python/JavaScript):");
+
+print("First element (top-left):");
+print("A[0][0] = ");
+print(A[0][0]);
+
+print("First row, second column:");
+print("A[0][1] = ");
+print(A[0][1]);
+
+print("Second row, first column:");
+print("A[1][0] = ");
+print(A[1][0]);
+
+print("Center element:");
+print("A[1][1] = ");
+print(A[1][1]);
+
+print("Last element (bottom-right):");
+print("A[2][2] = ");
+print(A[2][2]);
+
+print("");
+print("--- ELEMENT ACCESS METHODS ---");
+
+print("Method 1: Direct indexing A[row][col]");
+print("A[0][0] = ");
+print(A[0][0]);
+print("A[1][2] = ");
+print(A[1][2]);
+print("A[2][1] = ");
+print(A[2][1]);
+
+print("Method 2: Using matrix_get(matrix, row, col)");
+print("matrix_get(A, 0, 0) = ");
+print(matrix_get(A, 0, 0));
+print("matrix_get(A, 1, 2) = ");
+print(matrix_get(A, 1, 2));
+print("matrix_get(A, 2, 1) = ");
+print(matrix_get(A, 2, 1));
+
+print("");
+print("--- MATRIX MODIFICATION ---");
+var B = zeros(2, 2);
+print("Initial matrix B:");
+print(B);
+
+// Direct assignment A[row][col] = value
+B[0][0] = 100;
+B[0][1] = 200;
+B[1][0] = 300;
+B[1][1] = 400;
+
+print("After direct modification:");
+print(B);
+
+// Using matrix_set function
+var C = zeros(2, 2);
+matrix_set(C, 0, 0, 11);
+matrix_set(C, 0, 1, 22);
+matrix_set(C, 1, 0, 33);
+matrix_set(C, 1, 1, 44);
+
+print("Matrix C after matrix_set calls:");
+print(C);
+
+print("");
+print("--- ITERATING OVER MATRIX ELEMENTS ---");
+var D = [[1, 2, 3], [4, 5, 6]];
+print("Matrix D (2x3):");
+print(D);
+
+print("Using foreach with flatten() for all elements:");
+foreach (element in flatten(D)) {
+    print(element);
+}
+
+print("");
+print("--- MATRIX CREATION FUNCTIONS ---");
+
+print("Identity Matrix:");
+var I = eye(3);
+print(I);
+print("I[0][0] = ");
+print(I[0][0]);
+print("I[1][1] = ");
+print(I[1][1]);
+
+print("Ones Matrix:");
+var O = ones(2, 2);
+print(O);
+print("O[0][1] = ");
+print(O[0][1]);
+
+print("");
+print("=== SUMMARY ===");
+print("✓ MufiZ uses 0-based matrix indexing");
+print("✓ A[row][col] syntax with row,col starting from 0");
+print("✓ matrix_get(A,row,col) and matrix_set(A,row,col,val) use 0-based indices");
+print("✓ Compatible with most programming languages");
+print("✓ Use flatten(matrix) for foreach iteration");
+print("✓ Both direct indexing and function calls work together");
+
+print("");
+print("=== MATRIX INDEXING DEMO COMPLETED ===");

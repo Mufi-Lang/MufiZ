@@ -1,0 +1,28 @@
+// Multiple foreach loops test
+print "MULTIPLE FOREACH LOOPS TEST";
+
+// First loop
+print "First loop:";
+var vec1 = {1.0, 2.0};
+foreach (x in vec1) {
+    print x;
+}
+print "First loop complete";
+
+// Second loop
+print "Second loop:";
+var vec2 = {10.0, 20.0};
+foreach (y in vec2) {
+    print y;
+}
+print "Second loop complete";
+
+// Third loop
+print "Third loop:";
+var vec3 = {100.0, 200.0};
+foreach (z in vec3) {
+    print z;
+}
+print "Third loop complete";
+
+print "ALL LOOPS COMPLETE";

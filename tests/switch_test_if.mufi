@@ -1,0 +1,15 @@
+// Basic if/else test to work like a switch
+
+var choice = 2;
+
+print "Testing choice using if statements:";
+
+if (choice == 1) {
+  print "One";
+} else if (choice == 2) {
+  print "Two";
+} else if (choice == 3) {
+  print "Three";
+} else {
+  print "Other";
+}

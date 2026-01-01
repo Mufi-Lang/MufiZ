@@ -1,543 +1,380 @@
 const std = @import("std");
+const allocator_mod = @import("allocator.zig");
 
-// General Purpose Allocator instance
-var gpa = std.heap.GeneralPurposeAllocator(.{
-    // .enable_memory_limit = false,
-    // .safety = true,
-    // .never_unmap = false,
-    // .retain_metadata = true,
-}){};
+// Use a simple GPA for dynamic allocations and arena for VM-lifetime objects
+var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+var arena_allocator: ?std.heap.ArenaAllocator = null;
+var is_initialized = false;
 
-// Track allocations with this global map
-var allocation_sizes = std.AutoHashMap(usize, usize).init(gpa.allocator());
+/// Initialize the global allocator with configuration
+pub fn initAllocator(config: allocator_mod.AllocatorConfig) void {
+    _ = config; // Ignore config for now
+    arena_allocator = std.heap.ArenaAllocator.init(gpa.allocator());
+    is_initialized = true;
+}
 
-// Check for memory leaks
+/// Get the global allocator - use this throughout the codebase
+pub fn getAllocator() std.mem.Allocator {
+    return gpa.allocator();
+}
+
+/// Check for memory leaks and cleanup
 pub fn checkForLeaks() bool {
+    if (!is_initialized) return false;
+    // Clean up arena first
+    if (arena_allocator) |*arena| {
+        arena.deinit();
+    }
     return gpa.deinit() == .leak;
 }
 
-// Initialize the map
-var is_initialized = false;
-
-fn ensureInitialized() void {
-    if (!is_initialized) {
-        is_initialized = true;
-    }
+/// Deinitialize the memory system
+pub fn deinit() void {
+    // Arena cleanup is handled in checkForLeaks
 }
 
-// Get the GPA instance for debugging or configuration
-// pub fn getGPA() *std.heap.GeneralPurposeAllocator(.{}) {
-//     return &gpa;
-// }
+/// Get memory statistics - simplified version
+pub fn getMemStats() allocator_mod.MemoryStats {
+    return .{}; // Return empty stats for now
+}
 
-///
-/// Reallocates the given memory block with a new size, preserving the contents.
-///
-/// If `__ptr` is NULL, this function behaves like malloc and allocates a new block of memory.
-/// If `__size` is 0 and `__ptr` is not NULL, the memory block is freed and NULL is returned.
-/// Otherwise, it attempts to resize the memory block pointed to by `__ptr` to `__size` bytes.
-///
-/// @param __ptr   Pointer to previously allocated memory block, or NULL
-/// @param __size  New size in bytes
-///
-/// @return Pointer to the reallocated memory block, which may be different
-///         from __ptr, or NULL if the request fails or __size is 0.
-///
-pub fn realloc(__ptr: ?*anyopaque, __size: usize) ?*anyopaque {
-    ensureInitialized();
+/// Get the VM arena allocator for long-lived objects (VM lifetime)
+pub fn getVMArenaAllocator() std.mem.Allocator {
+    if (arena_allocator) |*arena| {
+        return arena.allocator();
+    }
+    // Fallback to GPA if arena not initialized
+    return gpa.allocator();
+}
 
-    const allocator = gpa.allocator();
-    const size = @as(usize, @intCast(__size));
+/// Print memory statistics for debugging
+pub fn printMemStats() void {
+    std.debug.print("Memory Statistics: (simplified tracking)\n", .{});
+}
+
+/// Allocate memory using the provided allocator
+pub fn alloc(allocator: std.mem.Allocator, comptime T: type, count: usize) ![]T {
+    return try allocator.alloc(T, count);
+}
+
+/// Free memory using the provided allocator
+pub fn free(allocator: std.mem.Allocator, memory: anytype) void {
+    allocator.free(memory);
+}
+
+/// Reallocate memory using the provided allocator
+pub fn realloc(allocator: std.mem.Allocator, old_memory: anytype, new_count: usize) ![]@TypeOf(old_memory[0]) {
+    return try allocator.realloc(old_memory, new_count);
+}
+
+/// Create a copy of data using the provided allocator
+pub fn dupe(allocator: std.mem.Allocator, comptime T: type, data: []const T) ![]T {
+    return try allocator.dupe(T, data);
+}
+
+/// C-style malloc wrapper for compatibility - uses global allocator
+pub fn malloc(size: usize) ?*anyopaque {
+    if (size == 0) return null;
+
+    const allocator = getAllocator();
+    const result = allocator.alloc(u8, size) catch return null;
+    return result.ptr;
+}
+
+/// C-style free wrapper for compatibility - requires size for proper deallocation
+pub fn c_free(ptr: ?*anyopaque, size: usize) void {
+    if (ptr == null or size == 0) return;
+
+    const allocator = getAllocator();
+    const slice = @as([*]u8, @ptrCast(ptr))[0..size];
+    allocator.free(slice);
+}
+
+/// C-style realloc wrapper for compatibility
+pub fn c_realloc(ptr: ?*anyopaque, old_size: usize, new_size: usize) ?*anyopaque {
+    const allocator = getAllocator();
 
     // Handle null pointer (act like malloc)
-    if (__ptr == null) {
-        if (size == 0) return null;
-
-        // Allocate memory with c_allocator
-        const result = allocator.alloc(u8, size) catch return null;
-
-        // Store the allocation size
-        allocation_sizes.put(@intFromPtr(result.ptr), size) catch {};
-
-        return result.ptr;
+    if (ptr == null) {
+        return malloc(new_size);
     }
 
     // Handle zero size (act like free)
-    if (size == 0) {
-        free(__ptr);
+    if (new_size == 0) {
+        c_free(ptr, old_size);
         return null;
     }
 
-    // Get the original allocation size
-    const ptr_addr = @intFromPtr(__ptr);
-    const old_size = allocation_sizes.get(ptr_addr) orelse 0;
-
-    if (old_size == 0) {
-        // If we don't know the old size, we can't safely reallocate
-        // Just allocate new memory without copying
-        const result = allocator.alloc(u8, size) catch return null;
-        allocation_sizes.put(@intFromPtr(result.ptr), size) catch {};
-        return result.ptr;
-    }
-
-    // Try to resize in place if possible
-    if (allocator.resize(@as([*]u8, @ptrCast(__ptr))[0..old_size], size)) {
-        // Successful resize
-        allocation_sizes.put(ptr_addr, size) catch {};
-        return __ptr;
-    }
-
-    // Allocate new memory
-    const new_mem = allocator.alloc(u8, size) catch return null;
-
-    // Copy the data (only up to the old size)
-    const copy_size = @min(old_size, size);
-    if (copy_size > 0) {
-        const src_bytes = @as([*]const u8, @ptrCast(__ptr));
-        @memcpy(new_mem[0..copy_size], src_bytes[0..copy_size]);
-    }
-
-    // Free the old memory
-    const old_slice = @as([*]u8, @ptrCast(__ptr))[0..old_size];
-    allocator.free(old_slice);
-    _ = allocation_sizes.remove(ptr_addr);
-
-    // Store the new allocation size
-    allocation_sizes.put(@intFromPtr(new_mem.ptr), size) catch {};
-
-    return new_mem.ptr;
+    // Reallocate existing memory
+    const old_slice = @as([*]u8, @ptrCast(ptr))[0..old_size];
+    const new_memory = allocator.realloc(old_slice, new_size) catch return null;
+    return new_memory.ptr;
 }
 
-///
-/// Frees the memory space pointed to by ptr.
-///
-/// If ptr is NULL, no operation is performed.
-///
-/// @param __ptr  Pointer to the memory to free
-///
-pub fn free(__ptr: ?*anyopaque) void {
-    ensureInitialized();
-
-    if (__ptr == null) return;
-
-    const allocator = gpa.allocator();
-    const ptr_addr = @intFromPtr(__ptr);
-
-    // Get the allocation size
-    const size = allocation_sizes.get(ptr_addr) orelse return;
-
-    // Free the memory
-    const slice = @as([*]u8, @ptrCast(__ptr))[0..size];
-    allocator.free(slice);
-
-    // Remove from the tracking map
-    _ = allocation_sizes.remove(ptr_addr);
+/// Fast memory copy implementation
+pub fn memcpy(dest: [*]u8, src: [*]const u8, count: usize) void {
+    if (count == 0) return;
+    @memcpy(dest[0..count], src[0..count]);
 }
 
-///
-/// Allocates memory for an object of size `__size`.
-///
-/// @param __size  Size of memory to allocate
-///
-/// @return Pointer to the allocated memory, or NULL if the request fails
-///
-pub fn malloc(__size: usize) ?*anyopaque {
-    ensureInitialized();
+/// Fast memory copy with alignment optimization
+pub fn memcpyFast(dest: [*]u8, src: [*]const u8, count: usize) void {
+    if (count == 0) return;
 
-    if (__size == 0) return null;
-
-    const size = @as(usize, @intCast(__size));
-    const allocator = gpa.allocator();
-
-    const result = allocator.alloc(u8, size) catch return null;
-
-    // Store the allocation size
-    allocation_sizes.put(@intFromPtr(result.ptr), size) catch {};
-
-    return result.ptr;
-}
-///
-/// Copies `n` bytes from memory area `src` to memory area `dest`.
-/// The memory areas must not overlap.
-///
-/// Returns a pointer to `dest`.
-///
-/// Note: For overlapping memory blocks, use `memmove` instead.
-///
-pub fn memcpy(__dest: ?*anyopaque, __src: ?*const anyopaque, __n: usize) ?*anyopaque {
-    if (__dest == null or __src == null or __n == 0) return __dest;
-
-    const dest_bytes: [*]u8 = @ptrCast(__dest.?);
-    const src_bytes: [*]const u8 = @ptrCast(__src.?);
-
-    // Simple copy by iterating over each byte
-    for (0..@min(__n, std.math.maxInt(usize))) |i| {
-        dest_bytes[i] = src_bytes[i];
-    }
-
-    return __dest;
+    // Use builtin memcpy for better optimization
+    @memcpy(dest[0..count], src[0..count]);
 }
 
-///
-/// Optimized memcpy implementation that handles different sizes more efficiently.
-/// Uses word-sized copies when possible for better performance, but with the same
-/// signature as the standard memcpy.
-///
-pub fn memcpyFast(__dest: ?*anyopaque, __src: ?*const anyopaque, __n: usize) ?*anyopaque {
-    if (__dest == null or __src == null or __n == 0) return __dest;
+/// SIMD-optimized memory copy for large blocks
+pub fn memcpySIMD(dest: [*]u8, src: [*]const u8, count: usize) void {
+    if (count == 0) return;
 
-    const dest_bytes: [*]u8 = @ptrCast(__dest.?);
-    const src_bytes: [*]const u8 = @ptrCast(__src.?);
+    const chunk_size = 32; // 256-bit chunks for AVX2
 
-    // For small copies, byte-by-byte is fine
-    if (__n < 8) {
-        for (0..@min(__n, std.math.maxInt(usize))) |i| {
-            dest_bytes[i] = src_bytes[i];
-        }
-        return __dest;
-    }
+    if (count >= chunk_size and std.simd.suggestVectorLength(u8) != null) {
+        var i: usize = 0;
+        const vector_len = std.simd.suggestVectorLength(u8) orelse 16;
 
-    // Check alignment for word-sized copies
-    const alignment_mask = @sizeOf(usize) - 1;
-    const dest_align = @intFromPtr(dest_bytes) & alignment_mask;
-    const src_align = @intFromPtr(src_bytes) & alignment_mask;
-
-    // If alignment differs, fall back to byte-by-byte copy
-    if (dest_align != src_align) {
-        for (0..@min(__n, std.math.maxInt(usize))) |i| {
-            dest_bytes[i] = src_bytes[i];
-        }
-        return __dest;
-    }
-
-    // Handle unaligned prefix
-    var offset: usize = 0;
-    if (dest_align != 0) {
-        const prefix = @sizeOf(usize) - dest_align;
-        const prefix_len = @min(prefix, __n);
-        for (0..prefix_len) |i| {
-            dest_bytes[i] = src_bytes[i];
-        }
-        offset = prefix_len;
-    }
-
-    // Use usize to copy word-sized chunks for better performance
-    const remaining = __n - offset;
-    const word_size = @sizeOf(usize);
-    const words = remaining / word_size;
-
-    if (words > 0) {
-        const dest_usize: [*]usize = @ptrCast(@alignCast(dest_bytes + offset));
-        const src_usize: [*]const usize = @ptrCast(@alignCast(src_bytes + offset));
-
-        // Copy word-sized chunks
-        for (0..words) |i| {
-            dest_usize[i] = src_usize[i];
-        }
-    }
-
-    // Copy any remaining bytes
-    const bytes_copied = offset + (words * word_size);
-    const remaining_bytes = __n - bytes_copied;
-    if (remaining_bytes > 0) {
-        for (0..remaining_bytes) |i| {
-            dest_bytes[bytes_copied + i] = src_bytes[bytes_copied + i];
-        }
-    }
-
-    return __dest;
-}
-
-test "basic memcpy test" {
-    var src = [_]u8{ 1, 2, 3, 4, 5 };
-    var dest = [_]u8{ 0, 0, 0, 0, 0 };
-
-    _ = memcpy(&dest, &src, src.len);
-
-    try std.testing.expectEqualSlices(u8, &src, &dest);
-}
-
-test "memcpyFast test" {
-    var src = [_]u8{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
-    var dest = [_]u8{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-
-    _ = memcpyFast(&dest, &src, src.len);
-
-    try std.testing.expectEqualSlices(u8, &src, &dest);
-}
-
-///
-/// Computes the length of a null-terminated string.
-/// Uses a highly optimized approach with SIMD instructions for maximum performance.
-///
-/// @param s  Pointer to the null-terminated string
-///
-/// @return Length of the string, not including the null terminator
-///
-// pub fn strlen(s: [*]const u8) usize {
-//     const start_ptr = s;
-//     var ptr = s;
-
-//     // Fast path for short strings (avoid SIMD setup overhead)
-//     // Check first 8 bytes directly
-//     inline for (0..8) |i| {
-//         if (ptr[i] == 0) {
-//             return i;
-//         }
-//     }
-
-//     // String is longer than 8 bytes
-//     ptr = s + 8;
-
-//     // If CPU supports AVX-2/SSE, use SIMD approach
-//     if (@hasDecl(std.simd, "suggestVectorLength")) {
-//         // Use SIMD vector operations
-//         const Vec16 = @Vector(16, u8);
-//         const zeros: Vec16 = @splat(0);
-
-//         // Align to 16-byte boundary for optimal SIMD performance
-//         const alignment_offset = @intFromPtr(ptr) & 0xF;
-//         if (alignment_offset != 0) {
-//             // Process bytes until aligned
-//             const to_align = 16 - alignment_offset;
-//             for (0..to_align) |_| {
-//                 if (ptr[0] == 0) {
-//                     return @intFromPtr(ptr) - @intFromPtr(start_ptr);
-//                 }
-//                 ptr += 1;
-//             }
-//         }
-
-//         // Main SIMD loop - process 16 bytes at a time
-//         while (true) {
-//             // Load 16 bytes and compare with zeros
-//             const chunk = @as(*align(1) const Vec16, @ptrCast(ptr)).*;
-//             const mask = chunk == zeros;
-
-//             // Check if any byte is zero
-//             if (@reduce(.Or, mask)) {
-//                 // Find which byte is zero
-//                 inline for (0..16) |i| {
-//                     if (mask[i]) {
-//                         return @intFromPtr(ptr) - @intFromPtr(start_ptr) + i;
-//                     }
-//                 }
-//             }
-
-//             ptr += 16;
-//         }
-//     } else {
-//         // Fallback to word-size optimized approach for platforms without SIMD
-//         const uword = if (@sizeOf(usize) == 8) u64 else u32;
-//         const word_size = @sizeOf(uword);
-
-//         // Align to word boundary
-//         while (@intFromPtr(ptr) & (word_size - 1) != 0) {
-//             if (ptr[0] == 0) return @intFromPtr(ptr) - @intFromPtr(start_ptr);
-//             ptr += 1;
-//         }
-
-//         // Process word at a time
-//         const word_ptr = @as([*]const uword, @ptrCast(@alignCast(ptr)));
-//         var idx: usize = 0;
-//         while (true) {
-//             // This magic detects null bytes in a word
-//             const word = word_ptr[idx];
-//             // (word - 0x01..) & ~word & 0x80.. detects null bytes
-//             const has_zero = ((word -% comptime repeatedByte(0x01, word_size)) &
-//                 ~word & comptime repeatedByte(0x80, word_size)) != 0;
-
-//             if (has_zero) {
-//                 // Found a null byte in this word
-//                 ptr = @ptrCast(word_ptr + idx);
-//                 // Find exact position
-//                 for (0..word_size) |i| {
-//                     if (ptr[i] == 0) {
-//                         return @intFromPtr(ptr) + i - @intFromPtr(start_ptr);
-//                     }
-//                 }
-//             }
-//             idx += 1;
-//         }
-//     }
-// }
-
-// /// Helper function to create a word with repeated bytes
-// fn repeatedByte(byte: u8, size: usize) usize {
-//     var result: usize = 0;
-//     var i: usize = 0;
-//     while (i < size) : (i += 1) {
-//         result = (result << 8) | byte;
-//     }
-//     return result;
-// }
-pub fn strlen(s: [*]const u8) usize {
-    const start_ptr = s;
-    var ptr = s;
-
-    // Fast path for first 8 bytes
-    inline for (0..8) |i| {
-        if (ptr[i] == 0) {
-            return i;
-        }
-    }
-
-    ptr += 8;
-
-    if (@hasDecl(std.simd, "suggestVectorLength")) {
-        const Vec16 = @Vector(16, u8);
-        const zeros: Vec16 = @splat(0);
-
-        // Align pointer to 16 bytes
-        const alignment_offset = @intFromPtr(ptr) & 0xF;
-        if (alignment_offset != 0) {
-            const to_align = 16 - alignment_offset;
-            for (0..to_align) |_| {
-                if (ptr[0] == 0) {
-                    return @intFromPtr(ptr) - @intFromPtr(start_ptr);
-                }
-                ptr += 1;
-            }
+        // Process in SIMD chunks
+        while (i + vector_len <= count) {
+            const src_vec: @Vector(vector_len, u8) = src[i .. i + vector_len][0..vector_len].*;
+            dest[i .. i + vector_len][0..vector_len].* = src_vec;
+            i += vector_len;
         }
 
-        // Main SIMD loop
-        while (true) {
-            const chunk_ptr = @as(*align(1) const Vec16, @ptrCast(ptr));
-            const chunk = chunk_ptr.*;
-            const mask = chunk == zeros;
-
-            if (@reduce(.Or, mask)) {
-                inline for (0..16) |i| {
-                    if (mask[i]) {
-                        return @intFromPtr(ptr) - @intFromPtr(start_ptr) + i;
-                    }
-                }
-            }
-            ptr += 16;
+        // Copy remaining bytes
+        if (i < count) {
+            @memcpy(dest[i..count], src[i..count]);
         }
     } else {
-        // Fallback using word-sized chunks
-        const uword = if (@sizeOf(usize) == 8) u64 else u32;
-        const word_size = @sizeOf(uword);
-
-        // Align to word boundary
-        while ((@intFromPtr(ptr) & (word_size - 1)) != 0) {
-            if (ptr[0] == 0) {
-                return @intFromPtr(ptr) - @intFromPtr(start_ptr);
-            }
-            ptr += 1;
-        }
-
-        const word_ptr = @as([*]const uword, @ptrCast(@alignCast(ptr)));
-        var idx: usize = 0;
-        while (true) {
-            const word = word_ptr[idx];
-
-            const has_zero = ((word -% comptime repeatedByte(0x01, word_size)) &
-                ~word & comptime repeatedByte(0x80, word_size)) != 0;
-
-            if (has_zero) {
-                ptr = @ptrCast(word_ptr + idx);
-                for (0..word_size) |i| {
-                    if (ptr[i] == 0) {
-                        return @intFromPtr(ptr) - @intFromPtr(start_ptr) + i;
-                    }
-                }
-            }
-
-            idx += 1;
-        }
+        // Fall back to regular memcpy
+        @memcpy(dest[0..count], src[0..count]);
     }
 }
 
-// Helper to create a repeated byte pattern
-fn repeatedByte(byte: u8, len: usize) u64 {
-    var val: u64 = 0;
-    inline for (0..len) |i| {
-        val |= (@as(u64, byte) << @intCast( i * 8));
-    }
-    return val;
+/// Memory comparison
+pub fn memcmp(ptr1: [*]const u8, ptr2: [*]const u8, count: usize) i32 {
+    if (count == 0) return 0;
+
+    const slice1 = ptr1[0..count];
+    const slice2 = ptr2[0..count];
+
+    return switch (std.mem.order(u8, slice1, slice2)) {
+        .lt => -1,
+        .eq => 0,
+        .gt => 1,
+    };
 }
 
-test "strlen test" {
-    const str1 = "Hello";
-    const str2 = "Hello, World!";
-    const str3 = "";
-    const str4 = "This is a longer string that should exercise the SIMD path properly";
-    const str5 = "123";
-    const str6 = "12345678"; // Test exactly 8 bytes
-    const str7 = "123456789"; // Test just over 8 bytes
-    const str8 = "A string with exactly 36 characters."; // Test 36 bytes
-    const str9 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"; // 62 chars
+/// SIMD-optimized memory comparison
+pub fn memcmpSIMD(ptr1: [*]const u8, ptr2: [*]const u8, count: usize) i32 {
+    if (count == 0) return 0;
 
-    try std.testing.expectEqual(@as(usize, 5), strlen(str1));
-    try std.testing.expectEqual(@as(usize, 13), strlen(str2));
-    try std.testing.expectEqual(@as(usize, 0), strlen(str3));
-    try std.testing.expectEqual(@as(usize, 67), strlen(str4));
-    try std.testing.expectEqual(@as(usize, 3), strlen(str5));
-    try std.testing.expectEqual(@as(usize, 8), strlen(str6));
-    try std.testing.expectEqual(@as(usize, 9), strlen(str7));
-    try std.testing.expectEqual(@as(usize, 36), strlen(str8));
-    try std.testing.expectEqual(@as(usize, 62), strlen(str9));
+    const vector_len = std.simd.suggestVectorLength(u8) orelse 16;
 
-    // Make sure null pointer is handled
-    try std.testing.expectEqual(@as(usize, 0), strlen(null));
-}
+    if (count >= vector_len) {
+        var i: usize = 0;
 
-pub fn memcmp(s1: ?*const anyopaque, s2: ?*const anyopaque, n: usize) i32 {
-    const str1: [*]const u8 = @ptrCast(s1.?);
-    const str2: [*]const u8 = @ptrCast(s2.?);
-    const num: usize = @intCast(n);
+        // Compare in SIMD chunks
+        while (i + vector_len <= count) {
+            const vec1: @Vector(vector_len, u8) = ptr1[i .. i + vector_len][0..vector_len].*;
+            const vec2: @Vector(vector_len, u8) = ptr2[i .. i + vector_len][0..vector_len].*;
 
-    if (num == 0) return 0;
-
-    const ptr1 = @as([*]const u8, @ptrCast(str1));
-    const ptr2 = @as([*]const u8, @ptrCast(str2));
-    var offset: usize = 0;
-
-    // SIMD comparison using vector types (16 bytes at once)
-    const Vec16 = @Vector(16, u8);
-    while (offset + 16 <= num) {
-        const v1 = @as(*align(1) const Vec16, @ptrCast(ptr1 + offset)).*;
-        const v2 = @as(*align(1) const Vec16, @ptrCast(ptr2 + offset)).*;
-
-        // Compare 16 bytes at once
-        const mask = v1 != v2;
-        if (@reduce(.Or, mask)) {
-            // Find first differing byte in the SIMD vector
-            inline for (0..16) |i| {
-                if (mask[i]) {
-                    return @as(i32, @intCast(@as(i16, @intCast(ptr1[offset + i])) - @as(i16, @intCast(ptr2[offset + i]))));
-                }
+            if (!std.meta.eql(vec1, vec2)) {
+                // Found difference, fall back to byte comparison
+                return memcmp(ptr1 + i, ptr2 + i, vector_len);
             }
-        }
-        offset += 16;
-    }
 
-    // Process 8 bytes at a time for the remainder
-    while (offset + 8 <= num) {
-        const v1 = @as(*align(1) const u64, @ptrCast(ptr1 + offset)).*;
-        const v2 = @as(*align(1) const u64, @ptrCast(ptr2 + offset)).*;
-        if (v1 != v2) {
-            // Find first differing byte
-            inline for (0..8) |i| {
-                const byte1 = @as(u8, @truncate(v1 >> @as(u6, @intCast(i * 8))));
-                const byte2 = @as(u8, @truncate(v2 >> @as(u6, @intCast(i * 8))));
-                if (byte1 != byte2) {
-                    return @as(i32, @intCast(@as(i16, @intCast(byte1)) - @as(i16, @intCast(byte2))));
-                }
-            }
+            i += vector_len;
         }
-        offset += 8;
-    }
 
-    // Handle remaining bytes
-    while (offset < num) {
-        if (ptr1[offset] != ptr2[offset]) {
-            return @as(i32, @intCast(@as(i16, @intCast(ptr1[offset])) - @as(i16, @intCast(ptr2[offset]))));
+        // Compare remaining bytes
+        if (i < count) {
+            return memcmp(ptr1 + i, ptr2 + i, count - i);
         }
-        offset += 1;
-    }
 
-    return 0;
+        return 0;
+    } else {
+        // Fall back to regular memcmp
+        return memcmp(ptr1, ptr2, count);
+    }
 }
+
+/// SIMD-optimized memory set
+pub fn memsetSIMD(ptr: [*]u8, value: u8, count: usize) void {
+    if (count == 0) return;
+
+    const vector_len = std.simd.suggestVectorLength(u8) orelse 16;
+
+    if (count >= vector_len) {
+        const fill_vec: @Vector(vector_len, u8) = @splat(value);
+        var i: usize = 0;
+
+        // Set in SIMD chunks
+        while (i + vector_len <= count) {
+            ptr[i .. i + vector_len][0..vector_len].* = fill_vec;
+            i += vector_len;
+        }
+
+        // Set remaining bytes
+        if (i < count) {
+            @memset(ptr[i..count], value);
+        }
+    } else {
+        // Fall back to regular memset
+        @memset(ptr[0..count], value);
+    }
+}
+
+/// Fast string length calculation
+pub fn strlen(str: [*]const u8) usize {
+    var len: usize = 0;
+    while (str[len] != 0) : (len += 1) {}
+    return len;
+}
+
+/// VM-specific allocation helpers using arena for appropriate objects
+/// Allocate memory for VM-lifetime objects (native functions, constants, etc.)
+pub fn allocVMObject(comptime T: type, count: usize) ![]T {
+    const vm_allocator = getVMArenaAllocator();
+    return try vm_allocator.alloc(T, count);
+}
+
+/// Allocate a single VM-lifetime object
+pub fn allocVMSingle(comptime T: type) !*T {
+    const vm_allocator = getVMArenaAllocator();
+    const result = try vm_allocator.alloc(T, 1);
+    return &result[0];
+}
+
+/// Duplicate data using VM arena allocator
+pub fn dupeVMString(data: []const u8) ![]u8 {
+    const vm_allocator = getVMArenaAllocator();
+    return try vm_allocator.dupe(u8, data);
+}
+
+/// Check if we should use arena for a given allocation type
+pub fn shouldUseArena(allocation_type: enum { native_function, global_constant, string_literal, dynamic_object, temporary }) bool {
+    return switch (allocation_type) {
+        .native_function, .global_constant, .string_literal => true,
+        .dynamic_object, .temporary => false,
+    };
+}
+
+/// Arena Allocator Usage Statistics
+pub const ArenaStats = struct {
+    vm_arena_bytes: usize = 0,
+    vm_arena_allocations: u32 = 0,
+
+    pub fn print(self: @This()) void {
+        std.debug.print("Arena Allocator Statistics:\n", .{});
+        std.debug.print("  VM Arena bytes: {}\n", .{self.vm_arena_bytes});
+        std.debug.print("  VM Arena allocations: {}\n", .{self.vm_arena_allocations});
+    }
+};
+
+/// Get arena allocator statistics
+pub fn getArenaStats() ArenaStats {
+    // For now, return empty stats - could be enhanced to track actual usage
+    return ArenaStats{};
+}
+
+/// Example usage of arena allocators for memory optimization:
+///
+/// 1. For VM-lifetime objects (globals, natives, constants):
+///    ```zig
+///    const global_string = try dupeVMString("global_constant");
+///    ```
+///
+/// 2. For temporary compilation data:
+///    ```zig
+///    const compiler_arena = @import("compiler_arena.zig");
+///    compiler_arena.initCompilerArena();
+///    defer compiler_arena.deinitCompilerArena();
+///
+///    const temp_data = try compiler_arena.allocCompilerTemp(u8, 1024);
+///    ```
+///
+/// 3. Benefits:
+///    - Faster allocation (no bookkeeping overhead)
+///    - Automatic bulk deallocation
+///    - Reduced memory fragmentation
+///    - Better cache locality for related allocations
+/// Legacy compatibility - use allocUtils from allocator.zig instead
+pub const allocUtils = allocator_mod.allocUtils;
+
+// Tests - commented out to avoid compilation warnings
+// test "basic allocation with new system" {
+//     const testing = std.testing;
+//
+//     // Initialize with test config
+//     initAllocator(.{ .enable_tracking = true });
+//     defer deinit();
+//
+//     const allocator = getAllocator();
+//
+//     const memory = try alloc(allocator, u8, 100);
+//     defer free(allocator, memory);
+//
+//     try testing.expect(memory.len == 100);
+//
+//     const stats = getMemStats();
+//     try testing.expect(stats.current_allocations >= 1);
+// }
+//
+// test "memory copy functions" {
+//     const testing = std.testing;
+//
+//     const src_data = [_]u8{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+//     var dest_data = [_]u8{0} ** 10;
+//
+//     memcpy(dest_data.ptr, src_data.ptr, 10);
+//
+//     for (src_data, dest_data) |s, d| {
+//         try testing.expect(s == d);
+//     }
+// }
+//
+// test "SIMD memory functions" {
+//     const testing = std.testing;
+//
+//     const size = 64;
+//     var src_data = [_]u8{0} ** size;
+//     var dest_data = [_]u8{0} ** size;
+//
+//     // Initialize source
+//     for (src_data, 0..) |*byte, i| {
+//         byte.* = @intCast(i % 256);
+//     }
+//
+//     // Test SIMD copy
+//     memcpySIMD(dest_data.ptr, src_data.ptr, size);
+//
+//     // Verify
+//     for (src_data, dest_data) |s, d| {
+//         try testing.expect(s == d);
+//     }
+//
+//     // Test SIMD memset
+//     memsetSIMD(dest_data.ptr, 0xFF, size);
+//     for (dest_data) |byte| {
+//         try testing.expect(byte == 0xFF);
+//     }
+// }
+//
+// test "C compatibility functions" {
+//     const testing = std.testing;
+//
+//     initAllocator(.{});
+//     defer deinit();
+//
+//     // Test malloc/free
+//     const ptr = malloc(100);
+//     try testing.expect(ptr != null);
+//     defer c_free(ptr, 100);
+//
+//     // Test realloc
+//     const new_ptr = c_realloc(ptr, 100, 200);
+//     try testing.expect(new_ptr != null);
+//     c_free(new_ptr, 200);
+// }

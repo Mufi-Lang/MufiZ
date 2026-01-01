@@ -1,0 +1,19 @@
+// Variable range test
+// Testing the use of variable ranges (start..end)
+
+// Define start and end variables
+var start = 10;
+var finish = 15;
+
+// Print the variables
+print("Start value: " + start);
+print("Finish value: " + finish);
+
+// Create a range using the variables
+print("\nIteration with variable range (start..end):");
+var array = range_to_array(start..finish);
+foreach (i in array) {
+    print(i);  // Should print 10, 11, 12, 13, 14
+}
+
+print("\nTest completed");

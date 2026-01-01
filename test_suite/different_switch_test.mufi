@@ -1,0 +1,37 @@
+// Test file for range patterns in switch statements
+// This tries different syntax variations for switch statements with range patterns
+
+var value = 7;
+print("Testing with value: " + value);
+
+// Try without 'case' keyword (fixed to include required 'case' keyword)
+print("\nTesting with required 'case' keyword:");
+switch(value) {
+    case 0 => { print("Case: Exactly 0"); },
+    case 1..5 => { print("Case: Between 1 and 4"); },
+    case 5..=10 => { print("Case: Between 5 and 10 (inclusive)"); },
+    case 11..20 => { print("Case: Between 11 and 19"); },
+    _ => { print("Case: Default (20 or higher)"); }
+}
+
+// Try with 'case' keyword
+print("\nTesting with 'case' keyword:");
+switch(value) {
+    case 0 => { print("Case: Exactly 0"); },
+    case 1..5 => { print("Case: Between 1 and 4"); },
+    case 5..=10 => { print("Case: Between 5 and 10 (inclusive)"); },
+    case 11..20 => { print("Case: Between 11 and 19"); },
+    case _ => { print("Case: Default (20 or higher)"); }
+}
+
+// Try with standard range syntax (alternative 'to' syntax not supported)
+print("\nTesting with standard range syntax:");
+switch(value) {
+    case 0 => { print("Case: Exactly 0"); },
+    case 1..5 => { print("Case: Between 1 and 5 (exclusive)"); },
+    case 5..=10 => { print("Case: Between 5 and 10 (inclusive)"); },
+    case 11..20 => { print("Case: Between 11 and 20 (exclusive)"); },
+    _ => { print("Case: Default (20 or higher)"); }
+}
+
+print("\nAll tests completed!");

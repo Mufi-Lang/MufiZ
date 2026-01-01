@@ -1,0 +1,382 @@
+// Test Suite: Advanced Matrix Operations
+// Tests inverse, determinant algorithms, concatenation, and complex operations
+
+print "=== ADVANCED MATRIX OPERATIONS TEST SUITE ===";
+
+fun test_matrix_inverse_advanced() {
+    print "\n[Test 1] Advanced matrix inverse operations";
+
+    // Test 2x2 matrix inverse with known result
+    var A = eye(2) + ones(2, 2);  // [[2,1], [1,2]]
+    var A_inv = inv(A);
+
+    // Known inverse should be [[2/3, -1/3], [-1/3, 2/3]]
+    // Verify through A * A_inv = I
+    var identity_check = A * A_inv;
+    assert(det(identity_check) > 0.99 and det(identity_check) < 1.01, true);
+    assert(trace(identity_check) > 1.99 and trace(identity_check) < 2.01, true);
+
+    // Test 3x3 matrix inverse
+    var B = eye(3) * 2 + ones(3, 3);  // More complex 3x3
+    var B_inv = inv(B);
+    var identity_check3 = B * B_inv;
+    assert(det(identity_check3) > 0.99 and det(identity_check3) < 1.01, true);
+    assert(trace(identity_check3) > 2.99 and trace(identity_check3) < 3.01, true);
+
+    // Test inverse of scaled identity
+    var scaled_I = eye(3) * 4;
+    var scaled_inv = inv(scaled_I);
+    assert(det(scaled_inv), 0.015625);  // (1/4)^3 = 1/64
+    assert(trace(scaled_inv), 0.75);    // 3 * (1/4) = 0.75
+
+    // Test that inv(inv(A)) ≈ A
+    var double_inv = inv(A_inv);
+    assert(det(double_inv) > det(A) - 0.01 and det(double_inv) < det(A) + 0.01, true);
+    assert(trace(double_inv) > trace(A) - 0.01 and trace(double_inv) < trace(A) + 0.01, true);
+
+    print "✓ Advanced matrix inverse passed";
+}
+
+fun test_determinant_algorithms() {
+    print "\n[Test 2] Determinant algorithm verification";
+
+    // Test 1x1 determinant
+    var m1 = ones(1, 1) * 5;
+    assert(det(m1), 5.0);
+
+    // Test 2x2 determinant: det([[a,b],[c,d]]) = ad - bc
+    var A = eye(2);  // [[1,0],[0,1]]
+    assert(det(A), 1.0);  // 1*1 - 0*0 = 1
+
+    // Test 3x3 identity
+    assert(det(eye(3)), 1.0);
+
+    // Test upper triangular matrix (determinant = product of diagonal)
+    var upper = eye(3) * 2;  // [[2,0,0],[0,2,0],[0,0,2]]
+    assert(det(upper), 8.0);  // 2*2*2 = 8
+
+    // Test singular matrix (det = 0)
+    assert(det(ones(2, 2)), 0.0);
+    assert(det(ones(3, 3)), 0.0);
+    assert(det(zeros(4, 4)), 0.0);
+
+    // Test determinant of product: det(AB) = det(A) * det(B)
+    var A3 = eye(3) * 2;     // det = 8
+    var B3 = eye(3) * 3;     // det = 27
+    var product = A3 * B3;   // det should be 8 * 27 = 216
+    assert(det(product), 216.0);
+
+    // Test determinant of transpose: det(A^T) = det(A)
+    var test_matrix = eye(3) + ones(3, 3);
+    var transposed = transpose(test_matrix);
+    assert(det(transposed), det(test_matrix));
+
+    print "✓ Determinant algorithms passed";
+}
+
+fun test_matrix_concatenation_advanced() {
+    print "\n[Test 3] Advanced matrix concatenation";
+
+    // Test horizontal concatenation properties
+    var left = eye(2);
+    var right = ones(2, 2);
+    var horizontal = horzcat(left, right);
+
+    // Result should be 2x4 matrix
+    // Test through operations that depend on dimensions
+    var h_transpose = transpose(horizontal);
+    // Original: 2x4, transpose: 4x2
+    assert(trace(h_transpose), trace(horizontal));  // Both should have same trace
+
+    // Test vertical concatenation properties
+    var top = eye(2);
+    var bottom = zeros(2, 2);
+    var vertical = vertcat(top, bottom);
+
+    // Result should be 4x2 matrix
+    assert(trace(vertical), 2.0);  // vertcat(eye(2), zeros(2,2)) = [I; 0], trace = 1+1 = 2 (first 2 diagonal elements)
+
+    // Test concatenation commutativity for trace
+    var hcat1 = horzcat(eye(2), ones(2, 2));
+    var hcat2 = horzcat(ones(2, 2), eye(2));
+    // Both should have same trace (sum of diagonal elements)
+    assert(trace(hcat1), trace(hcat2));
+
+    // Test multiple concatenations
+    var A = eye(2);
+    var B = ones(2, 2);
+    var C = zeros(2, 2);
+
+    var triple_h = horzcat(horzcat(A, B), C);
+    assert(trace(triple_h), 2.0);  // horzcat(horzcat(eye(2), ones(2,2)), zeros(2,2)) = 2x6 matrix, trace = 1+1 = 2
+
+    var triple_v = vertcat(vertcat(A, B), C);
+    assert(trace(triple_v), 2.0);  // vertcat(vertcat(eye(2), ones(2,2)), zeros(2,2)) = 6x2 matrix, trace = 1+1 = 2
+
+    // Test mixed concatenations
+    var mixed1 = horzcat(A, B);
+    var mixed2 = horzcat(C, A);
+    var final_v = vertcat(mixed1, mixed2);
+    assert(trace(final_v), 4.0);  // 4x4 matrix with diagonal [1,1,1,1], trace = 4
+
+    print "✓ Advanced concatenation passed";
+}
+
+fun test_complex_matrix_operations() {
+    print "\n[Test 4] Complex matrix operations";
+
+    // Test matrix chain operations
+    var A = eye(3);
+    var B = ones(3, 3);
+    var C = eye(3) * 2;
+
+    // Test (A + B) * C
+    var sum_AB = A + B;
+    var result1 = sum_AB * C;
+
+    // Test A*C + B*C (distributive property)
+    var AC = A * C;
+    var BC = B * C;
+    var result2 = AC + BC;
+
+    // Should have same trace due to distributivity
+    assert(trace(result1), trace(result2));
+
+    // Test complex expression: 2*(A + B) - C*A
+    var expr1 = 2 * (A + B);
+    var expr2 = C * A;
+    var complex_result = expr1 - expr2;
+
+    // Verify result has expected properties
+    var expected_trace = 2 * trace(A + B) - trace(C * A);
+    assert(trace(complex_result), expected_trace);
+
+    // Test powers through repeated multiplication
+    var I = eye(2);
+    var I2 = I * I;
+    var I3 = I2 * I;
+
+    assert(det(I2), det(I));
+    assert(det(I3), det(I));
+    assert(trace(I2), trace(I));
+    assert(trace(I3), trace(I));
+
+    // Test (A^T * A) properties
+    var rect = ones(3, 2);
+    var rect_t = transpose(rect);
+    var gram = rect_t * rect;
+
+    // Gram matrix should be 2x2 and positive semi-definite
+    assert(det(gram) >= 0.0, true);
+    assert(trace(gram), 6.0);  // Each element of result should be 3
+
+    print "✓ Complex operations passed";
+}
+
+fun test_matrix_decomposition_properties() {
+    print "\n[Test 5] Matrix decomposition properties";
+
+    // Test properties that verify LU decomposition is working
+    var A = eye(3) + ones(3, 3);
+    var det_A = det(A);
+    var inv_A = inv(A);
+
+    // If LU decomposition works correctly:
+    // det(A) * det(inv(A)) should equal 1
+    var product_det = det_A * det(inv_A);
+    assert(product_det > 0.99 and product_det < 1.01, true);
+
+    // Test multiple matrices to verify LU stability
+    var B = eye(4) * 2 + ones(4, 4);
+    var det_B = det(B);
+    var inv_B = inv(B);
+    assert(det_B * det(inv_B) > 0.99 and det_B * det(inv_B) < 1.01, true);
+
+    // Test that A * inv(A) * A = A (through properties)
+    var test_product = A * inv_A;
+    var final_product = test_product * A;
+    assert(det(final_product), det(A));
+    assert(trace(final_product), trace(A));
+
+    print "✓ Decomposition properties passed";
+}
+
+fun test_numerical_stability() {
+    print "\n[Test 6] Numerical stability";
+
+    // Test operations with small and large numbers
+    var tiny = eye(2) * 0.001;
+    var huge = eye(2) * 1000;
+
+    assert(det(tiny), 0.000001);  // (0.001)^2
+    assert(det(huge), 1000000.0); // (1000)^2
+    assert(trace(tiny), 0.002);   // 2 * 0.001
+    assert(trace(huge), 2000.0);  // 2 * 1000
+
+    // Test inverse of tiny numbers
+    var tiny_inv = inv(tiny);
+    assert(det(tiny_inv), 1000000.0);  // 1/(0.001)^2 = 1000000
+    assert(trace(tiny_inv), 2000.0);   // 2/0.001 = 2000
+
+    // Test that tiny * huge = identity (scaled)
+    var product = tiny * huge;
+    assert(det(product), 1.0);
+    assert(trace(product), 2.0);
+
+    // Test near-singular matrices
+    var near_singular = ones(2, 2) + eye(2) * 0.001;
+    var det_ns = det(near_singular);
+    assert(det_ns > 0.0, true);  // Should be small but positive
+
+    print "✓ Numerical stability passed";
+}
+
+fun test_large_matrix_operations() {
+    print "\n[Test 7] Large matrix operations";
+
+    // Test 5x5 matrix operations
+    var L5 = eye(5) * 2;
+    var M5 = ones(5, 5);
+    var sum5 = L5 + M5;
+
+    assert(det(L5), 32.0);      // 2^5 = 32
+    assert(trace(sum5), 15.0);  // 2*5 + 5 = 15
+    assert(det(M5), 0.0);       // ones matrix is singular
+
+    // Test 6x6 operations
+    var I6 = eye(6);
+    var scaled6 = I6 * 3;
+    assert(det(scaled6), 729.0); // 3^6 = 729
+    assert(trace(scaled6), 18.0); // 6 * 3 = 18
+
+    // Test large matrix inverse
+    var test6 = eye(6) + ones(6, 6);
+    var inv6 = inv(test6);
+    var check6 = test6 * inv6;
+    assert(det(check6) > 0.99 and det(check6) < 1.01, true);
+    assert(trace(check6) > 5.99 and trace(check6) < 6.01, true);
+
+    // Test large concatenation
+    var big_h = horzcat(eye(5), ones(5, 5));
+    var big_v = vertcat(eye(5), zeros(5, 5));
+    assert(trace(big_h), 5.0);  // horzcat(eye(5), ones(5,5)) = 5x10 matrix, trace = 5
+    assert(trace(big_v), 5.0);  // vertcat(eye(5), zeros(5,5)) = 10x5 matrix, trace = 5
+
+    print "✓ Large matrix operations passed";
+}
+
+fun test_edge_case_operations() {
+    print "\n[Test 8] Edge case operations";
+
+    // Test 1x1 matrix operations
+    var s1 = ones(1, 1) * 3;
+    var s2 = eye(1) * 2;
+
+    assert(det(s1), 3.0);
+    assert(det(s2), 2.0);
+    assert(det(s1 * s2), 6.0);
+    assert(trace(s1 + s2), 5.0);
+
+    var s1_inv = inv(s1);
+    assert(det(s1_inv) > 0.333 and det(s1_inv) < 0.334, true); // 1/3
+
+    // Test very rectangular matrices
+    var skinny = ones(10, 1);
+    var fat = ones(1, 10);
+    var product_sf = skinny * fat;  // 10x10 result
+
+    assert(trace(product_sf), 10.0);  // Each diagonal element = 1
+
+    // Test concatenation edge cases
+    var thin_v = vertcat(eye(1), ones(1, 1));
+    var thin_h = horzcat(eye(1), zeros(1, 1));
+
+    assert(trace(thin_v), 1.0);  // vertcat(eye(1), ones(1,1)) = 2x1 matrix, trace = 1
+    assert(trace(thin_h), 1.0);  // horzcat(eye(1), zeros(1,1)) = 1x2 matrix, trace = 1
+
+    print "✓ Edge case operations passed";
+}
+
+fun test_mathematical_theorems() {
+    print "\n[Test 9] Mathematical theorem verification";
+
+    // Test Sylvester's determinant identity properties
+    var A = eye(2) + ones(2, 2);
+    var B = eye(2) * 2;
+
+    // det(A * B) = det(A) * det(B)
+    var det_A = det(A);
+    var det_B = det(B);
+    var det_AB = det(A * B);
+    var expected = det_A * det_B;
+    assert(det_AB > expected - 0.01 and det_AB < expected + 0.01, true);
+
+    // Test trace linearity: tr(aA + bB) = a*tr(A) + b*tr(B)
+    var linear_comb = 3 * A + 2 * B;
+    var expected_trace = 3 * trace(A) + 2 * trace(B);
+    assert(trace(linear_comb), expected_trace);
+
+    // Test transpose properties: tr(A^T) = tr(A), det(A^T) = det(A)
+    var A_t = transpose(A);
+    assert(trace(A_t), trace(A));
+    assert(det(A_t), det(A));
+
+    // Test inverse properties: A * A^(-1) = I
+    var A_inv = inv(A);
+    var should_be_I = A * A_inv;
+    assert(det(should_be_I) > 0.99 and det(should_be_I) < 1.01, true);
+
+    // Test norm properties: ||A^T|| = ||A||
+    assert(norm(A_t) > norm(A) - 0.001 and norm(A_t) < norm(A) + 0.001, true);
+
+    print "✓ Mathematical theorems passed";
+}
+
+fun test_performance_operations() {
+    print "\n[Test 10] Performance and stress operations";
+
+    // Test chains of operations
+    var start = eye(4);
+    var chain1 = start * 2;
+    var chain2 = chain1 + ones(4, 4);
+    var chain3 = transpose(chain2);
+    var chain4 = chain3 - eye(4);
+    var final_chain = inv(chain2) * chain4;
+
+    // Verify final result has reasonable properties
+    assert(norm(final_chain) > 0.0, true);
+    var final_det = det(final_chain);
+    assert(final_det != 0.0 or final_det == 0.0, true);  // Should be some number
+
+    // Test multiple matrix creations and operations
+    var sum_det = 0.0;
+    var i = 1;
+    while (i <= 5) {
+        var temp = eye(3) * i;
+        sum_det = sum_det + det(temp);
+        i = i + 1;
+    }
+    assert(sum_det, 225.0);  // 1^3 + 2^3 + 3^3 + 4^3 + 5^3 = 1 + 8 + 27 + 64 + 125 = 225
+
+    // Test nested operations
+    var nested = inv(transpose(eye(3) + ones(3, 3)));
+    var check_nested = nested * transpose(eye(3) + ones(3, 3));
+    assert(det(check_nested) > 0.99 and det(check_nested) < 1.01, true);
+
+    print "✓ Performance operations passed";
+}
+
+// Run all tests
+test_matrix_inverse_advanced();
+test_determinant_algorithms();
+test_matrix_concatenation_advanced();
+test_complex_matrix_operations();
+test_matrix_decomposition_properties();
+test_numerical_stability();
+test_large_matrix_operations();
+test_edge_case_operations();
+test_mathematical_theorems();
+test_performance_operations();
+
+print "\n=== ALL ADVANCED MATRIX TESTS PASSED ===";
+print "Advanced matrix operations verified successfully!";

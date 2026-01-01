@@ -1,0 +1,33 @@
+// Literal-only range test
+// This avoids using variables in ranges to test the basic range functionality
+
+// Test simple iteration with ranges
+print("Iteration with exclusive range (1..5):");
+foreach (i in 1..5) {
+    print(i);  // Should print 1, 2, 3, 4
+}
+
+print("\nIteration with inclusive range (1..=5):");
+foreach (i in 1..=5) {
+    print(i);  // Should print 1, 2, 3, 4, 5
+}
+
+// Test nested ranges - using only literal ranges
+print("\nNested ranges:");
+foreach (i in 1..3) {
+    print("Outer: " + i);
+    // Use literal nested ranges instead of trying to use variable i
+    if (i == 1) {
+        print("  Inner loop for i=1:");
+        foreach (j in 1..2) {
+            print("    " + j);
+        }
+    } else if (i == 2) {
+        print("  Inner loop for i=2:");
+        foreach (j in 1..3) {
+            print("    " + j);
+        }
+    }
+}
+
+print("\nAll tests completed!");

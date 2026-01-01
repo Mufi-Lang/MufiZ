@@ -1,0 +1,38 @@
+// Test vector slicing functionality
+// This test file demonstrates the new slice syntax for float vectors
+
+// Create a vector with 5 elements
+var v = {1.0, 2.0, 3.0, 4.0, 5.0};
+print("Original vector: ");
+print(v);
+
+// Test basic slicing with inclusive end index
+var slice1 = v[1:3];  // Should include elements at index 1, 2, and 3
+print("v[1:3] = ");
+print(slice1);  // Should be {2.0, 3.0, 4.0}
+
+// Test slicing with 'end' keyword
+var slice2 = v[2:end];
+print("v[2:end] = ");
+print(slice2);  // Should be {3.0, 4.0, 5.0}
+
+// Test slicing with 'end-1'
+var slice3 = v[1:end-1];
+print("v[1:end-1] = ");
+print(slice3);  // Should be {2.0, 3.0, 4.0}
+
+// Verify using assert
+var expected1 = {2.0, 3.0, 4.0};
+var expected2 = {3.0, 4.0, 5.0};
+var expected3 = {2.0, 3.0, 4.0};
+
+// Assert that slices match expected values
+assert(slice1, expected1);
+assert(slice2, expected2);
+assert(slice3, expected3);
+
+// Test direct assertion with slicing syntax
+assert(v[1:3], {2.0, 3.0, 4.0});
+assert(v[0:2], {1.0, 2.0, 3.0});
+
+print("All tests passed!");

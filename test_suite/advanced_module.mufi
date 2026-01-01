@@ -1,0 +1,30 @@
+// Advanced test module with multiple functions and constants
+
+fun fibonacci(n) {
+    if (n <= 1) {
+        return n;
+    }
+    return fibonacci(n - 1) + fibonacci(n - 2);
+}
+
+fun factorial(n) {
+    if (n <= 1) {
+        return 1;
+    }
+    return n * factorial(n - 1);
+}
+
+fun power(base, exp) {
+    if (exp == 0) {
+        return 1;
+    }
+    return base * power(base, exp - 1);
+}
+
+const E = 2.71828;
+const GOLDEN_RATIO = 1.61803;
+
+// A greeting function
+fun greet_advanced(name, title) {
+    return title + " " + name + ", welcome!";
+}

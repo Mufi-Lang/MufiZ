@@ -1,0 +1,4 @@
+// Simple module with add function
+fun add(a, b) {
+    return a + b;
+}

@@ -1,0 +1,32 @@
+// Minimal range iteration test
+// This tests direct range iteration without range_to_array conversion
+
+// Test foreach with literal range
+print("Iteration with literal range (1..5):");
+foreach (i in 1..5) {
+    print(i);  // Should print 1, 2, 3, 4
+}
+
+// Test foreach with inclusive range literal
+print("\nIteration with inclusive range literal (1..=5):");
+foreach (i in 1..=5) {
+    print(i);  // Should print 1, 2, 3, 4, 5
+}
+
+// Test with variables - exclusive range
+var start = 10;
+var finish = 15;
+print("\nIteration with variable range (start..finish):");
+foreach (i in start..finish) {
+    print(i);  // Should print 10, 11, 12, 13, 14
+}
+
+// Test with variables - inclusive range
+var start2 = 20;
+var finish2 = 25;
+print("\nIteration with variable inclusive range (start2..=finish2):");
+foreach (i in start2..=finish2) {
+    print(i);  // Should print 20, 21, 22, 23, 24, 25
+}
+
+print("\nAll tests completed!");

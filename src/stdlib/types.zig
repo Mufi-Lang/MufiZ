@@ -1,10 +1,9 @@
 const std = @import("std");
-const core = @import("../core.zig");
 const conv = @import("../conv.zig");
 const stdlib_error = @import("../stdlib.zig").stdlib_error;
-const value_h = core.value_h;
+const value_h = @import("../value.zig");
 const Value = value_h.Value;
-const GlobalAlloc = @import("../main.zig").GlobalAlloc;
+const mem_utils = @import("../mem_utils.zig");
 
 /// Convert a value to an integer.
 pub fn int(argc: i32, args: [*]Value) Value {
@@ -60,19 +59,19 @@ pub fn str(argc: i32, args: [*]Value) Value {
     switch (value.type) {
         .VAL_INT => {
             const i = value.as_int();
-            s = std.fmt.allocPrint(GlobalAlloc, "{d}", .{i}) catch return Value.init_nil();
+            s = std.fmt.allocPrint(mem_utils.getAllocator(), "{d}", .{i}) catch return Value.init_nil();
         },
         .VAL_DOUBLE => {
             const d = value.as_double();
-            s = std.fmt.allocPrint(GlobalAlloc, "{}", .{d}) catch return Value.init_nil();
+            s = std.fmt.allocPrint(mem_utils.getAllocator(), "{}", .{d}) catch return Value.init_nil();
         },
         .VAL_COMPLEX => {
             const c = value.as_complex();
-            s = std.fmt.allocPrint(GlobalAlloc, "{}+{}i", .{ c.r, c.i }) catch return Value.init_nil();
+            s = std.fmt.allocPrint(mem_utils.getAllocator(), "{}+{}i", .{ c.r, c.i }) catch return Value.init_nil();
         },
         else => return Value.init_nil(),
     }
     const val = Value.init_string(s);
-    GlobalAlloc.free(s);
+    mem_utils.getAllocator().free(s);
     return val;
 }

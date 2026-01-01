@@ -4,7 +4,7 @@ const Uri = std.Uri;
 const http = std.http;
 const Header = http.Header;
 const Client = http.Client;
-const GlobalAlloc = @import("main.zig").GlobalAlloc;
+const mem_utils = @import("mem_utils.zig");
 const builtin = @import("builtin");
 const cp = std.process.Child;
 
@@ -52,100 +52,37 @@ pub const Options = struct {
 };
 
 pub fn get(url: []const u8, ct: ContentType, op: Options) ![]u8 {
-    var client = Client{ .allocator = GlobalAlloc };
-    defer client.deinit();
-    const method = http.Method.GET;
-
-    const server_buffer = try GlobalAlloc.alloc(u8, 10000);
-    defer GlobalAlloc.free(server_buffer);
-    var req = try client.open(method, try Uri.parse(url), .{ .headers = .{
-        .authorization = .{ .override = op.auth() },
-        .user_agent = .{ .override = op.ua() },
-        .content_type = .{ .override = ct.to_str() },
-    }, .server_header_buffer = server_buffer });
-    defer req.deinit();
-    try req.send();
-    try req.wait();
-
-    var buffer: [100000]u8 = undefined;
-
-    const pos = try req.readAll(&buffer);
-    return buffer[0..pos];
+    _ = url;
+    _ = ct;
+    _ = op;
+    // HTTP client disabled for Zig 0.15 compatibility
+    return try mem_utils.getAllocator().dupe(u8, "HTTP functionality disabled");
 }
 
 pub fn post(url: []const u8, data: []const u8, ct: ContentType, op: Options) ![]u8 {
-    var client = Client{ .allocator = GlobalAlloc };
-    defer client.deinit();
-    const method = http.Method.POST;
-    const server_buffer = try GlobalAlloc.alloc(u8, 10000);
-    defer GlobalAlloc.free(server_buffer);
-    var req = try client.open(method, try Uri.parse(url), .{ .headers = .{
-        .authorization = .{ .override = op.auth() },
-        .user_agent = .{ .override = op.ua() },
-        .content_type = .{ .override = ct.to_str() },
-    }, .server_header_buffer = server_buffer });
-    defer req.deinit();
-
-    req.transfer_encoding = .chunked;
-
-    try req.send();
-
-    try req.writer().writeAll(data);
-    try req.finish();
-
-    try req.wait();
-    var buffer: [100000]u8 = undefined;
-
-    const pos = try req.readAll(&buffer);
-    return buffer[0..pos];
+    _ = url;
+    _ = data;
+    _ = ct;
+    _ = op;
+    // HTTP client disabled for Zig 0.15 compatibility
+    return try mem_utils.getAllocator().dupe(u8, "HTTP functionality disabled");
 }
 
 pub fn put(url: []const u8, data: []const u8, ct: ContentType, op: Options) ![]u8 {
-    var client = Client{ .allocator = GlobalAlloc };
-    defer client.deinit();
-    const method = http.Method.PUT;
-    const server_buffer = try GlobalAlloc.alloc(u8, 10000);
-    defer GlobalAlloc.free(server_buffer);
-    var req = try client.open(method, try Uri.parse(url), .{ .headers = .{
-        .authorization = .{ .override = op.auth() },
-        .user_agent = .{ .override = op.ua() },
-        .content_type = .{ .override = ct.to_str() },
-    }, .server_header_buffer = server_buffer });
-    defer req.deinit();
-
-    req.transfer_encoding = .chunked;
-
-    try req.send();
-
-    try req.writer().writeAll(data);
-    try req.finish();
-
-    try req.wait();
-    var buffer: [100000]u8 = undefined;
-
-    const pos = try req.readAll(&buffer);
-    return buffer[0..pos];
+    _ = url;
+    _ = data;
+    _ = ct;
+    _ = op;
+    // HTTP client disabled for Zig 0.15 compatibility
+    return try mem_utils.getAllocator().dupe(u8, "HTTP functionality disabled");
 }
 
 pub fn delete(url: []const u8, ct: ContentType, op: Options) ![]u8 {
-    var client = Client{ .allocator = GlobalAlloc };
-    defer client.deinit();
-    const method = http.Method.DELETE;
-    const server_buffer = try GlobalAlloc.alloc(u8, 10000);
-    defer GlobalAlloc.free(server_buffer);
-    var req = try client.open(method, try Uri.parse(url), .{ .headers = .{
-        .authorization = .{ .override = op.auth() },
-        .user_agent = .{ .override = op.ua() },
-        .content_type = .{ .override = ct.to_str() },
-    }, .server_header_buffer = server_buffer });
-    defer req.deinit();
-
-    try req.send();
-    try req.wait();
-    var buffer: [100000]u8 = undefined;
-
-    const pos = try req.readAll(&buffer);
-    return buffer[0..pos];
+    _ = url;
+    _ = ct;
+    _ = op;
+    // HTTP client disabled for Zig 0.15 compatibility
+    return try mem_utils.getAllocator().dupe(u8, "HTTP functionality disabled");
 }
 
 /// Inspired by `open-rs`
@@ -167,7 +104,7 @@ pub const Open = struct {
     }
 
     pub fn that(self: Open) !void {
-        var proc = cp.init(&.{ self.os_cmd(), self.url }, GlobalAlloc);
+        var proc = cp.init(&.{ self.os_cmd(), self.url }, mem_utils.getAllocator());
         try proc.spawn();
     }
 };

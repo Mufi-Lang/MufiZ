@@ -1,0 +1,47 @@
+// Range Array Test
+// This file tests the range operators and range_to_array function
+
+// Create basic ranges
+var r1 = 1..5;    // Exclusive range: 1, 2, 3, 4
+var r2 = 1..=5;   // Inclusive range: 1, 2, 3, 4, 5
+
+print("Ranges created:");
+print(r1);  // Should print "1..5"
+print(r2);  // Should print "1..=5"
+
+// Convert ranges to arrays
+print("\nConverting ranges to arrays:");
+var arr1 = range_to_array(r1);
+var arr2 = range_to_array(r2);
+
+print(arr1);  // Should print array with [1, 2, 3, 4]
+print(arr2);  // Should print array with [1, 2, 3, 4, 5]
+
+// Test range with variables
+var start = 10;
+var finish = 15;
+var r3 = start..finish;
+print("\nRange with variables:");
+print(r3);  // Should print "10..15"
+
+var arr3 = range_to_array(r3);
+print(arr3);  // Should print array with [10, 11, 12, 13, 14]
+
+// Test iteration with range operators
+print("\nIteration with exclusive range (1..5):");
+foreach (i in 1..5) {
+    print(i);  // Should print 1, 2, 3, 4
+}
+
+print("\nIteration with inclusive range (1..=5):");
+foreach (i in 1..=5) {
+    print(i);  // Should print 1, 2, 3, 4, 5
+}
+
+print("\nIteration with variable range using array conversion:");
+var var_array = range_to_array(start..finish);
+foreach (i in var_array) {
+    print(i);  // Should print 10, 11, 12, 13, 14
+}
+
+print("\nAll tests completed!");

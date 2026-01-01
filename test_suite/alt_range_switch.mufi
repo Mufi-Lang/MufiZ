@@ -1,0 +1,43 @@
+// Alternative range pattern switch test
+// Testing different range pattern syntaxes
+
+// Test with single case followed by range pattern
+var value = 3;
+print("Testing with value: " + value);
+
+switch(value) {
+    case 1 => { print("Exactly 1"); },
+    case 2..5 => { print("Range 2..5 (exclusive): 2, 3, 4"); },
+    _ => { print("Default case"); }
+}
+
+// Try a simpler switch with just one range pattern
+value = 3;
+print("\nSimple test with value: " + value);
+
+switch(value) {
+    case 1..5 => { print("Range 1..5 (exclusive): 1, 2, 3, 4"); },
+    _ => { print("Default case"); }
+}
+
+// Test with inclusive range
+value = 5;
+print("\nInclusive range test with value: " + value);
+
+switch(value) {
+    case 1..=5 => { print("Range 1..=5 (inclusive): 1, 2, 3, 4, 5"); },
+    _ => { print("Default case"); }
+}
+
+// Test with literal ranges (equivalent to variables)
+var start = 1;
+var finish = 5;
+value = 3;
+print("\nLiteral range test with value: " + value + " (equivalent to start..finish = " + start + ".." + finish + ")");
+
+switch(value) {
+    case 1..5 => { print("Range 1..5 (equivalent to start..finish)"); },
+    _ => { print("Default case"); }
+}
+
+print("\nTest completed!");

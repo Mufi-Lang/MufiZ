@@ -1,0 +1,21 @@
+// Debug Vector Test
+print "VECTOR DEBUG TEST START";
+
+// Create a float vector with 3 elements
+print "Creating vector";
+var v = {1.0, 2.0, 3.0};
+
+// Check that the vector exists
+print "Vector created";
+
+// Access elements by index
+var a = v[0];  // This will fail if vectors don't support direct indexing
+print a;
+
+// Test iteration with explicit indexing
+print "Accessing elements manually:";
+print v[0];
+print v[1];
+print v[2];
+
+print "VECTOR DEBUG TEST COMPLETE";

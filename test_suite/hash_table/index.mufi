@@ -1,0 +1,63 @@
+// Test script for MufiZ's new hashmap syntax
+
+// Create a simple hashmap using the new syntax
+var person = #{"name": "John", "age": 30, "city": "New York"};
+
+assert(person["name"], "John");
+assert(person["age"], 30);
+assert(person["city"], "New York");
+
+// Test using variables as keys
+var nameKey = "name";
+assert(person[nameKey], "John");
+
+
+// Test updating values
+person["age"] = 31;
+assert(person["age"], 31);
+
+// Test adding new properties
+person["country"] = "USA";
+assert(person["country"], "USA");
+
+// Test mixed types of values
+var data = #{
+    "text": "hello",
+    "number": 42,
+    "boolean": true,
+    "nil_value": nil
+};
+print("Mixed data: " + data);
+print("Text: " + data["text"]);
+print("Number: " + data["number"]);
+print("Boolean: " + data["boolean"]);
+print("Nil value: " + data["nil_value"]);
+
+// Test nested hashmaps
+var nested = #{
+    "info": #{
+        "title": "Test",
+        "version": 1.0
+    },
+    "data": #{
+        "values": #{
+            "x": 10,
+            "y": 20
+        }
+    }
+};
+print("Nested title: " + nested["info"]["title"]);
+print("Nested x: " + nested["data"]["values"]["x"]);
+
+// Test using identifier keys (without quotes)
+var shorthand = #{name: "Alice", age: 25};
+print("Shorthand name: " + shorthand["name"]);
+
+// Get length of hash table using built-in functions
+print("Person keys length: " + len(person));
+
+// Test error cases (these should print error messages)
+// print("Non-existent key: " + person["invalid_key"]); // Should return nil
+// var invalid = #{1: "numeric key"}; // Should error during compilation
+
+print("Hash map tests completed");

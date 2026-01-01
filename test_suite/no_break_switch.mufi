@@ -1,0 +1,47 @@
+// Simple switch test without break statements
+// Testing if range patterns work without 'break'
+
+var value = 3;
+print("Testing with value: " + value);
+
+switch(value) {
+    case 1 => { print("Case: Exactly 1"); },
+    case 2..5 => { print("Case: In range 2..5 (exclusive)"); },
+    case 5..=10 => { print("Case: In range 5..=10 (inclusive)"); },
+    _ => { print("Case: Default"); }
+}
+
+// Test with value at boundary between ranges
+value = 5;
+print("\nTesting with value: " + value);
+
+switch(value) {
+    case 1 => { print("Case: Exactly 1"); },
+    case 2..5 => { print("Case: In range 2..5 (exclusive)"); },
+    case 5..=10 => { print("Case: In range 5..=10 (inclusive)"); },
+    _ => { print("Case: Default"); }
+}
+
+// Test with value in inclusive range
+value = 7;
+print("\nTesting with value: " + value);
+
+switch(value) {
+    case 1 => { print("Case: Exactly 1"); },
+    case 2..5 => { print("Case: In range 2..5 (exclusive)"); },
+    case 5..=10 => { print("Case: In range 5..=10 (inclusive)"); },
+    _ => { print("Case: Default"); }
+}
+
+// Test with value outside all ranges (default case)
+value = 20;
+print("\nTesting with value: " + value);
+
+switch(value) {
+    case 1 => { print("Case: Exactly 1"); },
+    case 2..5 => { print("Case: In range 2..5 (exclusive)"); },
+    case 5..=10 => { print("Case: In range 5..=10 (inclusive)"); },
+    _ => { print("Case: Default"); }
+}
+
+print("\nAll tests completed!");

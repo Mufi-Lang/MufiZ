@@ -1,0 +1,50 @@
+// A simple test of the switch statement functionality
+var test_val = 3;
+print("Test value: " + test_val);
+
+// First switch - should match case 3
+print("\nSwitch 1 - should match case 3:");
+switch(test_val) {
+    case 1 => {
+        print("Case 1 matched");
+    },
+    case 3 => {
+        print("Case 3 matched - CORRECT");
+    },
+    case 5 => {
+        print("Case 5 matched");
+    }
+}
+
+// Second switch - different value
+test_val = 2;
+print("\nSwitch 2 - should match case 2:");
+switch(test_val) {
+    case 1 => {
+        print("Case 1 matched");
+    },
+    case 2 => {
+        print("Case 2 matched - CORRECT");
+    },
+    case 3 => {
+        print("Case 3 matched");
+    }
+}
+
+// Third switch - with fallthrough
+test_val = 1;
+print("\nSwitch 3 - should match case 1:");
+switch(test_val) {
+    case 1 => {
+        print("Case 1 matched - CORRECT");
+        // Intentionally no break - should fall through
+    },
+    case 2 => {
+        print("Case 2 matched after fallthrough");
+    },
+    case 3 => {
+        print("Case 3 matched");
+    }
+}
+
+print("\nTest complete");

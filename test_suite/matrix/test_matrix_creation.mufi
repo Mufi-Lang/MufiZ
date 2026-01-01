@@ -1,0 +1,250 @@
+// Test Suite: Matrix Creation
+// Tests basic matrix creation functions using assertions
+
+print "=== MATRIX CREATION TEST SUITE ===";
+
+fun test_identity_matrices() {
+    print "\n[Test 1] Identity matrix creation";
+    var I1 = eye(1);
+    var I2 = eye(2);
+    var I3 = eye(3);
+    var I5 = eye(5);
+
+    // Test determinant (identity matrices have determinant = 1)
+    assert(det(I1), 1.0);
+    assert(det(I2), 1.0);
+    assert(det(I3), 1.0);
+    assert(det(I5), 1.0);
+
+    // Test trace (identity matrices have trace = dimension)
+    assert(trace(I1), 1.0);
+    assert(trace(I2), 2.0);
+    assert(trace(I3), 3.0);
+    assert(trace(I5), 5.0);
+
+    // Test norm (identity matrices have norm = sqrt(dimension))
+    var norm1 = norm(I1);
+    var norm2 = norm(I2);
+    var norm3 = norm(I3);
+
+    assert(norm1, 1.0);
+    assert(norm2 > 1.4 and norm2 < 1.5, true);  // sqrt(2) ≈ 1.414
+    assert(norm3 > 1.7 and norm3 < 1.8, true);  // sqrt(3) ≈ 1.732
+
+    print "✓ Identity matrix creation passed";
+}
+
+fun test_ones_matrices() {
+    print "\n[Test 2] Ones matrix creation";
+    var O11 = ones(1, 1);
+    var O22 = ones(2, 2);
+    var O33 = ones(3, 3);
+    var O24 = ones(2, 4);
+    var O43 = ones(4, 3);
+
+    // Test square matrices trace
+    assert(trace(O11), 1.0);  // 1 element on diagonal
+    assert(trace(O22), 2.0);  // 2 elements on diagonal
+    assert(trace(O33), 3.0);  // 3 elements on diagonal
+
+    // Test rectangular matrices trace (sum of min(rows,cols) diagonal elements)
+    assert(trace(O24), 2.0);  // 2x4 matrix, trace = min(2,4) = 2 diagonal elements
+    assert(trace(O43), 3.0);  // 4x3 matrix, trace = min(4,3) = 3 diagonal elements
+
+    // Test determinant for square ones matrices
+    assert(det(O11), 1.0);
+    assert(det(O22), 0.0);  // Ones matrix (except 1x1) is singular
+    assert(det(O33), 0.0);  // Ones matrix (except 1x1) is singular
+
+    // Test norms
+    assert(norm(O11), 1.0);
+    assert(norm(O22), 2.0);   // 4 elements, each = 1, so norm = sqrt(4) = 2
+    assert(norm(O33), 3.0);   // 9 elements, each = 1, so norm = sqrt(9) = 3
+
+    print "✓ Ones matrix creation passed";
+}
+
+fun test_zeros_matrices() {
+    print "\n[Test 3] Zeros matrix creation";
+    var Z11 = zeros(1, 1);
+    var Z22 = zeros(2, 2);
+    var Z33 = zeros(3, 3);
+    var Z25 = zeros(2, 5);
+    var Z52 = zeros(5, 2);
+
+    // All zero matrices should have trace = 0
+    assert(trace(Z11), 0.0);
+    assert(trace(Z22), 0.0);
+    assert(trace(Z33), 0.0);
+    assert(trace(Z25), 0.0);  // Non-square
+    assert(trace(Z52), 0.0);  // Non-square
+
+    // All zero matrices should have determinant = 0
+    assert(det(Z11), 0.0);
+    assert(det(Z22), 0.0);
+    assert(det(Z33), 0.0);
+
+    // All zero matrices should have norm = 0
+    assert(norm(Z11), 0.0);
+    assert(norm(Z22), 0.0);
+    assert(norm(Z33), 0.0);
+    assert(norm(Z25), 0.0);
+    assert(norm(Z52), 0.0);
+
+    print "✓ Zeros matrix creation passed";
+}
+
+fun test_random_matrices() {
+    print "\n[Test 4] Random matrix creation";
+    var R22 = rand(2, 2);
+    var R33 = rand(3, 3);
+    var N22 = randn(2, 2);
+    var N33 = randn(3, 3);
+
+    // Random matrices should have non-zero norms (with very high probability)
+    var norm_R22 = norm(R22);
+    var norm_R33 = norm(R33);
+    var norm_N22 = norm(N22);
+    var norm_N33 = norm(N33);
+
+    assert(norm_R22 > 0.0, true);
+    assert(norm_R33 > 0.0, true);
+    assert(norm_N22 > 0.0, true);
+    assert(norm_N33 > 0.0, true);
+
+    // Random uniform matrices should have elements roughly between 0 and 1
+    // So norm should be reasonable
+    assert(norm_R22 < 5.0, true);  // Upper bound sanity check
+    assert(norm_R33 < 10.0, true); // Upper bound sanity check
+
+    // Random matrices should have different determinants (very high probability)
+    var det_R22 = det(R22);
+    var det_R33 = det(R33);
+    var det_N22 = det(N22);
+    var det_N33 = det(N33);
+
+    // Just check they're not all identical (extremely unlikely)
+    assert(det_R22 != det_R33 or det_N22 != det_N33, true);
+
+    print "✓ Random matrix creation passed";
+}
+
+fun test_matrix_properties_consistency() {
+    print "\n[Test 5] Matrix properties consistency";
+
+    // Create multiple instances of same type
+    var I2_a = eye(2);
+    var I2_b = eye(2);
+    var O3_a = ones(3, 3);
+    var O3_b = ones(3, 3);
+    var Z2_a = zeros(2, 2);
+    var Z2_b = zeros(2, 2);
+
+    // Same matrices should have same properties
+    assert(det(I2_a), det(I2_b));
+    assert(trace(I2_a), trace(I2_b));
+    assert(norm(I2_a), norm(I2_b));
+
+    assert(det(O3_a), det(O3_b));
+    assert(trace(O3_a), trace(O3_b));
+    assert(norm(O3_a), norm(O3_b));
+
+    assert(det(Z2_a), det(Z2_b));
+    assert(trace(Z2_a), trace(Z2_b));
+    assert(norm(Z2_a), norm(Z2_b));
+
+    print "✓ Matrix properties consistency passed";
+}
+
+fun test_large_matrices() {
+    print "\n[Test 6] Large matrix creation";
+    var I10 = eye(10);
+    var O88 = ones(8, 8);
+    var Z1515 = zeros(15, 15);
+
+    // Test large identity matrix
+    assert(det(I10), 1.0);
+    assert(trace(I10), 10.0);
+
+    // Test large ones matrix
+    assert(det(O88), 0.0);  // Should be singular
+    assert(trace(O88), 8.0);
+    assert(norm(O88), 8.0); // sqrt(64) = 8
+
+    // Test large zeros matrix
+    assert(det(Z1515), 0.0);
+    assert(trace(Z1515), 0.0);
+    assert(norm(Z1515), 0.0);
+
+    print "✓ Large matrix creation passed";
+}
+
+fun test_edge_cases() {
+    print "\n[Test 7] Edge cases and special matrices";
+
+    // Single element matrices
+    var I1 = eye(1);
+    var O1 = ones(1, 1);
+    var Z1 = zeros(1, 1);
+
+    assert(det(I1), 1.0);
+    assert(det(O1), 1.0);
+    assert(det(Z1), 0.0);
+
+    assert(trace(I1), 1.0);
+    assert(trace(O1), 1.0);
+    assert(trace(Z1), 0.0);
+
+    assert(norm(I1), 1.0);
+    assert(norm(O1), 1.0);
+    assert(norm(Z1), 0.0);
+
+    // Very rectangular matrices
+    var tall = ones(10, 1);
+    var wide = zeros(1, 10);
+
+    assert(trace(tall), 1.0);  // ones(10,1) matrix, trace = min(10,1) = 1 diagonal element = 1
+    assert(trace(wide), 0.0);  // zeros(1,10) matrix, trace = 0 (all elements are zero)
+    assert(norm(tall) > 3.0, true);  // sqrt(10) ≈ 3.16
+    assert(norm(wide), 0.0);
+
+    print "✓ Edge cases passed";
+}
+
+fun test_mathematical_properties() {
+    print "\n[Test 8] Mathematical properties verification";
+
+    // Test that I + 0 = I (conceptually, through properties)
+    var I3 = eye(3);
+    var Z3 = zeros(3, 3);
+    var sum_I_Z = I3 + Z3;
+
+    assert(det(sum_I_Z), det(I3));
+    assert(trace(sum_I_Z), trace(I3));
+    assert(norm(sum_I_Z), norm(I3));
+
+    // Test that 2*I has determinant 2^n for n×n matrix
+    var I2 = eye(2);
+    var scaled_I2 = I2 * 2;
+    assert(det(scaled_I2), 4.0);  // 2^2 = 4
+    assert(trace(scaled_I2), 4.0); // 2*2 = 4
+
+    var I3_scaled = eye(3) * 3;
+    assert(det(I3_scaled), 27.0); // 3^3 = 27
+    assert(trace(I3_scaled), 9.0); // 3*3 = 9
+
+    print "✓ Mathematical properties verification passed";
+}
+
+// Run all tests
+test_identity_matrices();
+test_ones_matrices();
+test_zeros_matrices();
+test_random_matrices();
+test_matrix_properties_consistency();
+test_large_matrices();
+test_edge_cases();
+test_mathematical_properties();
+
+print "\n=== ALL MATRIX CREATION TESTS PASSED ===";
+print "Matrix creation functionality verified successfully!";

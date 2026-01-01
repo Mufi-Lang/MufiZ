@@ -1,0 +1,23 @@
+// Minimal range test - only testing foreach with range syntax
+
+// Test foreach with ranges
+print("Iteration with exclusive range (1..5):");
+foreach (i in 1..5) {
+    print(i);  // Should print 1, 2, 3, 4
+}
+
+print("\nIteration with inclusive range (1..=5):");
+foreach (i in 1..=5) {
+    print(i);  // Should print 1, 2, 3, 4, 5
+}
+
+// Test with variables - convert to array first
+var start = 10;
+var finish = 15;
+print("\nIteration with variable range (start..finish):");
+var range_array = range_to_array(start..finish);
+foreach (i in range_array) {
+    print(i);  // Should print 10, 11, 12, 13, 14
+}
+
+print("\nAll tests completed!");

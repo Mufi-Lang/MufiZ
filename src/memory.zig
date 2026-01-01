@@ -1,21 +1,24 @@
 const std = @import("std");
 const print = std.debug.print;
+const exit = std.process.exit;
 
-const obj_h = @import("object.zig");
-const __obj = @import("objects/obj.zig");
 const debug_opts = @import("debug");
-const Obj = obj_h.Obj;
-const vm_h = @import("vm.zig");
-const value_h = @import("value.zig");
-const Value = value_h.Value;
-const table_h = @import("table.zig");
+
 const chunk_h = @import("chunk.zig");
+const mem_utils = @import("mem_utils.zig");
+const obj_h = @import("object.zig");
+const Obj = obj_h.Obj;
 const Node = obj_h.Node;
 const ObjHashTable = obj_h.ObjHashTable;
 const ObjMatrix = obj_h.ObjMatrix;
+const fvec = @import("objects/fvec.zig");
+const __obj = @import("objects/obj.zig");
+const table_h = @import("table.zig");
 const markTable = table_h.markTable;
 const freeTable = table_h.freeTable;
-const fvec = @import("objects/fvec.zig");
+const value_h = @import("value.zig");
+const Value = value_h.Value;
+const vm_h = @import("vm.zig");
 
 pub const GC_HEAP_GROW_FACTOR = 2;
 
@@ -30,15 +33,15 @@ pub const GCData = struct {
     state: GCState = .GC_IDLE,
     rootIndex: usize = 0,
     sweepingObject: ?*Obj = null,
-    
+
     // Generational GC data
     youngGen: ObjectList = .{},
     middleGen: ObjectList = .{},
     oldGen: ObjectList = .{},
-    
+
     // Cycle detection
     cycleRoots: ObjectList = .{},
-    
+
     // Collection counters
     youngCollections: u32 = 0,
     middleCollections: u32 = 0,
@@ -48,20 +51,20 @@ pub const GCData = struct {
 pub const ObjectList = struct {
     head: ?*Obj = null,
     count: usize = 0,
-    
+
     pub fn add(self: *ObjectList, obj: *Obj) void {
         obj.next = self.head;
         self.head = obj;
         self.count += 1;
     }
-    
+
     pub fn remove(self: *ObjectList, obj: *Obj) void {
         if (self.head == obj) {
             self.head = obj.next;
             self.count -= 1;
             return;
         }
-        
+
         var current = self.head;
         while (current) |curr| {
             if (curr.next == obj) {
@@ -75,12 +78,6 @@ pub const ObjectList = struct {
 };
 
 pub var gcData: GCData = .{};
-const exit = std.process.exit;
-
-const mem_utils = @import("mem_utils.zig");
-const realloc = mem_utils.realloc;
-const free = mem_utils.free;
-
 // Debug functions for monitoring GC activity
 pub fn printGCStats() void {
     if (debug_opts.log_gc) {
@@ -100,42 +97,75 @@ pub fn printGCStats() void {
 
 pub fn debugObjectGeneration(obj: *Obj, action: []const u8) void {
     if (debug_opts.log_gc) {
-        print("[{s}] Object {p} - Gen: {any}, Age: {d}, RefCount: {d}\n", .{
-            action, @as(*anyopaque, @ptrCast(obj)), obj.generation, obj.age, obj.refCount
-        });
+        print("[{s}] Object {p} - Gen: {any}, Age: {d}, RefCount: {d}\n", .{ action, @as(*anyopaque, @ptrCast(obj)), obj.generation, obj.age, obj.refCount });
     }
 }
 
 //todo: fix collect garbage debugging
 pub fn reallocate(pointer: ?*anyopaque, oldSize: usize, newSize: usize) ?*anyopaque {
+    const allocator = mem_utils.getAllocator();
+
     if (newSize > oldSize) {
         if (debug_opts.stress_gc) collectGarbage();
 
-        // Check for overflow
-        if (vm_h.vm.bytesAllocated > std.math.maxInt(usize) - (newSize - oldSize)) {
-            std.debug.print("Memory allocation would cause overflow.\n", .{});
-            std.process.exit(1);
-        }
-
-        vm_h.vm.bytesAllocated += newSize - oldSize;
+        const delta = newSize - oldSize;
+        vm_h.vm.bytesAllocated += delta;
     } else if (oldSize > newSize) {
-        vm_h.vm.bytesAllocated -= oldSize - newSize;
+        const delta = oldSize - newSize;
+        if (vm_h.vm.bytesAllocated >= delta) {
+            vm_h.vm.bytesAllocated -= delta;
+        } else {
+            // Accounting bug - prevent underflow
+            vm_h.vm.bytesAllocated = 0;
+        }
+    }
+
+    if (newSize == 0) {
+        // Freeing memory - subtract oldSize from bytesAllocated
+        if (vm_h.vm.bytesAllocated >= oldSize) {
+            vm_h.vm.bytesAllocated -= oldSize;
+        } else {
+            // Accounting bug - prevent underflow
+            vm_h.vm.bytesAllocated = 0;
+        }
+        if (pointer != null) {
+            const old_slice = @as([*]u8, @ptrCast(pointer))[0..oldSize];
+            mem_utils.free(allocator, old_slice);
+        }
+        return null;
     }
 
     if (vm_h.vm.bytesAllocated > vm_h.vm.nextGC) {
         collectGarbage();
     }
 
-    if (newSize == 0) {
-        if (pointer != null) free(pointer);
-        return null;
+    var result: ?*anyopaque = null;
+
+    if (pointer == null) {
+        // Act like malloc
+        const new_memory = mem_utils.alloc(allocator, u8, newSize) catch null;
+        result = if (new_memory) |mem| mem.ptr else null;
+    } else {
+        // Reallocate existing memory
+        const old_slice = @as([*]u8, @ptrCast(pointer))[0..oldSize];
+        const new_memory = mem_utils.realloc(allocator, old_slice, newSize) catch null;
+        result = if (new_memory) |mem| mem.ptr else null;
     }
 
-    var result = realloc(pointer, newSize);
     if (result == null and newSize > 0) {
         std.debug.print("Memory allocation failed. Attempted to allocate {} bytes.\n", .{newSize});
         collectGarbage();
-        result = realloc(pointer, newSize);
+
+        // Try again after GC
+        if (pointer == null) {
+            const new_memory = mem_utils.alloc(allocator, u8, newSize) catch null;
+            result = if (new_memory) |mem| mem.ptr else null;
+        } else {
+            const old_slice = @as([*]u8, @ptrCast(pointer))[0..oldSize];
+            const new_memory = mem_utils.realloc(allocator, old_slice, newSize) catch null;
+            result = if (new_memory) |mem| mem.ptr else null;
+        }
+
         if (result == null) {
             std.debug.print("Critical error: Memory allocation failed after garbage collection attempt.\n", .{});
             std.process.exit(1);
@@ -150,23 +180,23 @@ pub fn incRef(object: ?*Obj) void {
     if (object == null) return;
     const obj = object.?;
     obj.refCount += 1;
-    
+
     if (debug_opts.log_gc) {
-        print("{p} inc ref to {d}\n", .{@as(*anyopaque, @ptrCast(obj)), obj.refCount});
+        print("{p} inc ref to {d}\n", .{ @as(*anyopaque, @ptrCast(obj)), obj.refCount });
     }
 }
 
 pub fn decRef(object: ?*Obj) void {
     if (object == null) return;
     const obj = object.?;
-    
+
     if (obj.refCount == 0) return;
     obj.refCount -= 1;
-    
+
     if (debug_opts.log_gc) {
-        print("{p} dec ref to {d}\n", .{@as(*anyopaque, @ptrCast(obj)), obj.refCount});
+        print("{p} dec ref to {d}\n", .{ @as(*anyopaque, @ptrCast(obj)), obj.refCount });
     }
-    
+
     // If ref count hits zero, immediately free (unless it might be in a cycle)
     if (obj.refCount == 0) {
         if (obj.cycleColor == .Purple) {
@@ -186,20 +216,22 @@ pub fn addToCycleRoots(obj: *Obj) void {
 
 pub fn markObject(object: ?*Obj) void {
     if (object == null) return;
-    
+
     const obj = object.?;
     if (obj.isMarked) return;
 
     if (debug_opts.log_gc) {
         print("{p} mark ", .{@as(*anyopaque, @ptrCast(obj))});
-        value_h.printValue(value_h.OBJ_VAL(obj));
+        value_h.printValue(value_h.Value.init_obj(obj));
         print("\n", .{});
     }
 
     obj.isMarked = true;
     if (vm_h.vm.grayCapacity < (vm_h.vm.grayCount + 1)) {
         vm_h.vm.grayCapacity = if (vm_h.vm.grayCapacity < 8) 8 else vm_h.vm.grayCapacity * 2;
-        vm_h.vm.grayStack = @ptrCast(@alignCast(realloc(@ptrCast(vm_h.vm.grayStack), @intCast(@sizeOf(*Obj) *% vm_h.vm.grayCapacity))));
+        const old_capacity: usize = @intCast(@divTrunc(vm_h.vm.grayCapacity, 2));
+        const new_capacity: usize = @intCast(vm_h.vm.grayCapacity);
+        vm_h.vm.grayStack = @ptrCast(@alignCast(mem_utils.c_realloc(@ptrCast(vm_h.vm.grayStack), @sizeOf(*Obj) * old_capacity, @sizeOf(*Obj) * new_capacity)));
     }
     vm_h.vm.grayCount += 1;
     if (vm_h.vm.grayStack) |stack| {
@@ -215,23 +247,23 @@ pub fn markValue(value: Value) void {
 pub fn collectGarbage() void {
     // First try cycle collection
     collectCycles();
-    
+
     // Then do generational collection based on allocation pressure
     if (shouldCollectYoung()) {
         collectGeneration(.Young);
         gcData.youngCollections += 1;
     }
-    
+
     if (shouldCollectMiddle()) {
         collectGeneration(.Middle);
         gcData.middleCollections += 1;
     }
-    
+
     if (shouldCollectOld()) {
         collectGeneration(.Old);
         gcData.oldCollections += 1;
     }
-    
+
     // Fallback to traditional GC if needed
     while (gcData.state != .GC_IDLE) {
         incrementalGC();
@@ -255,44 +287,42 @@ pub fn collectGeneration(gen: __obj.Generation) void {
         print("Starting collection for generation {any}\n", .{gen});
         printGCStats();
     }
-    
+
     const list = switch (gen) {
         .Young => &gcData.youngGen,
         .Middle => &gcData.middleGen,
         .Old => &gcData.oldGen,
     };
-    
+
     const startTime = std.time.milliTimestamp();
     const initialCount = list.count;
-    
+
     // Mark phase - mark all reachable objects
     markRootsForGeneration(gen);
-    
+
     // Sweep phase - free unmarked objects and age survivors
     sweepGeneration(list, gen);
-    
+
     if (debug_opts.log_gc) {
         const endTime = std.time.milliTimestamp();
         const collected = initialCount - list.count;
-        print("Generation {any} collection completed in {d}ms\n", .{gen, endTime - startTime});
-        print("Collected {d} objects, {d} remaining\n", .{collected, list.count});
+        print("Generation {any} collection completed in {d}ms\n", .{ gen, endTime - startTime });
+        print("Collected {d} objects, {d} remaining\n", .{ collected, list.count });
         printGCStats();
     }
 }
 
 pub fn markRootsForGeneration(gen: __obj.Generation) void {
     // Mark stack roots
-    const stackSize: usize = @intCast(@intFromPtr(vm_h.vm.stackTop) - @intFromPtr(&vm_h.vm.stack));
-    const stackItemCount = stackSize / @sizeOf(Value);
-    for (0..stackItemCount) |i| {
+    for (0..vm_h.vm.stackTop) |i| {
         markValueForGeneration(vm_h.vm.stack[i], gen);
     }
-    
+
     // Mark frame roots
     for (0..@intCast(vm_h.vm.frameCount)) |i| {
         markObjectForGeneration(@ptrCast(@alignCast(vm_h.vm.frames[i].closure)), gen);
     }
-    
+
     // Mark global roots
     markTableForGeneration(&vm_h.vm.globals, gen);
     markObjectForGeneration(@ptrCast(@alignCast(vm_h.vm.initString)), gen);
@@ -307,17 +337,19 @@ pub fn markValueForGeneration(value: Value, gen: __obj.Generation) void {
 pub fn markObjectForGeneration(object: ?*Obj, gen: __obj.Generation) void {
     if (object == null) return;
     const obj = object.?;
-    
+
     // Only mark objects in this generation or younger
     if (@intFromEnum(obj.generation) > @intFromEnum(gen)) return;
-    
+
     if (obj.isMarked) return;
     obj.isMarked = true;
-    
+
     // Add to gray stack for processing
     if (vm_h.vm.grayCapacity < (vm_h.vm.grayCount + 1)) {
         vm_h.vm.grayCapacity = if (vm_h.vm.grayCapacity < 8) 8 else vm_h.vm.grayCapacity * 2;
-        vm_h.vm.grayStack = @ptrCast(@alignCast(realloc(@ptrCast(vm_h.vm.grayStack), @intCast(@sizeOf(*Obj) *% vm_h.vm.grayCapacity))));
+        const old_capacity: usize = @intCast(@divTrunc(vm_h.vm.grayCapacity, 2));
+        const new_capacity: usize = @intCast(vm_h.vm.grayCapacity);
+        vm_h.vm.grayStack = @ptrCast(@alignCast(mem_utils.c_realloc(@ptrCast(vm_h.vm.grayStack), @sizeOf(*Obj) * old_capacity, @sizeOf(*Obj) * new_capacity)));
     }
     vm_h.vm.grayCount += 1;
     if (vm_h.vm.grayStack) |stack| {
@@ -338,15 +370,15 @@ pub fn markTableForGeneration(table: *table_h.Table, gen: __obj.Generation) void
 pub fn sweepGeneration(list: *ObjectList, gen: __obj.Generation) void {
     var current = list.head;
     var prev: ?*Obj = null;
-    
+
     while (current) |obj| {
         const next = obj.next;
-        
+
         if (obj.isMarked) {
             // Object survived - age it and potentially promote
             obj.isMarked = false;
             obj.age += 1;
-            
+
             if (shouldPromote(obj, gen)) {
                 promoteObject(obj, gen);
                 // Remove from current list
@@ -369,7 +401,7 @@ pub fn sweepGeneration(list: *ObjectList, gen: __obj.Generation) void {
             list.count -= 1;
             freeObject(obj);
         }
-        
+
         current = next;
     }
 }
@@ -388,18 +420,18 @@ pub fn promoteObject(obj: *Obj, fromGen: __obj.Generation) void {
         .Middle => .Old,
         .Old => .Old,
     };
-    
+
     obj.generation = newGen;
     obj.age = 0;
-    
+
     const targetList = switch (newGen) {
         .Young => &gcData.youngGen,
         .Middle => &gcData.middleGen,
         .Old => &gcData.oldGen,
     };
-    
+
     targetList.add(obj);
-    
+
     debugObjectGeneration(obj, "PROMOTE");
 }
 
@@ -408,11 +440,11 @@ pub fn collectCycles() void {
     if (debug_opts.log_gc) {
         print("Starting cycle collection with {d} roots\n", .{gcData.cycleRoots.count});
     }
-    
+
     const startTime = std.time.milliTimestamp();
     const initialRoots = gcData.cycleRoots.count;
     var cyclesCollected: u32 = 0;
-    
+
     // Mark possible cycle roots
     var current = gcData.cycleRoots.head;
     while (current) |obj| {
@@ -421,7 +453,7 @@ pub fn collectCycles() void {
         }
         current = obj.next;
     }
-    
+
     // Scan for cycles
     current = gcData.cycleRoots.head;
     while (current) |obj| {
@@ -430,13 +462,13 @@ pub fn collectCycles() void {
         }
         current = obj.next;
     }
-    
+
     // Collect white objects (garbage cycles)
     current = gcData.cycleRoots.head;
     var prev: ?*Obj = null;
     while (current) |obj| {
         const next = obj.next;
-        
+
         if (obj.cycleColor == .White) {
             collectWhite(obj);
             cyclesCollected += 1;
@@ -452,31 +484,31 @@ pub fn collectCycles() void {
             obj.inCycleDetection = false;
             prev = obj;
         }
-        
+
         current = next;
     }
-    
+
     if (debug_opts.log_gc) {
         const endTime = std.time.milliTimestamp();
         print("Cycle collection completed in {d}ms\n", .{endTime - startTime});
-        print("Processed {d} roots, collected {d} cycles\n", .{initialRoots, cyclesCollected});
+        print("Processed {d} roots, collected {d} cycles\n", .{ initialRoots, cyclesCollected });
     }
 }
 
 pub fn markCycleRoots(obj: *Obj) void {
     if (obj.cycleColor != .Purple) return;
     obj.cycleColor = .Gray;
-    
+
     // Decrement ref count of children
     decrementChildren(obj);
-    
+
     // Add children to processing queue
     addChildrenToCycleDetection(obj);
 }
 
 pub fn scanCycles(obj: *Obj) void {
     if (obj.cycleColor != .Gray) return;
-    
+
     if (obj.refCount > 0) {
         // Object is still reachable
         scanBlack(obj);
@@ -602,7 +634,7 @@ pub fn freeObjects() void {
         freeObject(@ptrCast(@alignCast(current)));
         object = next;
     }
-    
+
     // Clear hybrid GC lists without freeing (objects already freed above)
     gcData.youngGen.head = null;
     gcData.youngGen.count = 0;
@@ -612,9 +644,12 @@ pub fn freeObjects() void {
     gcData.oldGen.count = 0;
     gcData.cycleRoots.head = null;
     gcData.cycleRoots.count = 0;
-    
+
     if (vm_h.vm.grayStack) |stack| {
-        free(@ptrCast(stack));
+        mem_utils.c_free(@ptrCast(stack), @sizeOf(*Obj) * @as(usize, @intCast(vm_h.vm.grayCapacity)));
+        vm_h.vm.grayStack = null;
+        vm_h.vm.grayCapacity = 0;
+        vm_h.vm.grayCount = 0;
     }
 }
 
@@ -629,52 +664,103 @@ pub fn freeObject(object: *Obj) void {
 
     switch (object.*.type) {
         .OBJ_BOUND_METHOD => {
-            _ = reallocate(@ptrCast(object), @sizeOf(obj_h.ObjBoundMethod), 0);
+            const allocator = mem_utils.getAllocator();
+            const bound_method_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(obj_h.ObjBoundMethod)];
+            mem_utils.free(allocator, bound_method_slice);
         },
         .OBJ_CLASS => {
             const klass: *obj_h.ObjClass = @ptrCast(object);
             freeTable(&klass.*.methods);
-            _ = reallocate(@ptrCast(object), @sizeOf(obj_h.ObjClass), 0);
+            const allocator = mem_utils.getAllocator();
+            const class_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(obj_h.ObjClass)];
+            mem_utils.free(allocator, class_slice);
         },
         .OBJ_CLOSURE => {
             const closure: *obj_h.ObjClosure = @ptrCast(@alignCast(object));
-            _ = reallocate(@ptrCast(closure.*.upvalues), @intCast(@sizeOf(?*obj_h.ObjUpvalue) *% closure.*.upvalueCount), 0);
-            _ = reallocate(@ptrCast(object), @sizeOf(obj_h.ObjClosure), 0);
+            const allocator = mem_utils.getAllocator();
+            if (closure.*.upvalues) |upvalues| {
+                const upvalues_slice = @as([*]u8, @ptrCast(upvalues))[0..@intCast(@sizeOf(?*obj_h.ObjUpvalue) *% closure.*.upvalueCount)];
+                mem_utils.free(allocator, upvalues_slice);
+            }
+            const closure_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(obj_h.ObjClosure)];
+            mem_utils.free(allocator, closure_slice);
         },
         .OBJ_FUNCTION => {
             const function: *obj_h.ObjFunction = @ptrCast(@alignCast(object));
 
             chunk_h.freeChunk(&function.*.chunk);
-            _ = reallocate(@ptrCast(object), @sizeOf(obj_h.ObjFunction), 0);
+            const allocator = mem_utils.getAllocator();
+            const function_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(obj_h.ObjFunction)];
+            mem_utils.free(allocator, function_slice);
         },
         .OBJ_INSTANCE => {
             const instance: *obj_h.ObjInstance = @ptrCast(@alignCast(object));
             freeTable(&instance.*.fields);
-            _ = reallocate(@ptrCast(object), @sizeOf(obj_h.ObjInstance), 0);
+            const allocator = mem_utils.getAllocator();
+            const instance_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(obj_h.ObjInstance)];
+            mem_utils.free(allocator, instance_slice);
         },
         .OBJ_NATIVE => {
-            _ = reallocate(@ptrCast(object), @sizeOf(obj_h.ObjNative), 0);
+            const allocator = mem_utils.getAllocator();
+            const native_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(obj_h.ObjNative)];
+            mem_utils.free(allocator, native_slice);
         },
         .OBJ_STRING => {
             const string: *obj_h.ObjString = @ptrCast(@alignCast(object));
-            _ = reallocate(@ptrCast(string.chars), @intCast(@sizeOf(u8) *% string.length + 1), 0);
-            _ = reallocate(@ptrCast(object), @sizeOf(obj_h.ObjString), 0);
+            const allocator = mem_utils.getAllocator();
+            if (string.chars.len > 0) {
+                // String chars were allocated with length + 1 for null terminator
+                // but stored as slice of length. We need to free the original allocation size.
+                const chars_with_null = string.chars.ptr[0 .. string.length + 1];
+                mem_utils.free(allocator, chars_with_null);
+            }
+            const string_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(obj_h.ObjString)];
+            mem_utils.free(allocator, string_slice);
         },
         .OBJ_UPVALUE => {
-            _ = reallocate(@ptrCast(object), @sizeOf(obj_h.ObjUpvalue), 0);
+            const allocator = mem_utils.getAllocator();
+            const upvalue_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(obj_h.ObjUpvalue)];
+            mem_utils.free(allocator, upvalue_slice);
         },
 
         .OBJ_LINKED_LIST => {
-            const linkedList: *obj_h.ObjLinkedList = @ptrCast(@alignCast(object));
-            obj_h.freeObjectLinkedList(linkedList);
+            const linkedList: *obj_h.LinkedList = @ptrCast(@alignCast(object));
+            obj_h.LinkedList.deinit(linkedList);
         },
         .OBJ_HASH_TABLE => {
-            const hashTable: *obj_h.ObjHashTable = @ptrCast(@alignCast(object));
-            obj_h.freeObjectHashTable(hashTable);
+            const hashTable: *ObjHashTable = @ptrCast(@alignCast(object));
+
+            ObjHashTable.deinit(hashTable);
         },
         .OBJ_FVECTOR => {
             const fvector: *obj_h.FloatVector = @ptrCast(@alignCast(object));
             fvec.FloatVector.deinit(fvector);
+        },
+        .OBJ_RANGE => {
+            const allocator = mem_utils.getAllocator();
+            const range_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(obj_h.ObjRange)];
+            mem_utils.free(allocator, range_slice);
+        },
+        .OBJ_PAIR => {
+            const pair: *obj_h.ObjPair = @ptrCast(@alignCast(object));
+            pair.key.release();
+            pair.value.release();
+            const allocator = mem_utils.getAllocator();
+            const pair_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(obj_h.ObjPair)];
+            mem_utils.free(allocator, pair_slice);
+        },
+        .OBJ_MATRIX => {
+            const matrix: *obj_h.Matrix = @ptrCast(@alignCast(object));
+            matrix.deinit();
+            const allocator = mem_utils.getAllocator();
+            const matrix_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(obj_h.Matrix)];
+            mem_utils.free(allocator, matrix_slice);
+        },
+        .OBJ_MATRIX_ROW => {
+            // Matrix row objects don't own data, just free the object itself
+            const allocator = mem_utils.getAllocator();
+            const matrix_row_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(obj_h.MatrixRow)];
+            mem_utils.free(allocator, matrix_row_slice);
         },
     }
 }
@@ -682,7 +768,7 @@ pub fn freeObject(object: *Obj) void {
 pub fn blackenObject(object: *Obj) void {
     if (debug_opts.log_gc) {
         print("{p} blacken ", .{@as(*anyopaque, @ptrCast(object))});
-        value_h.printValue(value_h.OBJ_VAL(object));
+        value_h.printValue(value_h.Value.init_obj(object));
         print("\n", .{});
     }
 
@@ -691,6 +777,9 @@ pub fn blackenObject(object: *Obj) void {
             const bound: *obj_h.ObjBoundMethod = @ptrCast(@alignCast(object));
             markValue(bound.*.receiver);
             markObject(@ptrCast(@alignCast(bound.*.method)));
+        },
+        .OBJ_RANGE => {
+            // ObjRange has no GC-managed fields to mark
         },
         .OBJ_CLASS => {
             var klass: *obj_h.ObjClass = @ptrCast(@alignCast(object));
@@ -727,7 +816,7 @@ pub fn blackenObject(object: *Obj) void {
         //     }
         // },
         .OBJ_LINKED_LIST => {
-            const linkedList: *obj_h.ObjLinkedList = @ptrCast(@alignCast(object));
+            const linkedList: *obj_h.LinkedList = @ptrCast(@alignCast(object));
             var current: ?*Node = linkedList.head;
             while (current) |node| {
                 markValue(node.data);
@@ -736,10 +825,38 @@ pub fn blackenObject(object: *Obj) void {
         },
         .OBJ_HASH_TABLE => {
             const hashTable: *ObjHashTable = @ptrCast(@alignCast(object));
-            markTable(&hashTable.*.table);
+            markHashMap(hashTable);
+        },
+        .OBJ_PAIR => {
+            const pair: *obj_h.ObjPair = @ptrCast(@alignCast(object));
+            markValue(pair.key);
+            markValue(pair.value);
+        },
+        .OBJ_MATRIX => {
+            // Matrix has no GC-managed fields to mark (only contains f64 data)
+        },
+        .OBJ_MATRIX_ROW => {
+            const matrix_row: *obj_h.MatrixRow = @ptrCast(@alignCast(object));
+            // Mark the parent matrix to keep it alive
+            markObject(@ptrCast(matrix_row.matrix));
         },
 
         else => {},
+    }
+}
+
+/// Mark all entries in a std.HashMap-based hash table
+pub fn markHashMap(hashTable: *ObjHashTable) void {
+    // Get iterator from the std.HashMap
+    var iterator = hashTable.map.iterator();
+
+    // Mark each key and value
+    while (iterator.next()) |entry| {
+        // Mark the key (ObjString)
+        markObject(@ptrCast(entry.key_ptr.*));
+
+        // Mark the value if it contains objects
+        markValue(entry.value_ptr.*);
     }
 }
 
@@ -761,13 +878,11 @@ pub fn incrementalGC() void {
                 gcData.sweepingObject = null;
             },
             .GC_MARK_ROOTS => {
-                const stackSize: usize = @intCast(@intFromPtr(vm_h.vm.stackTop) - @intFromPtr(&vm_h.vm.stack));
-                const stackItemCount = stackSize / @sizeOf(Value);
-                while ((gcData.rootIndex < stackItemCount) and (workDone < INCREMENT_LIMIT)) : (gcData.rootIndex +%= 1) {
+                while ((gcData.rootIndex < vm_h.vm.stackTop) and (workDone < INCREMENT_LIMIT)) : (gcData.rootIndex +%= 1) {
                     markValue(vm_h.vm.stack[gcData.rootIndex]);
                     workDone += 1;
                 }
-                if (gcData.rootIndex >= stackItemCount) {
+                if (gcData.rootIndex >= vm_h.vm.stackTop) {
                     for (0..@intCast(vm_h.vm.frameCount)) |i| {
                         markObject(@ptrCast(@alignCast(vm_h.vm.frames[i].closure)));
                     }

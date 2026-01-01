@@ -1,0 +1,145 @@
+// Matrix Foreach Loop Demonstration
+// Shows the new matrix foreach functionality in MufiZ using flatten()
+
+print("=== MATRIX FOREACH LOOP DEMONSTRATION ===");
+print("This demonstrates the new capability to iterate over matrix elements using foreach loops.");
+
+print("\n--- Basic Matrix Iteration ---");
+var A = [[1, 2, 3], [4, 5, 6]];
+print("Matrix A (2x3):");
+print(A);
+print("Traditional indexing (0-based): A[0][0] = " + A[0][0]);
+print("Iterating over all elements using flatten():");
+foreach (element in flatten(A)) {
+    print("  Element: " + element);
+}
+
+print("\n--- Matrix Sum Calculation ---");
+var B = [[10, 20], [30, 40]];
+print("Matrix B (2x2):");
+print(B);
+print("Traditional access: B[0][1] = " + B[0][1]);
+var sum = 0;
+foreach (element in flatten(B)) {
+    sum = sum + element;
+}
+print("Sum of all elements: " + sum);
+
+print("\n--- Finding Maximum Element ---");
+var C = [[3, 7, 2], [8, 1, 9], [4, 6, 5]];
+print("Matrix C (3x3):");
+print(C);
+print("Traditional access: C[1][2] = " + C[1][2]);
+var max_val = 0;
+var first_element = true;
+foreach (element in flatten(C)) {
+    if (first_element) {
+        max_val = element;
+        first_element = false;
+    } else {
+        if (element > max_val) {
+            max_val = element;
+        }
+    }
+}
+print("Maximum element: " + max_val);
+
+print("\n--- Counting Elements by Condition ---");
+var D = [[1, 8, 3], [12, 5, 7], [2, 9, 11]];
+print("Matrix D (3x3):");
+print(D);
+print("Sample access: D[2][1] = " + D[2][1]);
+var count_even = 0;
+var count_odd = 0;
+foreach (element in flatten(D)) {
+    if (element % 2 == 0) {
+        count_even = count_even + 1;
+    } else {
+        count_odd = count_odd + 1;
+    }
+}
+print("Even numbers: " + count_even);
+print("Odd numbers: " + count_odd);
+
+print("\n--- Matrix Statistics ---");
+var E = [[15, 8, 22], [3, 11, 7]];
+print("Matrix E (2x3):");
+print(E);
+print("Traditional access: E[1][0] = " + E[1][0]);
+var total = 0;
+var count = 0;
+var min_val = 999;
+foreach (element in flatten(E)) {
+    total = total + element;
+    count = count + 1;
+    if (element < min_val) {
+        min_val = element;
+    }
+}
+var average = total / count;
+print("Total: " + total);
+print("Count: " + count);
+print("Average: " + average);
+print("Minimum: " + min_val);
+
+print("\n--- Working with Different Matrix Types ---");
+
+print("Identity Matrix:");
+var I = eye(3);
+print(I);
+var diagonal_sum = 0;
+foreach (element in flatten(I)) {
+    if (element == 1) {
+        diagonal_sum = diagonal_sum + 1;
+    }
+}
+print("Number of 1's in identity matrix: " + diagonal_sum);
+
+print("Ones Matrix:");
+var ones_mat = ones(2, 3);
+print(ones_mat);
+var ones_total = 0;
+foreach (element in flatten(ones_mat)) {
+    ones_total = ones_total + element;
+}
+print("Sum of ones matrix: " + ones_total);
+
+print("\n--- Element Access Comparison ---");
+var F = [[100, 200], [300, 400]];
+print("Matrix F:");
+print(F);
+
+print("Using matrix_get function (0-based):");
+print("  F[0,0] = " + matrix_get(F, 0, 0));
+print("  F[0,1] = " + matrix_get(F, 0, 1));
+print("  F[1,0] = " + matrix_get(F, 1, 0));
+print("  F[1,1] = " + matrix_get(F, 1, 1));
+
+print("Using A[row][col] syntax (0-based):");
+print("  F[0][0] = " + F[0][0]);
+print("  F[0][1] = " + F[0][1]);
+print("  F[1][0] = " + F[1][0]);
+print("  F[1][1] = " + F[1][1]);
+
+print("Using foreach with flatten():");
+print("  All elements: ");
+foreach (element in flatten(F)) {
+    print("    " + element);
+}
+
+print("\n--- Key Benefits ---");
+print("✓ Natural iteration over all matrix elements using flatten()");
+print("✓ Row-major order iteration (intuitive)");
+print("✓ Compatible with existing A[row][col] syntax");
+print("✓ Compatible with matrix_get/matrix_set functions");
+print("✓ Enables functional programming patterns");
+print("✓ Simplifies matrix algorithms and calculations");
+
+print("\n--- Migration Notes ---");
+print("• MufiZ now uses 0-based indexing: A[0][0] is the first element");
+print("• A[row][col] syntax still works with 0-based indices");
+print("• Use flatten(matrix) for foreach iteration over elements");
+print("• matrix_get(A, row, col) and matrix_set(A, row, col, value) use 0-based indices");
+print("• Both traditional indexing and foreach can be used together");
+
+print("\n=== MATRIX FOREACH DEMONSTRATION COMPLETE ===");

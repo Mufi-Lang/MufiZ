@@ -1,0 +1,40 @@
+// Modified variable range test
+// This file tests how variable ranges work in the MufiZ language
+
+// First, test with literal range - known to work
+print("Testing literal range:");
+var r1 = 1..5;
+print(r1);
+foreach (i in 1..5) { print(i); }
+
+// Define variables
+var start = 10;
+var finish = 15;
+
+// Print variables
+print("Variables:");
+print(start);
+print(finish);
+
+// Test range with variables
+print("Range with variables:");
+var r2 = start..finish;
+print(r2);
+
+// Convert to array and iterate
+print("Convert to array and iterate:");
+var arr = range_to_array(r2);
+print(arr);
+foreach (i in arr) { print(i); }
+
+// Test switch with literal range pattern (equivalent to variable range)
+print("Switch with literal range pattern:");
+var value = 12;
+switch(value) {
+    case 1 => { print("Case: Exactly 1"); },
+    case 2..9 => { print("Case: In range 2..9"); },
+    case 10..15 => { print("Case: In range 10..15 (equivalent to start..end)"); },
+    _ => { print("Case: Default"); }
+}
+
+print("Test completed!");

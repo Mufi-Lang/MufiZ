@@ -1,0 +1,27 @@
+// Correct switch test with case keyword
+// This demonstrates the proper syntax for switch statements in MufiZ
+
+var value = 3;
+print("Testing with value: " + value);
+
+switch(value){
+    case 1 => { print("Entered case 1"); },
+    case 2 => { print("Entered case 2"); },
+    case 3 => { print("Entered case 3"); },
+    case 4 => { print("Entered case 4"); },
+    _ => { print("Default case"); }
+}
+
+// Test with a value that should hit the default case
+value = 10;
+print("\nTesting with value: " + value);
+
+switch(value){
+    case 1 => { print("Entered case 1"); },
+    case 2 => { print("Entered case 2"); },
+    case 3 => { print("Entered case 3"); },
+    case 4 => { print("Entered case 4"); },
+    _ => { print("Default case"); }
+}
+
+print("\nTest completed!");

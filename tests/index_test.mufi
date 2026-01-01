@@ -1,0 +1,36 @@
+// Index Test
+print "Testing indexing operations";
+
+// Create vector
+var v = {1.0, 2.0, 3.0, 4.0, 5.0};
+print "Vector created with 5 elements";
+
+// Access with indexes
+print "Direct indexing:";
+print v[0];
+print v[1];
+print v[2];
+print v[3];
+print v[4];
+
+// Test index in expression
+print "Index in expressions:";
+print v[0] + v[1];
+print v[2] * 2;
+print v[3] / v[4];
+
+// Test loops with indexing
+print "Loop with direct indexing:";
+var i = 0;
+while (i < 5) {
+    print v[i];
+    i = i + 1;
+}
+
+// Test foreach loop
+print "Foreach loop:";
+foreach (x in v) {
+    print x;
+}
+
+print "Index test complete";

@@ -1,0 +1,53 @@
+// Simple Matrix Test
+// Basic test to verify matrix functionality with 0-based indexing and flatten()
+
+print("=== SIMPLE MATRIX TEST ===");
+
+// Test 1: Basic matrix creation and access
+print("\nTest 1: Basic matrix operations");
+var A = [[1, 2], [3, 4]];
+print("Matrix A:");
+print(A);
+
+print("0-based indexing:");
+print("A[0][0] = " + A[0][0]);
+print("A[0][1] = " + A[0][1]);
+print("A[1][0] = " + A[1][0]);
+print("A[1][1] = " + A[1][1]);
+
+// Test 2: Matrix foreach with flatten()
+print("\nTest 2: Matrix foreach with flatten()");
+print("Elements in order:");
+foreach (element in flatten(A)) {
+    print("  " + element);
+}
+
+// Test 3: Matrix_get and matrix_set (0-based)
+print("\nTest 3: matrix_get and matrix_set functions");
+print("matrix_get(A, 0, 0) = " + matrix_get(A, 0, 0));
+print("matrix_get(A, 1, 1) = " + matrix_get(A, 1, 1));
+
+var B = zeros(2, 2);
+matrix_set(B, 0, 0, 10);
+matrix_set(B, 1, 1, 20);
+print("Matrix B after matrix_set:");
+print(B);
+
+// Test 4: Matrix calculations
+print("\nTest 4: Simple calculations");
+var sum = 0;
+foreach (element in flatten(A)) {
+    sum = sum + element;
+}
+print("Sum of A elements: " + sum);
+
+print("\nTest 5: Matrix creation functions");
+var I = eye(2);
+print("2x2 Identity:");
+print(I);
+
+var O = ones(2, 2);
+print("2x2 Ones:");
+print(O);
+
+print("\n=== SIMPLE MATRIX TEST COMPLETED ===");

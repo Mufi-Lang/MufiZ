@@ -1,0 +1,63 @@
+// Test demonstrating the difference between const and var in MufiZ
+
+print("=== MufiZ const vs var Test ===");
+
+// Test 1: Basic const declaration
+print("\n1. Const declarations:");
+const PI = 3.14159;
+const LANGUAGE = "MufiZ";
+const VERSION = 1;
+
+print("PI = ");
+print(PI);
+print("LANGUAGE = ");
+print(LANGUAGE);
+print("VERSION = ");
+print(VERSION);
+
+// Test 2: Basic var declaration
+print("\n2. Var declarations:");
+var x = 10;
+var name = "Test";
+var flag = true;
+
+print("x = ");
+print(x);
+print("name = ");
+print(name);
+print("flag = ");
+print(flag);
+
+// Test 3: Var reassignment (should work)
+print("\n3. Var reassignment (should work):");
+x = 20;
+name = "Updated";
+flag = false;
+
+print("x after reassignment = ");
+print(x);
+print("name after reassignment = ");
+print(name);
+print("flag after reassignment = ");
+print(flag);
+
+// Test 4: Using const in expressions (should work)
+print("\n4. Using const in expressions:");
+var radius = 5;
+var area = PI * radius * radius;
+print("Area of circle with radius 5 = ");
+print(area);
+
+var greeting = LANGUAGE + " is awesome!";
+print("Greeting: ");
+print(greeting);
+
+// Test 5: Attempting to reassign const (should fail)
+print("\n5. Attempting to reassign const (this should fail):");
+print("Trying to change PI...");
+
+// This line should cause a runtime error
+PI = 2.71828;
+
+// This should never print
+print("ERROR: Const reassignment should have failed!");

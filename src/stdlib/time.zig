@@ -1,7 +1,8 @@
 const std = @import("std");
+
 const conv = @import("../conv.zig");
 const stdlib = @import("../stdlib.zig");
-const Value = @import("../core.zig").value_h.Value;
+const Value = @import("../value.zig").Value;
 
 pub fn now(argc: i32, args: [*]Value) Value {
     _ = args;

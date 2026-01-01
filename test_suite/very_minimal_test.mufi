@@ -1,0 +1,6 @@
+// Very minimal range test
+print("Testing literal range:");
+var r = 1..5;
+print(r);
+foreach (i in 1..5) { print(i); }
+print("Done!");

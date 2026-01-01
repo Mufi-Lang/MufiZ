@@ -1,0 +1,46 @@
+// Final foreach loop test with multiple vector sizes
+print "FOREACH LOOP TEST";
+
+// Test 1: Empty vector
+print "Test 1: Empty vector";
+var empty = {};
+foreach (x in empty) {
+    print "This should not print for empty vector";
+}
+print "End of empty vector test";
+
+// Test 2: Single element vector
+print "Test 2: Single element vector";
+var single = {42.0};
+foreach (x in single) {
+    print x;
+}
+print "End of single element test";
+
+// Test 3: Small vector
+print "Test 3: Small vector";
+var small = {1.0, 2.0, 3.0};
+print "Vector created";
+foreach (x in small) {
+    print x;
+}
+print "End of small vector test";
+
+// Test 4: Medium vector
+print "Test 4: Medium vector";
+var medium = {10.0, 20.0, 30.0, 40.0, 50.0};
+foreach (x in medium) {
+    print x;
+}
+print "End of medium vector test";
+
+// Test 6: Vector with calculations
+print "Test 6: Vector with calculations";
+var calc = {5.0, 10.0, 15.0};
+foreach (num in calc) {
+    var doubled = num * 2;
+    print doubled;
+}
+print "End of calculations test";
+
+print "ALL TESTS COMPLETED";

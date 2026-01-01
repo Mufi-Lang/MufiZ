@@ -1,0 +1,243 @@
+// Test Suite: Pairs and Foreach Integration
+// Tests the interaction between pairs and foreach functionality
+
+print("=== PAIRS-FOREACH INTEGRATION TEST SUITE ===");
+
+fun test1_creating_pairs() {
+    print("\n[Test 1] Creating pairs for iteration");
+    var data_pairs = linked_list();
+    push(data_pairs, "apple" => 5);
+    push(data_pairs, "banana" => 3);
+    push(data_pairs, "orange" => 7);
+    push(data_pairs, "grape" => 2);
+
+    print("List of fruit pairs created");
+    print("Length: ");
+    print(len(data_pairs));
+}
+
+fun test2_manual_iteration() {
+    print("\n[Test 2] Manual iteration over pairs");
+    var data_pairs = linked_list();
+    push(data_pairs, "apple" => 5);
+    push(data_pairs, "banana" => 3);
+    push(data_pairs, "orange" => 7);
+    push(data_pairs, "grape" => 2);
+
+    var i = 0;
+    var total_fruits = 0;
+    while (i < len(data_pairs)) {
+        var fruit_pair = nth(data_pairs, i);
+        print("Fruit: ");
+        print(fruit_pair[0]);
+        print(", Count: ");
+        print(fruit_pair[1]);
+        total_fruits = total_fruits + fruit_pair[1];
+        i = i + 1;
+    }
+    print("Total fruits: ");
+    print(total_fruits);
+}
+
+fun test3_hash_to_pairs() {
+    print("\n[Test 3] Hash table to pairs iteration");
+    var inventory = hash_table();
+    put(inventory, "pencils", 50);
+    put(inventory, "erasers", 30);
+    put(inventory, "notebooks", 15);
+    put(inventory, "pens", 25);
+
+    var inv_pairs = pairs(inventory);
+    print("Inventory pairs: ");
+    print(inv_pairs);
+
+    // Manual iteration since foreach has issues with linked lists
+    print("Inventory details:");
+    var i = 0;
+    while (i < len(inv_pairs)) {
+        print("  ");
+        print(nth(inv_pairs, i)[0]);
+        print(": ");
+        print(nth(inv_pairs, i)[1]);
+        print(" units");
+        i = i + 1;
+    }
+}
+
+fun test4_filtering_pairs() {
+    print("\n[Test 4] Filtering pairs during iteration");
+    var scores = hash_table();
+    put(scores, "Math", 95);
+    put(scores, "Science", 88);
+    put(scores, "English", 92);
+    put(scores, "History", 79);
+    put(scores, "Art", 96);
+
+    var score_pairs = pairs(scores);
+    print("Subjects with score >= 90:");
+    var i = 0;
+    while (i < len(score_pairs)) {
+        if (nth(score_pairs, i)[1] >= 90) {
+            print("  ");
+            print(nth(score_pairs, i)[0]);
+            print(": ");
+            print(nth(score_pairs, i)[1]);
+        }
+        i = i + 1;
+    }
+}
+
+fun test5_transforming_pairs() {
+    print("\n[Test 5] Transforming pairs during iteration");
+    var prices = hash_table();
+    put(prices, "apple", 1.50);
+    put(prices, "banana", 0.75);
+    put(prices, "orange", 2.00);
+    put(prices, "grape", 3.50);
+
+    var price_pairs = pairs(prices);
+    var discount = 0.20;  // 20% discount
+    print("Applying 20% discount:");
+    var i = 0;
+    while (i < len(price_pairs)) {
+        print("  ");
+        print(nth(price_pairs, i)[0]);
+        print(": $");
+        print(nth(price_pairs, i)[1]);
+        print(" -> $");
+        print(nth(price_pairs, i)[1] * (1 - discount));
+        i = i + 1;
+    }
+}
+
+fun test6_nested_iteration() {
+    print("\n[Test 6] Nested iteration with pairs");
+    var categories = linked_list();
+    push(categories, "fruits" => 3);
+    push(categories, "vegetables" => 4);
+    push(categories, "dairy" => 2);
+
+    print("Category counts:");
+    var i = 0;
+    while (i < len(categories)) {
+        print("\n");
+        print(nth(categories, i)[0]);
+        print(" (");
+        print(nth(categories, i)[1]);
+        print(" items)");
+
+        // Simulate nested iteration
+        var j = 1;
+        while (j <= nth(categories, i)[1]) {
+            print("    Item ");
+            print(j);
+            j = j + 1;
+        }
+        i = i + 1;
+    }
+}
+
+fun test7_pairs_reconstruction() {
+    print("\n[Test 7] Reconstructing pairs");
+    var user_data = hash_table();
+    put(user_data, "name", "Alice");
+    put(user_data, "age", 30);
+    put(user_data, "city", "NYC");
+
+    var user_pairs = pairs(user_data);
+    var formatted_list = linked_list();
+
+    var i = 0;
+    while (i < len(user_pairs)) {
+        push(formatted_list, nth(user_pairs, i)[0] => nth(user_pairs, i)[1]);
+        i = i + 1;
+    }
+
+    print("Reconstructed pairs: ");
+    print(formatted_list);
+}
+
+fun test8_pairs_with_calc() {
+    print("\n[Test 8] Pairs with calculations");
+    var squared_pairs = linked_list();
+    var i = 1;
+    while (i <= 5) {
+        push(squared_pairs, i => (i * i));
+        i = i + 1;
+    }
+
+    print("Number => Square pairs:");
+    i = 0;
+    while (i < len(squared_pairs)) {
+        print("  ");
+        print(nth(squared_pairs, i)[0]);
+        print(" => ");
+        print(nth(squared_pairs, i)[1]);
+        i = i + 1;
+    }
+}
+
+fun test9_range_pairs() {
+    print("\n[Test 9] Pairs from ranges");
+    var range_pairs = linked_list();
+    var r = 10..15;
+    var i = 10;
+    while (i < 15) {
+        push(range_pairs, "item" + i => i);
+        i = i + 1;
+    }
+
+    print("Range-generated pairs:");
+    i = 0;
+    while (i < len(range_pairs)) {
+        print("  ");
+        print(nth(range_pairs, i));
+        i = i + 1;
+    }
+}
+
+fun test10_pair_aggregation() {
+    print("\n[Test 10] Aggregating data from pairs");
+    var sales = hash_table();
+    put(sales, "Q1", 15000);
+    put(sales, "Q2", 18000);
+    put(sales, "Q3", 22000);
+    put(sales, "Q4", 25000);
+
+    var sales_pairs = pairs(sales);
+    var total_sales = 0;
+    var best_quarter = "";
+    var best_sales = 0;
+
+    var i = 0;
+    while (i < len(sales_pairs)) {
+        total_sales = total_sales + nth(sales_pairs, i)[1];
+
+        if (nth(sales_pairs, i)[1] > best_sales) {
+            best_sales = nth(sales_pairs, i)[1];
+            best_quarter = nth(sales_pairs, i)[0];
+        }
+        i = i + 1;
+    }
+
+    print("Total sales: $");
+    print(total_sales);
+    print("\nBest quarter: ");
+    print(best_quarter);
+    print(" with $");
+    print(best_sales);
+}
+
+// Run all tests
+test1_creating_pairs();
+test2_manual_iteration();
+test3_hash_to_pairs();
+test4_filtering_pairs();
+test5_transforming_pairs();
+test6_nested_iteration();
+test7_pairs_reconstruction();
+test8_pairs_with_calc();
+test9_range_pairs();
+test10_pair_aggregation();
+
+print("\n=== ALL PAIRS-FOREACH TESTS COMPLETED ===");

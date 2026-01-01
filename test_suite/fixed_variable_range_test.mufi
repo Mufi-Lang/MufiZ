@@ -1,0 +1,35 @@
+// Fixed Variable Range Test
+// This file tests ranges with variables in a way that should work with MufiZ
+
+// Define start and finish variables
+var start = 10;
+var finish = 15;
+
+// Print the variables
+print("Start value: " + start);
+print("Finish value: " + finish);
+
+// Convert variables to array directly since foreach doesn't support variable ranges
+print("\nIteration with array created from variable range:");
+var array = range_to_array(start..finish);
+foreach (i in array) {
+    print(i);  // Should print 10, 11, 12, 13, 14
+}
+
+// Direct iteration with literal range
+print("\nDirect iteration with literal range (1..5):");
+foreach (i in 1..5) {
+    print(i);  // Should print 1, 2, 3, 4
+}
+
+// Test with switch statement using literal ranges only
+var value = 12;
+print("\nSwitch statement with literal ranges:");
+switch(value) {
+    case 1 => { print("Case: Exactly 1"); },
+    case 2..5 => { print("Case: In range 2..5 (exclusive)"); },
+    case 10..15 => { print("Case: In range 10..15 (matches our variable range start..finish)"); },
+    _ => { print("Case: Default"); }
+}
+
+print("\nTest completed");

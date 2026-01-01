@@ -1,0 +1,83 @@
+// Short Matrix Foreach Test Suite
+// Tests matrix foreach functionality using flatten() and 0-based indexing
+
+print("=== SHORT MATRIX FOREACH TEST SUITE ===");
+
+// Test 1: Basic matrix foreach with different sizes
+print("\nTest 1: Basic matrix sizes");
+
+// 1x1 matrix
+var A1 = [[42]];
+print("1x1 matrix: A1[0][0] = " + A1[0][0]);
+foreach (element in flatten(A1)) {
+    print("  " + element);
+}
+
+// 2x2 matrix
+var A2 = [[1, 2], [3, 4]];
+print("2x2 matrix: A2[1][1] = " + A2[1][1]);
+foreach (element in flatten(A2)) {
+    print("  " + element);
+}
+
+// Test 2: Matrix calculations
+print("\nTest 2: Calculations");
+var B = [[1, 2, 3], [4, 5, 6]];
+print("Matrix B[0][2] = " + B[0][2]);
+
+var sum = 0;
+foreach (element in flatten(B)) {
+    sum = sum + element;
+}
+print("Sum: " + sum);
+
+// Test 3: Matrix creation functions
+print("\nTest 3: Matrix functions");
+
+var I = eye(2);
+print("Identity I[0][0] = " + I[0][0]);
+var ones_count = 0;
+foreach (element in flatten(I)) {
+    if (element > 0) {
+        ones_count = ones_count + 1;
+    }
+}
+print("Non-zero elements: " + ones_count);
+
+var Z = zeros(2, 2);
+print("Zeros Z[1][0] = " + Z[1][0]);
+
+// Test 4: Mixed values
+print("\nTest 4: Mixed values");
+var M = [[2, -1, 0], [3, -2, 1]];
+print("Matrix M[1][2] = " + M[1][2]);
+
+var pos = 0;
+var neg = 0;
+var zero = 0;
+foreach (element in flatten(M)) {
+    if (element > 0) {
+        pos = pos + 1;
+    } else {
+        if (element < 0) {
+            neg = neg + 1;
+        } else {
+            zero = zero + 1;
+        }
+    }
+}
+print("Positive: " + pos + ", Negative: " + neg + ", Zero: " + zero);
+
+// Test 5: Matrix modification
+print("\nTest 5: Modification");
+var C = zeros(2, 2);
+C[0][0] = 10;
+C[1][1] = 20;
+print("Modified C:");
+print(C);
+
+foreach (element in flatten(C)) {
+    print("  Element: " + element);
+}
+
+print("\n=== SHORT MATRIX FOREACH TEST COMPLETED ===");

@@ -9,8 +9,8 @@ on:
       - main
 
 env:
-  codename: "Kova"
-  version: "0.9.0"
+  codename: "Echo"
+  version: "0.10.0"
 
 jobs:
   build:
@@ -23,7 +23,7 @@ jobs:
       - name: Setup Zig
         uses: goto-bus-stop/setup-zig@v2
         with:
-          version: 0.13.0
+          version: 0.15.2
 
       - name: Set up Python
         uses: actions/setup-python@v2

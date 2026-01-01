@@ -3,7 +3,7 @@ const conv = @import("../conv.zig");
 const Value = @import("../value.zig").Value;
 const stdlib_error = @import("../stdlib.zig").stdlib_error;
 const type_check = conv.type_check;
-const GlobalAlloc = @import("../main.zig").GlobalAlloc;
+const mem_utils = @import("../mem_utils.zig");
 const fs = std.fs;
 const builtin = @import("builtin");
 
@@ -35,8 +35,8 @@ pub fn read_file(argc: i32, args: [*]Value) Value {
     const file = fs.cwd().openFile(path, .{}) catch return Value.init_nil();
     defer file.close();
 
-    const data = file.readToEndAlloc(GlobalAlloc, 1048576) catch return Value.init_nil();
-    defer GlobalAlloc.free(data);
+    const data = file.readToEndAlloc(mem_utils.getAllocator(), 1048576) catch return Value.init_nil();
+    defer mem_utils.getAllocator().free(data);
 
     return Value.init_string(data);
 }

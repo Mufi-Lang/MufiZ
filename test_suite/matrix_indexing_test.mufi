@@ -1,0 +1,54 @@
+// Matrix indexing test cases using A[row][col] syntax - Part 1
+// Basic operations and element access (0-based indexing)
+
+// Test 1: Basic matrix creation and element access
+var A = zeros(3, 3);
+assert(A[0][0], 0.0);
+assert(A[1][1], 0.0);
+assert(A[2][2], 0.0);
+
+// Test 2: Element assignment
+A[0][0] = 1.0;
+A[0][1] = 2.0;
+A[0][2] = 3.0;
+A[1][0] = 4.0;
+A[1][1] = 5.0;
+A[1][2] = 6.0;
+A[2][0] = 7.0;
+A[2][1] = 8.0;
+A[2][2] = 9.0;
+
+assert(A[0][0], 1.0);
+assert(A[0][1], 2.0);
+assert(A[0][2], 3.0);
+assert(A[1][0], 4.0);
+assert(A[1][1], 5.0);
+assert(A[1][2], 6.0);
+assert(A[2][0], 7.0);
+assert(A[2][1], 8.0);
+assert(A[2][2], 9.0);
+
+// Test 3: Element modification
+A[1][1] = 99.0;
+assert(A[1][1], 99.0);
+assert(A[0][0], 1.0);
+assert(A[2][2], 9.0);
+
+// Test 4: Identity matrix creation
+var I = zeros(3, 3);
+I[0][0] = 1.0;
+I[1][1] = 1.0;
+I[2][2] = 1.0;
+
+assert(I[0][0], 1.0);
+assert(I[1][1], 1.0);
+assert(I[2][2], 1.0);
+assert(I[0][1], 0.0);
+assert(I[1][0], 0.0);
+
+// Test 5: Single element matrix
+var C = zeros(1, 1);
+C[0][0] = 42.0;
+assert(C[0][0], 42.0);
+
+print("Matrix indexing basic tests passed (0-based)!");

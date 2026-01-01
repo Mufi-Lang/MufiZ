@@ -1,0 +1,237 @@
+// Test Suite: Pairs with Assertions
+// Tests the pairs functionality using assert statements
+
+print("=== PAIRS ASSERTION TEST SUITE ===");
+
+fun test1_basic_creation() {
+    print("\n[Test 1] Basic pair creation and access");
+    var p1 = "key" => "value";
+    assert(p1[0], "key");
+    assert(p1[1], "value");
+    assert(len(p1), 2);
+    print("✓ Basic pair creation passed");
+}
+
+fun test2_different_types() {
+    print("\n[Test 2] Pairs with different types");
+    var p_int = "number" => 42;
+    var p_float = "pi" => 3.14;
+    var p_bool = "active" => true;
+    var p_nil = "empty" => nil;
+
+    assert(p_int[0], "number");
+    assert(p_int[1], 42);
+    assert(p_float[1], 3.14);
+    assert(p_bool[1], true);
+    assert(p_nil[1], nil);
+    print("✓ Different type pairs passed");
+}
+
+fun test3_nested_pairs() {
+    print("\n[Test 3] Nested pairs");
+    var nested = "outer" => ("inner" => 100);
+    assert(nested[0], "outer");
+    assert(nested[1][0], "inner");
+    assert(nested[1][1], 100);
+    print("✓ Nested pairs passed");
+}
+
+fun test4_pairs_from_hash() {
+    print("\n[Test 4] Pairs from hash tables");
+    var ht = hash_table();
+    put(ht, "a", 1);
+    put(ht, "b", 2);
+    put(ht, "c", 3);
+
+    var ht_pairs = pairs(ht);
+    assert(len(ht_pairs), 3);
+    assert(len(ht), 3);
+
+    // Verify each pair has correct structure
+    var i = 0;
+    while (i < len(ht_pairs)) {
+        var pair = nth(ht_pairs, i);
+        assert(len(pair), 2);
+        i = i + 1;
+    }
+    print("✓ Hash table pairs passed");
+}
+
+fun test5_empty_hash() {
+    print("\n[Test 5] Empty hash table pairs");
+    var empty_ht = hash_table();
+    var empty_pairs = pairs(empty_ht);
+    assert(len(empty_pairs), 0);
+    assert(empty_pairs, linked_list());
+    print("✓ Empty hash table pairs passed");
+}
+
+fun test6_pairs_in_collections() {
+    print("\n[Test 6] Pairs in collections");
+    var ll = linked_list();
+    push(ll, "first" => 1);
+    push(ll, "second" => 2);
+    push(ll, "third" => 3);
+
+    assert(len(ll), 3);
+    assert(nth(ll, 0)[0], "first");
+    assert(nth(ll, 1)[1], 2);
+    assert(nth(ll, 2)[0], "third");
+    print("✓ Pairs in collections passed");
+}
+
+fun test7_complex_expressions() {
+    print("\n[Test 7] Complex expressions in pairs");
+    var x = 10;
+    var y = 20;
+    var expr_pair = (x + y) => (x * y);
+    assert(expr_pair[0], 30);
+    assert(expr_pair[1], 200);
+
+    var str_pair = ("hello" + " ") => ("world" + "!");
+    assert(str_pair[0], "hello ");
+    assert(str_pair[1], "world!");
+    print("✓ Complex expression pairs passed");
+}
+
+fun test8_pair_element_types() {
+    print("\n[Test 8] Pair element types");
+    var ll_pair = linked_list() => hash_table();
+    assert(len(ll_pair[0]), 0);
+    assert(len(ll_pair[1]), 0);
+
+    var vec_pair = {1, 2, 3} => {4, 5, 6};
+    assert(len(vec_pair[0]), 3);
+    assert(len(vec_pair[1]), 3);
+    assert(vec_pair[0][0], 1.0);
+    assert(vec_pair[1][2], 6.0);
+    print("✓ Pair element types passed");
+}
+
+fun test9_building_hash_from_pairs() {
+    print("\n[Test 9] Building hash table from pairs");
+    var pair_list = linked_list();
+    push(pair_list, "name" => "Alice");
+    push(pair_list, "age" => 30);
+    push(pair_list, "city" => "NYC");
+
+    var result_ht = hash_table();
+    var i = 0;
+    while (i < len(pair_list)) {
+        var p = nth(pair_list, i);
+        put(result_ht, p[0], p[1]);
+        i = i + 1;
+    }
+
+    assert(get(result_ht, "name"), "Alice");
+    assert(get(result_ht, "age"), 30);
+    assert(get(result_ht, "city"), "NYC");
+    print("✓ Building hash from pairs passed");
+}
+
+fun test10_pair_consistency() {
+    print("\n[Test 10] Pair consistency");
+    var original = "test" => 100;
+    var copy = original;
+    assert(copy[0], original[0]);
+    assert(copy[1], original[1]);
+
+    var modified = "test" => 200;
+    assert(modified[0], original[0]);
+    assert(modified[1], 200);
+    print("✓ Pair consistency passed");
+}
+
+fun test11_multiple_same_keys() {
+    print("\n[Test 11] Multiple pairs with same keys in list");
+    var multi_list = linked_list();
+    push(multi_list, "key" => 1);
+    push(multi_list, "key" => 2);
+    push(multi_list, "key" => 3);
+    push(multi_list, "other" => 4);
+
+    assert(len(multi_list), 4);
+    assert(nth(multi_list, 0)[0], "key");
+    assert(nth(multi_list, 1)[0], "key");
+    assert(nth(multi_list, 2)[0], "key");
+    assert(nth(multi_list, 3)[0], "other");
+    print("✓ Multiple same keys passed");
+}
+
+fun test12_special_values() {
+    print("\n[Test 12] Pairs with special values");
+    var empty_str = "" => "";
+    assert(empty_str[0], "");
+    assert(empty_str[1], "");
+
+    var zero_pair = 0 => 0.0;
+    assert(zero_pair[0], 0);
+    assert(zero_pair[1], 0.0);
+    print("✓ Special values passed");
+}
+
+fun test13_hash_table_roundtrip() {
+    print("\n[Test 13] Hash table round-trip");
+    var original_ht = hash_table();
+    put(original_ht, "x", 10);
+    put(original_ht, "y", 20);
+    put(original_ht, "z", 30);
+
+    var pair_list = pairs(original_ht);
+    var new_ht = hash_table();
+
+    var i = 0;
+    while (i < len(pair_list)) {
+        var p = nth(pair_list, i);
+        put(new_ht, p[0], p[1]);
+        i = i + 1;
+    }
+
+    assert(get(new_ht, "x"), 10);
+    assert(get(new_ht, "y"), 20);
+    assert(get(new_ht, "z"), 30);
+    assert(len(new_ht), 3);
+    print("✓ Hash table round-trip passed");
+}
+
+fun test14_nth_access() {
+    print("\n[Test 14] Nth access on pairs");
+    var nth_list = linked_list();
+    push(nth_list, "a" => 1);
+    push(nth_list, "b" => 2);
+
+    var p_nth = nth(nth_list, 0);
+    assert(nth(p_nth, 0), "a");
+    assert(nth(p_nth, 1), 1);
+    print("✓ Nth access on pairs passed");
+}
+
+fun test15_complex_nested() {
+    print("\n[Test 15] Complex nested structure");
+    var deep = "level1" => ("level2" => ("level3" => "bottom"));
+    assert(deep[0], "level1");
+    assert(deep[1][0], "level2");
+    assert(deep[1][1][0], "level3");
+    assert(deep[1][1][1], "bottom");
+    print("✓ Deep nesting passed");
+}
+
+// Run all tests
+test1_basic_creation();
+test2_different_types();
+test3_nested_pairs();
+test4_pairs_from_hash();
+test5_empty_hash();
+test6_pairs_in_collections();
+test7_complex_expressions();
+test8_pair_element_types();
+test9_building_hash_from_pairs();
+test10_pair_consistency();
+test11_multiple_same_keys();
+test12_special_values();
+test13_hash_table_roundtrip();
+test14_nth_access();
+test15_complex_nested();
+
+print("\n=== ALL ASSERTIONS PASSED ===");
+print("Pairs functionality verified successfully!");

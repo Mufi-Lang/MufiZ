@@ -1,0 +1,56 @@
+// Debug Matrix Indexing Test
+// Simple test to verify 0-based indexing is working correctly
+
+print("=== DEBUG MATRIX INDEXING ===");
+
+// Create simple 2x2 matrix
+var A = [[1, 2], [3, 4]];
+print("Matrix A = [[1, 2], [3, 4]]:");
+print(A);
+
+print("\nTesting individual element access:");
+print("A[0][0] should be 1:");
+print(A[0][0]);
+
+print("A[0][1] should be 2:");
+print(A[0][1]);
+
+print("A[1][0] should be 3:");
+print(A[1][0]);
+
+print("A[1][1] should be 4:");
+print(A[1][1]);
+
+print("\nTesting matrix_get function:");
+print("matrix_get(A, 0, 0) should be 1:");
+print(matrix_get(A, 0, 0));
+
+print("matrix_get(A, 0, 1) should be 2:");
+print(matrix_get(A, 0, 1));
+
+print("matrix_get(A, 1, 0) should be 3:");
+print(matrix_get(A, 1, 0));
+
+print("matrix_get(A, 1, 1) should be 4:");
+print(matrix_get(A, 1, 1));
+
+print("\nTesting matrix modification:");
+var B = zeros(2, 2);
+print("Initial B:");
+print(B);
+
+B[0][0] = 10;
+B[0][1] = 20;
+B[1][0] = 30;
+B[1][1] = 40;
+
+print("After setting B[0][0]=10, B[0][1]=20, B[1][0]=30, B[1][1]=40:");
+print(B);
+
+print("Individual verification:");
+print("B[0][0] = " + B[0][0]);
+print("B[0][1] = " + B[0][1]);
+print("B[1][0] = " + B[1][0]);
+print("B[1][1] = " + B[1][1]);
+
+print("\n=== DEBUG COMPLETED ===");

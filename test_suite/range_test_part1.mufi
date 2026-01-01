@@ -1,0 +1,41 @@
+// Range Test Part 1: Basic Range Creation and Iteration
+// This file tests the most basic range functionality in MufiZ
+// Created to test just the working parts of range features
+
+// --- Part 1: Basic Range Creation ---
+print("--- Part 1: Basic Range Creation ---");
+// Create ranges with literals
+var r1 = 1..5;    // Exclusive range: 1, 2, 3, 4
+var r2 = 1..=5;   // Inclusive range: 1, 2, 3, 4, 5
+
+// Display ranges
+print("Exclusive range (1..5):");
+print(r1);
+
+print("Inclusive range (1..=5):");
+print(r2);
+
+// --- Part 2: Range Iteration with Literals ---
+print("\n--- Part 2: Range Iteration with Literals ---");
+// Iterate through exclusive range
+print("Iterating through exclusive range (1..5):");
+foreach (i in 1..5) { print(i); }
+
+// Iterate through inclusive range
+print("Iterating through inclusive range (1..=5):");
+foreach (i in 1..=5) { print(i); }
+
+// --- Part 3: Range to Array Conversion ---
+print("\n--- Part 3: Range to Array Conversion ---");
+// Convert ranges to arrays
+print("Converting ranges to arrays:");
+var arr1 = range_to_array(r1);
+var arr2 = range_to_array(r2);
+
+print("Array from exclusive range (1..5):");
+print(arr1);
+
+print("Array from inclusive range (1..=5):");
+print(arr2);
+
+print("\nRange Test Part 1 Completed!");

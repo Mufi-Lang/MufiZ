@@ -1,0 +1,32 @@
+// Minimal variable range test
+// Testing range literals and simple foreach
+
+// Create and print a range literal
+print("Range literal:");
+var r = 1..5;
+print(r);
+
+// Iterate over range literal
+print("Iterating over range literal:");
+foreach (i in 1..5) { print(i); }
+
+// Define some variables
+var start = 10;
+var finish = 15;
+
+// Print the variables
+print("Variables:");
+print(start);
+print(finish);
+
+// Create and convert a range with variables
+print("Range with variables:");
+var range = start..finish;
+print(range);
+
+// Convert to array and iterate
+print("Converting to array and iterating:");
+var arr = range_to_array(range);
+foreach (i in arr) { print(i); }
+
+print("Done!");

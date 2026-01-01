@@ -1,0 +1,310 @@
+// Test Suite: Matrix Arithmetic Operations
+// Tests matrix addition, subtraction, multiplication, and scalar operations
+
+print "=== MATRIX ARITHMETIC TEST SUITE ===";
+
+fun test_matrix_addition() {
+    print "\n[Test 1] Matrix addition";
+
+    // Test square matrix addition
+    var A = eye(2);
+    var B = ones(2, 2);
+    var sum = A + B;
+
+    // A + B should have determinant and trace properties
+    assert(trace(sum), 4.0);  // trace(A) + trace(B) = 2 + 2 = 4
+
+    // Test identity properties: A + 0 = A
+    var Z = zeros(2, 2);
+    var A_plus_Z = A + Z;
+    assert(det(A_plus_Z), det(A));
+    assert(trace(A_plus_Z), trace(A));
+    assert(norm(A_plus_Z), norm(A));
+
+    // Test commutativity: A + B = B + A (through properties)
+    var sum1 = A + B;
+    var sum2 = B + A;
+    assert(trace(sum1), trace(sum2));
+    assert(det(sum1), det(sum2));
+
+    // Test rectangular matrix addition
+    var R1 = ones(2, 3);
+    var R2 = zeros(2, 3);
+    var rect_sum = R1 + R2;
+    assert(trace(rect_sum), trace(R1));  // Should equal trace of R1
+
+    print "✓ Matrix addition passed";
+}
+
+fun test_matrix_subtraction() {
+    print "\n[Test 2] Matrix subtraction";
+
+    // Test A - A = 0
+    var A = eye(3);
+    var diff = A - A;
+    assert(trace(diff), 0.0);
+    assert(det(diff), 0.0);
+    assert(norm(diff), 0.0);
+
+    // Test A - 0 = A
+    var Z = zeros(3, 3);
+    var A_minus_Z = A - Z;
+    assert(det(A_minus_Z), det(A));
+    assert(trace(A_minus_Z), trace(A));
+    assert(norm(A_minus_Z), norm(A));
+
+    // Test with ones matrices
+    var O = ones(2, 2);
+    var I = eye(2);
+    var ones_minus_eye = O - I;
+    assert(trace(ones_minus_eye), 0.0);  // trace(O) - trace(I) = 2 - 2 = 0
+
+    print "✓ Matrix subtraction passed";
+}
+
+fun test_matrix_multiplication() {
+    print "\n[Test 3] Matrix multiplication";
+
+    // Test identity multiplication: A * I = A
+    var A = ones(3, 3);
+    var I = eye(3);
+    var A_times_I = A * I;
+    assert(trace(A_times_I), trace(A));
+
+    // Test I * A = A
+    var I_times_A = I * A;
+    assert(trace(I_times_A), trace(A));
+
+    // Test zero multiplication: A * 0 = 0
+    var Z = zeros(3, 3);
+    var A_times_Z = A * Z;
+    assert(trace(A_times_Z), 0.0);
+    assert(det(A_times_Z), 0.0);
+    assert(norm(A_times_Z), 0.0);
+
+    // Test square multiplication properties
+    var B = eye(2) * 2;  // 2*I
+    var B_squared = B * B;
+    assert(trace(B_squared), 8.0);  // Should be 4*trace(I) = 4*2 = 8
+    assert(det(B_squared), 16.0);   // Should be det(B)^2 = 4^2 = 16
+
+    // Test rectangular multiplication
+    var tall = ones(3, 2);
+    var wide = ones(2, 4);
+    var product = tall * wide;  // Should be 3x4
+    assert(trace(product), 6.0);  // ones(3,2) * ones(2,4) = 3x4 matrix with all 2's, trace = 2+2+2 = 6
+
+    print "✓ Matrix multiplication passed";
+}
+
+fun test_scalar_multiplication() {
+    print "\n[Test 4] Scalar multiplication";
+
+    // Test scalar * identity
+    var I = eye(3);
+    var scaled_I = 5 * I;
+    assert(det(scaled_I), 125.0);  // 5^3 = 125
+    assert(trace(scaled_I), 15.0); // 5 * 3 = 15
+
+    // Test scalar * ones
+    var O = ones(2, 2);
+    var scaled_O = 3 * O;
+    assert(trace(scaled_O), 6.0);  // 3 * 2 = 6
+    assert(det(scaled_O), 0.0);    // Still singular
+
+    // Test scalar * zeros
+    var Z = zeros(4, 4);
+    var scaled_Z = 7 * Z;
+    assert(trace(scaled_Z), 0.0);
+    assert(det(scaled_Z), 0.0);
+    assert(norm(scaled_Z), 0.0);
+
+    // Test commutativity: scalar * A = A * scalar
+    var A = eye(2) + ones(2, 2);
+    var left_scale = 4 * A;
+    var right_scale = A * 4;
+    assert(trace(left_scale), trace(right_scale));
+    assert(det(left_scale), det(right_scale));
+    assert(norm(left_scale), norm(right_scale));
+
+    // Test zero scalar
+    var zero_scaled = 0 * I;
+    assert(trace(zero_scaled), 0.0);
+    assert(det(zero_scaled), 0.0);
+    assert(norm(zero_scaled), 0.0);
+
+    // Test negative scalar
+    var neg_scaled = -1 * I;
+    assert(det(neg_scaled), -1.0);  // det(-I) = (-1)^n * det(I) for n=3: (-1)^3 = -1
+    assert(trace(neg_scaled), -3.0); // -1 * 3 = -3
+
+    print "✓ Scalar multiplication passed";
+}
+
+fun test_mixed_operations() {
+    print "\n[Test 5] Mixed arithmetic operations";
+
+    // Test (A + B) * C distributivity properties
+    var A = eye(2);
+    var B = ones(2, 2);
+    var C = eye(2) * 2;
+
+    var sum_then_mult = (A + B) * C;
+    var mult_then_add = A * C + B * C;
+
+    // Should have same trace due to distributivity
+    assert(trace(sum_then_mult), trace(mult_then_add));
+
+    // Test scalar distributivity: k(A + B) = kA + kB
+    var sum_AB = A + B;
+    var scaled_sum = 3 * sum_AB;
+    var scaled_separate = 3 * A + 3 * B;
+
+    assert(trace(scaled_sum), trace(scaled_separate));
+    assert(det(scaled_sum), det(scaled_separate));
+
+    // Test multiple operations
+    var complex_expr = 2 * A + B * 3 - zeros(2, 2);
+    assert(trace(complex_expr), 10.0);  // 2*2 + 3*2 - 0 = 10
+
+    print "✓ Mixed operations passed";
+}
+
+fun test_matrix_powers() {
+    print "\n[Test 6] Matrix powers through multiplication";
+
+    // Test I^2 = I (identity is idempotent)
+    var I = eye(2);
+    var I_squared = I * I;
+    assert(det(I_squared), det(I));
+    assert(trace(I_squared), trace(I));
+    assert(norm(I_squared), norm(I));
+
+    // Test (2I)^2 = 4I
+    var scaled_I = 2 * I;
+    var scaled_I_squared = scaled_I * scaled_I;
+    assert(det(scaled_I_squared), 16.0);  // (2^2)^2 = 16
+    assert(trace(scaled_I_squared), 8.0); // 4 * 2 = 8
+
+    // Test zero matrix power: 0^2 = 0
+    var Z = zeros(3, 3);
+    var Z_squared = Z * Z;
+    assert(det(Z_squared), 0.0);
+    assert(trace(Z_squared), 0.0);
+    assert(norm(Z_squared), 0.0);
+
+    print "✓ Matrix powers passed";
+}
+
+fun test_arithmetic_properties() {
+    print "\n[Test 7] Arithmetic properties verification";
+
+    // Test associativity: (A + B) + C = A + (B + C)
+    var A = eye(2);
+    var B = ones(2, 2);
+    var C = zeros(2, 2);
+
+    var left_assoc = (A + B) + C;
+    var right_assoc = A + (B + C);
+    assert(trace(left_assoc), trace(right_assoc));
+
+    // Test multiplication associativity: (AB)C = A(BC) through properties
+    var D = eye(2) * 2;
+    var mult_left = (A * B) * D;
+    var mult_right = A * (B * D);
+    assert(trace(mult_left), trace(mult_right));
+
+    // Test additive inverse properties
+    var neg_A = -1 * A;
+    var sum_with_inverse = A + neg_A;
+    assert(trace(sum_with_inverse), 0.0);
+    assert(det(sum_with_inverse), 0.0);
+    assert(norm(sum_with_inverse), 0.0);
+
+    print "✓ Arithmetic properties passed";
+}
+
+fun test_large_matrix_arithmetic() {
+    print "\n[Test 8] Large matrix arithmetic";
+
+    var I5 = eye(5);
+    var O5 = ones(5, 5);
+    var Z5 = zeros(5, 5);
+
+    // Large matrix addition
+    var large_sum = I5 + O5;
+    assert(trace(large_sum), 10.0);  // 5 + 5 = 10
+
+    // Large matrix multiplication
+    var large_mult = I5 * 3;
+    assert(det(large_mult), 243.0);  // 3^5 = 243
+    assert(trace(large_mult), 15.0); // 3 * 5 = 15
+
+    // Large matrix operations
+    var complex_large = 2 * I5 + O5 - Z5;
+    assert(trace(complex_large), 15.0);  // 2*5 + 5 - 0 = 15
+
+    print "✓ Large matrix arithmetic passed";
+}
+
+fun test_rectangular_arithmetic() {
+    print "\n[Test 9] Rectangular matrix arithmetic";
+
+    // Test rectangular addition
+    var R1 = ones(3, 4);
+    var R2 = zeros(3, 4);
+    var rect_sum = R1 + R2;
+    assert(trace(rect_sum), 3.0);  // ones(3,4) has trace = min(3,4) = 3 diagonal elements = 3
+
+    // Test rectangular scalar multiplication
+    var rect_scaled = 5 * R1;
+    assert(trace(rect_scaled), 15.0);  // 5 * ones(3,4) has trace = 5 * 3 = 15
+
+    // Test compatible rectangular multiplication
+    var tall = ones(4, 2);
+    var wide = ones(2, 5);
+    var rect_mult = tall * wide;  // 4x5 result
+    assert(trace(rect_mult), 8.0);  // ones(4,2) * ones(2,5) = 4x5 matrix with all 2's, trace = 2+2+2+2 = 8
+
+    print "✓ Rectangular arithmetic passed";
+}
+
+fun test_arithmetic_edge_cases() {
+    print "\n[Test 10] Arithmetic edge cases";
+
+    // Single element matrices
+    var s1 = eye(1);
+    var s2 = ones(1, 1);
+
+    var single_sum = s1 + s2;
+    assert(det(single_sum), 2.0);
+    assert(trace(single_sum), 2.0);
+    assert(norm(single_sum), 2.0);
+
+    var single_mult = s1 * s2;
+    assert(det(single_mult), 1.0);
+    assert(trace(single_mult), 1.0);
+
+    // Very thin matrices
+    var thin_a = ones(5, 1);
+    var thin_b = ones(1, 3);
+    var thin_mult = thin_a * thin_b;  // 5x3 result
+    assert(trace(thin_mult), 3.0);  // ones(5,1) * ones(1,3) = 5x3 matrix with all 1's, trace = 1+1+1 = 3
+
+    print "✓ Arithmetic edge cases passed";
+}
+
+// Run all tests
+test_matrix_addition();
+test_matrix_subtraction();
+test_matrix_multiplication();
+test_scalar_multiplication();
+test_mixed_operations();
+test_matrix_powers();
+test_arithmetic_properties();
+test_large_matrix_arithmetic();
+test_rectangular_arithmetic();
+test_arithmetic_edge_cases();
+
+print "\n=== ALL MATRIX ARITHMETIC TESTS PASSED ===";
+print "Matrix arithmetic functionality verified successfully!";

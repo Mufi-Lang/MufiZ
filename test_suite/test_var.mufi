@@ -1,0 +1,32 @@
+var x = 42;
+print("Initial x = ");
+print(x);
+
+// Test reassignment - should work
+x = 100;
+print("After reassignment, x = ");
+print(x);
+
+// Test with strings
+var message = "Hello";
+print("Initial message = ");
+print(message);
+
+message = "World";
+print("After reassignment, message = ");
+print(message);
+
+// Test with arithmetic operations
+var counter = 0;
+print("Initial counter = ");
+print(counter);
+
+counter = counter + 1;
+print("After increment, counter = ");
+print(counter);
+
+counter = counter * 5;
+print("After multiplication, counter = ");
+print(counter);
+
+print("All var tests completed successfully!");

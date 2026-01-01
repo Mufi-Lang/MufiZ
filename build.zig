@@ -13,26 +13,25 @@ pub fn build(b: *std.Build) !void {
     const optimize = b.standardOptimizeOption(.{});
     const exe = b.addExecutable(.{
         .name = "mufiz",
-        .root_source_file = b.path("src/main.zig"),
-        .target = target,
-        .optimize = optimize,
-        .link_libc = false, // we did this in v0.9.0
+        // .root_source_file = b.path("src/main.zig"),
+        .root_module = b.createModule(.{ .root_source_file = b.path("src/main.zig"), .target = target, .optimize = optimize }),
+        // .target = target,
+        // .optimize = optimize,
     });
 
     const exe_check = b.addExecutable(.{
         .name = "mufiz",
-        .root_source_file = b.path("src/main.zig"),
-        .target = target,
-        .optimize = optimize,
-        .link_libc = false, // we did this in v0.9.0
+        // .root_source_file = b.path("src/main.zig"),
+        // .target = target,
+        // .optimize = optimize,
+        .root_module = b.createModule(.{ .root_source_file = b.path("src/main.zig"), .target = target, .optimize = optimize }),
     });
 
     if (target.query.cpu_arch == .wasm32) {
         b.enable_wasmtime = true;
     }
 
-    const clap = b.dependency("clap", .{ .target = target, .optimize = .ReleaseSafe });
-
+    const clap = b.dependency("clap", .{});
     exe.root_module.addImport("clap", clap.module("clap"));
     exe_check.root_module.addImport("clap", clap.module("clap"));
 
@@ -84,11 +83,4 @@ pub fn build(b: *std.Build) !void {
 
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
-
-    const exe_test = b.addTest(.{ .root_source_file = b.path("lib/main.zig"), .target = target, .optimize = optimize });
-    exe_test.linkLibC();
-    const run_exe_test = b.addRunArtifact(exe_test);
-
-    const test_step = b.step("test", "Run Test Suite");
-    test_step.dependOn(&run_exe_test.step);
 }

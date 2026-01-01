@@ -9,4 +9,4 @@ method() {
 
 
 var closure = B("arg").method();
-assert(closure, "B.method(arg)"); 
+assert(closure, "B.method(arg)");

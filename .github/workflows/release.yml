@@ -14,17 +14,29 @@ jobs:
     runs-on: ubuntu-latest # Switched to Ubuntu environment
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Setup Zig
         uses: goto-bus-stop/setup-zig@v2
         with:
-          version: 0.13.0
+          version: 0.15.2
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: "3.x"
+
+      - name: Cache Zig build artifacts
+        uses: actions/cache@v3
+        with:
+          path: |
+            zig-cache
+            .zig-cache
+            ~/.cache/zig
+          key: ${{ runner.os }}-zig-release-${{ hashFiles('build.zig', 'build.zig.zon') }}
+          restore-keys: |
+            ${{ runner.os }}-zig-release-
+            ${{ runner.os }}-zig-
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
@@ -38,20 +50,125 @@ jobs:
           sudo apt-get install rpm
           gem install fpm
 
+      - name: Validate test suite setup
+        run: |
+          echo "🔍 Validating test suite configuration..."
+          if [ ! -f "test_suite.py" ]; then
+            echo "❌ test_suite.py not found"
+            exit 1
+          fi
+          if [ ! -d "test_suite" ]; then
+            echo "❌ test_suite directory not found"
+            exit 1
+          fi
+          test_count=$(find test_suite -name "*.mufi" | wc -l)
+          if [ "$test_count" -eq 0 ]; then
+            echo "❌ No .mufi test files found in test_suite directory"
+            exit 1
+          fi
+          echo "✅ Found $test_count test files"
+          echo "✅ Test suite setup validated"
+
+      - name: Run test suite (REQUIRED FOR RELEASE)
+        run: |
+          echo "🧪 Running test suite - Release will be blocked if tests fail"
+          python3 test_suite.py
+          echo "✅ All tests passed! Proceeding with release..."
+
+      - name: Upload test artifacts on test failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-failure-blocking-release
+          path: |
+            *.mufi
+            zig-out/
+            test_suite/
+          retention-days: 7
+
       - name: Run Build Multi
         run: zig build --build-file build_multi.zig
 
       - name: Run Package Man
         run: python3 pkgman.py
 
-      - name: Create release
+      - name: Delete previous experimental releases
+        run: |
+          echo "🗑️ Cleaning up previous experimental releases..."
+          # Get all releases and filter for experimental ones
+          RELEASES=$(curl -s \
+            -H "Authorization: token ${{ secrets.SECRET }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${{ github.repository }}/releases" \
+            | jq -r '.[] | select(.tag_name | startswith("next-experimental-")) | "\(.id) \(.tag_name)"')
+
+          if [ -n "$RELEASES" ]; then
+            echo "Found experimental releases to delete:"
+            echo "$RELEASES"
+
+            # Delete each experimental release and its tag
+            echo "$RELEASES" | while read -r release_id tag_name; do
+              if [ -n "$release_id" ] && [ -n "$tag_name" ]; then
+                echo "Deleting release: $tag_name (ID: $release_id)"
+
+                # Delete the release
+                curl -s -X DELETE \
+                  -H "Authorization: token ${{ secrets.SECRET }}" \
+                  -H "Accept: application/vnd.github.v3+json" \
+                  "https://api.github.com/repos/${{ github.repository }}/releases/$release_id"
+
+                # Delete the tag
+                curl -s -X DELETE \
+                  -H "Authorization: token ${{ secrets.SECRET }}" \
+                  -H "Accept: application/vnd.github.v3+json" \
+                  "https://api.github.com/repos/${{ github.repository }}/git/refs/tags/$tag_name"
+
+                echo "✅ Deleted $tag_name"
+              fi
+            done
+          else
+            echo "No previous experimental releases found to delete"
+          fi
+
+      - name: Create release (only if tests passed)
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
           token: ${{secrets.SECRET}}
-          tag_name: next-experimental
-          name: Next Experimental Release
+          tag_name: next-experimental-${{ github.run_number }}
+          name: "Next Experimental Release #${{ github.run_number }}"
+          body: |
+            🚀 **Experimental Release from Next Branch**
+
+            ✅ All test suite tests passed
+            🔧 Built with Zig 0.15.2
+            📦 Generated from commit: ${{ github.sha }}
+
+            **⚠️ This is a pre-release build for testing purposes**
+
+            🗑️ Previous experimental releases have been automatically cleaned up
           generate_release_notes: true
           draft: false
           prerelease: true
           files: "pkg/*"
+
+      - name: Release summary
+        if: always()
+        run: |
+          echo "## 🚀 Release Workflow Results" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** next" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ ${{ job.status }} == 'success' ]; then
+            echo "✅ **Release created successfully!**" >> $GITHUB_STEP_SUMMARY
+            echo "- All tests passed" >> $GITHUB_STEP_SUMMARY
+            echo "- Packages built successfully" >> $GITHUB_STEP_SUMMARY
+            echo "- Experimental release published" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Release failed**" >> $GITHUB_STEP_SUMMARY
+            echo "**Possible causes:**" >> $GITHUB_STEP_SUMMARY
+            echo "- Test suite failures (check test artifacts)" >> $GITHUB_STEP_SUMMARY
+            echo "- Build failures" >> $GITHUB_STEP_SUMMARY
+            echo "- Package creation issues" >> $GITHUB_STEP_SUMMARY
+          fi

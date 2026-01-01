@@ -1,0 +1,18 @@
+// Minimal variable test
+
+// Define variables
+var start = 10;
+var finish = 15;
+
+// Print the variables
+print("Start: " + start);
+print("Finish: " + finish);
+
+// Test range with variables using array conversion
+print("\nIterating over variable range:");
+var range_array = range_to_array(start..finish);
+foreach (x in range_array) {
+    print(x);
+}
+
+print("\nTest completed");

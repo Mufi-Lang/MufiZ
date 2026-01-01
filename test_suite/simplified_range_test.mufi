@@ -1,0 +1,36 @@
+// Simplified Range Test
+// This file tests only the most basic range functionality that is known to work
+
+// Test basic range creation and printing
+print("Basic range creation:");
+var r1 = 1..5;   // Exclusive range: 1,2,3,4
+var r2 = 1..=5;  // Inclusive range: 1,2,3,4,5
+
+print("Range values:");
+print(r1);
+print(r2);
+
+// Test range iteration
+print("\nRange iteration:");
+foreach (i in 1..5) {
+    print(i);  // Should print 1, 2, 3, 4
+}
+
+// Test range in switch statement
+print("\nRange in switch statement:");
+var value = 3;
+print("Testing with value: " + value);
+
+switch(value) {
+    case 1 => { print("Case: Exactly 1"); },
+    case 2..5 => { print("Case: In range 2..5 (exclusive)"); },
+    case 5..=10 => { print("Case: In range 5..=10 (inclusive)"); },
+    _ => { print("Case: Default"); }
+}
+
+// Test array conversion if range_to_array function exists
+print("\nRange to array conversion:");
+var arr = range_to_array(1..5);
+print(arr);  // Should print array with [1, 2, 3, 4]
+
+print("\nSimplified Range Test Completed!");
