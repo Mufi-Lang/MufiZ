@@ -11,69 +11,68 @@ const TwoNumbers = stdlib_v2.TwoNumbers;
 const Prng = std.Random.Xoshiro256;
 
 // Internal implementation functions (no validation needed here)
-fn ln_impl(argc: i32, args: [*]Value) Value {
+fn ln_impl(_: i32, args: [*]Value) Value {
     const double = args[0].as_num_double();
     return Value.init_double(@log(double));
 }
 
-fn log2_impl(argc: i32, args: [*]Value) Value {
+fn log2_impl(_: i32, args: [*]Value) Value {
     const double = args[0].as_num_double();
     return Value.init_double(@log2(double));
 }
 
-fn log10_impl(argc: i32, args: [*]Value) Value {
+fn log10_impl(_: i32, args: [*]Value) Value {
     const double = args[0].as_num_double();
     return Value.init_double(@log10(double));
 }
 
-fn pi_impl(argc: i32, args: [*]Value) Value {
+fn pi_impl(_: i32, args: [*]Value) Value {
     _ = args;
-    _ = argc;
     return Value.init_double(std.math.pi);
 }
 
-fn exp_impl(argc: i32, args: [*]Value) Value {
+fn exp_impl(_: i32, args: [*]Value) Value {
     const double = args[0].as_num_double();
     return Value.init_double(@exp(double));
 }
 
-fn sin_impl(argc: i32, args: [*]Value) Value {
+fn sin_impl(_: i32, args: [*]Value) Value {
     const double = args[0].as_num_double();
     return Value.init_double(@sin(double));
 }
 
-fn cos_impl(argc: i32, args: [*]Value) Value {
+fn cos_impl(_: i32, args: [*]Value) Value {
     const double = args[0].as_num_double();
     return Value.init_double(@cos(double));
 }
 
-fn tan_impl(argc: i32, args: [*]Value) Value {
+fn tan_impl(_: i32, args: [*]Value) Value {
     const double = args[0].as_num_double();
     return Value.init_double(@tan(double));
 }
 
-fn asin_impl(argc: i32, args: [*]Value) Value {
+fn asin_impl(_: i32, args: [*]Value) Value {
     const double = args[0].as_num_double();
     return Value.init_double(std.math.asin(double));
 }
 
-fn acos_impl(argc: i32, args: [*]Value) Value {
+fn acos_impl(_: i32, args: [*]Value) Value {
     const double = args[0].as_num_double();
     return Value.init_double(std.math.acos(double));
 }
 
-fn atan_impl(argc: i32, args: [*]Value) Value {
+fn atan_impl(_: i32, args: [*]Value) Value {
     const double = args[0].as_num_double();
     return Value.init_double(std.math.atan(double));
 }
 
-fn complex_impl(argc: i32, args: [*]Value) Value {
+fn complex_impl(_: i32, args: [*]Value) Value {
     const r = args[0].as_num_double();
     const i = args[1].as_num_double();
     return Value.init_complex(.{ .r = r, .i = i });
 }
 
-fn abs_impl(argc: i32, args: [*]Value) Value {
+fn abs_impl(_: i32, args: [*]Value) Value {
     switch (args[0].type) {
         .VAL_COMPLEX => {
             const c = args[0].as_complex();
@@ -91,14 +90,13 @@ fn abs_impl(argc: i32, args: [*]Value) Value {
     }
 }
 
-fn phase_impl(argc: i32, args: [*]Value) Value {
+fn phase_impl(_: i32, args: [*]Value) Value {
     const c = args[0].as_complex();
     return Value.init_double(std.math.atan2(c.i, c.r));
 }
 
-fn rand_impl(argc: i32, args: [*]Value) Value {
+fn rand_impl(_: i32, args: [*]Value) Value {
     _ = args;
-    _ = argc;
     var seed_bytes: [8]u8 = undefined;
     std.crypto.random.bytes(&seed_bytes);
     const seed = std.mem.readInt(u64, &seed_bytes, .little);
@@ -107,9 +105,8 @@ fn rand_impl(argc: i32, args: [*]Value) Value {
     return Value.init_double(r);
 }
 
-fn randn_impl(argc: i32, args: [*]Value) Value {
+fn randn_impl(_: i32, args: [*]Value) Value {
     _ = args;
-    _ = argc;
     var seed_bytes: [8]u8 = undefined;
     std.crypto.random.bytes(&seed_bytes);
     const seed = std.mem.readInt(u64, &seed_bytes, .little);
@@ -118,39 +115,39 @@ fn randn_impl(argc: i32, args: [*]Value) Value {
     return Value.init_double(r);
 }
 
-fn pow_impl(argc: i32, args: [*]Value) Value {
+fn pow_impl(_: i32, args: [*]Value) Value {
     const base = args[0].as_num_double();
     const exponent = args[1].as_num_double();
     return Value.init_double(std.math.pow(f64, base, exponent));
 }
 
-fn sqrt_impl(argc: i32, args: [*]Value) Value {
+fn sqrt_impl(_: i32, args: [*]Value) Value {
     const double = args[0].as_num_double();
     return Value.init_double(@sqrt(double));
 }
 
-fn ceil_impl(argc: i32, args: [*]Value) Value {
+fn ceil_impl(_: i32, args: [*]Value) Value {
     const double = args[0].as_num_double();
     return Value.init_int(@intFromFloat(@ceil(double)));
 }
 
-fn floor_impl(argc: i32, args: [*]Value) Value {
+fn floor_impl(_: i32, args: [*]Value) Value {
     const double = args[0].as_num_double();
     return Value.init_int(@intFromFloat(@floor(double)));
 }
 
-fn round_impl(argc: i32, args: [*]Value) Value {
+fn round_impl(_: i32, args: [*]Value) Value {
     const double = args[0].as_num_double();
     return Value.init_int(@intFromFloat(@round(double)));
 }
 
-fn max_impl(argc: i32, args: [*]Value) Value {
+fn max_impl(_: i32, args: [*]Value) Value {
     const a = args[0].as_num_double();
     const b = args[1].as_num_double();
     return Value.init_double(@max(a, b));
 }
 
-fn min_impl(argc: i32, args: [*]Value) Value {
+fn min_impl(_: i32, args: [*]Value) Value {
     const a = args[0].as_num_double();
     const b = args[1].as_num_double();
     return Value.init_double(@min(a, b));

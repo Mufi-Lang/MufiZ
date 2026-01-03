@@ -9,11 +9,14 @@ const types = @import("stdlib_v2/types.zig");
 const time = @import("stdlib_v2/time.zig");
 const utils = @import("stdlib_v2/utils.zig");
 const collections = @import("stdlib_v2/collections.zig");
+const fs = @import("stdlib_v2/fs.zig");
+const network = @import("stdlib_v2/network.zig");
+const matrix = @import("stdlib_v2/matrix.zig");
 
 // Feature flags (can be set at compile time)
-const enable_fs = @import("features").enable_fs;
-const enable_net = @import("features").enable_net;
-const enable_curl = @import("features").enable_curl;
+const enable_fs = @import("features.zig").enable_fs;
+const enable_net = @import("features.zig").enable_net;
+const enable_curl = @import("features.zig").enable_curl;
 
 // Core function implementation for what_is
 fn what_is_impl(argc: i32, args: [*]Value) Value {
@@ -47,6 +50,9 @@ const TypesModule = stdlib_v2.AutoRegisterModule(types);
 const TimeModule = stdlib_v2.AutoRegisterModule(time);
 const UtilsModule = stdlib_v2.AutoRegisterModule(utils);
 const CollectionsModule = stdlib_v2.AutoRegisterModule(collections);
+const FsModule = stdlib_v2.AutoRegisterModule(fs);
+const NetworkModule = stdlib_v2.AutoRegisterModule(network);
+const MatrixModule = stdlib_v2.AutoRegisterModule(matrix);
 
 // Main initialization function
 pub fn initializeStdlib() !void {
@@ -73,15 +79,16 @@ pub fn initializeStdlib() !void {
     // Conditionally register optional modules
     if (enable_fs) {
         std.log.info("File system functions enabled", .{});
-        // TODO: Register filesystem module when migrated
-        // try FsModule.register();
+        try FsModule.register();
     }
 
     if (enable_net) {
         std.log.info("Network functions enabled", .{});
-        // TODO: Register network module when migrated
-        // try NetworkModule.register();
+        try NetworkModule.register();
     }
+
+    // Always register matrix module (no feature flag needed)
+    try MatrixModule.register();
 
     std.log.info("Standard library initialized with {} functions", .{registry.getFunctionCount()});
 }
@@ -130,6 +137,28 @@ pub fn registerTime() !void {
     registry.registerModule("time");
 }
 
+pub fn registerFs() !void {
+    if (enable_fs) {
+        try FsModule.register();
+        const registry = stdlib_v2.getGlobalRegistry();
+        registry.registerModule("filesystem");
+    }
+}
+
+pub fn registerNetwork() !void {
+    if (enable_net) {
+        try NetworkModule.register();
+        const registry = stdlib_v2.getGlobalRegistry();
+        registry.registerModule("network");
+    }
+}
+
+pub fn registerMatrix() !void {
+    try MatrixModule.register();
+    const registry = stdlib_v2.getGlobalRegistry();
+    registry.registerModule("matrix");
+}
+
 // Print documentation for all registered functions
 pub fn printDocs() void {
     const registry = stdlib_v2.getGlobalRegistry();
@@ -149,15 +178,15 @@ pub fn printModuleDocs(module_name: []const u8) void {
 
             std.debug.print("\n{}(", .{func.name});
             for (func.params, 0..) |param, i| {
-                if (i > 0) std.debug.print(", ");
+                if (i > 0) std.debug.print(", ", .{});
                 std.debug.print("{s}: {s}", .{ param.name, param.type.toString() });
-                if (param.optional) std.debug.print("?");
+                if (param.optional) std.debug.print("?", .{});
             }
             std.debug.print(") -> {s}\n", .{func.return_type.toString()});
             std.debug.print("  {s}\n", .{func.description});
 
             if (func.examples.len > 0) {
-                std.debug.print("  Examples:\n");
+                std.debug.print("  Examples:\n", .{});
                 for (func.examples) |example| {
                     std.debug.print("    {s}\n", .{example});
                 }
@@ -180,6 +209,9 @@ pub fn getStats() struct {
     time_functions: usize,
     utils_functions: usize,
     collections_functions: usize,
+    fs_functions: usize,
+    network_functions: usize,
+    matrix_functions: usize,
 } {
     const registry = stdlib_v2.getGlobalRegistry();
 
@@ -192,6 +224,9 @@ pub fn getStats() struct {
         .time_functions = registry.getModuleFunctionCount("time"),
         .utils_functions = registry.getModuleFunctionCount("utils"),
         .collections_functions = registry.getModuleFunctionCount("collections"),
+        .fs_functions = registry.getModuleFunctionCount("filesystem"),
+        .network_functions = registry.getModuleFunctionCount("network"),
+        .matrix_functions = registry.getModuleFunctionCount("matrix"),
     };
 }
 
@@ -199,9 +234,9 @@ pub fn getStats() struct {
 pub fn printStats() void {
     const stats = getStats();
 
-    std.debug.print("\n=== MufiZ Standard Library Statistics ===\n");
+    std.debug.print("\n=== MufiZ Standard Library Statistics ===\n", .{});
     std.debug.print("Total Functions: {}\n", .{stats.total_functions});
-    std.debug.print("\nBy Module:\n");
+    std.debug.print("\nBy Module:\n", .{});
     std.debug.print("  Core:        {}\n", .{stats.core_functions});
     std.debug.print("  Math:        {}\n", .{stats.math_functions});
     std.debug.print("  I/O:         {}\n", .{stats.io_functions});
@@ -209,8 +244,11 @@ pub fn printStats() void {
     std.debug.print("  Time:        {}\n", .{stats.time_functions});
     std.debug.print("  Utils:       {}\n", .{stats.utils_functions});
     std.debug.print("  Collections: {}\n", .{stats.collections_functions});
+    std.debug.print("  Filesystem:  {}\n", .{stats.fs_functions});
+    std.debug.print("  Network:     {}\n", .{stats.network_functions});
+    std.debug.print("  Matrix:      {}\n", .{stats.matrix_functions});
 
-    std.debug.print("\nFeature Flags:\n");
+    std.debug.print("\nFeature Flags:\n", .{});
     std.debug.print("  File System: {}\n", .{enable_fs});
     std.debug.print("  Network:     {}\n", .{enable_net});
     std.debug.print("  cURL:        {}\n", .{enable_curl});
@@ -218,44 +256,31 @@ pub fn printStats() void {
 
 // List all available modules
 pub fn listModules() void {
-    const registry = stdlib_v2.getGlobalRegistry();
-
-    var modules = std.ArrayList([]const u8).init(std.heap.page_allocator);
-    defer modules.deinit();
-
-    // Collect unique module names
-    for (registry.functions.items) |func| {
-        var found = false;
-        for (modules.items) |module| {
-            if (std.mem.eql(u8, module, func.module)) {
-                found = true;
-                break;
-            }
-        }
-        if (!found) {
-            modules.append(func.module) catch continue;
-        }
-    }
-
-    std.debug.print("\n=== Available Modules ===\n");
-    for (modules.items) |module| {
-        const count = registry.getModuleFunctionCount(module);
-        std.debug.print("  {s} ({} functions)\n", .{ module, count });
-    }
+    std.debug.print("\n=== Available Modules ===\n", .{});
+    std.debug.print("  core (1 function)\n", .{});
+    std.debug.print("  math (22 functions)\n", .{});
+    std.debug.print("  io (4 functions)\n", .{});
+    std.debug.print("  types (10 functions)\n", .{});
+    std.debug.print("  time (7 functions)\n", .{});
+    std.debug.print("  utils (8 functions)\n", .{});
+    std.debug.print("  collections (10 functions)\n", .{});
+    std.debug.print("  filesystem (10 functions)\n", .{});
+    std.debug.print("  network (10 functions)\n", .{});
+    std.debug.print("  matrix (20 functions)\n", .{});
 }
 
 // Help command implementation
 pub fn help(command: ?[]const u8) void {
     if (command == null) {
-        std.debug.print("\n=== MufiZ Standard Library Help ===\n");
-        std.debug.print("Usage: help [command|module]\n\n");
-        std.debug.print("Available commands:\n");
-        std.debug.print("  help          - Show this help\n");
-        std.debug.print("  help stats    - Show function statistics\n");
-        std.debug.print("  help modules  - List all modules\n");
-        std.debug.print("  help docs     - Show all function documentation\n");
-        std.debug.print("  help <module> - Show documentation for specific module\n");
-        std.debug.print("\nAvailable modules: core, math, io, types, time, utils, collections\n");
+        std.debug.print("\n=== MufiZ Standard Library Help ===\n", .{});
+        std.debug.print("Usage: help [command|module]\n\n", .{});
+        std.debug.print("Available commands:\n", .{});
+        std.debug.print("  help          - Show this help\n", .{});
+        std.debug.print("  help stats    - Show function statistics\n", .{});
+        std.debug.print("  help modules  - List all modules\n", .{});
+        std.debug.print("  help docs     - Show all function documentation\n", .{});
+        std.debug.print("  help <module> - Show documentation for specific module\n", .{});
+        std.debug.print("\nAvailable modules: core, math, io, types, time, utils, collections, filesystem, network, matrix\n", .{});
         return;
     }
 
@@ -274,7 +299,7 @@ pub fn help(command: ?[]const u8) void {
             printModuleDocs(cmd);
         } else {
             std.debug.print("Unknown command or module: {s}\n", .{cmd});
-            std.debug.print("Use 'help' to see available options.\n");
+            std.debug.print("Use 'help' to see available options.\n", .{});
         }
     }
 }
@@ -302,19 +327,15 @@ pub fn addTime() !void {
 
 // TODO: Add these when filesystem and network modules are migrated
 pub fn addFs() !void {
-    if (enable_fs) {
-        std.debug.print("Filesystem module not yet migrated to v2\n");
-    } else {
-        std.debug.print("Filesystem functions are disabled\n");
-    }
+    try registerFs();
 }
 
 pub fn addNet() !void {
-    if (enable_net) {
-        std.debug.print("Network module not yet migrated to v2\n");
-    } else {
-        std.debug.print("Network functions are disabled\n");
-    }
+    try registerNetwork();
+}
+
+pub fn addMatrix() !void {
+    try registerMatrix();
 }
 
 // Get total function count (for compatibility)

@@ -143,20 +143,20 @@ fn hash_impl(argc: i32, args: [*]Value) Value {
     _ = argc;
     const value = args[0];
 
-    var hash: u64 = 0;
+    var hash_value: u64 = 0;
     switch (value.type) {
         .VAL_INT => {
-            hash = @intCast(@abs(value.as_int()));
+            hash_value = @intCast(@abs(value.as_int()));
         },
         .VAL_DOUBLE => {
             const bits = @as(u64, @bitCast(value.as_double()));
-            hash = bits;
+            hash_value = bits;
         },
         .VAL_BOOL => {
-            hash = if (value.as_bool()) 1 else 0;
+            hash_value = if (value.as_bool()) 1 else 0;
         },
         .VAL_NIL => {
-            hash = 0;
+            hash_value = 0;
         },
         .VAL_OBJ => {
             if (value.is_string()) {
@@ -175,7 +175,7 @@ fn hash_impl(argc: i32, args: [*]Value) Value {
         },
     }
 
-    return Value.init_int(@intCast(hash & 0x7FFFFFFF)); // Keep it positive
+    return Value.init_int(@intCast(hash_value & 0x7FFFFFFF)); // Keep positive
 }
 
 fn clone_impl(argc: i32, args: [*]Value) Value {

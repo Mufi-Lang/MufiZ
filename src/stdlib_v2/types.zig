@@ -231,7 +231,7 @@ pub const str = DefineFunction(
     str_impl,
 );
 
-pub const bool = DefineFunction(
+pub const bool_fn = DefineFunction(
     "bool",
     "types",
     "Convert a value to a boolean",

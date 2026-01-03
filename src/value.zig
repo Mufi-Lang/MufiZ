@@ -16,7 +16,7 @@ const MatrixRow = obj_h.MatrixRow;
 const fvec = @import("objects/fvec.zig");
 const obj_range = @import("objects/range.zig");
 
-const scanner_h = @import("scanner.zig");
+const scanner_h = @import("scanner_optimized.zig");
 const simd_string = @import("simd_string.zig");
 const SIMDString = simd_string.SIMDString;
 
