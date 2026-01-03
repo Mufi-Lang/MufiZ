@@ -1,6 +1,5 @@
 const std = @import("std");
 
-const enable_curl = @import("features").enable_curl;
 const enable_fs = @import("features").enable_fs;
 const enable_net = @import("features").enable_net;
 

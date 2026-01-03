@@ -1,5 +1,4 @@
 const std = @import("std");
-const enable_curl = @import("features.zig").enable_curl;
 const enable_fs = @import("features.zig").enable_fs;
 const enable_net = @import("features.zig").enable_net;
 
@@ -516,7 +515,6 @@ fn printStats() void {
     std.debug.print("\nFeature Flags:\n", .{});
     std.debug.print("  File System: {}\n", .{enable_fs});
     std.debug.print("  Network:     {}\n", .{enable_net});
-    std.debug.print("  cURL:        {}\n", .{enable_curl});
 }
 
 fn listModules() void {

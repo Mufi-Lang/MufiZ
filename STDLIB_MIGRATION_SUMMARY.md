@@ -218,7 +218,6 @@ pub const my_function = stdlib_v2.DefineFunction(
 stdlib_v2.setFeatureFlags(.{
     .enable_fs = true,
     .enable_net = false,
-    .enable_curl = false,
 });
 ```
 

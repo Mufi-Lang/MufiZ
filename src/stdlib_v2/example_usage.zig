@@ -12,7 +12,6 @@ pub fn main() !void {
     stdlib_v2.setFeatureFlags(.{
         .enable_fs = true,
         .enable_net = false, // Disable network functions for this example
-        .enable_curl = false,
     });
 
     // Auto-register all functions from the math module

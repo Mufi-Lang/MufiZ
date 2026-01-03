@@ -284,7 +284,6 @@ pub fn AutoRegisterModule(comptime module: type) type {
 pub const FeatureFlags = struct {
     enable_fs: bool = true,
     enable_net: bool = true,
-    enable_curl: bool = false,
 };
 
 var feature_flags = FeatureFlags{};

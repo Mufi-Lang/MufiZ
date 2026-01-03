@@ -292,7 +292,6 @@ Control which modules are available at compile time:
 stdlib_v2.setFeatureFlags(.{
     .enable_fs = true,      // File system operations
     .enable_net = false,    // Network operations  
-    .enable_curl = false,   // HTTP client
 });
 
 // Check if feature is enabled

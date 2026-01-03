@@ -16,7 +16,6 @@ const matrix = @import("stdlib_v2/matrix.zig");
 // Feature flags (can be set at compile time)
 const enable_fs = @import("features.zig").enable_fs;
 const enable_net = @import("features.zig").enable_net;
-const enable_curl = @import("features.zig").enable_curl;
 
 // Core function implementation for what_is
 fn what_is_impl(argc: i32, args: [*]Value) Value {
@@ -60,7 +59,6 @@ pub fn initializeStdlib() !void {
     stdlib_v2.setFeatureFlags(.{
         .enable_fs = enable_fs,
         .enable_net = enable_net,
-        .enable_curl = enable_curl,
     });
 
     const registry = stdlib_v2.getGlobalRegistry();
@@ -251,7 +249,6 @@ pub fn printStats() void {
     std.debug.print("\nFeature Flags:\n", .{});
     std.debug.print("  File System: {}\n", .{enable_fs});
     std.debug.print("  Network:     {}\n", .{enable_net});
-    std.debug.print("  cURL:        {}\n", .{enable_curl});
 }
 
 // List all available modules
