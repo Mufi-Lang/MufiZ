@@ -1,3 +1,13 @@
+/// MufiZ Object System Module
+/// This module implements the object model for the MufiZ language.
+/// It defines all heap-allocated object types including:
+/// - Strings (ObjString)
+/// - Functions (ObjFunction, ObjClosure)
+/// - Classes and Instances (ObjClass, ObjInstance)
+/// - Collections (LinkedList, FloatVector, Matrix, HashTable)
+/// - Native functions (ObjNative)
+/// - Upvalues for closure support
+
 const std = @import("std");
 const print = std.debug.print;
 

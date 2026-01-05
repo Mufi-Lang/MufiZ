@@ -1,3 +1,12 @@
+/// MufiZ Memory Management and Garbage Collection Module
+/// This module implements the garbage collector for the MufiZ VM.
+/// It provides:
+/// - Generational garbage collection (young, middle, old generations)
+/// - Mark-and-sweep algorithm
+/// - Cycle detection for circular references
+/// - Memory pressure monitoring
+/// - Incremental collection support
+
 const std = @import("std");
 const print = std.debug.print;
 const exit = std.process.exit;

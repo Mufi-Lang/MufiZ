@@ -1,3 +1,13 @@
+/// MufiZ Virtual Machine Module
+/// This module implements the bytecode interpreter for the MufiZ language.
+/// It executes compiled bytecode using a stack-based virtual machine architecture.
+/// Features include:
+/// - Stack-based execution model
+/// - Garbage collection with generational GC
+/// - Native function integration
+/// - REPL mode with echo control
+/// - Complex number support
+
 const std = @import("std");
 const print = std.debug.print;
 const sqrt = std.math.sqrt;

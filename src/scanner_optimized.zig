@@ -1,3 +1,12 @@
+/// MufiZ Optimized Scanner Module
+/// This is an optimized lexical analyzer for the MufiZ language.
+/// Improvements over the basic scanner include:
+/// - Pre-computed keyword hash table with binary search
+/// - Optimized number parsing
+/// - Better error reporting with position tracking
+/// - Support for complex numbers (e.g., 3+4i)
+/// - Efficient string handling
+
 const std = @import("std");
 
 const errors = @import("errors.zig");

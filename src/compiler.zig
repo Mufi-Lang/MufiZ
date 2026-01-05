@@ -1,5 +1,10 @@
-const print = @import("std").debug.print;
+/// MufiZ Compiler Module
+/// This module implements the bytecode compiler for the MufiZ language.
+/// It handles parsing, semantic analysis, and bytecode generation.
+/// The compiler uses a single-pass approach with recursive descent parsing.
+
 const std = @import("std");
+const print = std.debug.print;
 
 const debug_opts = @import("debug");
 
