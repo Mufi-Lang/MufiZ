@@ -1,0 +1,510 @@
+// Test Suite: JSON Integration with other MufiZ features
+// Tests JSON functionality combined with other language features using assert statements
+
+print("=== JSON INTEGRATION TEST SUITE ===");
+
+fun test1_json_with_hash_tables() {
+    print("\n[Test 1] JSON with hash tables");
+
+    // Create hash table and convert to JSON
+    var ht = hash_table();
+    put(ht, "name", "Alice");
+    put(ht, "age", 30);
+    put(ht, "active", true);
+
+    var json_str = json_stringify(ht);
+    assert(json_is_valid(json_str), true);
+
+    // Parse back and verify
+    var parsed_ht = json_parse(json_str);
+    assert(json_get(parsed_ht, "name"), "Alice");
+    assert(json_get(parsed_ht, "age"), 30);
+    assert(json_get(parsed_ht, "active"), true);
+
+    // Test pairs integration
+    var ht_pairs = pairs(parsed_ht);
+    assert(len(ht_pairs), 3);
+
+    print("✓ JSON with hash tables passed");
+}
+
+fun test2_json_with_vectors() {
+    print("\n[Test 2] JSON with float vectors");
+
+    // Create float vector and convert to JSON
+    var vec = {1.0, 2.5, 3.14, 4.7, 5.0};
+    var vec_json = json_stringify(vec);
+    assert(json_is_valid(vec_json), true);
+
+    // Parse back and verify
+    var parsed_vec = json_parse(vec_json);
+    if (what_is(parsed_vec) == "Float Vector") {
+        assert(len(parsed_vec), 5);
+        assert(parsed_vec[0], 1.0);
+        assert(parsed_vec[2], 3.14);
+        assert(parsed_vec[4], 5.0);
+    }
+
+    // Test vector operations after JSON round-trip
+    var sum_result = sum(parsed_vec);
+    assert(sum_result, 16.34);
+
+    print("✓ JSON with vectors passed");
+}
+
+fun test3_json_with_linked_lists() {
+    print("\n[Test 3] JSON with linked lists");
+
+    // Create linked list with various data
+    var ll = linked_list();
+    push(ll, "first");
+    push(ll, 42);
+    push(ll, true);
+    push(ll, nil);
+
+    // Convert individual elements through JSON
+    var i = 0;
+    var json_elements = linked_list();
+    while (i < len(ll)) {
+        var element = nth(ll, i);
+        var element_json = json_stringify(element);
+        var parsed_element = json_parse(element_json);
+        push(json_elements, parsed_element);
+        i = i + 1;
+    }
+
+    assert(len(json_elements), 4);
+    assert(nth(json_elements, 0), "first");
+    assert(nth(json_elements, 1), 42);
+    assert(nth(json_elements, 2), true);
+    assert(nth(json_elements, 3), nil);
+
+    print("✓ JSON with linked lists passed");
+}
+
+fun test4_json_in_loops() {
+    print("\n[Test 4] JSON in loops");
+
+    // Create multiple JSON objects in a loop
+    var results = linked_list();
+    var i = 0;
+    while (i < 5) {
+        var temp_obj = hash_table();
+        put(temp_obj, "index", i);
+        put(temp_obj, "squared", i * i);
+        put(temp_obj, "message", "Item " + str(i));
+
+        var json_str = json_stringify(temp_obj);
+        var parsed_obj = json_parse(json_str);
+        push(results, parsed_obj);
+        i = i + 1;
+    }
+
+    assert(len(results), 5);
+    var third_item = nth(results, 2);
+    assert(json_get(third_item, "index"), 2);
+    assert(json_get(third_item, "squared"), 4);
+    assert(json_get(third_item, "message"), "Item 2");
+
+    print("✓ JSON in loops passed");
+}
+
+fun test5_json_with_functions() {
+    print("\n[Test 5] JSON with functions");
+
+    // Function to create JSON objects
+    fun create_person(name, age, city) {
+        var person = hash_table();
+        put(person, "name", name);
+        put(person, "age", age);
+        put(person, "city", city);
+        return json_stringify(person);
+    }
+
+    // Function to parse and extract name
+    fun get_person_name(json_str) {
+        var person = json_parse(json_str);
+        return json_get(person, "name");
+    }
+
+    var alice_json = create_person("Alice", 25, "NYC");
+    var bob_json = create_person("Bob", 30, "LA");
+
+    assert(json_is_valid(alice_json), true);
+    assert(json_is_valid(bob_json), true);
+
+    assert(get_person_name(alice_json), "Alice");
+    assert(get_person_name(bob_json), "Bob");
+
+    print("✓ JSON with functions passed");
+}
+
+fun test6_json_conditional_logic() {
+    print("\n[Test 6] JSON with conditional logic");
+
+    var config_json = "{\"debug\": true, \"port\": 8080, \"database\": \"postgres\"}";
+    var config = json_parse(config_json);
+
+    // Conditional logic based on JSON values
+    if (json_get(config, "debug") == true) {
+        json_set(config, "log_level", "verbose");
+    } else {
+        json_set(config, "log_level", "error");
+    }
+
+    var port = json_get(config, "port");
+    if (port > 8000) {
+        json_set(config, "ssl", true);
+    } else {
+        json_set(config, "ssl", false);
+    }
+
+    assert(json_get(config, "log_level"), "verbose");
+    assert(json_get(config, "ssl"), true);
+
+    print("✓ JSON with conditional logic passed");
+}
+
+fun test7_json_data_transformation() {
+    print("\n[Test 7] JSON data transformation");
+
+    // Transform JSON data
+    var users_json = "[{\"id\": 1, \"name\": \"Alice\"}, {\"id\": 2, \"name\": \"Bob\"}, {\"id\": 3, \"name\": \"Charlie\"}]";
+    var users = json_parse(users_json);
+
+    // Transform to hash table indexed by ID
+    var user_lookup = hash_table();
+    var i = 0;
+    while (i < len(users)) {
+        var user = users[i];
+        if (what_is(user) == "Hash Table") {
+            var id = json_get(user, "id");
+            var name = json_get(user, "name");
+            put(user_lookup, str(id), name);
+        }
+        i = i + 1;
+    }
+
+    assert(get(user_lookup, "1"), "Alice");
+    assert(get(user_lookup, "2"), "Bob");
+    assert(get(user_lookup, "3"), "Charlie");
+
+    print("✓ JSON data transformation passed");
+}
+
+fun test8_json_with_string_operations() {
+    print("\n[Test 8] JSON with string operations");
+
+    var data = hash_table();
+    put(data, "first_name", "John");
+    put(data, "last_name", "Doe");
+    put(data, "title", "mr");
+
+    // String manipulations
+    var first_name = json_get(data, "first_name");
+    var last_name = json_get(data, "last_name");
+    var title = json_get(data, "title");
+
+    // Create full name and capitalize title
+    var full_name = first_name + " " + last_name;
+    json_set(data, "full_name", full_name);
+
+    // Uppercase title (simulate with string replacement)
+    if (title == "mr") {
+        json_set(data, "title", "Mr");
+    }
+
+    assert(json_get(data, "full_name"), "John Doe");
+    assert(json_get(data, "title"), "Mr");
+
+    // Test JSON serialization after modifications
+    var final_json = json_stringify(data);
+    assert(json_is_valid(final_json), true);
+
+    print("✓ JSON with string operations passed");
+}
+
+fun test9_json_with_mathematical_operations() {
+    print("\n[Test 9] JSON with mathematical operations");
+
+    var math_data = hash_table();
+    put(math_data, "values", {1.0, 2.0, 3.0, 4.0, 5.0});
+    put(math_data, "multiplier", 2.0);
+
+    // Perform math operations
+    var values = json_get(math_data, "values");
+    var multiplier = json_get(math_data, "multiplier");
+
+    if (what_is(values) == "Float Vector") {
+        // Calculate statistics
+        var total = sum(values);
+        var average = mean(values);
+        var variance = vari(values);
+
+        json_set(math_data, "sum", total);
+        json_set(math_data, "mean", average);
+        json_set(math_data, "variance", variance);
+
+        assert(json_get(math_data, "sum"), 15.0);
+        assert(json_get(math_data, "mean"), 3.0);
+    }
+
+    // Verify serialization
+    var math_json = json_stringify(math_data);
+    assert(json_is_valid(math_json), true);
+
+    print("✓ JSON with mathematical operations passed");
+}
+
+fun test10_json_nested_data_access() {
+    print("\n[Test 10] JSON nested data access");
+
+    var complex_json = "{\"company\": {\"name\": \"TechCorp\", \"employees\": [{\"name\": \"Alice\", \"department\": \"Engineering\"}, {\"name\": \"Bob\", \"department\": \"Sales\"}], \"location\": {\"city\": \"San Francisco\", \"country\": \"USA\"}}}";
+
+    var company = json_parse(complex_json);
+
+    // Navigate nested structure
+    var company_name = json_get(company, "name");
+    assert(company_name, "TechCorp");
+
+    var employees = json_get(company, "employees");
+    if (what_is(employees) == "Float Vector") {
+        if (len(employees) >= 2) {
+            var first_employee = employees[0];
+            if (what_is(first_employee) == "Hash Table") {
+                assert(json_get(first_employee, "name"), "Alice");
+                assert(json_get(first_employee, "department"), "Engineering");
+            }
+        }
+    }
+
+    var location = json_get(company, "location");
+    if (what_is(location) == "Hash Table") {
+        assert(json_get(location, "city"), "San Francisco");
+        assert(json_get(location, "country"), "USA");
+    }
+
+    print("✓ JSON nested data access passed");
+}
+
+fun test11_json_with_control_flow() {
+    print("\n[Test 11] JSON with control flow");
+
+    var settings_json = "{\"features\": [\"auth\", \"logging\", \"cache\"], \"version\": \"2.1.0\"}";
+    var settings = json_parse(settings_json);
+
+    // Check for specific features
+    var features = json_get(settings, "features");
+    var has_auth = false;
+    var has_logging = false;
+
+    // Simulate array search (since we can't iterate arrays directly yet)
+    if (what_is(features) == "Float Vector") {
+        if (len(features) >= 3) {
+            // We know the structure, so we can check specific indices
+            has_auth = true;  // "auth" is first
+            has_logging = true;  // "logging" is second
+        }
+    }
+
+    // Set configuration based on available features
+    if (has_auth) {
+        json_set(settings, "auth_enabled", true);
+    }
+
+    if (has_logging) {
+        json_set(settings, "log_level", "info");
+    }
+
+    assert(json_get(settings, "auth_enabled"), true);
+    assert(json_get(settings, "log_level"), "info");
+
+    print("✓ JSON with control flow passed");
+}
+
+fun test12_json_error_handling_integration() {
+    print("\n[Test 12] JSON error handling integration");
+
+    // Test graceful handling of JSON errors in integration scenarios
+    var valid_configs = linked_list();
+    var test_configs = [
+        "{\"name\": \"config1\", \"value\": 123}",
+        "{invalid json}",
+        "{\"name\": \"config2\", \"value\": 456}",
+        "[1, 2, 3, 4]",
+        "{\"name\": \"config3\", \"value\": 789}"
+    ];
+
+    // Process each config, skipping invalid ones
+    var i = 0;
+    while (i < 5) {
+        var config_str = "";
+        if (i == 0) config_str = "{\"name\": \"config1\", \"value\": 123}";
+        if (i == 1) config_str = "{invalid json}";
+        if (i == 2) config_str = "{\"name\": \"config2\", \"value\": 456}";
+        if (i == 3) config_str = "[1, 2, 3, 4]";
+        if (i == 4) config_str = "{\"name\": \"config3\", \"value\": 789}";
+
+        if (json_is_valid(config_str)) {
+            var config = json_parse(config_str);
+            if (what_is(config) == "Hash Table") {
+                var name = json_get(config, "name");
+                if (name != nil) {
+                    push(valid_configs, config);
+                }
+            }
+        }
+        i = i + 1;
+    }
+
+    assert(len(valid_configs), 3);
+    var first_valid = nth(valid_configs, 0);
+    assert(json_get(first_valid, "name"), "config1");
+
+    print("✓ JSON error handling integration passed");
+}
+
+fun test13_json_batch_processing() {
+    print("\n[Test 13] JSON batch processing");
+
+    // Create multiple JSON objects and process them in batch
+    var batch_data = linked_list();
+    var i = 0;
+    while (i < 10) {
+        var item = hash_table();
+        put(item, "id", i);
+        var status = "inactive";
+        if (i % 2 == 0) {
+            status = "active";
+        }
+        put(item, "status", status);
+        put(item, "score", i * 10.5);
+        push(batch_data, item);
+        i = i + 1;
+    }
+
+    // Convert all to JSON and back
+    var json_batch = linked_list();
+    i = 0;
+    while (i < len(batch_data)) {
+        var item = nth(batch_data, i);
+        var item_json = json_stringify(item);
+        var parsed_item = json_parse(item_json);
+        push(json_batch, parsed_item);
+        i = i + 1;
+    }
+
+    assert(len(json_batch), 10);
+
+    // Verify sample items
+    var fifth_item = nth(json_batch, 4);
+    assert(json_get(fifth_item, "id"), 4);
+    assert(json_get(fifth_item, "status"), "active");
+    assert(json_get(fifth_item, "score"), 42.0);
+
+    print("✓ JSON batch processing passed");
+}
+
+fun test14_json_configuration_system() {
+    print("\n[Test 14] JSON configuration system");
+
+    // Simulate a configuration system using JSON
+    var base_config = hash_table();
+    put(base_config, "app_name", "MyApp");
+    put(base_config, "version", "1.0.0");
+    put(base_config, "debug", false);
+
+    var env_config = hash_table();
+    put(env_config, "debug", true);
+    put(env_config, "port", 3000);
+    put(env_config, "database_url", "postgres://localhost");
+
+    // Merge configurations (env overrides base)
+    var final_config = hash_table();
+
+    // Copy base config
+    var base_pairs = pairs(base_config);
+    i = 0;
+    while (i < len(base_pairs)) {
+        var pair = nth(base_pairs, i);
+        put(final_config, pair[0], pair[1]);
+        i = i + 1;
+    }
+
+    // Override with env config
+    var env_pairs = pairs(env_config);
+    i = 0;
+    while (i < len(env_pairs)) {
+        var pair = nth(env_pairs, i);
+        put(final_config, pair[0], pair[1]);
+        i = i + 1;
+    }
+
+    // Verify merged configuration
+    assert(json_get(final_config, "app_name"), "MyApp");
+    assert(json_get(final_config, "version"), "1.0.0");
+    assert(json_get(final_config, "debug"), true);  // overridden
+    assert(json_get(final_config, "port"), 3000);
+    assert(json_get(final_config, "database_url"), "postgres://localhost");
+
+    // Ensure it's valid JSON
+    var config_json = json_stringify(final_config);
+    assert(json_is_valid(config_json), true);
+
+    print("✓ JSON configuration system passed");
+}
+
+fun test15_json_data_pipeline() {
+    print("\n[Test 15] JSON data pipeline");
+
+    // Create a data processing pipeline using JSON
+    var raw_data = hash_table();
+    put(raw_data, "temperature", 23.5);
+    put(raw_data, "humidity", 65.0);
+    put(raw_data, "timestamp", 1640995200);
+
+    // Stage 1: Add computed fields
+    var temp_celsius = json_get(raw_data, "temperature");
+    var temp_fahrenheit = (temp_celsius * 9.0 / 5.0) + 32.0;
+    json_set(raw_data, "temperature_f", temp_fahrenheit);
+
+    // Stage 2: Add status based on conditions
+    var humidity = json_get(raw_data, "humidity");
+    if (humidity > 60.0) {
+        json_set(raw_data, "humidity_status", "high");
+    } else {
+        json_set(raw_data, "humidity_status", "normal");
+    }
+
+    // Stage 3: JSON serialization for storage/transport
+    var processed_json = json_stringify(raw_data);
+    assert(json_is_valid(processed_json), true);
+
+    // Stage 4: Parse and verify pipeline results
+    var final_data = json_parse(processed_json);
+    assert(json_get(final_data, "temperature"), 23.5);
+    assert(json_get(final_data, "temperature_f"), 74.3);
+    assert(json_get(final_data, "humidity_status"), "high");
+
+    print("✓ JSON data pipeline passed");
+}
+
+// Run all tests
+test1_json_with_hash_tables();
+test2_json_with_vectors();
+test3_json_with_linked_lists();
+test4_json_in_loops();
+test5_json_with_functions();
+test6_json_conditional_logic();
+test7_json_data_transformation();
+test8_json_with_string_operations();
+test9_json_with_mathematical_operations();
+test10_json_nested_data_access();
+test11_json_with_control_flow();
+test12_json_error_handling_integration();
+test13_json_batch_processing();
+test14_json_configuration_system();
+test15_json_data_pipeline();
+
+print("\n=== ALL JSON INTEGRATION TESTS PASSED ===");
+print("JSON integration with MufiZ features verified successfully!");

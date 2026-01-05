@@ -1,30 +1,29 @@
 const std = @import("std");
-
-const enable_net = @import("features").enable_net;
-
+const stdlib_v2 = @import("../stdlib_v2.zig");
+const Value = @import("../value.zig").Value;
 const mem_utils = @import("../mem_utils.zig");
 const net = @import("../net.zig");
 const ContentType = net.ContentType;
 const obj_h = @import("../object.zig");
-const stdlib_error = @import("../stdlib.zig").stdlib_error;
-const table_h = @import("../table.zig");
-const Value = @import("../value.zig").Value;
 const vm = @import("../vm.zig");
 
-// HTTP Requests
-pub fn http_get(argc: i32, args: [*]Value) Value {
+const DefineFunction = stdlib_v2.DefineFunction;
+const ParamSpec = stdlib_v2.ParamSpec;
+
+// Check if networking is enabled at compile time
+const enable_net = @import("../features.zig").enable_net;
+
+// === Implementation Functions ===
+
+fn http_get_impl(_: i32, args: [*]Value) Value {
     if (!enable_net) {
         vm.runtimeError("Network functions are disabled!", .{});
         return Value.init_nil();
     }
 
-    if (argc < 1 or argc > 1) return stdlib_error("http_get() expects 1 argument", .{ .argn = argc });
-    if (!args[0].is_string()) return stdlib_error("http_get() expects a string URL", .{ .value_type = value_type_str(args[0]) });
-
     const url_obj = args[0].as_string();
     const url = url_obj.chars[0..url_obj.length];
 
-    // Default content type to JSON
     const ct = ContentType.JSON;
     const options = net.Options{};
 
@@ -36,22 +35,17 @@ pub fn http_get(argc: i32, args: [*]Value) Value {
     return Value.init_obj(@ptrCast(obj_h.copyString(result.ptr, result.len)));
 }
 
-pub fn http_post(argc: i32, args: [*]Value) Value {
+fn http_post_impl(_: i32, args: [*]Value) Value {
     if (!enable_net) {
         vm.runtimeError("Network functions are disabled!", .{});
         return Value.init_nil();
     }
-
-    if (argc != 2) return stdlib_error("http_post() expects 2 arguments", .{ .argn = argc });
-    if (!args[0].is_string()) return stdlib_error("http_post() expects a string URL", .{ .value_type = value_type_str(args[0]) });
-    if (!args[1].is_string()) return stdlib_error("http_post() expects a string data payload", .{ .value_type = value_type_str(args[1]) });
 
     const url_obj = args[0].as_string();
     const url = url_obj.chars[0..url_obj.length];
     const data_obj = args[1].as_string();
     const data = data_obj.chars[0..data_obj.length];
 
-    // Default content type to JSON
     const ct = ContentType.JSON;
     const options = net.Options{};
 
@@ -63,22 +57,17 @@ pub fn http_post(argc: i32, args: [*]Value) Value {
     return Value.init_obj(@ptrCast(obj_h.copyString(result.ptr, result.len)));
 }
 
-pub fn http_put(argc: i32, args: [*]Value) Value {
+fn http_put_impl(_: i32, args: [*]Value) Value {
     if (!enable_net) {
         vm.runtimeError("Network functions are disabled!", .{});
         return Value.init_nil();
     }
-
-    if (argc != 2) return stdlib_error("http_put() expects 2 arguments", .{ .argn = argc });
-    if (!args[0].is_string()) return stdlib_error("http_put() expects a string URL", .{ .value_type = value_type_str(args[0]) });
-    if (!args[1].is_string()) return stdlib_error("http_put() expects a string data payload", .{ .value_type = value_type_str(args[1]) });
 
     const url_obj = args[0].as_string();
     const url = url_obj.chars[0..url_obj.length];
     const data_obj = args[1].as_string();
     const data = data_obj.chars[0..data_obj.length];
 
-    // Default content type to JSON
     const ct = ContentType.JSON;
     const options = net.Options{};
 
@@ -90,19 +79,15 @@ pub fn http_put(argc: i32, args: [*]Value) Value {
     return Value.init_obj(@ptrCast(obj_h.copyString(result.ptr, result.len)));
 }
 
-pub fn http_delete(argc: i32, args: [*]Value) Value {
+fn http_delete_impl(_: i32, args: [*]Value) Value {
     if (!enable_net) {
         vm.runtimeError("Network functions are disabled!", .{});
         return Value.init_nil();
     }
 
-    if (argc != 1) return stdlib_error("http_delete() expects 1 argument", .{ .argn = argc });
-    if (!args[0].is_string()) return stdlib_error("http_delete() expects a string URL", .{ .value_type = value_type_str(args[0]) });
-
     const url_obj = args[0].as_string();
     const url = url_obj.chars[0..url_obj.length];
 
-    // Default content type to JSON
     const ct = ContentType.JSON;
     const options = net.Options{};
 
@@ -114,21 +99,16 @@ pub fn http_delete(argc: i32, args: [*]Value) Value {
     return Value.init_obj(@ptrCast(obj_h.copyString(result.ptr, result.len)));
 }
 
-// Set content type for requests
-pub fn set_content_type(argc: i32, args: [*]Value) Value {
+fn set_content_type_impl(_: i32, args: [*]Value) Value {
     if (!enable_net) {
         vm.runtimeError("Network functions are disabled!", .{});
         return Value.init_nil();
     }
 
-    if (argc != 1) return stdlib_error("set_content_type() expects 1 argument", .{ .argn = argc });
-    if (!args[0].is_string()) return stdlib_error("set_content_type() expects a string", .{ .value_type = value_type_str(args[0]) });
-
     const content_type_obj = args[0].as_string();
     const content_type_str = content_type_obj.chars[0..content_type_obj.length];
 
     // Create a hash table with the available content types for reference
-    // Store the provided content type for reference
     _ = content_type_str;
     const result = obj_h.HashTable.init();
     _ = result.put(obj_h.copyString("text", 4), Value.init_obj(@ptrCast(obj_h.copyString("text/plain", 10))));
@@ -139,30 +119,22 @@ pub fn set_content_type(argc: i32, args: [*]Value) Value {
     return Value.init_obj(@ptrCast(result));
 }
 
-// Set headers for requests
-pub fn set_auth(argc: i32, args: [*]Value) Value {
+fn set_auth_impl(_: i32, _: [*]Value) Value {
     if (!enable_net) {
         vm.runtimeError("Network functions are disabled!", .{});
         return Value.init_nil();
     }
-
-    if (argc != 1) return stdlib_error("set_auth() expects 1 argument", .{ .argn = argc });
-    if (!args[0].is_string()) return stdlib_error("set_auth() expects a string token", .{ .value_type = value_type_str(args[0]) });
 
     // This is a placeholder - in a real implementation we'd store this in a global state
     // that gets passed to subsequent requests
     return Value.init_bool(true);
 }
 
-// URL parsing
-pub fn parse_url(argc: i32, args: [*]Value) Value {
+fn parse_url_impl(_: i32, args: [*]Value) Value {
     if (!enable_net) {
         vm.runtimeError("Network functions are disabled!", .{});
         return Value.init_nil();
     }
-
-    if (argc != 1) return stdlib_error("parse_url() expects 1 argument", .{ .argn = argc });
-    if (!args[0].is_string()) return stdlib_error("parse_url() expects a string URL", .{ .value_type = value_type_str(args[0]) });
 
     const url_obj = args[0].as_string();
     const url = url_obj.chars[0..url_obj.length];
@@ -243,18 +215,15 @@ pub fn parse_url(argc: i32, args: [*]Value) Value {
     return Value.init_obj(@ptrCast(result));
 }
 
-// URL encoding
-pub fn url_encode(argc: i32, args: [*]Value) Value {
+fn url_encode_impl(_: i32, args: [*]Value) Value {
     if (!enable_net) {
         vm.runtimeError("Network functions are disabled!", .{});
         return Value.init_nil();
     }
 
-    if (argc != 1) return stdlib_error("url_encode() expects 1 argument", .{ .argn = argc });
-    if (!args[0].is_string()) return stdlib_error("url_encode() expects a string", .{ .value_type = value_type_str(args[0]) });
-
     const input_obj = args[0].as_string();
     const input = input_obj.chars[0..input_obj.length];
+
     // Simplified URL encoding - allocate max size buffer
     const allocator = std.heap.page_allocator;
     const max_size = input.len * 3; // Worst case: every char becomes %XX
@@ -288,18 +257,15 @@ pub fn url_encode(argc: i32, args: [*]Value) Value {
     return Value.init_obj(@ptrCast(obj_h.copyString(buffer.ptr, pos)));
 }
 
-// URL decoding
-pub fn url_decode(argc: i32, args: [*]Value) Value {
+fn url_decode_impl(_: i32, args: [*]Value) Value {
     if (!enable_net) {
         vm.runtimeError("Network functions are disabled!", .{});
         return Value.init_nil();
     }
 
-    if (argc != 1) return stdlib_error("url_decode() expects 1 argument", .{ .argn = argc });
-    if (!args[0].is_string()) return stdlib_error("url_decode() expects a string", .{ .value_type = value_type_str(args[0]) });
-
     const input_obj = args[0].as_string();
     const input = input_obj.chars[0..input_obj.length];
+
     // Simplified URL decoding - allocate buffer same size as input
     const allocator = std.heap.page_allocator;
     const buffer = allocator.alloc(u8, input.len) catch return Value.init_nil();
@@ -332,15 +298,11 @@ pub fn url_decode(argc: i32, args: [*]Value) Value {
     return Value.init_obj(@ptrCast(obj_h.copyString(buffer.ptr, pos)));
 }
 
-// Open URL in browser
-pub fn open_url(argc: i32, args: [*]Value) Value {
+fn open_url_impl(_: i32, args: [*]Value) Value {
     if (!enable_net) {
         vm.runtimeError("Network functions are disabled!", .{});
         return Value.init_nil();
     }
-
-    if (argc != 1) return stdlib_error("open_url() expects 1 argument", .{ .argn = argc });
-    if (!args[0].is_string()) return stdlib_error("open_url() expects a string URL", .{ .value_type = value_type_str(args[0]) });
 
     const url_obj = args[0].as_string();
     const url = url_obj.chars[0..url_obj.length];
@@ -361,11 +323,115 @@ pub fn open_url(argc: i32, args: [*]Value) Value {
     return Value.init_bool(true);
 }
 
-fn value_type_str(value: Value) []const u8 {
-    if (value.is_nil()) return "nil";
-    if (value.is_bool()) return "boolean";
-    if (value.is_int() or value.is_double() or value.is_complex()) return "number";
-    if (value.is_string()) return "string";
-    if (value.is_obj()) return "object";
-    return "unknown";
-}
+// === Parameter Specifications ===
+
+const UrlParam = &[_]ParamSpec{.{ .name = "url", .type = .string }};
+const UrlAndDataParams = &[_]ParamSpec{
+    .{ .name = "url", .type = .string },
+    .{ .name = "data", .type = .string },
+};
+const StringParam = &[_]ParamSpec{.{ .name = "value", .type = .string }};
+const TokenParam = &[_]ParamSpec{.{ .name = "token", .type = .string }};
+const ContentTypeParam = &[_]ParamSpec{.{ .name = "content_type", .type = .string }};
+
+// === Public Function Definitions ===
+
+pub const http_get = DefineFunction(
+    "http_get",
+    "network",
+    "Send an HTTP GET request to the specified URL",
+    UrlParam,
+    .string,
+    &[_][]const u8{ "http_get(\"https://api.example.com/data\") -> \"{\\\"result\\\": \\\"success\\\"}\"", "http_get(\"https://httpbin.org/get\") -> response_json" },
+    http_get_impl,
+);
+
+pub const http_post = DefineFunction(
+    "http_post",
+    "network",
+    "Send an HTTP POST request with data to the specified URL",
+    UrlAndDataParams,
+    .string,
+    &[_][]const u8{ "http_post(\"https://api.example.com/data\", \"{\\\"key\\\": \\\"value\\\"}\") -> response", "http_post(\"https://httpbin.org/post\", \"payload\") -> response_json" },
+    http_post_impl,
+);
+
+pub const http_put = DefineFunction(
+    "http_put",
+    "network",
+    "Send an HTTP PUT request with data to the specified URL",
+    UrlAndDataParams,
+    .string,
+    &[_][]const u8{ "http_put(\"https://api.example.com/item/123\", \"{\\\"name\\\": \\\"updated\\\"}\") -> response", "http_put(\"https://httpbin.org/put\", \"data\") -> response_json" },
+    http_put_impl,
+);
+
+pub const http_delete = DefineFunction(
+    "http_delete",
+    "network",
+    "Send an HTTP DELETE request to the specified URL",
+    UrlParam,
+    .string,
+    &[_][]const u8{ "http_delete(\"https://api.example.com/item/123\") -> response", "http_delete(\"https://httpbin.org/delete\") -> response_json" },
+    http_delete_impl,
+);
+
+pub const set_content_type = DefineFunction(
+    "set_content_type",
+    "network",
+    "Set the content type for HTTP requests (returns available types)",
+    ContentTypeParam,
+    .object,
+    &[_][]const u8{ "set_content_type(\"json\") -> {\"text\": \"text/plain\", \"html\": \"text/html\", ...}", "set_content_type(\"xml\") -> content_type_map" },
+    set_content_type_impl,
+);
+
+pub const set_auth = DefineFunction(
+    "set_auth",
+    "network",
+    "Set authentication token for HTTP requests",
+    TokenParam,
+    .bool,
+    &[_][]const u8{ "set_auth(\"Bearer abc123xyz\") -> true", "set_auth(\"Basic dXNlcjpwYXNz\") -> true" },
+    set_auth_impl,
+);
+
+pub const parse_url = DefineFunction(
+    "parse_url",
+    "network",
+    "Parse a URL into its components (scheme, host, path, etc.)",
+    UrlParam,
+    .object,
+    &[_][]const u8{ "parse_url(\"https://user:pass@example.com:8080/path?query=1#fragment\") -> url_parts", "parse_url(\"http://localhost:3000/api\") -> {\"scheme\": \"http\", \"host\": \"localhost\", ...}" },
+    parse_url_impl,
+);
+
+pub const url_encode = DefineFunction(
+    "url_encode",
+    "network",
+    "URL-encode a string (percent encoding for safe transmission)",
+    StringParam,
+    .string,
+    &[_][]const u8{ "url_encode(\"hello world\") -> \"hello%20world\"", "url_encode(\"café & bar\") -> \"caf%C3%A9%20%26%20bar\"" },
+    url_encode_impl,
+);
+
+pub const url_decode = DefineFunction(
+    "url_decode",
+    "network",
+    "URL-decode a percent-encoded string",
+    StringParam,
+    .string,
+    &[_][]const u8{ "url_decode(\"hello%20world\") -> \"hello world\"", "url_decode(\"caf%C3%A9%20%26%20bar\") -> \"café & bar\"" },
+    url_decode_impl,
+);
+
+pub const open_url = DefineFunction(
+    "open_url",
+    "network",
+    "Open a URL in the default system browser",
+    UrlParam,
+    .bool,
+    &[_][]const u8{ "open_url(\"https://www.example.com\") -> true", "open_url(\"file:///path/to/file.html\") -> true" },
+    open_url_impl,
+);

@@ -1,103 +1,78 @@
 const std = @import("std");
+const Value = @import("../value.zig").Value;
+const stdlib_core = @import("../stdlib_core.zig");
+const DefineFunction = stdlib_core.DefineFunction;
+const ParamSpec = stdlib_core.ParamSpec;
+const ParamType = stdlib_core.ParamType;
+const NoParams = stdlib_core.NoParams;
+const OneNumber = stdlib_core.OneNumber;
+const TwoNumbers = stdlib_core.TwoNumbers;
+
 const Prng = std.Random.Xoshiro256;
 
-const conv = @import("../conv.zig");
-const type_check = conv.type_check;
-const stdlib_error = @import("../stdlib.zig").stdlib_error;
-const NativeFn = @import("../stdlib.zig").NativeFn;
-const Value = @import("../value.zig").Value;
-
-// Int = 2
-// Double = 3
-
-pub fn ln(argc: i32, args: [*]Value) Value {
-    if (argc != 1) return stdlib_error("ln() expects one argument!", .{ .argn = argc });
-    if (!type_check(1, args, 6)) return stdlib_error("ln() expects a Number!", .{ .value_type = conv.what_is(args[0]) });
+// Internal implementation functions (no validation needed here)
+fn ln_impl(_: i32, args: [*]Value) Value {
     const double = args[0].as_num_double();
     return Value.init_double(@log(double));
 }
 
-/// log2(double) double
-pub fn log2(argc: i32, args: [*]Value) Value {
-    if (argc != 1) return stdlib_error("log2() expects one argument!", .{ .argn = argc });
-    if (!type_check(1, args, 6)) return stdlib_error("log2() expects a Number!", .{ .value_type = conv.what_is(args[0]) });
+fn log2_impl(_: i32, args: [*]Value) Value {
     const double = args[0].as_num_double();
     return Value.init_double(@log2(double));
 }
-/// log10(double) double
-pub fn log10(argc: i32, args: [*]Value) Value {
-    if (argc != 1) return stdlib_error("log10() expects one argument!", .{ .argn = argc });
-    if (!type_check(1, args, 6)) return stdlib_error("log10() expects a Number!", .{ .value_type = conv.what_is(args[0]) });
+
+fn log10_impl(_: i32, args: [*]Value) Value {
     const double = args[0].as_num_double();
     return Value.init_double(@log10(double));
 }
-/// pi() double
-pub fn pi(argc: i32, args: [*]Value) Value {
+
+fn pi_impl(_: i32, args: [*]Value) Value {
     _ = args;
-    if (argc != 0) return stdlib_error("pi() expects one argument!", .{ .argn = argc });
     return Value.init_double(std.math.pi);
 }
 
-pub fn exp(argc: i32, args: [*]Value) Value {
-    if (argc != 1) return stdlib_error("exp() expects one argument!", .{ .argn = argc });
-    if (!type_check(1, args, 6)) return stdlib_error("exp() expects a Number!", .{ .value_type = conv.what_is(args[0]) });
+fn exp_impl(_: i32, args: [*]Value) Value {
     const double = args[0].as_num_double();
     return Value.init_double(@exp(double));
 }
 
-/// sin(double) double
-pub fn sin(argc: i32, args: [*]Value) Value {
-    if (argc != 1) return stdlib_error("sin() expects one argument!", .{ .argn = argc });
-    if (!type_check(1, args, 6)) return stdlib_error("sin() expects a Number!", .{ .value_type = conv.what_is(args[0]) });
+fn sin_impl(_: i32, args: [*]Value) Value {
     const double = args[0].as_num_double();
     return Value.init_double(@sin(double));
 }
-/// cos(double) double
-pub fn cos(argc: i32, args: [*]Value) Value {
-    if (argc != 1) return stdlib_error("cos() expects one argument!", .{ .argn = argc });
-    if (!type_check(1, args, 6)) return stdlib_error("cos() expects a Number!", .{ .value_type = conv.what_is(args[0]) });
+
+fn cos_impl(_: i32, args: [*]Value) Value {
     const double = args[0].as_num_double();
     return Value.init_double(@cos(double));
 }
-/// tan(double) double
-pub fn tan(argc: i32, args: [*]Value) Value {
-    if (argc != 1) return stdlib_error("tan() expects one argument!", .{ .argn = argc });
-    if (!type_check(1, args, 6)) return stdlib_error("tan() expects a Number!", .{ .value_type = conv.what_is(args[0]) });
+
+fn tan_impl(_: i32, args: [*]Value) Value {
     const double = args[0].as_num_double();
     return Value.init_double(@tan(double));
 }
-/// asin(double) double
-pub fn asin(argc: i32, args: [*]Value) Value {
-    if (argc != 1) return stdlib_error("asin() expects one argument!", .{ .argn = argc });
-    if (!type_check(1, args, 6)) return stdlib_error("asin() expects a Number!", .{ .value_type = conv.what_is(args[0]) });
+
+fn asin_impl(_: i32, args: [*]Value) Value {
     const double = args[0].as_num_double();
     return Value.init_double(std.math.asin(double));
 }
-/// acos(double) double
-pub fn acos(argc: i32, args: [*]Value) Value {
-    if (argc != 1) return stdlib_error("acos() expects one argument!", .{ .argn = argc });
-    if (!type_check(1, args, 6)) return stdlib_error("acos() expects a Number!", .{ .value_type = conv.what_is(args[0]) });
+
+fn acos_impl(_: i32, args: [*]Value) Value {
     const double = args[0].as_num_double();
     return Value.init_double(std.math.acos(double));
 }
-/// atan(double) double
-pub fn atan(argc: i32, args: [*]Value) Value {
-    if (argc != 1) return stdlib_error("atan() expects one argument!", .{ .argn = argc });
-    if (!type_check(1, args, 6)) return stdlib_error("atan() expects a Number!", .{ .value_type = conv.what_is(args[0]) });
+
+fn atan_impl(_: i32, args: [*]Value) Value {
     const double = args[0].as_num_double();
     return Value.init_double(std.math.atan(double));
 }
 
-pub fn complex(argc: i32, args: [*]Value) Value {
-    if (argc != 2) return stdlib_error("complex() expects two arguments!", .{ .argn = argc });
-    if (!type_check(2, args, 6)) return stdlib_error("complex() expects 2 Number!", .{ .value_type = conv.what_is(args[0]) });
+fn complex_impl(_: i32, args: [*]Value) Value {
     const r = args[0].as_num_double();
     const i = args[1].as_num_double();
     return Value.init_complex(.{ .r = r, .i = i });
 }
 
-pub fn abs(argc: i32, args: [*]Value) Value {
-    if (argc != 1) return stdlib_error("abs() expects one argument!", .{ .argn = argc });
+fn abs_impl(_: i32, args: [*]Value) Value {
     switch (args[0].type) {
         .VAL_COMPLEX => {
             const c = args[0].as_complex();
@@ -111,31 +86,17 @@ pub fn abs(argc: i32, args: [*]Value) Value {
             const i = args[0].as_num_int();
             return Value.init_int(@intCast(@abs(i)));
         },
-        else => return stdlib_error("abs() expects a Numeric Type!", .{ .value_type = conv.what_is(args[0]) }),
+        else => return stdlib_core.stdlib_error("abs() expects a Numeric Type!", .{}),
     }
 }
 
-pub fn phase(argc: i32, args: [*]Value) Value {
-    if (argc != 1) return stdlib_error("phase() expects one argument!", .{ .argn = argc });
-    if (!type_check(1, args, 5)) return stdlib_error("phase() expects a Complex!", .{ .value_type = conv.what_is(args[0]) });
+fn phase_impl(_: i32, args: [*]Value) Value {
     const c = args[0].as_complex();
     return Value.init_double(std.math.atan2(c.i, c.r));
 }
 
-pub fn sfc(argc: i32, args: [*]Value) Value {
+fn rand_impl(_: i32, args: [*]Value) Value {
     _ = args;
-    if (argc != 0) return stdlib_error("rand() expects no arguments!", .{ .argn = argc });
-    var seed_bytes: [8]u8 = undefined;
-    std.crypto.random.bytes(&seed_bytes);
-    const seed = std.mem.readInt(u64, &seed_bytes, .little);
-    var rng = Prng.init(seed);
-    const random_int = rng.random().int(i32);
-    return Value.init_int(random_int);
-}
-
-pub fn rand(argc: i32, args: [*]Value) Value {
-    _ = args;
-    if (argc != 0) return stdlib_error("rand() expects no arguments!", .{ .argn = argc });
     var seed_bytes: [8]u8 = undefined;
     std.crypto.random.bytes(&seed_bytes);
     const seed = std.mem.readInt(u64, &seed_bytes, .little);
@@ -144,9 +105,8 @@ pub fn rand(argc: i32, args: [*]Value) Value {
     return Value.init_double(r);
 }
 
-pub fn randn(argc: i32, args: [*]Value) Value {
+fn randn_impl(_: i32, args: [*]Value) Value {
     _ = args;
-    if (argc != 0) return stdlib_error("randn() expects no arguments!", .{ .argn = argc });
     var seed_bytes: [8]u8 = undefined;
     std.crypto.random.bytes(&seed_bytes);
     const seed = std.mem.readInt(u64, &seed_bytes, .little);
@@ -155,54 +115,282 @@ pub fn randn(argc: i32, args: [*]Value) Value {
     return Value.init_double(r);
 }
 
-pub fn pow(argc: i32, args: [*]Value) Value {
-    if (argc != 2) return stdlib_error("pow() expects two arguments!", .{ .argn = argc });
-    if (!type_check(2, args, 6)) return stdlib_error("pow() expects 2 Number!", .{ .value_type = conv.what_is(args[0]) });
+fn pow_impl(_: i32, args: [*]Value) Value {
     const base = args[0].as_num_double();
     const exponent = args[1].as_num_double();
     return Value.init_double(std.math.pow(f64, base, exponent));
 }
 
-pub fn sqrt(argc: i32, args: [*]Value) Value {
-    if (argc != 1) return stdlib_error("sqrt() expects one argument!", .{ .argn = argc });
-    if (!type_check(1, args, 6)) return stdlib_error("sqrt() expects a Number!", .{ .value_type = conv.what_is(args[0]) });
+fn sqrt_impl(_: i32, args: [*]Value) Value {
     const double = args[0].as_num_double();
     return Value.init_double(@sqrt(double));
 }
 
-pub fn ceil(argc: i32, args: [*]Value) Value {
-    if (argc != 1) return stdlib_error("ceil() expects one argument!", .{ .argn = argc });
-    if (!type_check(1, args, 6)) return stdlib_error("ceil() expects a Number!", .{ .value_type = conv.what_is(args[0]) });
+fn ceil_impl(_: i32, args: [*]Value) Value {
     const double = args[0].as_num_double();
     return Value.init_int(@intFromFloat(@ceil(double)));
 }
 
-pub fn floor(argc: i32, args: [*]Value) Value {
-    if (argc != 1) return stdlib_error("floor() expects one argument!", .{ .argn = argc });
-    if (!type_check(1, args, 6)) return stdlib_error("floor() expects a Number!", .{ .value_type = conv.what_is(args[0]) });
+fn floor_impl(_: i32, args: [*]Value) Value {
     const double = args[0].as_num_double();
     return Value.init_int(@intFromFloat(@floor(double)));
 }
 
-pub fn round(argc: i32, args: [*]Value) Value {
-    if (argc != 1) return stdlib_error("round() expects one argument!", .{ .argn = argc });
-    if (!type_check(1, args, 6)) return stdlib_error("round() expects a Number!", .{ .value_type = conv.what_is(args[0]) });
+fn round_impl(_: i32, args: [*]Value) Value {
     const double = args[0].as_num_double();
     return Value.init_int(@intFromFloat(@round(double)));
 }
 
-pub fn max(argc: i32, args: [*]Value) Value {
-    if (argc != 2) return stdlib_error("max() expects two arguments!", .{ .argn = argc });
-    if (!type_check(2, args, 6)) return stdlib_error("max() expects 2 Number!", .{ .value_type = conv.what_is(args[0]) });
+fn max_impl(_: i32, args: [*]Value) Value {
     const a = args[0].as_num_double();
     const b = args[1].as_num_double();
     return Value.init_double(@max(a, b));
 }
 
-pub fn min(argc: i32, args: [*]Value) Value {
-    if (argc != 2) return stdlib_error("min() expects two arguments!", .{ .argn = argc });
-    if (!type_check(2, args, 6)) return stdlib_error("min() expects 2 Number!", .{ .value_type = conv.what_is(args[0]) });
+fn min_impl(_: i32, args: [*]Value) Value {
     const a = args[0].as_num_double();
     const b = args[1].as_num_double();
     return Value.init_double(@min(a, b));
 }
+
+// Auto-registered function wrappers with metadata
+pub const ln = DefineFunction(
+    "ln",
+    "math",
+    "Natural logarithm",
+    OneNumber,
+    .double,
+    &[_][]const u8{"ln(2.71828) -> 1.0"},
+    ln_impl,
+);
+
+pub const log2 = DefineFunction(
+    "log2",
+    "math",
+    "Base-2 logarithm",
+    OneNumber,
+    .double,
+    &[_][]const u8{"log2(8) -> 3.0"},
+    log2_impl,
+);
+
+pub const log10 = DefineFunction(
+    "log10",
+    "math",
+    "Base-10 logarithm",
+    OneNumber,
+    .double,
+    &[_][]const u8{"log10(100) -> 2.0"},
+    log10_impl,
+);
+
+pub const pi = DefineFunction(
+    "pi",
+    "math",
+    "Pi constant (3.14159...)",
+    NoParams,
+    .double,
+    &[_][]const u8{"pi() -> 3.141592653589793"},
+    pi_impl,
+);
+
+pub const exp = DefineFunction(
+    "exp",
+    "math",
+    "Exponential function (e^x)",
+    OneNumber,
+    .double,
+    &[_][]const u8{"exp(1) -> 2.718281828459045"},
+    exp_impl,
+);
+
+pub const sin = DefineFunction(
+    "sin",
+    "math",
+    "Sine function",
+    OneNumber,
+    .double,
+    &[_][]const u8{"sin(pi()/2) -> 1.0"},
+    sin_impl,
+);
+
+pub const cos = DefineFunction(
+    "cos",
+    "math",
+    "Cosine function",
+    OneNumber,
+    .double,
+    &[_][]const u8{"cos(0) -> 1.0"},
+    cos_impl,
+);
+
+pub const tan = DefineFunction(
+    "tan",
+    "math",
+    "Tangent function",
+    OneNumber,
+    .double,
+    &[_][]const u8{"tan(pi()/4) -> 1.0"},
+    tan_impl,
+);
+
+pub const asin = DefineFunction(
+    "asin",
+    "math",
+    "Arcsine function",
+    OneNumber,
+    .double,
+    &[_][]const u8{"asin(1) -> 1.5707963267948966"},
+    asin_impl,
+);
+
+pub const acos = DefineFunction(
+    "acos",
+    "math",
+    "Arccosine function",
+    OneNumber,
+    .double,
+    &[_][]const u8{"acos(0) -> 1.5707963267948966"},
+    acos_impl,
+);
+
+pub const atan = DefineFunction(
+    "atan",
+    "math",
+    "Arctangent function",
+    OneNumber,
+    .double,
+    &[_][]const u8{"atan(1) -> 0.7853981633974483"},
+    atan_impl,
+);
+
+pub const complex = DefineFunction(
+    "complex",
+    "math",
+    "Creates a complex number from real and imaginary parts",
+    &[_]ParamSpec{
+        .{ .name = "real", .type = .number },
+        .{ .name = "imaginary", .type = .number },
+    },
+    .complex,
+    &[_][]const u8{"complex(3, 4) -> 3+4i"},
+    complex_impl,
+);
+
+pub const abs = DefineFunction(
+    "abs",
+    "math",
+    "Absolute value or magnitude",
+    &[_]ParamSpec{
+        .{ .name = "value", .type = .any }, // Can be number or complex
+    },
+    .number,
+    &[_][]const u8{
+        "abs(-5) -> 5",
+        "abs(3.14) -> 3.14",
+        "abs(complex(3, 4)) -> 5.0",
+    },
+    abs_impl,
+);
+
+pub const phase = DefineFunction(
+    "phase",
+    "math",
+    "Phase (argument) of a complex number",
+    &[_]ParamSpec{
+        .{ .name = "complex", .type = .complex },
+    },
+    .double,
+    &[_][]const u8{"phase(complex(1, 1)) -> 0.7853981633974483"},
+    phase_impl,
+);
+
+pub const rand = DefineFunction(
+    "rand",
+    "math",
+    "Random float in range [0, 1)",
+    NoParams,
+    .double,
+    &[_][]const u8{"rand() -> 0.42"},
+    rand_impl,
+);
+
+pub const randn = DefineFunction(
+    "randn",
+    "math",
+    "Random number from normal distribution",
+    NoParams,
+    .double,
+    &[_][]const u8{"randn() -> -0.123"},
+    randn_impl,
+);
+
+pub const pow = DefineFunction(
+    "pow",
+    "math",
+    "Power function (base^exponent)",
+    TwoNumbers,
+    .double,
+    &[_][]const u8{"pow(2, 3) -> 8.0"},
+    pow_impl,
+);
+
+pub const sqrt = DefineFunction(
+    "sqrt",
+    "math",
+    "Square root",
+    OneNumber,
+    .double,
+    &[_][]const u8{"sqrt(16) -> 4.0"},
+    sqrt_impl,
+);
+
+pub const ceil = DefineFunction(
+    "ceil",
+    "math",
+    "Ceiling function (round up to nearest integer)",
+    OneNumber,
+    .int,
+    &[_][]const u8{"ceil(3.2) -> 4"},
+    ceil_impl,
+);
+
+pub const floor = DefineFunction(
+    "floor",
+    "math",
+    "Floor function (round down to nearest integer)",
+    OneNumber,
+    .int,
+    &[_][]const u8{"floor(3.8) -> 3"},
+    floor_impl,
+);
+
+pub const round = DefineFunction(
+    "round",
+    "math",
+    "Round to nearest integer",
+    OneNumber,
+    .int,
+    &[_][]const u8{"round(3.6) -> 4"},
+    round_impl,
+);
+
+pub const max = DefineFunction(
+    "max",
+    "math",
+    "Maximum of two numbers",
+    TwoNumbers,
+    .double,
+    &[_][]const u8{"max(3, 7) -> 7.0"},
+    max_impl,
+);
+
+pub const min = DefineFunction(
+    "min",
+    "math",
+    "Minimum of two numbers",
+    TwoNumbers,
+    .double,
+    &[_][]const u8{"min(3, 7) -> 3.0"},
+    min_impl,
+);

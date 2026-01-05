@@ -1,13 +1,16 @@
 const std = @import("std");
-
-const conv = @import("../conv.zig");
-const type_check = conv.type_check;
-const mem_utils = @import("../mem_utils.zig");
-const stdlib_error = @import("../stdlib.zig").stdlib_error;
 const Value = @import("../value.zig").Value;
+const stdlib_core = @import("../stdlib_core.zig");
+const DefineFunction = stdlib_core.DefineFunction;
+const ParamSpec = stdlib_core.ParamSpec;
+const ParamType = stdlib_core.ParamType;
+const NoParams = stdlib_core.NoParams;
+const mem_utils = @import("../mem_utils.zig");
 
-pub fn input(argc: i32, args: [*]Value) Value {
-    if (argc > 1) return stdlib_error("Expects at least 1 argument for input()!", .{ .argn = argc });
+// Implementation functions
+
+fn input_impl(argc: i32, args: [*]Value) Value {
+    // Optional prompt message
     if (argc == 1) {
         const message = args[0].as_zstring();
         std.debug.print("{s}", .{message});
@@ -42,3 +45,138 @@ pub fn input(argc: i32, args: [*]Value) Value {
     const result = mem_utils.getAllocator().dupe(u8, trimmed) catch return Value.init_nil();
     return Value.init_string(result);
 }
+
+fn print_impl(argc: i32, args: [*]Value) Value {
+    var i: usize = 0;
+    while (i < @as(usize, @intCast(argc))) {
+        if (i > 0) std.debug.print(" ", .{});
+
+        switch (args[i].type) {
+            .VAL_INT => std.debug.print("{d}", .{args[i].as_int()}),
+            .VAL_DOUBLE => std.debug.print("{d}", .{args[i].as_double()}),
+            .VAL_BOOL => std.debug.print("{any}", .{args[i].as_bool()}),
+            .VAL_NIL => std.debug.print("nil", .{}),
+            .VAL_COMPLEX => {
+                const c = args[i].as_complex();
+                std.debug.print("{d}+{d}i", .{ c.r, c.i });
+            },
+            .VAL_OBJ => {
+                if (args[i].is_string()) {
+                    std.debug.print("{s}", .{args[i].as_zstring()});
+                } else {
+                    std.debug.print("[object]", .{});
+                }
+            },
+        }
+        i += 1;
+    }
+    return Value.init_nil();
+}
+
+fn println_impl(argc: i32, args: [*]Value) Value {
+    _ = print_impl(argc, args);
+    std.debug.print("\n", .{});
+    return Value.init_nil();
+}
+
+fn printf_impl(argc: i32, args: [*]Value) Value {
+    const format_str = args[0].as_zstring();
+
+    // Simple printf implementation - just replace {} with arguments
+    var arg_index: usize = 1;
+    var i: usize = 0;
+
+    while (i < format_str.len) {
+        if (i < format_str.len - 1 and format_str[i] == '{' and format_str[i + 1] == '}') {
+            // Found placeholder
+            if (arg_index < @as(usize, @intCast(argc))) {
+                switch (args[arg_index].type) {
+                    .VAL_INT => std.debug.print("{d}", .{args[arg_index].as_int()}),
+                    .VAL_DOUBLE => std.debug.print("{d}", .{args[arg_index].as_double()}),
+                    .VAL_BOOL => std.debug.print("{any}", .{args[arg_index].as_bool()}),
+                    .VAL_NIL => std.debug.print("nil", .{}),
+                    .VAL_COMPLEX => {
+                        const c = args[arg_index].as_complex();
+                        std.debug.print("{d}+{d}i", .{ c.r, c.i });
+                    },
+                    .VAL_OBJ => {
+                        if (args[arg_index].is_string()) {
+                            std.debug.print("{s}", .{args[arg_index].as_zstring()});
+                        } else {
+                            std.debug.print("[object]", .{});
+                        }
+                    },
+                }
+                arg_index += 1;
+            }
+            i += 2;
+        } else {
+            std.debug.print("{c}", .{format_str[i]});
+            i += 1;
+        }
+    }
+    return Value.init_nil();
+}
+
+// Public function wrappers with metadata
+
+pub const input = DefineFunction(
+    "input",
+    "io",
+    "Read input from stdin with optional prompt",
+    &[_]ParamSpec{
+        .{ .name = "prompt", .type = .string, .optional = true },
+    },
+    .string,
+    &[_][]const u8{
+        "input() -> \"user typed this\"",
+        "input(\"Enter name: \") -> \"John\"",
+    },
+    input_impl,
+);
+
+pub const print = DefineFunction(
+    "print",
+    "io",
+    "Print values separated by spaces",
+    &[_]ParamSpec{
+        .{ .name = "values", .type = .any }, // Variadic - accepts any number of any type
+    },
+    .nil,
+    &[_][]const u8{
+        "print(\"Hello\", \"World\") -> Hello World",
+        "print(42, 3.14, true) -> 42 3.14 true",
+    },
+    print_impl,
+);
+
+pub const println = DefineFunction(
+    "println",
+    "io",
+    "Print values separated by spaces followed by newline",
+    &[_]ParamSpec{
+        .{ .name = "values", .type = .any }, // Variadic
+    },
+    .nil,
+    &[_][]const u8{
+        "println(\"Hello World\") -> Hello World\\n",
+        "println(1, 2, 3) -> 1 2 3\\n",
+    },
+    println_impl,
+);
+
+pub const printf = DefineFunction(
+    "printf",
+    "io",
+    "Print formatted string with {} placeholders",
+    &[_]ParamSpec{
+        .{ .name = "format", .type = .string },
+        .{ .name = "args", .type = .any, .optional = true }, // Variadic optional args
+    },
+    .nil,
+    &[_][]const u8{
+        "printf(\"Hello {}\", \"World\") -> Hello World",
+        "printf(\"x={}, y={}\", 10, 20) -> x=10, y=20",
+    },
+    printf_impl,
+);

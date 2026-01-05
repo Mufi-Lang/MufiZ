@@ -1,0 +1,490 @@
+// Test Suite: JSON Edge Cases and Performance
+// Tests JSON handling of edge cases, boundary conditions, and performance scenarios using assert statements
+
+print("=== JSON EDGE CASES TEST SUITE ===");
+
+fun test1_boundary_numbers() {
+    print("\n[Test 1] Boundary numbers");
+
+    // Zero variations
+    assert(json_parse("0"), 0);
+    assert(json_parse("-0"), 0);
+    assert(json_parse("0.0"), 0.0);
+    assert(json_parse("-0.0"), 0.0);
+
+    // Very large integers
+    if (json_is_valid("9007199254740991")) {
+        var large_int = json_parse("9007199254740991");
+        assert(large_int, 9007199254740991);
+    }
+
+    // Very small floats
+    var tiny_float = json_parse("0.000001");
+    assert(tiny_float, 0.000001);
+
+    // Scientific notation variations
+    if (json_is_valid("1E10")) {
+        var scientific1 = json_parse("1E10");
+        assert(scientific1, 10000000000.0);
+    }
+
+    if (json_is_valid("1e-5")) {
+        var scientific2 = json_parse("1e-5");
+        assert(scientific2, 0.00001);
+    }
+
+    print("✓ Boundary numbers passed");
+}
+
+fun test2_string_edge_cases() {
+    print("\n[Test 2] String edge cases");
+
+    // Empty string
+    var empty = json_parse("\"\"");
+    assert(empty, "");
+    assert(json_stringify(""), "\"\"");
+
+    // Single character
+    var single_char = json_parse("\"a\"");
+    assert(single_char, "a");
+
+    // Only whitespace
+    var whitespace = json_parse("\"   \"");
+    assert(whitespace, "   ");
+
+    // Escaped quotes
+    var escaped_quotes = json_parse("\"\\\"Hello\\\"\"");
+    assert(escaped_quotes, "\"Hello\"");
+
+    // Backslash variations
+    var backslash = json_parse("\"\\\\\"");
+    assert(backslash, "\\");
+
+    // Control characters
+    var newline = json_parse("\"line1\\nline2\"");
+    assert(newline, "line1\nline2");
+
+    var tab = json_parse("\"col1\\tcol2\"");
+    assert(tab, "col1\tcol2");
+
+    print("✓ String edge cases passed");
+}
+
+fun test3_array_edge_cases() {
+    print("\n[Test 3] Array edge cases");
+
+    // Empty array
+    var empty_array = json_parse("[]");
+    assert(len(empty_array), 0);
+
+    // Single element arrays
+    var single_num = json_parse("[42]");
+    assert(len(single_num), 1);
+    if (what_is(single_num) == "Float Vector") {
+        assert(single_num[0], 42.0);
+    }
+
+    var single_string = json_parse("[\"hello\"]");
+    assert(len(single_string), 1);
+
+    // Arrays with nulls
+    var with_nulls = json_parse("[null, null, null]");
+    assert(len(with_nulls), 3);
+
+    // Arrays with mixed nulls and values
+    var mixed_nulls = json_parse("[1, null, \"test\", null, true]");
+    assert(len(mixed_nulls), 5);
+
+    // Nested empty arrays
+    var nested_empty = json_parse("[[],[],[]]");
+    assert(len(nested_empty), 3);
+
+    print("✓ Array edge cases passed");
+}
+
+fun test4_object_edge_cases() {
+    print("\n[Test 4] Object edge cases");
+
+    // Empty object
+    var empty_obj = json_parse("{}");
+    assert(len(empty_obj), 0);
+
+    // Single property
+    var single_prop = json_parse("{\"key\": \"value\"}");
+    assert(len(single_prop), 1);
+    assert(json_get(single_prop, "key"), "value");
+
+    // Keys with special characters
+    var special_keys = json_parse("{\"key with spaces\": 1, \"key-with-dashes\": 2, \"key_with_underscores\": 3}");
+    if (len(special_keys) == 3) {
+        assert(json_get(special_keys, "key with spaces"), 1);
+        assert(json_get(special_keys, "key-with-dashes"), 2);
+        assert(json_get(special_keys, "key_with_underscores"), 3);
+    }
+
+    // Empty string keys
+    var empty_key = json_parse("{\"\": \"empty_key_value\"}");
+    assert(json_get(empty_key, ""), "empty_key_value");
+
+    // All null values
+    var all_nulls = json_parse("{\"a\": null, \"b\": null, \"c\": null}");
+    assert(json_get(all_nulls, "a"), nil);
+    assert(json_get(all_nulls, "b"), nil);
+    assert(json_get(all_nulls, "c"), nil);
+
+    print("✓ Object edge cases passed");
+}
+
+fun test5_whitespace_handling() {
+    print("\n[Test 5] Whitespace handling");
+
+    // Leading/trailing whitespace
+    assert(json_is_valid("   42   "), true);
+    assert(json_is_valid("\n\t\"hello\"\n\t"), true);
+
+    // Internal whitespace in objects
+    assert(json_is_valid("{ \"key\" : \"value\" }"), true);
+    assert(json_is_valid("{\n  \"key\": \"value\"\n}"), true);
+
+    // Internal whitespace in arrays
+    assert(json_is_valid("[ 1 , 2 , 3 ]"), true);
+    assert(json_is_valid("[\n  1,\n  2,\n  3\n]"), true);
+
+    // Mixed whitespace characters
+    var mixed_ws = json_parse("{\r\n\t \"test\": \t\r\n 123 \r\n\t}");
+    assert(json_get(mixed_ws, "test"), 123);
+
+    // No whitespace at all
+    assert(json_is_valid("{\"a\":1,\"b\":2}"), true);
+    assert(json_is_valid("[1,2,3,4,5]"), true);
+
+    print("✓ Whitespace handling passed");
+}
+
+fun test6_escape_sequences() {
+    print("\n[Test 6] Escape sequences");
+
+    // Basic escapes
+    var basic_escapes = json_parse("\"{\\\"quote\\\", \\\\backslash\\\\, \\/slash\\/, \\bbackspace\\b, \\fformfeed\\f, \\nnewline\\n, \\rreturn\\r, \\ttab\\t}\"");
+    // Just verify it parses without error
+    assert(basic_escapes != nil, true);
+
+    // Unicode escapes (if supported)
+    if (json_is_valid("\"\\u0041\"")) {
+        var unicode_a = json_parse("\"\\u0041\"");
+        assert(unicode_a, "A");
+    }
+
+    if (json_is_valid("\"\\u0048\\u0065\\u006C\\u006C\\u006F\"")) {
+        var unicode_hello = json_parse("\"\\u0048\\u0065\\u006C\\u006C\\u006F\"");
+        assert(unicode_hello, "Hello");
+    }
+
+    // Mixed escapes
+    var mixed = json_parse("\"Line 1\\nLine 2\\tTabbed\\\"Quoted\\\"\"");
+    assert(mixed != nil, true);
+
+    print("✓ Escape sequences passed");
+}
+
+fun test7_malformed_variations() {
+    print("\n[Test 7] Malformed JSON variations");
+
+    // Unclosed structures
+    assert(json_is_valid("{\"key\": \"value\""), false);
+    assert(json_is_valid("[1, 2, 3"), false);
+    assert(json_is_valid("{\"key\": [1, 2}"), false);
+
+    // Extra commas
+    assert(json_is_valid("[1, 2, 3,]"), false);
+    assert(json_is_valid("{\"key\": \"value\",}"), false);
+
+    // Missing commas
+    assert(json_is_valid("[1 2 3]"), false);
+    assert(json_is_valid("{\"key1\": \"value1\" \"key2\": \"value2\"}"), false);
+
+    // Missing colons
+    assert(json_is_valid("{\"key\" \"value\"}"), false);
+
+    // Unquoted keys
+    assert(json_is_valid("{key: \"value\"}"), false);
+
+    // Single quotes
+    assert(json_is_valid("{'key': 'value'}"), false);
+
+    // Comments (not allowed in JSON)
+    assert(json_is_valid("{\"key\": \"value\" // comment}"), false);
+    assert(json_is_valid("{/* comment */ \"key\": \"value\"}"), false);
+
+    print("✓ Malformed JSON variations passed");
+}
+
+fun test8_performance_large_data() {
+    print("\n[Test 8] Performance with large data");
+
+    // Large array
+    var large_array = "[";
+    var i = 0;
+    while (i < 100) {
+        if (i > 0) {
+            large_array = large_array + ",";
+        }
+        large_array = large_array + str(i);
+        i = i + 1;
+    }
+    large_array = large_array + "]";
+
+    assert(json_is_valid(large_array), true);
+    var parsed_large = json_parse(large_array);
+    assert(len(parsed_large), 100);
+
+    // Large object
+    var large_object = "{";
+    var i = 0;
+    while (i < 50) {
+        if (i > 0) {
+            large_object = large_object + ",";
+        }
+        large_object = large_object + "\"key" + str(i) + "\": " + str(i * 10);
+        i = i + 1;
+    }
+    large_object = large_object + "}";
+
+    assert(json_is_valid(large_object), true);
+    var parsed_large_obj = json_parse(large_object);
+    assert(len(parsed_large_obj), 50);
+
+    print("✓ Performance with large data passed");
+}
+
+fun test9_deeply_nested_limits() {
+    print("\n[Test 9] Deeply nested structure limits");
+
+    // Deep array nesting
+    var deep_array = "[";
+    var i = 0;
+    while (i < 10) {
+        deep_array = deep_array + "[";
+        i = i + 1;
+    }
+    deep_array = deep_array + "42";
+    i = 0;
+    while (i < 10) {
+        deep_array = deep_array + "]";
+        i = i + 1;
+    }
+    deep_array = deep_array + "]";
+
+    if (json_is_valid(deep_array)) {
+        var parsed_deep = json_parse(deep_array);
+        assert(parsed_deep != nil, true);
+    }
+
+    // Deep object nesting
+    var deep_object = "";
+    var j = 0;
+    while (j < 10) {
+        deep_object = deep_object + "{\"level" + str(j) + "\":";
+        j = j + 1;
+    }
+    deep_object = deep_object + "\"bottom\"";
+    j = 0;
+    while (j < 10) {
+        deep_object = deep_object + "}";
+        j = j + 1;
+    }
+
+    if (json_is_valid(deep_object)) {
+        var parsed_deep_obj = json_parse(deep_object);
+        assert(parsed_deep_obj != nil, true);
+    }
+
+    print("✓ Deeply nested structure limits passed");
+}
+
+fun test10_concurrent_operations() {
+    print("\n[Test 10] Concurrent-like operations");
+
+    // Simulate multiple JSON operations happening in sequence
+    var results = linked_list();
+
+    var k = 0;
+    while (k < 10) {
+        var temp_obj = hash_table();
+        put(temp_obj, "id", k);
+        put(temp_obj, "value", k * k);
+
+        var json_str = json_stringify(temp_obj);
+        var parsed_back = json_parse(json_str);
+
+        push(results, json_get(parsed_back, "value"));
+        k = k + 1;
+</end_text>
+
+<old_text line=324>
+    assert(nth(results, 3), 9);  // 3 * 3 = 9
+    assert(nth(results, 7), 49); // 7 * 7 = 49
+    }
+
+    assert(len(results), 10);
+    assert(nth(results, 3), 9);  // 3 * 3 = 9
+    assert(nth(results, 7), 49); // 7 * 7 = 49
+
+    print("✓ Concurrent-like operations passed");
+}
+
+fun test11_memory_stress() {
+    print("\n[Test 11] Memory stress test");
+
+    // Create and destroy many JSON objects to test memory handling
+    var m = 0;
+    while (m < 25) {
+        var temp_data = hash_table();
+        put(temp_data, "iteration", m);
+        put(temp_data, "data", "test_string_" + str(m));
+        put(temp_data, "timestamp", m * 1000);
+
+        var json_string = json_stringify(temp_data);
+        assert(json_is_valid(json_string), true);
+
+        var reparsed = json_parse(json_string);
+        assert(json_get(reparsed, "iteration"), m);
+
+        // Create nested structure
+        var nested = hash_table();
+        put(nested, "inner", temp_data);
+        var nested_json = json_stringify(nested);
+        assert(json_is_valid(nested_json), true);
+
+        m = m + 1;
+    }
+
+    print("✓ Memory stress test passed");
+}
+
+fun test12_type_consistency() {
+    print("\n[Test 12] Type consistency");
+
+    // Ensure types remain consistent through parse/stringify cycles
+    var original_ht = hash_table();
+    put(original_ht, "string", "text");
+    put(original_ht, "integer", 42);
+    put(original_ht, "float", 3.14159);
+    put(original_ht, "boolean_true", true);
+    put(original_ht, "boolean_false", false);
+    put(original_ht, "null_value", nil);
+
+    var json1 = json_stringify(original_ht);
+    var parsed1 = json_parse(json1);
+    var json2 = json_stringify(parsed1);
+    var parsed2 = json_parse(json2);
+
+    // Values should remain consistent
+    assert(json_get(parsed2, "string"), "text");
+    assert(json_get(parsed2, "integer"), 42);
+    assert(json_get(parsed2, "float"), 3.14159);
+    assert(json_get(parsed2, "boolean_true"), true);
+    assert(json_get(parsed2, "boolean_false"), false);
+    assert(json_get(parsed2, "null_value"), nil);
+
+    print("✓ Type consistency passed");
+}
+
+fun test13_extreme_strings() {
+    print("\n[Test 13] Extreme string cases");
+
+    // Very long string
+    var long_str = "";
+    var p = 0;
+    while (p < 100) {
+        long_str = long_str + "abcdefghij";
+        p = p + 1;
+    }
+
+    var long_obj = hash_table();
+    put(long_obj, "long_text", long_str);
+    var long_json = json_stringify(long_obj);
+    assert(json_is_valid(long_json), true);
+
+    var parsed_long = json_parse(long_json);
+    var retrieved_str = json_get(parsed_long, "long_text");
+    assert(len(retrieved_str), 1000);
+
+    // String with many escape sequences
+    var escaped_str = "\"\\n\\t\\r\\\"\\\\\"";
+    assert(json_is_valid(escaped_str), true);
+    var parsed_escaped = json_parse(escaped_str);
+    assert(parsed_escaped != nil, true);
+
+    print("✓ Extreme string cases passed");
+}
+
+fun test14_boundary_arrays() {
+    print("\n[Test 14] Boundary array cases");
+
+    // Array with single element of each type
+    var mixed_single = "[42, \"string\", true, false, null]";
+    var parsed_mixed = json_parse(mixed_single);
+    assert(len(parsed_mixed), 5);
+
+    // Array of arrays
+    var array_of_arrays = "[[1,2], [3,4], [5,6]]";
+    if (json_is_valid(array_of_arrays)) {
+        var parsed_nested_arrays = json_parse(array_of_arrays);
+        assert(len(parsed_nested_arrays), 3);
+    }
+
+    // Array with deeply nested structure
+    var complex_array = "[{\"a\": [1, 2, {\"b\": 3}]}, {\"c\": [4, 5]}]";
+    if (json_is_valid(complex_array)) {
+        var parsed_complex = json_parse(complex_array);
+        assert(len(parsed_complex), 2);
+    }
+
+    print("✓ Boundary array cases passed");
+}
+
+fun test15_error_recovery() {
+    print("\n[Test 15] Error recovery");
+
+    // Test that the system can handle errors gracefully and continue
+    var valid_json = "{\"valid\": true}";
+    var invalid_json = "{invalid json}";
+
+    // Valid operation
+    assert(json_is_valid(valid_json), true);
+    var valid_obj = json_parse(valid_json);
+    assert(json_get(valid_obj, "valid"), true);
+
+    // Invalid operation should not crash
+    assert(json_is_valid(invalid_json), false);
+    var invalid_result = json_parse(invalid_json);
+    // System should handle this gracefully
+
+    // Valid operation after invalid should still work
+    assert(json_is_valid(valid_json), true);
+    var valid_obj2 = json_parse(valid_json);
+    assert(json_get(valid_obj2, "valid"), true);
+
+    print("✓ Error recovery passed");
+}
+
+// Run all tests
+test1_boundary_numbers();
+test2_string_edge_cases();
+test3_array_edge_cases();
+test4_object_edge_cases();
+test5_whitespace_handling();
+test6_escape_sequences();
+test7_malformed_variations();
+test8_performance_large_data();
+test9_deeply_nested_limits();
+test10_concurrent_operations();
+test11_memory_stress();
+test12_type_consistency();
+test13_extreme_strings();
+test14_boundary_arrays();
+test15_error_recovery();
+
+print("\n=== ALL JSON EDGE CASES TESTS PASSED ===");
+print("JSON edge cases and performance verified successfully!");

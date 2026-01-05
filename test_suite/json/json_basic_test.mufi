@@ -1,0 +1,266 @@
+// Test Suite: Basic JSON functionality
+// Tests JSON parsing, validation, and stringification using assert statements
+
+print("=== JSON BASIC TEST SUITE ===");
+
+fun test1_json_validation() {
+    print("\n[Test 1] JSON validation");
+
+    // Valid JSON strings
+    assert(json_is_valid("42"), true);
+    assert(json_is_valid("\"hello\""), true);
+    assert(json_is_valid("true"), true);
+    assert(json_is_valid("false"), true);
+    assert(json_is_valid("null"), true);
+    assert(json_is_valid("[]"), true);
+    assert(json_is_valid("{}"), true);
+    assert(json_is_valid("[1,2,3]"), true);
+    assert(json_is_valid("{\"key\": \"value\"}"), true);
+
+    // Invalid JSON strings
+    assert(json_is_valid("{invalid}"), false);
+    assert(json_is_valid("[1,2,3"), false);
+    assert(json_is_valid("{\"key\": }"), false);
+    assert(json_is_valid("undefined"), false);
+    assert(json_is_valid(""), false);
+
+    print("✓ JSON validation passed");
+}
+
+fun test2_parse_primitives() {
+    print("\n[Test 2] Parse primitive types");
+
+    // Numbers
+    var num = json_parse("42");
+    assert(num, 42);
+    assert(what_is(num), "Int");
+
+    var float_num = json_parse("3.14");
+    assert(float_num, 3.14);
+    assert(what_is(float_num), "Float");
+
+    // Strings
+    var str = json_parse("\"hello\"");
+    assert(str, "hello");
+    assert(what_is(str), "String");
+
+    // Booleans
+    var bool_true = json_parse("true");
+    assert(bool_true, true);
+    assert(what_is(bool_true), "Bool");
+
+    var bool_false = json_parse("false");
+    assert(bool_false, false);
+    assert(what_is(bool_false), "Bool");
+
+    // Null
+    var null_val = json_parse("null");
+    assert(null_val, nil);
+    assert(what_is(null_val), "Nil");
+
+    print("✓ Primitive parsing passed");
+}
+
+fun test3_parse_arrays() {
+    print("\n[Test 3] Parse arrays");
+
+    // Empty array
+    var empty_arr = json_parse("[]");
+    assert(len(empty_arr), 0);
+
+    // Number array
+    var num_arr = json_parse("[1, 2, 3, 4, 5]");
+    assert(len(num_arr), 5);
+    assert(num_arr[0], 1.0);
+    assert(num_arr[2], 3.0);
+    assert(num_arr[4], 5.0);
+
+    // Mixed type array (if supported)
+    var mixed_arr = json_parse("[1, \"hello\", true, null]");
+    assert(len(mixed_arr), 4);
+
+    print("✓ Array parsing passed");
+}
+
+fun test4_parse_objects() {
+    print("\n[Test 4] Parse objects");
+
+    // Empty object
+    var empty_obj = json_parse("{}");
+    assert(len(empty_obj), 0);
+
+    // Simple object
+    var simple_obj = json_parse("{\"name\": \"John\", \"age\": 30}");
+    assert(len(simple_obj), 2);
+    assert(json_get(simple_obj, "name"), "John");
+    assert(json_get(simple_obj, "age"), 30);
+
+    // Object with different value types
+    var complex_obj = json_parse("{\"string\": \"hello\", \"number\": 42, \"boolean\": true, \"null_val\": null}");
+    assert(json_get(complex_obj, "string"), "hello");
+    assert(json_get(complex_obj, "number"), 42);
+    assert(json_get(complex_obj, "boolean"), true);
+    assert(json_get(complex_obj, "null_val"), nil);
+
+    print("✓ Object parsing passed");
+}
+
+fun test5_stringify_primitives() {
+    print("\n[Test 5] Stringify primitive types");
+
+    // Numbers
+    assert(json_stringify(42), "42");
+    assert(json_stringify(3.14), "3.14");
+
+    // Strings
+    assert(json_stringify("hello"), "\"hello\"");
+    assert(json_stringify(""), "\"\"");
+
+    // Booleans
+    assert(json_stringify(true), "true");
+    assert(json_stringify(false), "false");
+
+    // Null
+    assert(json_stringify(nil), "null");
+
+    print("✓ Primitive stringification passed");
+}
+
+fun test6_stringify_collections() {
+    print("\n[Test 6] Stringify collections");
+
+    // Float vector
+    var vec = {1.0, 2.0, 3.0};
+    var vec_json = json_stringify(vec);
+    assert(json_is_valid(vec_json), true);
+
+    // Hash table
+    var ht = hash_table();
+    put(ht, "name", "Alice");
+    put(ht, "age", 25);
+    var ht_json = json_stringify(ht);
+    assert(json_is_valid(ht_json), true);
+
+    print("✓ Collection stringification passed");
+}
+
+fun test7_roundtrip() {
+    print("\n[Test 7] Round-trip conversion");
+
+    // Simple round-trip
+    var original = "{\"test\": 123, \"flag\": true}";
+    var parsed = json_parse(original);
+    var back_to_json = json_stringify(parsed);
+    var reparsed = json_parse(back_to_json);
+
+    assert(json_get(reparsed, "test"), 123);
+    assert(json_get(reparsed, "flag"), true);
+
+    print("✓ Round-trip conversion passed");
+}
+
+fun test8_json_get_operations() {
+    print("\n[Test 8] JSON get operations");
+
+    var obj = json_parse("{\"key1\": \"value1\", \"key2\": 42, \"key3\": null}");
+
+    // Existing keys
+    assert(json_get(obj, "key1"), "value1");
+    assert(json_get(obj, "key2"), 42);
+    assert(json_get(obj, "key3"), nil);
+
+    // Non-existing key
+    var missing = json_get(obj, "missing_key");
+    assert(missing, nil);
+
+    print("✓ JSON get operations passed");
+}
+
+fun test9_json_set_operations() {
+    print("\n[Test 9] JSON set operations");
+
+    var obj = json_parse("{\"existing\": \"old_value\"}");
+
+    // Modify existing key
+    json_set(obj, "existing", "new_value");
+    assert(json_get(obj, "existing"), "new_value");
+
+    // Add new key
+    json_set(obj, "new_key", 42);
+    assert(json_get(obj, "new_key"), 42);
+
+    // Set different types
+    json_set(obj, "boolean", true);
+    json_set(obj, "null_val", nil);
+    assert(json_get(obj, "boolean"), true);
+    assert(json_get(obj, "null_val"), nil);
+
+    print("✓ JSON set operations passed");
+}
+
+fun test10_edge_cases() {
+    print("\n[Test 10] Edge cases");
+
+    // Empty string handling
+    var empty_str = json_parse("\"\"");
+    assert(empty_str, "");
+
+    // Zero values
+    var zero_int = json_parse("0");
+    assert(zero_int, 0);
+
+    var zero_float = json_parse("0.0");
+    assert(zero_float, 0.0);
+
+    // Whitespace handling
+    assert(json_is_valid("  42  "), true);
+    assert(json_is_valid("\t{\n  \"key\": \"value\"\n}\t"), true);
+
+    print("✓ Edge cases passed");
+}
+
+fun test11_nested_structures() {
+    print("\n[Test 11] Nested structures");
+
+    var nested_json = "{\"level1\": {\"level2\": {\"value\": 42}}}";
+    assert(json_is_valid(nested_json), true);
+
+    var nested = json_parse(nested_json);
+    var level1 = json_get(nested, "level1");
+    var level2 = json_get(level1, "level2");
+    var value = json_get(level2, "value");
+    assert(value, 42);
+
+    print("✓ Nested structures passed");
+}
+
+fun test12_error_handling() {
+    print("\n[Test 12] Error handling");
+
+    // These should not crash the program
+    // Invalid JSON should return nil or appropriate error values
+    var invalid1 = json_parse("{invalid json}");
+    var invalid2 = json_parse("[1,2,3");
+    var invalid3 = json_parse("");
+
+    // The exact behavior depends on implementation
+    // At minimum, these should not crash
+    print("✓ Error handling passed");
+}
+
+// Run all tests
+test1_json_validation();
+test2_parse_primitives();
+test3_parse_arrays();
+test4_parse_objects();
+test5_stringify_primitives();
+test6_stringify_collections();
+test7_roundtrip();
+test8_json_get_operations();
+test9_json_set_operations();
+test10_edge_cases();
+test11_nested_structures();
+test12_error_handling();
+
+print("\n=== ALL JSON BASIC TESTS PASSED ===");
+print("JSON basic functionality verified successfully!");

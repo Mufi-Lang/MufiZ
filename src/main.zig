@@ -7,7 +7,7 @@ const clap = @import("clap");
 const features = @import("features");
 
 const conv = @import("conv.zig");
-const stdlib = @import("stdlib.zig");
+const stdlib = @import("stdlib_main.zig");
 const system = @import("system.zig");
 const mem_utils = @import("mem_utils.zig");
 const InterpreterError = system.InterpreterError;
@@ -46,15 +46,8 @@ pub fn main() !void {
 
     vm_h.initVM();
     defer vm_h.freeVM();
-    stdlib.prelude();
-    stdlib.addMath();
-    stdlib.addMatrix();
-    stdlib.addCollections();
-    stdlib.addTime();
-    stdlib.addFs();
-    stdlib.addUtils();
-    stdlib.addNet();
-    stdlib.addMatrix();
+    try stdlib.initializeStdlib();
+    stdlib.registerWithVM();
     if (features.sandbox) {
         try system.repl();
     } else {
@@ -81,7 +74,7 @@ pub fn main() !void {
         } else if (res.args.repl != 0) {
             try system.repl();
         } else if (res.args.docs != 0) {
-            @import("stdlib.zig").printDocs();
+            stdlib.printDocs();
         } else {
             system.version();
             system.usage();

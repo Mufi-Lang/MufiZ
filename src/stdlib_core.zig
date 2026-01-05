@@ -167,10 +167,10 @@ pub const FunctionRegistry = struct {
         for (self.functions.items) |func| {
             if (current_module == null or !std.mem.eql(u8, current_module.?, func.module)) {
                 current_module = func.module;
-                std.debug.print("\n=== {} Module ===\n", .{func.module});
+                std.debug.print("\n=== {s} Module ===\n", .{func.module});
             }
 
-            std.debug.print("\n{}(", .{func.name});
+            std.debug.print("\n{s}(", .{func.name});
             for (func.params, 0..) |param, i| {
                 if (i > 0) std.debug.print(", ", .{});
                 std.debug.print("{s}: {s}", .{ param.name, param.type.toString() });

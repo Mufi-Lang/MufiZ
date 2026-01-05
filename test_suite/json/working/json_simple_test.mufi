@@ -1,0 +1,107 @@
+// Test Suite: Simple JSON functionality
+// Tests basic JSON operations using assert statements
+
+print("=== JSON SIMPLE TEST SUITE ===");
+
+fun test_json_validation() {
+    print("\n[Test] JSON validation");
+
+    // Valid JSON
+    assert(json_is_valid("42"), true);
+    assert(json_is_valid("\"hello\""), true);
+    assert(json_is_valid("true"), true);
+    assert(json_is_valid("null"), true);
+    assert(json_is_valid("{}"), true);
+    assert(json_is_valid("[]"), true);
+
+    // Invalid JSON
+    assert(json_is_valid("{invalid}"), false);
+    assert(json_is_valid("[1,2,3"), false);
+
+    print("✓ JSON validation passed");
+}
+
+fun test_json_parsing() {
+    print("\n[Test] JSON parsing");
+
+    // Parse primitives
+    var num = json_parse("42");
+    assert(num, 42);
+
+    var str = json_parse("\"hello\"");
+    assert(str, "hello");
+
+    var bool_val = json_parse("true");
+    assert(bool_val, true);
+
+    var null_val = json_parse("null");
+    assert(null_val, nil);
+
+    // Parse object
+    var obj = json_parse("{\"name\": \"John\", \"age\": 30}");
+    assert(json_get(obj, "name"), "John");
+    assert(json_get(obj, "age"), 30);
+
+    print("✓ JSON parsing passed");
+}
+
+fun test_json_stringify() {
+    print("\n[Test] JSON stringify");
+
+    // Stringify primitives
+    assert(json_stringify(42), "42");
+    assert(json_stringify("hello"), "\"hello\"");
+    assert(json_stringify(true), "true");
+    assert(json_stringify(nil), "null");
+
+    // Stringify hash table
+    var ht = hash_table();
+    put(ht, "test", 123);
+    var json_str = json_stringify(ht);
+    assert(json_is_valid(json_str), true);
+
+    print("✓ JSON stringify passed");
+}
+
+fun test_json_operations() {
+    print("\n[Test] JSON operations");
+
+    var obj = json_parse("{\"count\": 0}");
+
+    // Get value
+    assert(json_get(obj, "count"), 0);
+
+    // Set value
+    json_set(obj, "count", 42);
+    assert(json_get(obj, "count"), 42);
+
+    // Add new field
+    json_set(obj, "name", "test");
+    assert(json_get(obj, "name"), "test");
+
+    print("✓ JSON operations passed");
+}
+
+fun test_json_roundtrip() {
+    print("\n[Test] JSON round-trip");
+
+    var original = "{\"value\": 123, \"flag\": true}";
+    var parsed = json_parse(original);
+    var back_to_json = json_stringify(parsed);
+    var reparsed = json_parse(back_to_json);
+
+    assert(json_get(reparsed, "value"), 123);
+    assert(json_get(reparsed, "flag"), true);
+
+    print("✓ JSON round-trip passed");
+}
+
+// Run all tests
+test_json_validation();
+test_json_parsing();
+test_json_stringify();
+test_json_operations();
+test_json_roundtrip();
+
+print("\n=== ALL JSON SIMPLE TESTS PASSED ===");
+print("JSON basic functionality verified successfully!");

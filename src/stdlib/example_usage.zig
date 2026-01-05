@@ -31,8 +31,8 @@ pub fn main() !void {
     registry.printDocs();
 
     // Show statistics
-    std.debug.print("\nTotal functions registered: {}\n", .{registry.getFunctionCount()});
-    std.debug.print("Math module functions: {}\n", .{registry.getModuleFunctionCount("math")});
+    std.debug.print("\nTotal functions registered: {d}\n", .{registry.getFunctionCount()});
+    std.debug.print("Math module functions: {d}\n", .{registry.getModuleFunctionCount("math")});
 
     // Example of conditional module registration
     if (stdlib_v2.isFeatureEnabled("enable_net")) {

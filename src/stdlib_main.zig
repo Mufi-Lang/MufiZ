@@ -1,17 +1,18 @@
 const std = @import("std");
-const stdlib_v2 = @import("stdlib_v2.zig");
+const stdlib_core = @import("stdlib_core.zig");
 const Value = @import("value.zig").Value;
 
 // Import all migrated modules
-const math = @import("stdlib_v2/math.zig");
-const io = @import("stdlib_v2/io.zig");
-const types = @import("stdlib_v2/types.zig");
-const time = @import("stdlib_v2/time.zig");
-const utils = @import("stdlib_v2/utils.zig");
-const collections = @import("stdlib_v2/collections.zig");
-const fs = @import("stdlib_v2/fs.zig");
-const network = @import("stdlib_v2/network.zig");
-const matrix = @import("stdlib_v2/matrix.zig");
+const math = @import("stdlib/math.zig");
+const io = @import("stdlib/io.zig");
+const types = @import("stdlib/types.zig");
+// const time = @import("stdlib/time.zig");
+const utils = @import("stdlib/utils.zig");
+const collections = @import("stdlib/collections.zig");
+// const fs = @import("stdlib/fs.zig");
+// const network = @import("stdlib/network.zig");
+const matrix = @import("stdlib/matrix.zig");
+const json = @import("stdlib/json.zig");
 
 // Feature flags (can be set at compile time)
 const enable_fs = @import("features.zig").enable_fs;
@@ -28,11 +29,11 @@ fn what_is_impl(argc: i32, args: [*]Value) Value {
 }
 
 // Core functions wrapper
-pub const what_is = stdlib_v2.DefineFunction(
+pub const what_is = stdlib_core.DefineFunction(
     "what_is",
     "core",
     "Shows the type of a value",
-    stdlib_v2.OneAny,
+    stdlib_core.OneAny,
     .string,
     &[_][]const u8{
         "what_is(42) -> \"int\"",
@@ -42,26 +43,180 @@ pub const what_is = stdlib_v2.DefineFunction(
     what_is_impl,
 );
 
-// Auto-registration modules
-const MathModule = stdlib_v2.AutoRegisterModule(math);
-const IoModule = stdlib_v2.AutoRegisterModule(io);
-const TypesModule = stdlib_v2.AutoRegisterModule(types);
-const TimeModule = stdlib_v2.AutoRegisterModule(time);
-const UtilsModule = stdlib_v2.AutoRegisterModule(utils);
-const CollectionsModule = stdlib_v2.AutoRegisterModule(collections);
-const FsModule = stdlib_v2.AutoRegisterModule(fs);
-const NetworkModule = stdlib_v2.AutoRegisterModule(network);
-const MatrixModule = stdlib_v2.AutoRegisterModule(matrix);
+// Manual registration functions since AutoRegisterModule is disabled
+const MathModule = struct {
+    pub fn register() !void {
+        const registry = stdlib_core.getGlobalRegistry();
+        try registry.register(math.ln);
+        try registry.register(math.log2);
+        try registry.register(math.log10);
+        try registry.register(math.pi);
+        try registry.register(math.exp);
+        try registry.register(math.sin);
+        try registry.register(math.cos);
+        try registry.register(math.tan);
+        try registry.register(math.asin);
+        try registry.register(math.acos);
+        try registry.register(math.atan);
+        try registry.register(math.complex);
+        try registry.register(math.abs);
+        try registry.register(math.phase);
+        try registry.register(math.rand);
+        try registry.register(math.randn);
+        try registry.register(math.pow);
+        try registry.register(math.sqrt);
+        try registry.register(math.ceil);
+        try registry.register(math.floor);
+        try registry.register(math.round);
+        try registry.register(math.max);
+        try registry.register(math.min);
+    }
+};
+
+const IoModule = struct {
+    pub fn register() !void {
+        const registry = stdlib_core.getGlobalRegistry();
+        try registry.register(io.print);
+        try registry.register(io.printf);
+        try registry.register(io.println);
+        try registry.register(io.input);
+    }
+};
+
+const TypesModule = struct {
+    pub fn register() !void {
+        const registry = stdlib_core.getGlobalRegistry();
+        try registry.register(types.str);
+        try registry.register(types.int);
+        try registry.register(types.double);
+        try registry.register(types.bool_fn);
+        try registry.register(types.type_of);
+        try registry.register(types.is_nil);
+        try registry.register(types.is_string);
+        try registry.register(types.is_number);
+        try registry.register(types.is_bool);
+    }
+};
+
+const TimeModule = struct {
+    pub fn register() !void {
+        // Time module registration would go here - temporarily disabled
+    }
+};
+
+const UtilsModule = struct {
+    pub fn register() !void {
+        const registry = stdlib_core.getGlobalRegistry();
+        try registry.register(utils.assert);
+        try registry.register(utils.exit);
+        try registry.register(utils.panic);
+        try registry.register(utils.format);
+        try registry.register(utils.equals);
+        try registry.register(utils.hash);
+        try registry.register(utils.clone);
+        try registry.register(utils.identity);
+    }
+};
+
+const CollectionsModule = struct {
+    pub fn register() !void {
+        const registry = stdlib_core.getGlobalRegistry();
+        try registry.register(collections.linked_list);
+        try registry.register(collections.hash_table);
+        try registry.register(collections.fvec);
+        try registry.register(collections.push);
+        try registry.register(collections.pop);
+        try registry.register(collections.push_front);
+        try registry.register(collections.pop_front);
+        try registry.register(collections.len);
+        try registry.register(collections.get);
+        try registry.register(collections.set);
+        try registry.register(collections.contains);
+        try registry.register(collections.clear);
+        try registry.register(collections.range);
+        try registry.register(collections.range_to_array);
+        try registry.register(collections.put);
+        try registry.register(collections.pairs);
+        try registry.register(collections.is_empty);
+        try registry.register(collections.nth);
+        try registry.register(collections.linspace);
+        try registry.register(collections.insert);
+        try registry.register(collections.remove);
+        try registry.register(collections.slice);
+        try registry.register(collections.merge);
+        try registry.register(collections.search);
+        try registry.register(collections.sort);
+        try registry.register(collections.splice);
+        try registry.register(collections.sum);
+        try registry.register(collections.mean);
+        try registry.register(collections.vari);
+        try registry.register(collections.stddev);
+        try registry.register(collections.std_alias);
+        try registry.register(collections.minl);
+        try registry.register(collections.maxl);
+        try registry.register(collections.reverse);
+    }
+};
+
+const FsModule = struct {
+    pub fn register() !void {
+        // FS module registration would go here - temporarily disabled
+    }
+};
+
+const NetworkModule = struct {
+    pub fn register() !void {
+        // Network module registration would go here - temporarily disabled
+    }
+};
+
+const MatrixModule = struct {
+    pub fn register() !void {
+        const registry = stdlib_core.getGlobalRegistry();
+        try registry.register(matrix.eye);
+        try registry.register(matrix.ones);
+        try registry.register(matrix.zeros);
+        try registry.register(matrix.rand);
+        try registry.register(matrix.randn);
+        try registry.register(matrix.transpose);
+        try registry.register(matrix.det);
+        try registry.register(matrix.inv);
+        try registry.register(matrix.trace);
+        try registry.register(matrix.size);
+        try registry.register(matrix.norm);
+        try registry.register(matrix.matrix_get);
+        try registry.register(matrix.matrix_set);
+        try registry.register(matrix.flatten);
+        try registry.register(matrix.horzcat);
+        try registry.register(matrix.vertcat);
+        try registry.register(matrix.matrix_create);
+        try registry.register(matrix.reshape);
+        try registry.register(matrix.rref);
+        try registry.register(matrix.rank);
+    }
+};
+
+const JsonModule = struct {
+    pub fn register() !void {
+        const registry = stdlib_core.getGlobalRegistry();
+        try registry.register(json.json_parse);
+        try registry.register(json.json_stringify);
+        try registry.register(json.json_is_valid);
+        try registry.register(json.json_pretty);
+        try registry.register(json.json_get);
+        try registry.register(json.json_set);
+    }
+};
 
 // Main initialization function
 pub fn initializeStdlib() !void {
     // Set feature flags
-    stdlib_v2.setFeatureFlags(.{
+    stdlib_core.setFeatureFlags(.{
         .enable_fs = enable_fs,
         .enable_net = enable_net,
     });
 
-    const registry = stdlib_v2.getGlobalRegistry();
+    const registry = stdlib_core.getGlobalRegistry();
 
     // Register core functions
     try registry.register(what_is);
@@ -70,7 +225,7 @@ pub fn initializeStdlib() !void {
     try MathModule.register();
     try IoModule.register();
     try TypesModule.register();
-    try TimeModule.register();
+    // try TimeModule.register();
     try UtilsModule.register();
     try CollectionsModule.register();
 
@@ -85,21 +240,22 @@ pub fn initializeStdlib() !void {
         try NetworkModule.register();
     }
 
-    // Always register matrix module (no feature flag needed)
+    // Always register matrix and json modules (no feature flag needed)
     try MatrixModule.register();
+    try JsonModule.register();
 
-    std.log.info("Standard library initialized with {} functions", .{registry.getFunctionCount()});
+    std.log.info("Standard library initialized with {d} functions", .{registry.getFunctionCount()});
 }
 
 // Register all functions with the VM
 pub fn registerWithVM() void {
-    const registry = stdlib_v2.getGlobalRegistry();
+    const registry = stdlib_core.getGlobalRegistry();
     registry.registerAll();
 }
 
 // Register only core functions (minimal stdlib)
 pub fn registerCoreOnly() !void {
-    const registry = stdlib_v2.getGlobalRegistry();
+    const registry = stdlib_core.getGlobalRegistry();
 
     // Register only essential functions
     try registry.register(what_is);
@@ -107,38 +263,38 @@ pub fn registerCoreOnly() !void {
     try TypesModule.register();
 
     registry.registerAll();
-    std.log.info("Core standard library initialized with {} functions", .{registry.getFunctionCount()});
+    std.log.info("Core standard library initialized with {d} functions", .{registry.getFunctionCount()});
 }
 
 // Register specific modules
 pub fn registerMath() !void {
     try MathModule.register();
-    const registry = stdlib_v2.getGlobalRegistry();
+    const registry = stdlib_core.getGlobalRegistry();
     registry.registerModule("math");
 }
 
 pub fn registerCollections() !void {
     try CollectionsModule.register();
-    const registry = stdlib_v2.getGlobalRegistry();
+    const registry = stdlib_core.getGlobalRegistry();
     registry.registerModule("collections");
 }
 
 pub fn registerUtils() !void {
     try UtilsModule.register();
-    const registry = stdlib_v2.getGlobalRegistry();
+    const registry = stdlib_core.getGlobalRegistry();
     registry.registerModule("utils");
 }
 
 pub fn registerTime() !void {
     try TimeModule.register();
-    const registry = stdlib_v2.getGlobalRegistry();
+    const registry = stdlib_core.getGlobalRegistry();
     registry.registerModule("time");
 }
 
 pub fn registerFs() !void {
     if (enable_fs) {
         try FsModule.register();
-        const registry = stdlib_v2.getGlobalRegistry();
+        const registry = stdlib_core.getGlobalRegistry();
         registry.registerModule("filesystem");
     }
 }
@@ -146,35 +302,41 @@ pub fn registerFs() !void {
 pub fn registerNetwork() !void {
     if (enable_net) {
         try NetworkModule.register();
-        const registry = stdlib_v2.getGlobalRegistry();
+        const registry = stdlib_core.getGlobalRegistry();
         registry.registerModule("network");
     }
 }
 
 pub fn registerMatrix() !void {
     try MatrixModule.register();
-    const registry = stdlib_v2.getGlobalRegistry();
+    const registry = stdlib_core.getGlobalRegistry();
     registry.registerModule("matrix");
+}
+
+pub fn registerJson() !void {
+    try JsonModule.register();
+    const registry = stdlib_core.getGlobalRegistry();
+    registry.registerModule("json");
 }
 
 // Print documentation for all registered functions
 pub fn printDocs() void {
-    const registry = stdlib_v2.getGlobalRegistry();
+    const registry = stdlib_core.getGlobalRegistry();
     registry.printDocs();
 }
 
 // Print documentation for a specific module
 pub fn printModuleDocs(module_name: []const u8) void {
-    const registry = stdlib_v2.getGlobalRegistry();
+    const registry = stdlib_core.getGlobalRegistry();
 
-    std.debug.print("=== {} Module Documentation ===\n", .{module_name});
+    std.debug.print("=== {s} Module Documentation ===\n", .{module_name});
 
     var found = false;
     for (registry.functions.items) |func| {
         if (std.mem.eql(u8, func.module, module_name)) {
             found = true;
 
-            std.debug.print("\n{}(", .{func.name});
+            std.debug.print("\n{s}(", .{func.name});
             for (func.params, 0..) |param, i| {
                 if (i > 0) std.debug.print(", ", .{});
                 std.debug.print("{s}: {s}", .{ param.name, param.type.toString() });
@@ -210,8 +372,9 @@ pub fn getStats() struct {
     fs_functions: usize,
     network_functions: usize,
     matrix_functions: usize,
+    json_functions: usize,
 } {
-    const registry = stdlib_v2.getGlobalRegistry();
+    const registry = stdlib_core.getGlobalRegistry();
 
     return .{
         .total_functions = registry.getFunctionCount(),
@@ -225,6 +388,7 @@ pub fn getStats() struct {
         .fs_functions = registry.getModuleFunctionCount("filesystem"),
         .network_functions = registry.getModuleFunctionCount("network"),
         .matrix_functions = registry.getModuleFunctionCount("matrix"),
+        .json_functions = registry.getModuleFunctionCount("json"),
     };
 }
 
@@ -245,6 +409,7 @@ pub fn printStats() void {
     std.debug.print("  Filesystem:  {}\n", .{stats.fs_functions});
     std.debug.print("  Network:     {}\n", .{stats.network_functions});
     std.debug.print("  Matrix:      {}\n", .{stats.matrix_functions});
+    std.debug.print("  JSON:        {}\n", .{stats.json_functions});
 
     std.debug.print("\nFeature Flags:\n", .{});
     std.debug.print("  File System: {}\n", .{enable_fs});
@@ -264,6 +429,7 @@ pub fn listModules() void {
     std.debug.print("  filesystem (10 functions)\n", .{});
     std.debug.print("  network (10 functions)\n", .{});
     std.debug.print("  matrix (20 functions)\n", .{});
+    std.debug.print("  json (6 functions)\n", .{});
 }
 
 // Help command implementation
@@ -277,7 +443,7 @@ pub fn help(command: ?[]const u8) void {
         std.debug.print("  help modules  - List all modules\n", .{});
         std.debug.print("  help docs     - Show all function documentation\n", .{});
         std.debug.print("  help <module> - Show documentation for specific module\n", .{});
-        std.debug.print("\nAvailable modules: core, math, io, types, time, utils, collections, filesystem, network, matrix\n", .{});
+        std.debug.print("\nAvailable modules: core, math, io, types, time, utils, collections, filesystem, network, matrix, json\n", .{});
         return;
     }
 
@@ -291,7 +457,7 @@ pub fn help(command: ?[]const u8) void {
         printDocs();
     } else {
         // Try as module name
-        const registry = stdlib_v2.getGlobalRegistry();
+        const registry = stdlib_core.getGlobalRegistry();
         if (registry.getModuleFunctionCount(cmd) > 0) {
             printModuleDocs(cmd);
         } else {
@@ -335,8 +501,12 @@ pub fn addMatrix() !void {
     try registerMatrix();
 }
 
+pub fn addJson() !void {
+    try registerJson();
+}
+
 // Get total function count (for compatibility)
 pub fn getTotalFunctionCount() usize {
-    const registry = stdlib_v2.getGlobalRegistry();
+    const registry = stdlib_core.getGlobalRegistry();
     return registry.getFunctionCount();
 }

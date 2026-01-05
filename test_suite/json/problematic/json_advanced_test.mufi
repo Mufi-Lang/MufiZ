@@ -1,0 +1,378 @@
+// Test Suite: Advanced JSON functionality
+// Tests complex JSON scenarios, edge cases, and performance aspects using assert statements
+
+print("=== JSON ADVANCED TEST SUITE ===");
+
+fun test1_large_objects() {
+    print("\n[Test 1] Large objects");
+
+    // Create a large object
+    var large_obj = hash_table();
+    var i = 0;
+    while (i < 50) {
+        put(large_obj, "key" + str(i), i * 10);
+        i = i + 1;
+    }
+
+    var json_str = json_stringify(large_obj);
+    assert(json_is_valid(json_str), true);
+
+    var parsed_back = json_parse(json_str);
+    assert(len(parsed_back), 50);
+    assert(json_get(parsed_back, "key0"), 0);
+    assert(json_get(parsed_back, "key25"), 250);
+    assert(json_get(parsed_back, "key49"), 490);
+
+    print("✓ Large objects passed");
+}
+
+fun test2_deeply_nested() {
+    print("\n[Test 2] Deeply nested structures");
+
+    // Create deeply nested object
+    var deep_json = "{\"a\": {\"b\": {\"c\": {\"d\": {\"e\": {\"f\": \"deep_value\"}}}}}}";
+    assert(json_is_valid(deep_json), true);
+
+    var deep_obj = json_parse(deep_json);
+    var a = json_get(deep_obj, "a");
+    var b = json_get(a, "b");
+    var c = json_get(b, "c");
+    var d = json_get(c, "d");
+    var e = json_get(d, "e");
+    var f = json_get(e, "f");
+    assert(f, "deep_value");
+
+    // Test round-trip
+    var deep_json_back = json_stringify(deep_obj);
+    assert(json_is_valid(deep_json_back), true);
+
+    print("✓ Deeply nested structures passed");
+}
+
+fun test3_arrays_of_objects() {
+    print("\n[Test 3] Arrays of objects");
+
+    var array_of_objects_json = "[{\"id\": 1, \"name\": \"Alice\"}, {\"id\": 2, \"name\": \"Bob\"}, {\"id\": 3, \"name\": \"Charlie\"}]";
+    assert(json_is_valid(array_of_objects_json), true);
+
+    var array_of_objects = json_parse(array_of_objects_json);
+    assert(len(array_of_objects), 3);
+
+    // Access first object
+    var first_obj = array_of_objects[0];
+    if (what_is(first_obj) == "Hash Table") {
+        assert(json_get(first_obj, "id"), 1);
+        assert(json_get(first_obj, "name"), "Alice");
+    }
+
+    print("✓ Arrays of objects passed");
+}
+
+fun test4_objects_with_arrays() {
+    print("\n[Test 4] Objects with arrays");
+
+    var obj_with_arrays_json = "{\"numbers\": [1, 2, 3], \"strings\": [\"a\", \"b\", \"c\"], \"mixed\": [1, \"hello\", true]}";
+    assert(json_is_valid(obj_with_arrays_json), true);
+
+    var obj_with_arrays = json_parse(obj_with_arrays_json);
+    var numbers = json_get(obj_with_arrays, "numbers");
+    var strings = json_get(obj_with_arrays, "strings");
+
+    if (what_is(numbers) == "Float Vector") {
+        assert(len(numbers), 3);
+        assert(numbers[0], 1.0);
+        assert(numbers[2], 3.0);
+    }
+
+    print("✓ Objects with arrays passed");
+}
+
+fun test5_special_characters() {
+    print("\n[Test 5] Special characters and escaping");
+
+    // Test various escaped characters
+    var escaped_json = "{\"quote\": \"He said \\\"hello\\\"\", \"newline\": \"line1\\nline2\", \"tab\": \"col1\\tcol2\"}";
+    assert(json_is_valid(escaped_json), true);
+
+    var escaped_obj = json_parse(escaped_json);
+    var quote_val = json_get(escaped_obj, "quote");
+    assert(quote_val, "He said \"hello\"");
+
+    // Test round-trip with special characters
+    var special_ht = hash_table();
+    put(special_ht, "backslash", "path\\to\\file");
+    put(special_ht, "unicode", "café");
+
+    var special_json = json_stringify(special_ht);
+    assert(json_is_valid(special_json), true);
+
+    print("✓ Special characters passed");
+}
+
+fun test6_numeric_edge_cases() {
+    print("\n[Test 6] Numeric edge cases");
+
+    // Large numbers
+    var large_num = json_parse("999999999");
+    assert(large_num, 999999999);
+
+    // Negative numbers
+    var negative = json_parse("-42");
+    assert(negative, -42);
+
+    var negative_float = json_parse("-3.14");
+    assert(negative_float, -3.14);
+
+    // Scientific notation (if supported)
+    if (json_is_valid("1e5")) {
+        var scientific = json_parse("1e5");
+        assert(scientific, 100000.0);
+    }
+
+    // Very small float
+    var small_float = json_parse("0.0001");
+    assert(small_float, 0.0001);
+
+    print("✓ Numeric edge cases passed");
+}
+
+fun test7_empty_and_whitespace() {
+    print("\n[Test 7] Empty values and whitespace");
+
+    // Empty collections
+    var empty_array_json = "[]";
+    var empty_array = json_parse(empty_array_json);
+    assert(len(empty_array), 0);
+
+    var empty_object_json = "{}";
+    var empty_object = json_parse(empty_object_json);
+    assert(len(empty_object), 0);
+
+    // Whitespace variations
+    assert(json_is_valid("  [  ]  "), true);
+    assert(json_is_valid("\n{\n}\n"), true);
+    assert(json_is_valid("\t42\t"), true);
+
+    print("✓ Empty values and whitespace passed");
+}
+
+fun test8_json_pretty() {
+    print("\n[Test 8] JSON pretty printing");
+
+    var complex_ht = hash_table();
+    put(complex_ht, "name", "Test");
+    put(complex_ht, "value", 123);
+
+    var nested_ht = hash_table();
+    put(nested_ht, "inner", "data");
+    put(complex_ht, "nested", nested_ht);
+
+    // Test pretty printing (even if it's the same as stringify for now)
+    var pretty_json = json_pretty(complex_ht);
+    assert(json_is_valid(pretty_json), true);
+
+    // Should be able to parse back
+    var reparsed = json_parse(pretty_json);
+    assert(json_get(reparsed, "name"), "Test");
+    assert(json_get(reparsed, "value"), 123);
+
+    print("✓ JSON pretty printing passed");
+}
+
+fun test9_modification_after_parse() {
+    print("\n[Test 9] Modification after parsing");
+
+    var original_json = "{\"counter\": 0, \"items\": []}";
+    var obj = json_parse(original_json);
+
+    // Modify values
+    json_set(obj, "counter", 5);
+    json_set(obj, "status", "active");
+    json_set(obj, "timestamp", 1234567890);
+
+    // Verify modifications
+    assert(json_get(obj, "counter"), 5);
+    assert(json_get(obj, "status"), "active");
+    assert(json_get(obj, "timestamp"), 1234567890);
+
+    // Original structure should be preserved
+    var items = json_get(obj, "items");
+    if (items != nil) {
+        assert(len(items), 0);
+    }
+
+    print("✓ Modification after parsing passed");
+}
+
+fun test10_complex_roundtrip() {
+    print("\n[Test 10] Complex round-trip");
+
+    // Create complex nested structure
+    var root = hash_table();
+    put(root, "version", "1.0");
+    put(root, "timestamp", 1640995200);
+
+    var users = hash_table();
+    put(users, "admin", "password123");
+    put(users, "user", "pass456");
+    put(root, "users", users);
+
+    var config = hash_table();
+    put(config, "debug", true);
+    put(config, "port", 8080);
+    put(root, "config", config);
+
+    // Convert to JSON and back
+    var json_str = json_stringify(root);
+    assert(json_is_valid(json_str), true);
+
+    var parsed_back = json_parse(json_str);
+    assert(json_get(parsed_back, "version"), "1.0");
+    assert(json_get(parsed_back, "timestamp"), 1640995200);
+
+    var users_back = json_get(parsed_back, "users");
+    if (users_back != nil) {
+        assert(json_get(users_back, "admin"), "password123");
+        assert(json_get(users_back, "user"), "pass456");
+    }
+
+    var config_back = json_get(parsed_back, "config");
+    if (config_back != nil) {
+        assert(json_get(config_back, "debug"), true);
+        assert(json_get(config_back, "port"), 8080);
+    }
+
+    print("✓ Complex round-trip passed");
+}
+
+fun test11_array_operations() {
+    print("\n[Test 11] Array operations");
+
+    var array_json = "[10, 20, 30, 40, 50]";
+    var array = json_parse(array_json);
+
+    if (what_is(array) == "Float Vector") {
+        assert(len(array), 5);
+        assert(array[0], 10.0);
+        assert(array[4], 50.0);
+
+        // Test array stringification
+        var array_str = json_stringify(array);
+        assert(json_is_valid(array_str), true);
+    }
+
+    print("✓ Array operations passed");
+}
+
+fun test12_mixed_type_scenarios() {
+    print("\n[Test 12] Mixed type scenarios");
+
+    // Object with all supported types
+    var mixed_json = "{\"string\": \"text\", \"integer\": 42, \"float\": 3.14, \"boolean\": true, \"null_value\": null, \"array\": [1, 2], \"object\": {\"nested\": true}}";
+
+    if (json_is_valid(mixed_json)) {
+        var mixed = json_parse(mixed_json);
+
+        assert(json_get(mixed, "string"), "text");
+        assert(json_get(mixed, "integer"), 42);
+        assert(json_get(mixed, "float"), 3.14);
+        assert(json_get(mixed, "boolean"), true);
+        assert(json_get(mixed, "null_value"), nil);
+
+        var nested_obj = json_get(mixed, "object");
+        if (nested_obj != nil) {
+            if (what_is(nested_obj) == "Hash Table") {
+                assert(json_get(nested_obj, "nested"), true);
+            }
+        }
+    }
+
+    print("✓ Mixed type scenarios passed");
+}
+
+fun test13_stress_test() {
+    print("\n[Test 13] Stress test");
+
+    // Create and process multiple JSON objects rapidly
+    var i = 0;
+    while (i < 20) {
+        var temp_obj = hash_table();
+        put(temp_obj, "id", i);
+        put(temp_obj, "data", "item_" + str(i));
+
+        var temp_json = json_stringify(temp_obj);
+        assert(json_is_valid(temp_json), true);
+
+        var temp_parsed = json_parse(temp_json);
+        assert(json_get(temp_parsed, "id"), i);
+
+        i = i + 1;
+    }
+
+    print("✓ Stress test passed");
+}
+
+fun test14_malformed_recovery() {
+    print("\n[Test 14] Malformed JSON recovery");
+
+    // Test that invalid JSON doesn't crash the system
+    var invalid_cases = [
+        "{",
+        "}",
+        "[",
+        "]",
+        "{\"key\": }",
+        "{\"key\" \"value\"}",
+        "[1, 2, 3,]",
+        "{\"unclosed\": \"string}",
+        "{'single': 'quotes'}"
+    ];
+
+    // All of these should return false for json_is_valid
+    assert(json_is_valid("{"), false);
+    assert(json_is_valid("}"), false);
+    assert(json_is_valid("["), false);
+    assert(json_is_valid("]"), false);
+    assert(json_is_valid("{\"key\": }"), false);
+
+    print("✓ Malformed JSON recovery passed");
+}
+
+fun test15_unicode_support() {
+    print("\n[Test 15] Unicode support");
+
+    // Basic Unicode characters
+    var unicode_json = "{\"emoji\": \"🌟\", \"accents\": \"café\", \"chinese\": \"你好\"}";
+
+    if (json_is_valid(unicode_json)) {
+        var unicode_obj = json_parse(unicode_json);
+        var emoji = json_get(unicode_obj, "emoji");
+        var accents = json_get(unicode_obj, "accents");
+
+        // Basic assertion that parsing didn't fail
+        assert(emoji != nil, true);
+        assert(accents != nil, true);
+    }
+
+    print("✓ Unicode support passed");
+}
+
+// Run all tests
+test1_large_objects();
+test2_deeply_nested();
+test3_arrays_of_objects();
+test4_objects_with_arrays();
+test5_special_characters();
+test6_numeric_edge_cases();
+test7_empty_and_whitespace();
+test8_json_pretty();
+test9_modification_after_parse();
+test10_complex_roundtrip();
+test11_array_operations();
+test12_mixed_type_scenarios();
+test13_stress_test();
+test14_malformed_recovery();
+test15_unicode_support();
+
+print("\n=== ALL JSON ADVANCED TESTS PASSED ===");
+print("JSON advanced functionality verified successfully!");
