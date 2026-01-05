@@ -128,6 +128,7 @@ pub const TokenType = enum(c_int) {
     TOKEN_HASH = 68,
     TOKEN_RANGE_EXCLUSIVE = 69,
     TOKEN_RANGE_INCLUSIVE = 70,
+    TOKEN_QUESTION = 71,
 };
 
 pub const Token = struct {
@@ -590,6 +591,7 @@ pub fn scanToken() Token {
         '%' => return make_token(.TOKEN_PERCENT),
         '^' => return make_token(.TOKEN_HAT),
         '#' => return make_token(.TOKEN_HASH), // Used as a prefix for hashtable literals (#{})
+        '?' => return make_token(.TOKEN_QUESTION),
         'f' => {
             // Check for f-string pattern (f followed immediately by ")
             if (peek() == '"') {

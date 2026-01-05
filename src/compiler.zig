@@ -79,18 +79,19 @@ pub const Parser = struct {
 
 pub const PREC_NONE: i32 = 0;
 pub const PREC_ASSIGNMENT: i32 = 1;
-pub const PREC_OR: i32 = 2;
-pub const PREC_AND: i32 = 3;
-pub const PREC_EQUALITY: i32 = 4;
-pub const PREC_COMPARISON: i32 = 5;
-pub const PREC_TERM: i32 = 6;
-pub const PREC_RANGE: i32 = 7; // Between PREC_TERM and PREC_FACTOR
-pub const PREC_FACTOR: i32 = 8;
-pub const PREC_EXPONENT: i32 = 9;
-pub const PREC_UNARY: i32 = 10;
-pub const PREC_CALL: i32 = 11;
-pub const PREC_INDEX: i32 = 12;
-pub const PREC_PRIMARY: i32 = 13;
+pub const PREC_TERNARY: i32 = 2;
+pub const PREC_OR: i32 = 3;
+pub const PREC_AND: i32 = 4;
+pub const PREC_EQUALITY: i32 = 5;
+pub const PREC_COMPARISON: i32 = 6;
+pub const PREC_TERM: i32 = 7;
+pub const PREC_RANGE: i32 = 8; // Between PREC_TERM and PREC_FACTOR
+pub const PREC_FACTOR: i32 = 9;
+pub const PREC_EXPONENT: i32 = 10;
+pub const PREC_UNARY: i32 = 11;
+pub const PREC_CALL: i32 = 12;
+pub const PREC_INDEX: i32 = 13;
+pub const PREC_PRIMARY: i32 = 14;
 pub const Precedence = u32;
 
 pub const ParseFn = ?*const fn (bool) void;
@@ -588,6 +589,7 @@ pub fn getRule(type_: TokenType) ParseRule {
         .TOKEN_IF => ParseRule{ .precedence = PREC_NONE },
         .TOKEN_NIL => ParseRule{ .prefix = &literal, .precedence = PREC_NONE },
         .TOKEN_OR => ParseRule{ .infix = &or_, .precedence = PREC_OR },
+        .TOKEN_QUESTION => ParseRule{ .infix = &ternary, .precedence = PREC_TERNARY },
         .TOKEN_PRINT => ParseRule{ .precedence = PREC_NONE },
         .TOKEN_RETURN => ParseRule{ .precedence = PREC_NONE },
         .TOKEN_SELF => ParseRule{ .prefix = &self_, .precedence = PREC_NONE },
@@ -1109,6 +1111,33 @@ pub fn or_(canAssign: bool) void {
     patchJump(elseJump);
     emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
     parsePrecedence(PREC_OR);
+    patchJump(endJump);
+}
+
+pub fn ternary(canAssign: bool) void {
+    _ = canAssign;
+
+    // Jump to else branch if condition is false
+    const elseJump: i32 = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
+    emitByte(@intCast(@intFromEnum(OpCode.OP_POP))); // Pop condition
+
+    // Parse the true expression
+    parsePrecedence(PREC_TERNARY);
+
+    // Jump over the false expression
+    const endJump: i32 = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+
+    // Patch the else jump to come here
+    patchJump(elseJump);
+    emitByte(@intCast(@intFromEnum(OpCode.OP_POP))); // Pop condition (for false branch)
+
+    // Expect ':' separator
+    consume(.TOKEN_COLON, "Expect ':' after ternary true expression.");
+
+    // Parse the false expression
+    parsePrecedence(PREC_TERNARY);
+
+    // Patch the end jump
     patchJump(endJump);
 }
 pub fn string(canAssign: bool) void {
@@ -2146,6 +2175,8 @@ pub fn returnStatement() void {
     }
 }
 pub fn whileStatement() void {
+    beginScope();
+
     var loopStart: i32 = @intCast(currentChunk().*.count);
     _ = &loopStart;
 
@@ -2170,14 +2201,15 @@ pub fn whileStatement() void {
         patchJump(breakJump);
     }
 
-    // While loops shouldn't have continue jumps to patch (they use direct loops)
-    // But let's be safe and patch them if they exist
+    // Patch all continue jumps to point to loop start
     for (loop.continueJumps.items) |continueJump| {
         patchJump(continueJump);
     }
 
-    // Restore the enclosing loop
+    // Restore previous loop
     current.?.innermostLoop = loop.enclosing;
+
+    endScope();
 }
 
 pub fn breakStatement() void {

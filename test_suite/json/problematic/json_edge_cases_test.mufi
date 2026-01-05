@@ -268,10 +268,10 @@ fun test9_deeply_nested_limits() {
         i = i + 1;
     }
     deep_array = deep_array + "42";
-    i = 0;
-    while (i < 10) {
+    var j = 0;
+    while (j < 10) {
         deep_array = deep_array + "]";
-        i = i + 1;
+        j = j + 1;
     }
     deep_array = deep_array + "]";
 
@@ -282,16 +282,16 @@ fun test9_deeply_nested_limits() {
 
     // Deep object nesting
     var deep_object = "";
-    var j = 0;
-    while (j < 10) {
-        deep_object = deep_object + "{\"level" + str(j) + "\":";
-        j = j + 1;
+    var k = 0;
+    while (k < 10) {
+        deep_object = deep_object + "{\"level" + str(k) + "\":";
+        k = k + 1;
     }
     deep_object = deep_object + "\"bottom\"";
-    j = 0;
-    while (j < 10) {
+    var l = 0;
+    while (l < 10) {
         deep_object = deep_object + "}";
-        j = j + 1;
+        l = l + 1;
     }
 
     if (json_is_valid(deep_object)) {
@@ -308,17 +308,42 @@ fun test10_concurrent_operations() {
     // Simulate multiple JSON operations happening in sequence
     var results = linked_list();
 
-    var k = 0;
-    while (k < 10) {
+    var m = 0;
+    while (m < 10) {
         var temp_obj = hash_table();
-        put(temp_obj, "id", k);
-        put(temp_obj, "value", k * k);
+        put(temp_obj, "id", m);
+        put(temp_obj, "value", m * m);
 
         var json_str = json_stringify(temp_obj);
         var parsed_back = json_parse(json_str);
 
         push(results, json_get(parsed_back, "value"));
-        k = k + 1;
+        m = m + 1;
+    }</end_text>
+
+<old_text line=337>
+    // Create and destroy many JSON objects to test memory handling
+    var n = 0;
+    while (n < 25) {
+        var temp_data = hash_table();
+        put(temp_data, "iteration", n);
+        put(temp_data, "data", "test_string_" + str(n));
+        put(temp_data, "timestamp", n * 1000);
+
+        var json_string = json_stringify(temp_data);
+        assert(json_is_valid(json_string), true);
+
+        var reparsed = json_parse(json_string);
+        assert(json_get(reparsed, "iteration"), n);
+
+        // Create nested structure
+        var nested = hash_table();
+        put(nested, "inner", temp_data);
+        var nested_json = json_stringify(nested);
+        assert(json_is_valid(nested_json), true);
+
+        n = n + 1;
+    }
 </end_text>
 
 <old_text line=324>
@@ -395,10 +420,10 @@ fun test13_extreme_strings() {
 
     // Very long string
     var long_str = "";
-    var p = 0;
-    while (p < 100) {
+    var q = 0;
+    while (q < 100) {
         long_str = long_str + "abcdefghij";
-        p = p + 1;
+        q = q + 1;
     }
 
     var long_obj = hash_table();

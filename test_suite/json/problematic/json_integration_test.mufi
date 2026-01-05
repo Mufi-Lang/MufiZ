@@ -268,13 +268,11 @@ fun test10_json_nested_data_access() {
     assert(company_name, "TechCorp");
 
     var employees = json_get(company, "employees");
-    if (what_is(employees) == "Float Vector") {
-        if (len(employees) >= 2) {
-            var first_employee = employees[0];
-            if (what_is(first_employee) == "Hash Table") {
-                assert(json_get(first_employee, "name"), "Alice");
-                assert(json_get(first_employee, "department"), "Engineering");
-            }
+    if (what_is(employees) == "Float Vector" and len(employees) >= 2) {
+        var first_employee = employees[0];
+        if (what_is(first_employee) == "Hash Table") {
+            assert(json_get(first_employee, "name"), "Alice");
+            assert(json_get(first_employee, "department"), "Engineering");
         }
     }
 
@@ -299,12 +297,10 @@ fun test11_json_with_control_flow() {
     var has_logging = false;
 
     // Simulate array search (since we can't iterate arrays directly yet)
-    if (what_is(features) == "Float Vector") {
-        if (len(features) >= 3) {
-            // We know the structure, so we can check specific indices
-            has_auth = true;  // "auth" is first
-            has_logging = true;  // "logging" is second
-        }
+    if (what_is(features) == "Float Vector" and len(features) >= 3) {
+        // We know the structure, so we can check specific indices
+        has_auth = true;  // "auth" is first
+        has_logging = true;  // "logging" is second
     }
 
     // Set configuration based on available features
@@ -373,11 +369,7 @@ fun test13_json_batch_processing() {
     while (i < 10) {
         var item = hash_table();
         put(item, "id", i);
-        var status = "inactive";
-        if (i % 2 == 0) {
-            status = "active";
-        }
-        put(item, "status", status);
+        put(item, "status", i % 2 == 0 ? "active" : "inactive");
         put(item, "score", i * 10.5);
         push(batch_data, item);
         i = i + 1;

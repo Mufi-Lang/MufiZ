@@ -149,6 +149,7 @@ pub const TokenType = enum(c_int) {
     TOKEN_HASH = 68,
     TOKEN_RANGE_EXCLUSIVE = 69,
     TOKEN_RANGE_INCLUSIVE = 70,
+    TOKEN_QUESTION = 71,
 };
 
 pub const Token = struct {
@@ -760,6 +761,7 @@ pub fn scanToken() Token {
         '>' => {
             return make_token(if (match_internal('=')) .TOKEN_GREATER_EQUAL else .TOKEN_GREATER);
         },
+        '?' => return make_token(.TOKEN_QUESTION),
 
         else => {
             // Unknown character
