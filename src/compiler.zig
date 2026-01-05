@@ -1,5 +1,10 @@
-const print = @import("std").debug.print;
+/// MufiZ Compiler Module
+/// This module implements the bytecode compiler for the MufiZ language.
+/// It handles parsing, semantic analysis, and bytecode generation.
+/// The compiler uses a single-pass approach with recursive descent parsing.
+
 const std = @import("std");
+const print = std.debug.print;
 
 const debug_opts = @import("debug");
 
@@ -17,7 +22,6 @@ const ObjFunction = object_h.ObjFunction;
 const scanner_h = @import("scanner_optimized.zig");
 const Token = scanner_h.Token;
 const TokenType = scanner_h.TokenType;
-const strlen = @import("mem_utils.zig").strlen;
 const value_h = @import("value.zig");
 const Value = value_h.Value;
 const Complex = value_h.Complex;

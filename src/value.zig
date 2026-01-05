@@ -545,7 +545,8 @@ pub fn valuesEqual(a: Value, b: Value) bool {
                                 return SIMDString.equalsSIMD(slice_a, slice_b);
                             } else {
                                 // Use standard comparison for small strings
-                                return scanner_h.memcmp(@ptrCast(str_a.chars), @ptrCast(str_b.chars), @intCast(str_a.length)) == 0;
+
+                                return mem_utils.memcmp(@ptrCast(str_a.chars), @ptrCast(str_b.chars), @intCast(str_a.length)) == 0;
                             }
                         }
                     },
