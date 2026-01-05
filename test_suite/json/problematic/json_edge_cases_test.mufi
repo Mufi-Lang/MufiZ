@@ -240,13 +240,13 @@ fun test8_performance_large_data() {
 
     // Large object
     var large_object = "{";
-    var i = 0;
-    while (i < 50) {
-        if (i > 0) {
+    var k = 0;
+    while (k < 50) {
+        if (k > 0) {
             large_object = large_object + ",";
         }
-        large_object = large_object + "\"key" + str(i) + "\": " + str(i * 10);
-        i = i + 1;
+        large_object = large_object + "\"key" + str(k) + "\": " + str(k * 10);
+        k = k + 1;
     }
     large_object = large_object + "}";
 
@@ -262,10 +262,10 @@ fun test9_deeply_nested_limits() {
 
     // Deep array nesting
     var deep_array = "[";
-    var i = 0;
-    while (i < 10) {
+    var m = 0;
+    while (m < 10) {
         deep_array = deep_array + "[";
-        i = i + 1;
+        m = m + 1;
     }
     deep_array = deep_array + "42";
     var j = 0;
@@ -319,9 +319,18 @@ fun test10_concurrent_operations() {
 
         push(results, json_get(parsed_back, "value"));
         m = m + 1;
-    }</end_text>
+    }
 
-<old_text line=337>
+    assert(len(results), 10);
+    assert(nth(results, 3), 9);  // 3 * 3 = 9
+    assert(nth(results, 7), 49); // 7 * 7 = 49
+
+    print("✓ Concurrent-like operations passed");
+}
+
+fun test11_memory_stress() {
+    print("\n[Test 11] Memory stress testing");
+
     // Create and destroy many JSON objects to test memory handling
     var n = 0;
     while (n < 25) {
@@ -344,21 +353,9 @@ fun test10_concurrent_operations() {
 
         n = n + 1;
     }
-</end_text>
 
-<old_text line=324>
-    assert(nth(results, 3), 9);  // 3 * 3 = 9
-    assert(nth(results, 7), 49); // 7 * 7 = 49
-    }
-
-    assert(len(results), 10);
-    assert(nth(results, 3), 9);  // 3 * 3 = 9
-    assert(nth(results, 7), 49); // 7 * 7 = 49
-
-    print("✓ Concurrent-like operations passed");
+    print("✓ Memory stress testing passed");
 }
-
-fun test11_memory_stress() {
     print("\n[Test 11] Memory stress test");
 
     // Create and destroy many JSON objects to test memory handling

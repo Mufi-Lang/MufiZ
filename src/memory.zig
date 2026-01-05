@@ -707,13 +707,22 @@ pub fn freeObject(object: *Obj) void {
         },
         .OBJ_STRING => {
             const string: *obj_h.ObjString = @ptrCast(@alignCast(object));
-            const allocator = mem_utils.getAllocator();
+
             if (string.chars.len > 0) {
+                // Use the correct allocator based on how the chars were allocated
+                const chars_allocator = switch (string.chars_allocator_type) {
+                    .GPA => mem_utils.getAllocator(),
+                    .Arena => mem_utils.getVMArenaAllocator(),
+                };
+
                 // String chars were allocated with length + 1 for null terminator
                 // but stored as slice of length. We need to free the original allocation size.
                 const chars_with_null = string.chars.ptr[0 .. string.length + 1];
-                mem_utils.free(allocator, chars_with_null);
+                mem_utils.free(chars_allocator, chars_with_null);
             }
+
+            // The string object itself is always allocated with GPA via allocateObject
+            const allocator = mem_utils.getAllocator();
             const string_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(obj_h.ObjString)];
             mem_utils.free(allocator, string_slice);
         },

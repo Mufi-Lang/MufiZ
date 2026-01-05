@@ -22,10 +22,11 @@ const enable_net = @import("features.zig").enable_net;
 fn what_is_impl(argc: i32, args: [*]Value) Value {
     _ = argc;
     const conv = @import("conv.zig");
+    const object_h = @import("object.zig");
     const type_str = conv.what_is(args[0]);
-    const allocator = @import("mem_utils.zig").getAllocator();
-    const result = allocator.dupe(u8, type_str) catch return Value.init_nil();
-    return Value.init_string(result);
+    // Use copyString which handles memory management properly through the object system
+    const str_obj = object_h.copyString(type_str.ptr, type_str.len);
+    return Value.init_obj(@ptrCast(str_obj));
 }
 
 // Core functions wrapper

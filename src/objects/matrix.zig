@@ -343,9 +343,7 @@ pub const Matrix = struct {
             det_val = -det_val;
         }
 
-        lu_result.?.l.deinit();
-        lu_result.?.u.deinit();
-
+        // Let GC handle cleanup of LU matrices
         return det_val;
     }
 
@@ -387,8 +385,7 @@ pub const Matrix = struct {
 
             // Check for singularity
             if (@abs(u.get(k, k)) < 1e-14) {
-                l.deinit();
-                u.deinit();
+                // Let GC handle cleanup
                 return null; // Singular matrix
             }
 
@@ -442,7 +439,7 @@ pub const Matrix = struct {
                 for (0..i) |j| {
                     sum += lu_result.?.l.get(i, j) * b.get(j, 0);
                 }
-                b.set(i, 0, b.get(i, 0) - sum);
+                b.set(i, 0, (b.get(i, 0) - sum) / lu_result.?.l.get(i, i));
             }
 
             // Backward substitution (solve Ux = y)
@@ -461,11 +458,10 @@ pub const Matrix = struct {
                 result.set(row_idx, col, b.get(row_idx, 0));
             }
 
-            b.deinit();
+            // Let GC handle cleanup of temporary matrix b
         }
 
-        lu_result.?.l.deinit();
-        lu_result.?.u.deinit();
+        // Let GC handle cleanup of LU matrices
 
         return result;
     }
@@ -654,7 +650,7 @@ pub const Matrix = struct {
             }
         }
 
-        rref_matrix.deinit();
+        // Let GC handle cleanup
         return rank_count;
     }
 };

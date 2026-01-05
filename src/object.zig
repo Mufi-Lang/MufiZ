@@ -195,25 +195,25 @@ pub fn copyString(chars: ?[*]const u8, length: usize) *ObjString {
 /// Copy string for native function names (uses arena allocation)
 pub fn copyNativeFunctionName(chars: ?[*]const u8, length: usize) *ObjString {
     if (chars == null) {
-        return copyStringWithContext(&[_]u8{}, 0, .native_function_name);
+        return String.copyLiteral(&[_]u8{}, 0);
     }
-    return copyStringWithContext(chars.?[0..length], length, .native_function_name);
+    return String.copyLiteral(chars.?[0..length], length);
 }
 
 /// Copy string for string literals (uses arena allocation)
 pub fn copyStringLiteral(chars: ?[*]const u8, length: usize) *ObjString {
     if (chars == null) {
-        return copyStringWithContext(&[_]u8{}, 0, .string_literal);
+        return String.copyLiteral(&[_]u8{}, 0);
     }
-    return copyStringWithContext(chars.?[0..length], length, .string_literal);
+    return String.copyLiteral(chars.?[0..length], length);
 }
 
 /// Context-aware string copying
 pub fn copyStringWithContext(chars: []const u8, length: usize, context: vm_allocator.StringContext) *ObjString {
-    // For now, use the existing String.copy method
-    // TODO: Enhance this to use arena allocation for appropriate contexts
-    _ = context; // Suppress unused parameter warning for now
-    return String.copy(chars, length);
+    return switch (context) {
+        .string_literal, .native_function_name, .constant => String.copyLiteral(chars, length),
+        .dynamic_runtime, .temporary => String.copy(chars, length),
+    };
 }
 
 pub fn newUpvalue(slot: [*]Value) *ObjUpvalue {

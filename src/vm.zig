@@ -28,6 +28,7 @@ const ObjNative = object_h.ObjNative;
 const isObjType = object_h.isObjType;
 const newUpvalue = object_h.newUpvalue;
 const newBoundMethod = object_h.newBoundMethod;
+const String = @import("objects/string.zig").String;
 const conv = @import("conv.zig");
 const ObjInstance = object_h.ObjInstance;
 const Instance = object_h.Instance;
@@ -916,7 +917,7 @@ fn opAdd() InterpretResult {
         @memcpy(chars_ptr[a_str.length..length], b_str.chars[0..b_str.length]);
         chars_ptr[length] = 0;
 
-        const result = object_h.takeString(chars_ptr, length);
+        const result = String.takeWithAllocator(chars_slice, length, allocator);
         _ = pop();
         _ = pop();
         _ = pop();

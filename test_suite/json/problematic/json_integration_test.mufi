@@ -377,13 +377,13 @@ fun test13_json_batch_processing() {
 
     // Convert all to JSON and back
     var json_batch = linked_list();
-    i = 0;
-    while (i < len(batch_data)) {
-        var item = nth(batch_data, i);
+    var j = 0;
+    while (j < len(batch_data)) {
+        var item = nth(batch_data, j);
         var item_json = json_stringify(item);
         var parsed_item = json_parse(item_json);
         push(json_batch, parsed_item);
-        i = i + 1;
+        j = j + 1;
     }
 
     assert(len(json_batch), 10);

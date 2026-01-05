@@ -15,45 +15,87 @@ const pop = vm_h.pop;
 const obj_h = @import("obj.zig");
 const Obj = obj_h.Obj;
 
+// Global empty string singleton to prevent repeated allocations
+var empty_string_singleton: ?*String = null;
+
 /// String struct with bounded methods, following the FloatVector/LinkedList pattern
 pub const String = struct {
     obj: Obj,
     length: usize,
     chars: []u8,
     hash: u64,
+    // Track which allocator was used for the chars to enable safe freeing
+    chars_allocator_type: AllocatorType,
 
     const Self = *@This();
 
+    pub const AllocatorType = enum {
+        GPA, // General Purpose Allocator (main allocator)
+        Arena, // VM Arena Allocator (for literals/constants)
+    };
+
     /// Creates a new string by taking ownership of the given character buffer
-    pub fn take(chars: []u8, length: usize) Self {
+    /// The allocator parameter specifies which allocator was used to allocate chars
+    pub fn takeWithAllocator(chars: []u8, length: usize, allocator: std.mem.Allocator) Self {
         const hash = String.hashChars(chars, length);
 
         // Check if string already exists in intern table
         if (findString(chars, length, hash)) |interned| {
-            const allocator = mem_utils.getAllocator();
-            mem_utils.free(allocator, chars);
+            // Now we can safely free the incoming buffer with the correct allocator
+            // since we're tracking allocator types properly
+            if (chars.len > 0) {
+                // Free the buffer with the provided allocator
+                mem_utils.free(allocator, chars);
+            }
             return interned;
         }
+
+        // Determine allocator type
+        const allocator_type = if (isSameAllocator(allocator, mem_utils.getAllocator()))
+            AllocatorType.GPA
+        else
+            AllocatorType.Arena;
 
         return allocateString(.{
             .chars = chars,
             .length = length,
             .hash = hash,
+            .allocator_type = allocator_type,
         });
+    }
+
+    /// Creates a new string by taking ownership of the given character buffer
+    /// Uses the default allocator - kept for backward compatibility
+    pub fn take(chars: []u8, length: usize) Self {
+        const allocator = mem_utils.getAllocator();
+        return takeWithAllocator(chars, length, allocator);
     }
 
     /// Creates a new string by copying the given characters
     pub fn copy(chars: []const u8, length: usize) Self {
         if (length == 0) {
-            // Return the empty string singleton
-            const allocator = mem_utils.getAllocator();
-            const emptyChars_slice = mem_utils.alloc(allocator, u8, 1) catch @panic("Failed to allocate empty string");
-            emptyChars_slice[0] = 0; // Null terminate
-            return allocateString(.{
-                .chars = emptyChars_slice[0..0], // Empty slice
+            // Return singleton empty string if it exists
+            if (empty_string_singleton) |empty| {
+                return empty;
+            }
+
+            // Check if empty string already exists in intern table first
+            const hash = hashChars(&[_]u8{}, 0);
+            if (findString(&[_]u8{}, 0, hash)) |interned| {
+                empty_string_singleton = interned;
+                return interned;
+            }
+
+            // Only create new empty string if none exists - use a static buffer to avoid allocation
+            const empty_chars: []u8 = &[_]u8{}; // Static empty slice
+            const empty = allocateString(.{
+                .chars = empty_chars,
                 .length = 0,
-                .hash = hashChars(&[_]u8{}, 0),
+                .hash = hash,
+                .allocator_type = AllocatorType.GPA,
             });
+            empty_string_singleton = empty;
+            return empty;
         }
 
         const hash = hashChars(chars, length);
@@ -75,21 +117,35 @@ pub const String = struct {
             .chars = heapChars_slice[0..length],
             .length = length,
             .hash = hash,
+            .allocator_type = AllocatorType.GPA,
         });
     }
 
     /// Creates a new string using arena allocation for literals/constants
     pub fn copyLiteral(chars: []const u8, length: usize) Self {
         if (length == 0) {
-            // Return the empty string singleton
-            const vm_allocator = mem_utils.getVMArenaAllocator();
-            const emptyChars = vm_allocator.alloc(u8, 1) catch @panic("Failed to allocate empty string");
-            emptyChars[0] = 0; // Null terminate
-            return allocateString(.{
-                .chars = emptyChars[0..0], // Empty slice
+            // Return existing empty string singleton if available
+            if (empty_string_singleton) |empty| {
+                return empty;
+            }
+
+            // Check if empty string already exists in intern table first
+            const hash = hashChars(&[_]u8{}, 0);
+            if (findString(&[_]u8{}, 0, hash)) |interned| {
+                empty_string_singleton = interned;
+                return interned;
+            }
+
+            // Only create new empty string if none exists - use a static buffer to avoid allocation
+            const empty_chars: []u8 = &[_]u8{}; // Static empty slice
+            const empty = allocateString(.{
+                .chars = empty_chars,
                 .length = 0,
-                .hash = hashChars(&[_]u8{}, 0),
+                .hash = hash,
+                .allocator_type = AllocatorType.Arena,
             });
+            empty_string_singleton = empty;
+            return empty;
         }
 
         const hash = hashChars(chars, length);
@@ -109,6 +165,7 @@ pub const String = struct {
             .chars = heapChars[0..length],
             .length = length,
             .hash = hash,
+            .allocator_type = AllocatorType.Arena,
         });
     }
 
@@ -394,6 +451,7 @@ const AllocStringParams = struct {
     chars: []u8,
     length: usize,
     hash: u64,
+    allocator_type: String.AllocatorType,
 };
 
 // Allocates a new string object
@@ -402,6 +460,7 @@ fn allocateString(params: AllocStringParams) *String {
     string.length = params.length;
     string.chars = params.chars;
     string.hash = params.hash;
+    string.chars_allocator_type = params.allocator_type;
 
     // Intern the string
     push(Value.init_obj(@ptrCast(string)));
@@ -421,3 +480,16 @@ fn findString(chars: []const u8, length: usize, hash: u64) ?*String {
 
 // VM imports for string interning
 const vm = &vm_h.vm;
+
+// Helper function to check if an allocator is the main GPA allocator
+fn isMainAllocator(allocator: std.mem.Allocator, main_allocator: std.mem.Allocator) bool {
+    // Compare vtable pointers - main allocator should have consistent vtable
+    return @intFromPtr(allocator.vtable) == @intFromPtr(main_allocator.vtable);
+}
+
+// Helper function to safely check if two allocators are the same
+fn isSameAllocator(a: std.mem.Allocator, b: std.mem.Allocator) bool {
+    // Compare both the function pointer and the context pointer
+    return (@intFromPtr(a.ptr) == @intFromPtr(b.ptr)) and
+        (@intFromPtr(a.vtable) == @intFromPtr(b.vtable));
+}
