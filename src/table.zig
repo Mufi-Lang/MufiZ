@@ -1,9 +1,9 @@
+const std = @import("std");
 const object_h = @import("object.zig");
 const memory = @import("memory.zig");
 const value_h = @import("value.zig");
-const memcmp = @import("mem_utils.zig").memcmp;
 const mem_utils = @import("mem_utils.zig");
-const std = @import("std");
+const memcmp = mem_utils.memcmp;
 
 const ObjString = object_h.ObjString;
 const Obj = object_h.Obj;

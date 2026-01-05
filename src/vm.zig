@@ -60,9 +60,6 @@ const valuesEqual = value_h.valuesEqual;
 const Value = value_h.Value;
 const Complex = value_h.Complex;
 
-// const memcpy = @cImport(@cInclude("string.h")).memcpy;
-// const strlen = @cImport(@cInclude("string.h")).strlen
-// printf replaced with print from std import
 var echo_enabled: bool = false; // Disable echo in REPL by default
 var suppress_output: bool = false; // Don't suppress output - we want to see results
 var repl_mode: bool = false; // Auto-detect REPL mode

@@ -2,8 +2,8 @@ const std = @import("std");
 
 const errors = @import("errors.zig");
 const mem_utils = @import("mem_utils.zig");
-pub const memcmp = @import("mem_utils.zig").memcmp;
-pub const strlen = @import("mem_utils.zig").strlen;
+pub const memcmp = mem_utils.memcmp;
+pub const strlen = mem_utils.strlen;
 
 // Optimized keyword lookup using perfect hash or trie
 const KeywordEntry = struct {
