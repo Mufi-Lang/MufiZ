@@ -22,7 +22,7 @@ pub const RUNTIME_ERROR: u8 = vm_h.INTERPRET_RUNTIME_ERROR;
 
 /// Returns the global allocator used throughout the interpreter
 /// This provides a centralized memory management interface
-pub fn getGlobalAlloc() std.mem.Allocator {
+pub fn getGlobalAllocator() std.mem.Allocator {
     return mem_utils.getAllocator();
 }
 
@@ -68,7 +68,7 @@ pub fn main() !void {
         // Parse command-line arguments
         var diag = clap.Diagnostic{};
         var res = clap.parse(clap.Help, &params, clap.parsers.default, .{
-            .allocator = getGlobalAlloc(),
+            .allocator = getGlobalAllocator(),
             .diagnostic = &diag,
         }) catch |err| {
             std.debug.print("Error: {any}\n", .{err});
@@ -80,7 +80,7 @@ pub fn main() !void {
         if (res.args.version != 0) {
             system.version();
         } else if (res.args.run) |s| {
-            var runner = system.Runner.init(getGlobalAlloc());
+            var runner = system.Runner.init(getGlobalAllocator());
             defer runner.deinit();
             try runner.setMain(@constCast(s));
             if (res.args.link) |l| {

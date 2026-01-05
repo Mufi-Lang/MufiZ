@@ -22,7 +22,6 @@ const ObjFunction = object_h.ObjFunction;
 const scanner_h = @import("scanner_optimized.zig");
 const Token = scanner_h.Token;
 const TokenType = scanner_h.TokenType;
-const strlen = mem_utils.strlen;
 const value_h = @import("value.zig");
 const Value = value_h.Value;
 const Complex = value_h.Complex;
