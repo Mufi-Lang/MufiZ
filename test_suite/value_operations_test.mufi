@@ -1,0 +1,98 @@
+// Test Suite: Value Type Operations
+// Tests arithmetic operations on various value types
+// Validates optimizations don't break existing behavior
+
+print("=== VALUE TYPE OPERATIONS TEST SUITE ===");
+print("");
+
+// Test 1: Integer arithmetic (fast path)
+print("[Test 1] Integer arithmetic");
+var a = 10;
+var b = 5;
+print("a = ");
+print(a);
+print("b = ");
+print(b);
+print("a + b = ");
+print(a + b);  // Should be 15
+print("a - b = ");
+print(a - b);  // Should be 5
+print("a * b = ");
+print(a * b);  // Should be 50
+print("a / b = ");
+print(a / b);  // Should be 2.0
+print("");
+
+// Test 2: Double arithmetic (fast path)
+print("[Test 2] Double arithmetic");
+var c = 10.5;
+var d = 2.5;
+print("c = ");
+print(c);
+print("d = ");
+print(d);
+print("c + d = ");
+print(c + d);  // Should be 13.0
+print("c - d = ");
+print(c - d);  // Should be 8.0
+print("c * d = ");
+print(c * d);  // Should be 26.25
+print("c / d = ");
+print(c / d);  // Should be 4.2
+print("");
+
+// Test 3: Mixed int/double arithmetic
+print("[Test 3] Mixed int/double arithmetic");
+var e = 10;
+var f = 2.5;
+print("e = ");
+print(e);
+print("f = ");
+print(f);
+print("e + f = ");
+print(e + f);
+print("e * f = ");
+print(e * f);
+print("");
+
+// Test 4: Complex number arithmetic
+print("[Test 4] Complex number arithmetic");
+var z1 = 3.0 + 4.0i;
+var z2 = 1.0 + 2.0i;
+print("z1 = ");
+print(z1);
+print("z2 = ");
+print(z2);
+print("z1 + z2 = ");
+print(z1 + z2);  // Should be 4.0 + 6.0i
+print("z1 * z2 = ");
+print(z1 * z2);  // Should be -5.0 + 10.0i
+print("");
+
+// Test 5: Negation
+print("[Test 5] Negation");
+var g = 42;
+var h = -3.14;
+print("g = ");
+print(g);
+print("-g = ");
+print(-g);  // Should be -42
+print("h = ");
+print(h);
+print("-h = ");
+print(-h);  // Should be 3.14
+print("");
+
+// Test 6: String concatenation
+print("[Test 6] String concatenation");
+var s1 = "Hello";
+var s2 = "World";
+print("s1 = ");
+print(s1);
+print("s2 = ");
+print(s2);
+print("s1 + \" \" + s2 = ");
+print(s1 + " " + s2);  // Should be "Hello World"
+print("");
+
+print("=== ALL TESTS COMPLETED ===");
