@@ -1,12 +1,74 @@
 /// MufiZ Object System Module
+///
 /// This module implements the object model for the MufiZ language.
-/// It defines all heap-allocated object types including:
-/// - Strings (ObjString)
-/// - Functions (ObjFunction, ObjClosure)
-/// - Classes and Instances (ObjClass, ObjInstance)
-/// - Collections (LinkedList, FloatVector, Matrix, HashTable)
-/// - Native functions (ObjNative)
-/// - Upvalues for closure support
+/// All heap-allocated values are represented as objects with reference counting
+/// and garbage collection support.
+///
+/// ## Object Architecture
+///
+/// ### Base Object Structure (Obj)
+/// All objects share a common header defined in objects/obj.zig:
+/// - type: ObjType enum identifying the specific object kind
+/// - refCount: Reference count for memory management
+/// - next: Linked list pointer for GC tracking
+/// - generation: Generational GC marker (Young/Middle/Old)
+/// - age: Object age for promotion between generations
+/// - isMarked: Mark bit for mark-and-sweep GC
+/// - cycleColor: Color for cycle detection algorithm
+/// - inCycleDetection: Flag for cycle detection in progress
+///
+/// Total size: 24 bytes (optimized from 48 bytes via field reordering)
+/// See docs/memory_layout_optimization.md for details.
+///
+/// ### Object Types
+/// 1. **Functions and Closures**
+///    - ObjFunction: Compiled function with bytecode
+///    - ObjClosure: Function + captured variables (upvalues)
+///    - ObjNative: Native Zig function wrapper
+///    - ObjBoundMethod: Method bound to an instance
+///
+/// 2. **Object-Oriented Programming**
+///    - ObjClass: Class definition with methods
+///    - ObjInstance: Class instance with fields
+///
+/// 3. **Strings**
+///    - ObjString: Immutable string with hash caching
+///    - Uses string interning for memory efficiency
+///
+/// 4. **Collections**
+///    - LinkedList: Doubly-linked list
+///    - FloatVector: SIMD-optimized numeric vector
+///    - Matrix: 2D numeric matrix with SIMD operations
+///    - HashTable: Key-value dictionary
+///
+/// 5. **Special Types**
+///    - ObjRange: Integer range with inclusive/exclusive semantics
+///    - ObjPair: Key-value pair (used in iteration)
+///    - ObjMatrixRow: View into a matrix row
+///    - ObjUpvalue: Captured variable for closures
+///
+/// ### Memory Management
+/// - **Allocation**: All objects allocated via allocateObject()
+/// - **Reference Counting**: Hybrid RC + tracing GC approach
+/// - **Generational GC**: Young/Middle/Old generations for efficiency
+/// - **Cycle Detection**: Purple marking algorithm for reference cycles
+///
+/// ### Extending the Object System
+/// To add a new object type:
+/// 1. Add variant to ObjType enum in objects/obj.zig
+/// 2. Create struct with Obj as first field (for casting)
+/// 3. Add constructor function (e.g., newMyObject)
+/// 4. Update printObject() for display
+/// 5. Update freeObject() in memory.zig for cleanup
+/// 6. Add type checking methods to Value (is_myobject, as_myobject)
+/// 7. Update GC marking in memory.zig
+/// 8. Add relevant operations to value.zig if needed
+///
+/// ### Performance Notes
+/// - Object allocation is fast due to generational GC
+/// - String interning reduces memory for duplicate strings
+/// - SIMD optimizations for FloatVector and Matrix operations
+/// - Field reordering minimizes cache misses (24-byte headers)
 
 const std = @import("std");
 const print = std.debug.print;

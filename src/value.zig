@@ -1,3 +1,45 @@
+/// MufiZ Value Type System
+/// 
+/// This module implements the value representation for the MufiZ language.
+/// Values can be primitive types (bool, int, double, complex) or object references.
+///
+/// ## Value Type Architecture
+///
+/// The Value struct uses a tagged union pattern:
+/// - `type`: ValueType enum identifying which union member is active
+/// - `as`: union containing the actual data for each type
+///
+/// ### Memory Layout (32 bytes on 64-bit):
+/// - type: 4 bytes (i32 enum)
+/// - as union: 16 bytes (largest member is Complex at 16 bytes)
+/// - Total with padding: 32 bytes
+///
+/// ### Type Categories:
+/// 1. **Primitive Types**: VAL_BOOL, VAL_NIL, VAL_INT, VAL_DOUBLE, VAL_COMPLEX
+///    - Stored directly in the union (pass by value)
+///    - No heap allocation required
+/// 2. **Object References**: VAL_OBJ
+///    - Stores a pointer to heap-allocated object
+///    - Reference counted and garbage collected
+///
+/// ### Performance Optimizations:
+/// - Type checking methods are inlined for hot path performance
+/// - Numeric conversion functions are inlined to reduce overhead
+/// - Direct union access avoids unnecessary indirection
+///
+/// ### Extending the Type System:
+/// To add a new primitive type:
+/// 1. Add variant to ValueType enum
+/// 2. Add field to Value.as union
+/// 3. Add init_* constructor method
+/// 4. Add is_* type checking method (mark as inline)
+/// 5. Add as_* accessor method (mark as inline)
+/// 6. Update arithmetic operations if applicable
+/// 7. Update valuesEqual and valueCompare functions
+/// 8. Update printValue and valueToString functions
+///
+/// To add a new object type, modify object.zig instead.
+
 const std = @import("std");
 const print = std.debug.print;
 
@@ -26,6 +68,44 @@ pub const Complex = struct {
     r: f64,
     i: f64,
 };
+
+// ============================================================================
+// Value Operations Helper Functions
+// These inline helpers provide fast paths for common arithmetic operations
+// ============================================================================
+
+/// Fast path: Add two complex numbers
+inline fn addComplex(a: Complex, b: Complex) Complex {
+    return .{
+        .r = a.r + b.r,
+        .i = a.i + b.i,
+    };
+}
+
+/// Fast path: Multiply two complex numbers
+inline fn mulComplex(a: Complex, b: Complex) Complex {
+    return .{
+        .r = a.r * b.r - a.i * b.i,
+        .i = a.r * b.i + a.i * b.r,
+    };
+}
+
+/// Fast path: Divide two complex numbers
+inline fn divComplex(a: Complex, b: Complex) Complex {
+    const denominator = b.r * b.r + b.i * b.i;
+    return .{
+        .r = (a.r * b.r + a.i * b.i) / denominator,
+        .i = (a.i * b.r - a.r * b.i) / denominator,
+    };
+}
+
+/// Fast path: Scale a complex number by a real scalar
+inline fn scaleComplex(c: Complex, scalar: f64) Complex {
+    return .{
+        .r = c.r * scalar,
+        .i = c.i * scalar,
+    };
+}
 
 pub const Value = struct {
     type: ValueType,
@@ -116,11 +196,24 @@ pub const Value = struct {
         }
     }
 
+    /// Add two values
+    /// Optimized with fast paths for common type combinations
     pub fn add(self: Self, other: Value) Value {
+        // Fast path: int + int (most common case)
+        if (self.type == .VAL_INT and other.type == .VAL_INT) {
+            return Value.init_int(self.as.num_int + other.as.num_int);
+        }
+        
+        // Fast path: double + double (second most common)
+        if (self.type == .VAL_DOUBLE and other.type == .VAL_DOUBLE) {
+            return Value.init_double(self.as.num_double + other.as.num_double);
+        }
+        
+        // General paths for mixed types and complex operations
         switch (self.type) {
             .VAL_INT => {
                 switch (other.type) {
-                    .VAL_INT => return Value.init_int(self.as.num_int + other.as.num_int),
+                    .VAL_INT => return Value.init_int(self.as.num_int + other.as.num_int), // Fallback (should be caught by fast path)
                     .VAL_DOUBLE => return Value.init_int(self.as.num_int + @as(i32, @intFromFloat(other.as.num_double))),
                     .VAL_COMPLEX => return Value.init_complex(.{ .r = @as(f64, @floatFromInt(self.as.num_int)) + other.as.complex.r, .i = other.as.complex.i }),
                     else => @panic("Cannot add non-numeric value"),
@@ -129,7 +222,7 @@ pub const Value = struct {
             .VAL_DOUBLE => {
                 switch (other.type) {
                     .VAL_INT => return Value.init_double(self.as.num_double + @as(f64, @floatFromInt(other.as.num_int))),
-                    .VAL_DOUBLE => return Value.init_double(self.as.num_double + other.as.num_double),
+                    .VAL_DOUBLE => return Value.init_double(self.as.num_double + other.as.num_double), // Fallback (should be caught by fast path)
                     .VAL_COMPLEX => return Value.init_complex(.{ .r = self.as.num_double + other.as.complex.r, .i = other.as.complex.i }),
                     else => {},
                 }
@@ -138,7 +231,7 @@ pub const Value = struct {
                 switch (other.type) {
                     .VAL_INT => return Value.init_complex(.{ .r = self.as.complex.r + @as(f64, @floatFromInt(other.as.num_int)), .i = self.as.complex.i }),
                     .VAL_DOUBLE => return Value.init_complex(.{ .r = self.as.complex.r + other.as.num_double, .i = self.as.complex.i }),
-                    .VAL_COMPLEX => return Value.init_complex(.{ .r = self.as.complex.r + other.as.complex.r, .i = self.as.complex.i + other.as.complex.i }),
+                    .VAL_COMPLEX => return Value.init_complex(addComplex(self.as.complex, other.as.complex)),
                     else => {},
                 }
             },
@@ -220,29 +313,42 @@ pub const Value = struct {
         return self.add(other.negate());
     }
 
+    /// Multiply two values
+    /// Optimized with fast paths for common type combinations
     pub fn mul(self: Self, other: Value) Value {
+        // Fast path: int * int (most common case)
+        if (self.type == .VAL_INT and other.type == .VAL_INT) {
+            return Value.init_int(self.as.num_int * other.as.num_int);
+        }
+        
+        // Fast path: double * double (second most common)
+        if (self.type == .VAL_DOUBLE and other.type == .VAL_DOUBLE) {
+            return Value.init_double(self.as.num_double * other.as.num_double);
+        }
+        
+        // General paths for mixed types and complex operations
         switch (self.type) {
             .VAL_INT => {
                 switch (other.type) {
-                    .VAL_INT => return Value.init_int(self.as.num_int * other.as.num_int),
+                    .VAL_INT => return Value.init_int(self.as.num_int * other.as.num_int), // Fallback (should be caught by fast path)
                     .VAL_DOUBLE => return Value.init_double(@as(f64, @floatFromInt(self.as.num_int)) * other.as.num_double),
-                    .VAL_COMPLEX => return Value.init_complex(.{ .r = @as(f64, @floatFromInt(self.as.num_int)) * other.as.complex.r, .i = @as(f64, @floatFromInt(self.as.num_int)) * other.as.complex.i }),
+                    .VAL_COMPLEX => return Value.init_complex(scaleComplex(other.as.complex, @as(f64, @floatFromInt(self.as.num_int)))),
                     else => {},
                 }
             },
             .VAL_DOUBLE => {
                 switch (other.type) {
                     .VAL_INT => return Value.init_double(self.as.num_double * @as(f64, @floatFromInt(other.as.num_int))),
-                    .VAL_DOUBLE => return Value.init_double(self.as.num_double * other.as.num_double),
-                    .VAL_COMPLEX => return Value.init_complex(.{ .r = self.as.num_double * other.as.complex.r, .i = self.as.num_double * other.as.complex.i }),
+                    .VAL_DOUBLE => return Value.init_double(self.as.num_double * other.as.num_double), // Fallback (should be caught by fast path)
+                    .VAL_COMPLEX => return Value.init_complex(scaleComplex(other.as.complex, self.as.num_double)),
                     else => {},
                 }
             },
             .VAL_COMPLEX => {
                 switch (other.type) {
-                    .VAL_INT => return Value.init_complex(.{ .r = self.as.complex.r * @as(f64, @floatFromInt(other.as.num_int)), .i = self.as.complex.i * @as(f64, @floatFromInt(other.as.num_int)) }),
-                    .VAL_DOUBLE => return Value.init_complex(.{ .r = self.as.complex.r * other.as.num_double, .i = self.as.complex.i * other.as.num_double }),
-                    .VAL_COMPLEX => return Value.init_complex(.{ .r = self.as.complex.r * other.as.complex.r - self.as.complex.i * other.as.complex.i, .i = self.as.complex.r * other.as.complex.i + self.as.complex.i * other.as.complex.r }),
+                    .VAL_INT => return Value.init_complex(scaleComplex(self.as.complex, @as(f64, @floatFromInt(other.as.num_int)))),
+                    .VAL_DOUBLE => return Value.init_complex(scaleComplex(self.as.complex, other.as.num_double)),
+                    .VAL_COMPLEX => return Value.init_complex(mulComplex(self.as.complex, other.as.complex)),
                     else => {},
                 }
             },
@@ -283,15 +389,34 @@ pub const Value = struct {
         return Value.init_nil();
     }
 
+    /// Divide two values
+    /// Optimized with fast paths for common type combinations
     pub fn div(self: Self, other: Value) Value {
+        // Fast path: int / int (most common case)
+        if (self.type == .VAL_INT and other.type == .VAL_INT) {
+            const af = @as(f64, @floatFromInt(self.as.num_int));
+            const bf = @as(f64, @floatFromInt(other.as.num_int));
+            return Value.init_double(af / bf);
+        }
+        
+        // Fast path: double / double (second most common)
+        if (self.type == .VAL_DOUBLE and other.type == .VAL_DOUBLE) {
+            return Value.init_double(self.as.num_double / other.as.num_double);
+        }
+        
+        // General paths for mixed types and complex operations
         switch (self.type) {
             .VAL_INT => {
                 switch (other.type) {
-                    .VAL_INT => return Value.init_double(@as(f64, @floatFromInt(self.as.num_int)) / @as(f64, @floatFromInt(other.as.num_int))),
+                    .VAL_INT => { // Fallback (should be caught by fast path)
+                        const af = @as(f64, @floatFromInt(self.as.num_int));
+                        const bf = @as(f64, @floatFromInt(other.as.num_int));
+                        return Value.init_double(af / bf);
+                    },
                     .VAL_DOUBLE => return Value.init_double(@as(f64, @floatFromInt(self.as.num_int)) / other.as.num_double),
                     .VAL_COMPLEX => {
-                        const denominator = other.as.complex.r * other.as.complex.r + other.as.complex.i * other.as.complex.i;
-                        return Value.init_complex(.{ .r = @as(f64, @floatFromInt(self.as.num_int)) * other.as.complex.r / denominator, .i = -@as(f64, @floatFromInt(self.as.num_int)) * other.as.complex.i / denominator });
+                        const scalar_as_complex = Complex{ .r = @as(f64, @floatFromInt(self.as.num_int)), .i = 0.0 };
+                        return Value.init_complex(divComplex(scalar_as_complex, other.as.complex));
                     },
                     else => {},
                 }
@@ -299,28 +424,19 @@ pub const Value = struct {
             .VAL_DOUBLE => {
                 switch (other.type) {
                     .VAL_INT => return Value.init_double(self.as.num_double / @as(f64, @floatFromInt(other.as.num_int))),
-                    .VAL_DOUBLE => return Value.init_double(self.as.num_double / other.as.num_double),
+                    .VAL_DOUBLE => return Value.init_double(self.as.num_double / other.as.num_double), // Fallback (should be caught by fast path)
                     .VAL_COMPLEX => {
-                        const denominator = other.as.complex.r * other.as.complex.r + other.as.complex.i * other.as.complex.i;
-                        return Value.init_complex(.{ .r = self.as.num_double * other.as.complex.r / denominator, .i = -self.as.num_double * other.as.complex.i / denominator });
+                        const scalar_as_complex = Complex{ .r = self.as.num_double, .i = 0.0 };
+                        return Value.init_complex(divComplex(scalar_as_complex, other.as.complex));
                     },
                     else => {},
                 }
             },
             .VAL_COMPLEX => {
                 switch (other.type) {
-                    .VAL_INT => {
-                        const denominator = @as(f64, @floatFromInt(other.as.num_int)) * @as(f64, @floatFromInt(other.as.num_int));
-                        return Value.init_complex(.{ .r = self.as.complex.r * @as(f64, @floatFromInt(other.as.num_int)) / denominator, .i = self.as.complex.i * @as(f64, @floatFromInt(other.as.num_int)) / denominator });
-                    },
-                    .VAL_DOUBLE => {
-                        const denominator = other.as.num_double * other.as.num_double;
-                        return Value.init_complex(.{ .r = self.as.complex.r * other.as.num_double / denominator, .i = self.as.complex.i * other.as.num_double / denominator });
-                    },
-                    .VAL_COMPLEX => {
-                        const denominator = other.as.complex.r * other.as.complex.r + other.as.complex.i * other.as.complex.i;
-                        return Value.init_complex(.{ .r = (self.as.complex.r * other.as.complex.r + self.as.complex.i * other.as.complex.i) / denominator, .i = (self.as.complex.i * other.as.complex.r - self.as.complex.r * other.as.complex.i) / denominator });
-                    },
+                    .VAL_INT => return Value.init_complex(scaleComplex(self.as.complex, 1.0 / @as(f64, @floatFromInt(other.as.num_int)))),
+                    .VAL_DOUBLE => return Value.init_complex(scaleComplex(self.as.complex, 1.0 / other.as.num_double)),
+                    .VAL_COMPLEX => return Value.init_complex(divComplex(self.as.complex, other.as.complex)),
                     else => {},
                 }
             },
@@ -346,32 +462,46 @@ pub const Value = struct {
         return Value.init_nil();
     }
 
-    pub fn is_bool(self: Self) bool {
+    /// Check if value is a boolean
+    /// Inlined for performance in hot paths
+    pub inline fn is_bool(self: Self) bool {
         return self.type == .VAL_BOOL;
     }
 
-    pub fn is_nil(self: Self) bool {
+    /// Check if value is nil
+    /// Inlined for performance in hot paths
+    pub inline fn is_nil(self: Self) bool {
         return self.type == .VAL_NIL;
     }
 
-    pub fn is_int(self: Self) bool {
+    /// Check if value is an integer
+    /// Inlined for performance in hot paths
+    pub inline fn is_int(self: Self) bool {
         return self.type == .VAL_INT;
     }
 
-    pub fn is_double(self: Self) bool {
+    /// Check if value is a double
+    /// Inlined for performance in hot paths
+    pub inline fn is_double(self: Self) bool {
         return self.type == .VAL_DOUBLE;
     }
 
-    pub fn is_obj(self: Self) bool {
+    /// Check if value is an object reference
+    /// Inlined for performance in hot paths
+    pub inline fn is_obj(self: Self) bool {
         return self.type == .VAL_OBJ;
     }
 
-    pub fn is_complex(self: Self) bool {
+    /// Check if value is a complex number
+    /// Inlined for performance in hot paths
+    pub inline fn is_complex(self: Self) bool {
         return self.type == .VAL_COMPLEX;
     }
 
-    pub fn is_prim_num(self: Self) bool {
-        return self.is_int() or self.is_double();
+    /// Check if value is a primitive numeric type (int or double)
+    /// Inlined for performance in hot paths
+    pub inline fn is_prim_num(self: Self) bool {
+        return self.type == .VAL_INT or self.type == .VAL_DOUBLE;
     }
 
     pub fn is_obj_type(self: Self, ty: obj_h.ObjType) bool {
@@ -410,23 +540,33 @@ pub const Value = struct {
         return self.is_obj_type(.OBJ_PAIR);
     }
 
-    pub fn as_obj(self: Self) ?*Obj {
+    /// Extract object pointer from value
+    /// Inlined for performance in hot paths
+    pub inline fn as_obj(self: Self) ?*Obj {
         return self.as.obj;
     }
 
-    pub fn as_bool(self: Self) bool {
+    /// Extract boolean from value
+    /// Inlined for performance in hot paths
+    pub inline fn as_bool(self: Self) bool {
         return self.as.boolean;
     }
 
-    pub fn as_int(self: Self) i32 {
+    /// Extract integer from value
+    /// Inlined for performance in hot paths
+    pub inline fn as_int(self: Self) i32 {
         return self.as.num_int;
     }
 
-    pub fn as_double(self: Self) f64 {
+    /// Extract double from value
+    /// Inlined for performance in hot paths
+    pub inline fn as_double(self: Self) f64 {
         return self.as.num_double;
     }
 
-    pub fn as_complex(self: Self) Complex {
+    /// Extract complex number from value
+    /// Inlined for performance in hot paths
+    pub inline fn as_complex(self: Self) Complex {
         return self.as.complex;
     }
 
@@ -450,7 +590,10 @@ pub const Value = struct {
         return @ptrCast(@alignCast(self.as.obj));
     }
 
-    pub fn as_num_double(self: Self) f64 {
+    /// Convert value to double, handling both int and double types
+    /// This is a hot path function used in arithmetic operations
+    /// Inlined for performance
+    pub inline fn as_num_double(self: Self) f64 {
         return switch (self.type) {
             .VAL_INT => @as(f64, @floatFromInt(self.as.num_int)),
             .VAL_DOUBLE => self.as.num_double,
@@ -458,7 +601,10 @@ pub const Value = struct {
         };
     }
 
-    pub fn as_num_int(self: Self) i32 {
+    /// Convert value to integer, handling both int and double types
+    /// This is a hot path function used in arithmetic operations
+    /// Inlined for performance
+    pub inline fn as_num_int(self: Self) i32 {
         return switch (self.type) {
             .VAL_INT => self.as.num_int,
             .VAL_DOUBLE => @as(i32, @intFromFloat(self.as.num_double)),

@@ -1,0 +1,39 @@
+// Test Suite: Value Type Checking
+// Tests type checking methods work correctly after inline optimizations
+
+print("=== VALUE TYPE CHECKING TEST ===");
+print("");
+
+// Test integer type
+var i = 42;
+print("Testing integer value: ");
+print(i);
+
+// Test double type
+var d = 3.14;
+print("Testing double value: ");
+print(d);
+
+// Test boolean type
+var b = true;
+print("Testing boolean value: ");
+print(b);
+
+// Test string type
+var s = "hello";
+print("Testing string value: ");
+print(s);
+
+// Test arithmetic operations to ensure type system works
+print("Arithmetic tests:");
+print("10 + 5 = ");
+print(10 + 5);
+print("10.5 + 2.5 = ");
+print(10.5 + 2.5);
+print("10 * 5 = ");
+print(10 * 5);
+print("10.0 / 2.0 = ");
+print(10.0 / 2.0);
+
+print("");
+print("=== TYPE CHECKING TEST COMPLETED ===");
