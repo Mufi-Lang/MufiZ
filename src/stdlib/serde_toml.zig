@@ -418,10 +418,10 @@ const TomlParser = struct {
         
         // Add the table to the array (LinkedList)
         const list = @as(*object_h.LinkedList, @ptrCast(@alignCast(array.as.obj)));
-        try list.append(table_value);
+        list.push(table_value);
         
         // Parse key-value pairs for this table instance
-        var table_ptr = @constCast(&table_value);
+        const table_ptr = @constCast(&table_value);
         while (self.current_token.type == .Identifier) {
             try self.parseKeyValue(table_ptr);
             try self.skipNewlinesAndComments();
