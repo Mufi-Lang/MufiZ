@@ -15,6 +15,9 @@ const pop = vm_h.pop;
 const obj_h = @import("obj.zig");
 const Obj = obj_h.Obj;
 
+// SIMD vector type for string operations (16 bytes at a time)
+const Vec16 = @Vector(16, u8);
+
 // Global empty string singleton to prevent repeated allocations
 var empty_string_singleton: ?*String = null;
 
@@ -451,8 +454,6 @@ pub const String = struct {
     // The following methods use SIMD (Single Instruction Multiple Data) 
     // instructions to process multiple bytes in parallel for improved performance.
 
-    const Vec16 = @Vector(16, u8);
-
     /// SIMD-optimized substring search
     /// Returns the index of the first occurrence of needle in haystack, or null if not found
     pub fn findSIMD(haystack: []const u8, needle: []const u8) ?usize {
@@ -470,7 +471,7 @@ pub const String = struct {
 
         while (pos <= haystack.len - needle.len) {
             // Find next occurrence of first character using SIMD
-            if (findCharSIMDFrom(haystack[pos..], first_char)) |offset| {
+            if (findCharSIMD(haystack[pos..], first_char)) |offset| {
                 const candidate_pos = pos + offset;
 
                 // Verify full match using SIMD comparison
@@ -527,11 +528,6 @@ pub const String = struct {
         }
 
         return null;
-    }
-
-    /// SIMD-optimized character search starting from a specific position
-    pub fn findCharSIMDFrom(haystack: []const u8, needle_char: u8) ?usize {
-        return findCharSIMD(haystack, needle_char);
     }
 
     /// SIMD-optimized string equality check
