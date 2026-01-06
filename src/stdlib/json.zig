@@ -382,8 +382,9 @@ const JsonStringifier = struct {
                 '\x0C' => try self.buffer.appendSlice(self.allocator, "\\f"),
                 0x00...0x1F => {
                     // Control characters: use \uXXXX format
-                    const escaped = try std.fmt.allocPrint(self.allocator, "\\u{x:0>4}", .{c});
-                    defer self.allocator.free(escaped);
+                    // Use stack buffer to avoid allocation
+                    var buf: [6]u8 = undefined;
+                    const escaped = std.fmt.bufPrint(&buf, "\\u{x:0>4}", .{c}) catch unreachable; // 6 bytes always sufficient
                     try self.buffer.appendSlice(self.allocator, escaped);
                 },
                 else => try self.buffer.append(self.allocator, c),
