@@ -13,6 +13,7 @@ const collections = @import("stdlib/collections.zig");
 // const network = @import("stdlib/network.zig");
 const matrix = @import("stdlib/matrix.zig");
 const json = @import("stdlib/json.zig");
+const serde = @import("stdlib/serde.zig");
 
 // Feature flags (can be set at compile time)
 const enable_fs = @import("features.zig").enable_fs;
@@ -209,6 +210,22 @@ const JsonModule = struct {
     }
 };
 
+const SerdeModule = struct {
+    pub fn register() !void {
+        const registry = stdlib_core.getGlobalRegistry();
+        try registry.register(serde.serde_serialize);
+        try registry.register(serde.serde_deserialize);
+        try registry.register(serde.serde_to_json);
+        try registry.register(serde.serde_from_json);
+        try registry.register(serde.serde_to_toml);
+        try registry.register(serde.serde_from_toml);
+        try registry.register(serde.serde_to_yaml);
+        try registry.register(serde.serde_from_yaml);
+        try registry.register(serde.serde_detect_format);
+        try registry.register(serde.serde_validate);
+    }
+};
+
 // Main initialization function
 pub fn initializeStdlib() !void {
     // Set feature flags
@@ -241,9 +258,10 @@ pub fn initializeStdlib() !void {
         try NetworkModule.register();
     }
 
-    // Always register matrix and json modules (no feature flag needed)
+    // Always register matrix, json, and serde modules (no feature flag needed)
     try MatrixModule.register();
     try JsonModule.register();
+    try SerdeModule.register();
 
     std.log.info("Standard library initialized with {d} functions", .{registry.getFunctionCount()});
 }
@@ -320,6 +338,12 @@ pub fn registerJson() !void {
     registry.registerModule("json");
 }
 
+pub fn registerSerde() !void {
+    try SerdeModule.register();
+    const registry = stdlib_core.getGlobalRegistry();
+    registry.registerModule("serde");
+}
+
 // Print documentation for all registered functions
 pub fn printDocs() void {
     const registry = stdlib_core.getGlobalRegistry();
@@ -374,6 +398,7 @@ pub fn getStats() struct {
     network_functions: usize,
     matrix_functions: usize,
     json_functions: usize,
+    serde_functions: usize,
 } {
     const registry = stdlib_core.getGlobalRegistry();
 
@@ -390,6 +415,7 @@ pub fn getStats() struct {
         .network_functions = registry.getModuleFunctionCount("network"),
         .matrix_functions = registry.getModuleFunctionCount("matrix"),
         .json_functions = registry.getModuleFunctionCount("json"),
+        .serde_functions = registry.getModuleFunctionCount("serde"),
     };
 }
 
@@ -411,6 +437,7 @@ pub fn printStats() void {
     std.debug.print("  Network:     {}\n", .{stats.network_functions});
     std.debug.print("  Matrix:      {}\n", .{stats.matrix_functions});
     std.debug.print("  JSON:        {}\n", .{stats.json_functions});
+    std.debug.print("  Serde:       {}\n", .{stats.serde_functions});
 
     std.debug.print("\nFeature Flags:\n", .{});
     std.debug.print("  File System: {}\n", .{enable_fs});
@@ -431,6 +458,7 @@ pub fn listModules() void {
     std.debug.print("  network (10 functions)\n", .{});
     std.debug.print("  matrix (20 functions)\n", .{});
     std.debug.print("  json (6 functions)\n", .{});
+    std.debug.print("  serde (10 functions)\n", .{});
 }
 
 // Help command implementation
@@ -504,6 +532,10 @@ pub fn addMatrix() !void {
 
 pub fn addJson() !void {
     try registerJson();
+}
+
+pub fn addSerde() !void {
+    try registerSerde();
 }
 
 // Get total function count (for compatibility)

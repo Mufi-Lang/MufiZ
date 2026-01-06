@@ -80,6 +80,41 @@ To support various toolchains, we have added the following features to the proje
 - **Simplified Implementation**: Streamlined code for better maintainability and performance
 - **Terminal Handling**: Groundwork for native Zig termios operations without C dependencies
 
+### Data Serialization (Serde Interface)
+
+The MufiZ language now includes a comprehensive serialization/deserialization interface supporting multiple data formats:
+
+#### Supported Formats
+- **JSON**: Full serialization and deserialization with pretty printing
+- **TOML**: Complete implementation with table support and configuration parsing
+- **YAML**: Full implementation with flow and block styles, indentation-aware parsing
+
+#### Key Features
+- **Format-Agnostic API**: Unified interface for all supported formats
+- **Type Safety**: Full support for all MufiZ value types and objects
+- **Error Handling**: Comprehensive error reporting with context
+- **Auto-Detection**: Automatic format detection based on content
+- **Extensible**: Plugin system for adding new formats
+
+#### Usage Examples
+```mufi
+// Serialize to different formats
+let data = #{name: "John", age: 30}
+let json = serde_to_json(data)     // {"name":"John","age":30}
+let toml = serde_to_toml(data)     // name = "John"\nage = 30
+let yaml = serde_to_yaml(data)     // name: John\nage: 30
+
+// Deserialize from strings
+let parsed_json = serde_from_json('{"x": 42}')
+let parsed_yaml = serde_from_yaml('x: 42')
+
+// Auto-detect format
+let format = serde_detect_format(input_string)
+let result = serde_deserialize(input_string, format)
+```
+
+For detailed documentation, see `docs/serde_interface.md`
+
 ## Related Repositories
 
 - [homebrew-mufi](https://github.com/Mustafif/homebrew-mufi): The official Homebrew Tap for MufiZ.
