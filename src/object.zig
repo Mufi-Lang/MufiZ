@@ -104,6 +104,14 @@ pub const ObjPair = @import("objects/pair.zig").ObjPair;
 pub const ObjRange = @import("objects/range.zig").ObjRange;
 pub const String = @import("objects/string.zig").String;
 pub const ObjString = String;
+
+// Function-related objects
+pub const ObjFunction = @import("objects/function.zig").ObjFunction;
+pub const ObjNative = @import("objects/native.zig").ObjNative;
+pub const NativeFn = @import("objects/native.zig").NativeFn;
+pub const ObjUpvalue = @import("objects/upvalue.zig").ObjUpvalue;
+pub const ObjClosure = @import("objects/closure.zig").ObjClosure;
+pub const ObjBoundMethod = @import("objects/bound_method.zig").ObjBoundMethod;
 const scanner_h = @import("scanner_optimized.zig");
 const table_h = @import("table.zig");
 const vm_h = @import("vm.zig");
@@ -116,42 +124,7 @@ const valuesEqual = value_h.valuesEqual;
 const push = vm_h.push;
 const pop = vm_h.pop;
 
-// Object Types
-
-pub const ObjFunction = struct {
-    obj: Obj,
-    arity: i32,
-    upvalueCount: i32,
-    chunk: Chunk,
-    name: ?*ObjString,
-};
-
-pub const NativeFn = ?*const fn (i32, [*]Value) Value;
-pub const ObjNative = struct {
-    obj: Obj,
-    function: NativeFn,
-};
-
-pub const ObjUpvalue = struct {
-    obj: Obj,
-    location: [*]Value,
-    closed: Value,
-    next: ?*ObjUpvalue,
-};
-
-pub const ObjClosure = struct {
-    obj: Obj,
-    function: *ObjFunction,
-    upvalues: ?[*]?*ObjUpvalue,
-    upvalueCount: i32,
-};
-
-pub const ObjBoundMethod = struct {
-    obj: Obj,
-    receiver: Value,
-    method: *ObjClosure,
-};
-
+// Object allocation and factory functions
 pub fn allocateObject(size: usize, type_: ObjType) *Obj {
     const allocator = mem_utils.getAllocator();
     const mem_slice = mem_utils.alloc(allocator, u8, size) catch {
