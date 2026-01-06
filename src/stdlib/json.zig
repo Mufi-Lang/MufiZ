@@ -357,7 +357,19 @@ const JsonStringifier = struct {
         }
     }
 
-    /// Escape special characters in a JSON string
+    /// Escape special characters in a JSON string according to RFC 8259
+    /// 
+    /// Handles all required JSON string escape sequences:
+    /// - Quotation mark (") -> \"
+    /// - Backslash (\) -> \\
+    /// - Newline (\n) -> \n
+    /// - Carriage return (\r) -> \r
+    /// - Tab (\t) -> \t
+    /// - Backspace (\b) -> \b
+    /// - Form feed (\f) -> \f
+    /// - Control characters (0x00-0x1F) -> \uXXXX
+    ///
+    /// All other characters are passed through unchanged.
     fn escapeJsonString(self: *JsonStringifier, str: []const u8) std.mem.Allocator.Error!void {
         for (str) |c| {
             switch (c) {

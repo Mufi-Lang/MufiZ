@@ -508,14 +508,18 @@ pub fn defineSIMDNatives() void {
 
 // Native function wrappers for SIMD operations
 pub fn simdMemcpyNative(argCount: i32, args: [*]Value) Value {
-    _ = args; // autofix
+    _ = args;
     if (argCount != 2) {
         runtimeError("simd_memcpy() takes exactly 2 arguments.", .{});
         return Value.init_nil();
     }
 
-    // Implementation would need proper object handling
-    // This is a placeholder for the actual implementation
+    // NOTE: Stub implementation - always returns true
+    // Full implementation requires:
+    // 1. Validating both arguments are appropriate types (arrays/vectors)
+    // 2. Checking length compatibility
+    // 3. Performing SIMD-accelerated memory copy
+    // 4. Handling alignment and edge cases
     return Value.init_bool(true);
 }
 
@@ -755,8 +759,9 @@ fn opSetGlobal() InterpretResult {
     };
     const name = constant.as_string();
 
-    var dummy: Value = undefined;
-    if (tableGet(&vm.globalConstants, name, &dummy)) {
+    // Check if this is a constant (read-only) variable
+    var unused_value: Value = undefined;
+    if (tableGet(&vm.globalConstants, name, &unused_value)) {
         runtimeError("Cannot assign to constant variable '{s}'.", .{name.chars});
         return .INTERPRET_RUNTIME_ERROR;
     }

@@ -400,6 +400,21 @@ pub fn isSerializableObjType(obj_type: ObjType) bool {
 }
 
 /// Create a deep copy of a Value (useful for deserialization)
+/// 
+/// This function recursively clones a Value and all its contained data structures.
+/// Primitive types (bool, nil, int, double, complex) are copied by value.
+/// Object types are recursively cloned with new allocations:
+/// - Strings: shared (immutable and interned)
+/// - Vectors: data array is deep copied
+/// - Hash tables: all entries are recursively cloned
+/// - Matrices: data array is deep copied
+/// - Linked lists: all nodes and values are recursively cloned
+/// - Pairs: both elements are recursively cloned
+/// - Ranges: copied by value
+/// - Functions/Classes: shared (not typically cloned)
+///
+/// Returns: A new Value with independent memory allocations
+/// Errors: OutOfMemory if allocation fails during cloning
 pub fn cloneValue(value: Value, allocator: std.mem.Allocator) !Value {
     switch (value.type) {
         .VAL_BOOL, .VAL_NIL, .VAL_INT, .VAL_DOUBLE, .VAL_COMPLEX => {

@@ -373,6 +373,22 @@ const TomlParser = struct {
         }
     }
 
+    /// Parse TOML array of tables: [[key.path]]
+    /// 
+    /// Array of tables allow multiple table instances under the same key.
+    /// Example TOML:
+    /// ```toml
+    /// [[products]]
+    /// name = "Hammer"
+    /// sku = 738594937
+    /// 
+    /// [[products]]
+    /// name = "Nail"
+    /// sku = 284758393
+    /// ```
+    /// 
+    /// This creates an array at root["products"] containing two table objects.
+    /// Each [[products]] declaration creates a new table and appends it to the array.
     fn parseArrayTable(self: *Self, root: *Value) !void {
         try self.consume(.ArrayTableStart);
 
