@@ -213,7 +213,7 @@ pub const Value = struct {
         switch (self.type) {
             .VAL_INT => {
                 switch (other.type) {
-                    .VAL_INT => unreachable, // Already handled by fast path
+                    .VAL_INT => return Value.init_int(self.as.num_int + other.as.num_int), // Fallback (should be caught by fast path)
                     .VAL_DOUBLE => return Value.init_int(self.as.num_int + @as(i32, @intFromFloat(other.as.num_double))),
                     .VAL_COMPLEX => return Value.init_complex(.{ .r = @as(f64, @floatFromInt(self.as.num_int)) + other.as.complex.r, .i = other.as.complex.i }),
                     else => @panic("Cannot add non-numeric value"),
@@ -222,7 +222,7 @@ pub const Value = struct {
             .VAL_DOUBLE => {
                 switch (other.type) {
                     .VAL_INT => return Value.init_double(self.as.num_double + @as(f64, @floatFromInt(other.as.num_int))),
-                    .VAL_DOUBLE => unreachable, // Already handled by fast path
+                    .VAL_DOUBLE => return Value.init_double(self.as.num_double + other.as.num_double), // Fallback (should be caught by fast path)
                     .VAL_COMPLEX => return Value.init_complex(.{ .r = self.as.num_double + other.as.complex.r, .i = other.as.complex.i }),
                     else => {},
                 }
@@ -330,7 +330,7 @@ pub const Value = struct {
         switch (self.type) {
             .VAL_INT => {
                 switch (other.type) {
-                    .VAL_INT => unreachable, // Already handled by fast path
+                    .VAL_INT => return Value.init_int(self.as.num_int * other.as.num_int), // Fallback (should be caught by fast path)
                     .VAL_DOUBLE => return Value.init_double(@as(f64, @floatFromInt(self.as.num_int)) * other.as.num_double),
                     .VAL_COMPLEX => return Value.init_complex(scaleComplex(other.as.complex, @as(f64, @floatFromInt(self.as.num_int)))),
                     else => {},
@@ -339,7 +339,7 @@ pub const Value = struct {
             .VAL_DOUBLE => {
                 switch (other.type) {
                     .VAL_INT => return Value.init_double(self.as.num_double * @as(f64, @floatFromInt(other.as.num_int))),
-                    .VAL_DOUBLE => unreachable, // Already handled by fast path
+                    .VAL_DOUBLE => return Value.init_double(self.as.num_double * other.as.num_double), // Fallback (should be caught by fast path)
                     .VAL_COMPLEX => return Value.init_complex(scaleComplex(other.as.complex, self.as.num_double)),
                     else => {},
                 }
@@ -408,7 +408,11 @@ pub const Value = struct {
         switch (self.type) {
             .VAL_INT => {
                 switch (other.type) {
-                    .VAL_INT => unreachable, // Already handled by fast path
+                    .VAL_INT => { // Fallback (should be caught by fast path)
+                        const af = @as(f64, @floatFromInt(self.as.num_int));
+                        const bf = @as(f64, @floatFromInt(other.as.num_int));
+                        return Value.init_double(af / bf);
+                    },
                     .VAL_DOUBLE => return Value.init_double(@as(f64, @floatFromInt(self.as.num_int)) / other.as.num_double),
                     .VAL_COMPLEX => {
                         const scalar_as_complex = Complex{ .r = @as(f64, @floatFromInt(self.as.num_int)), .i = 0.0 };
@@ -420,7 +424,7 @@ pub const Value = struct {
             .VAL_DOUBLE => {
                 switch (other.type) {
                     .VAL_INT => return Value.init_double(self.as.num_double / @as(f64, @floatFromInt(other.as.num_int))),
-                    .VAL_DOUBLE => unreachable, // Already handled by fast path
+                    .VAL_DOUBLE => return Value.init_double(self.as.num_double / other.as.num_double), // Fallback (should be caught by fast path)
                     .VAL_COMPLEX => {
                         const scalar_as_complex = Complex{ .r = self.as.num_double, .i = 0.0 };
                         return Value.init_complex(divComplex(scalar_as_complex, other.as.complex));
