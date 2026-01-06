@@ -15,11 +15,11 @@ const debug_opts = @import("debug");
 
 const chunk_h = @import("chunk.zig");
 const mem_utils = @import("mem_utils.zig");
-const obj_h = @import("object.zig");
-const Obj = obj_h.Obj;
-const Node = obj_h.Node;
-const ObjHashTable = obj_h.ObjHashTable;
-const ObjMatrix = obj_h.ObjMatrix;
+const object_h = @import("object.zig");
+const Obj = object_h.Obj;
+const Node = object_h.Node;
+const ObjHashTable = object_h.ObjHashTable;
+const ObjMatrix = object_h.ObjMatrix;
 const fvec = @import("objects/fvec.zig");
 const __obj = @import("objects/obj.zig");
 const table_h = @import("table.zig");
@@ -537,7 +537,7 @@ pub fn scanChildrenBlack(obj: *Obj) void {
     // Implementation depends on object type - similar to blackenObject
     switch (obj.type) {
         .OBJ_CLOSURE => {
-            const closure: *obj_h.ObjClosure = @ptrCast(@alignCast(obj));
+            const closure: *object_h.ObjClosure = @ptrCast(@alignCast(obj));
             if (closure.function.obj.cycleColor != .Black) scanBlack(&closure.function.obj);
             if (closure.upvalues) |upvalues| {
                 for (0..@intCast(closure.upvalueCount)) |i| {
@@ -555,7 +555,7 @@ pub fn scanChildrenForCycles(obj: *Obj) void {
     // Similar to scanChildrenBlack but marks children as white if gray
     switch (obj.type) {
         .OBJ_CLOSURE => {
-            const closure: *obj_h.ObjClosure = @ptrCast(@alignCast(obj));
+            const closure: *object_h.ObjClosure = @ptrCast(@alignCast(obj));
             if (closure.function.obj.cycleColor == .Gray) scanCycles(&closure.function.obj);
             if (closure.upvalues) |upvalues| {
                 for (0..@intCast(closure.upvalueCount)) |i| {
@@ -581,7 +581,7 @@ pub fn collectWhiteChildren(obj: *Obj) void {
     // Free children that are also white
     switch (obj.type) {
         .OBJ_CLOSURE => {
-            const closure: *obj_h.ObjClosure = @ptrCast(@alignCast(obj));
+            const closure: *object_h.ObjClosure = @ptrCast(@alignCast(obj));
             collectWhite(&closure.function.obj);
             if (closure.upvalues) |upvalues| {
                 for (0..@intCast(closure.upvalueCount)) |i| {
@@ -599,7 +599,7 @@ pub fn decrementChildren(obj: *Obj) void {
     // Decrement ref count of all children
     switch (obj.type) {
         .OBJ_CLOSURE => {
-            const closure: *obj_h.ObjClosure = @ptrCast(@alignCast(obj));
+            const closure: *object_h.ObjClosure = @ptrCast(@alignCast(obj));
             closure.function.obj.refCount -= 1;
             if (closure.upvalues) |upvalues| {
                 for (0..@intCast(closure.upvalueCount)) |i| {
@@ -617,7 +617,7 @@ pub fn addChildrenToCycleDetection(obj: *Obj) void {
     // Add children to cycle detection if they're purple
     switch (obj.type) {
         .OBJ_CLOSURE => {
-            const closure: *obj_h.ObjClosure = @ptrCast(@alignCast(obj));
+            const closure: *object_h.ObjClosure = @ptrCast(@alignCast(obj));
             if (closure.function.obj.cycleColor == .Purple) {
                 addToCycleRoots(&closure.function.obj);
             }
@@ -674,48 +674,48 @@ pub fn freeObject(object: *Obj) void {
     switch (object.*.type) {
         .OBJ_BOUND_METHOD => {
             const allocator = mem_utils.getAllocator();
-            const bound_method_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(obj_h.ObjBoundMethod)];
+            const bound_method_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(object_h.ObjBoundMethod)];
             mem_utils.free(allocator, bound_method_slice);
         },
         .OBJ_CLASS => {
-            const klass: *obj_h.ObjClass = @ptrCast(object);
+            const klass: *object_h.ObjClass = @ptrCast(object);
             freeTable(&klass.*.methods);
             const allocator = mem_utils.getAllocator();
-            const class_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(obj_h.ObjClass)];
+            const class_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(object_h.ObjClass)];
             mem_utils.free(allocator, class_slice);
         },
         .OBJ_CLOSURE => {
-            const closure: *obj_h.ObjClosure = @ptrCast(@alignCast(object));
+            const closure: *object_h.ObjClosure = @ptrCast(@alignCast(object));
             const allocator = mem_utils.getAllocator();
             if (closure.*.upvalues) |upvalues| {
-                const upvalues_slice = @as([*]u8, @ptrCast(upvalues))[0..@intCast(@sizeOf(?*obj_h.ObjUpvalue) *% closure.*.upvalueCount)];
+                const upvalues_slice = @as([*]u8, @ptrCast(upvalues))[0..@intCast(@sizeOf(?*object_h.ObjUpvalue) *% closure.*.upvalueCount)];
                 mem_utils.free(allocator, upvalues_slice);
             }
-            const closure_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(obj_h.ObjClosure)];
+            const closure_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(object_h.ObjClosure)];
             mem_utils.free(allocator, closure_slice);
         },
         .OBJ_FUNCTION => {
-            const function: *obj_h.ObjFunction = @ptrCast(@alignCast(object));
+            const function: *object_h.ObjFunction = @ptrCast(@alignCast(object));
 
             chunk_h.freeChunk(&function.*.chunk);
             const allocator = mem_utils.getAllocator();
-            const function_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(obj_h.ObjFunction)];
+            const function_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(object_h.ObjFunction)];
             mem_utils.free(allocator, function_slice);
         },
         .OBJ_INSTANCE => {
-            const instance: *obj_h.ObjInstance = @ptrCast(@alignCast(object));
+            const instance: *object_h.ObjInstance = @ptrCast(@alignCast(object));
             freeTable(&instance.*.fields);
             const allocator = mem_utils.getAllocator();
-            const instance_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(obj_h.ObjInstance)];
+            const instance_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(object_h.ObjInstance)];
             mem_utils.free(allocator, instance_slice);
         },
         .OBJ_NATIVE => {
             const allocator = mem_utils.getAllocator();
-            const native_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(obj_h.ObjNative)];
+            const native_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(object_h.ObjNative)];
             mem_utils.free(allocator, native_slice);
         },
         .OBJ_STRING => {
-            const string: *obj_h.ObjString = @ptrCast(@alignCast(object));
+            const string: *object_h.ObjString = @ptrCast(@alignCast(object));
 
             if (string.chars.len > 0) {
                 // Use the correct allocator based on how the chars were allocated
@@ -732,18 +732,18 @@ pub fn freeObject(object: *Obj) void {
 
             // The string object itself is always allocated with GPA via allocateObject
             const allocator = mem_utils.getAllocator();
-            const string_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(obj_h.ObjString)];
+            const string_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(object_h.ObjString)];
             mem_utils.free(allocator, string_slice);
         },
         .OBJ_UPVALUE => {
             const allocator = mem_utils.getAllocator();
-            const upvalue_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(obj_h.ObjUpvalue)];
+            const upvalue_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(object_h.ObjUpvalue)];
             mem_utils.free(allocator, upvalue_slice);
         },
 
         .OBJ_LINKED_LIST => {
-            const linkedList: *obj_h.LinkedList = @ptrCast(@alignCast(object));
-            obj_h.LinkedList.deinit(linkedList);
+            const linkedList: *object_h.LinkedList = @ptrCast(@alignCast(object));
+            object_h.LinkedList.deinit(linkedList);
         },
         .OBJ_HASH_TABLE => {
             const hashTable: *ObjHashTable = @ptrCast(@alignCast(object));
@@ -751,33 +751,33 @@ pub fn freeObject(object: *Obj) void {
             ObjHashTable.deinit(hashTable);
         },
         .OBJ_FVECTOR => {
-            const fvector: *obj_h.FloatVector = @ptrCast(@alignCast(object));
+            const fvector: *object_h.FloatVector = @ptrCast(@alignCast(object));
             fvec.FloatVector.deinit(fvector);
         },
         .OBJ_RANGE => {
             const allocator = mem_utils.getAllocator();
-            const range_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(obj_h.ObjRange)];
+            const range_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(object_h.ObjRange)];
             mem_utils.free(allocator, range_slice);
         },
         .OBJ_PAIR => {
-            const pair: *obj_h.ObjPair = @ptrCast(@alignCast(object));
+            const pair: *object_h.ObjPair = @ptrCast(@alignCast(object));
             pair.key.release();
             pair.value.release();
             const allocator = mem_utils.getAllocator();
-            const pair_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(obj_h.ObjPair)];
+            const pair_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(object_h.ObjPair)];
             mem_utils.free(allocator, pair_slice);
         },
         .OBJ_MATRIX => {
-            const matrix: *obj_h.Matrix = @ptrCast(@alignCast(object));
+            const matrix: *object_h.Matrix = @ptrCast(@alignCast(object));
             matrix.deinit();
             const allocator = mem_utils.getAllocator();
-            const matrix_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(obj_h.Matrix)];
+            const matrix_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(object_h.Matrix)];
             mem_utils.free(allocator, matrix_slice);
         },
         .OBJ_MATRIX_ROW => {
             // Matrix row objects don't own data, just free the object itself
             const allocator = mem_utils.getAllocator();
-            const matrix_row_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(obj_h.MatrixRow)];
+            const matrix_row_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(object_h.MatrixRow)];
             mem_utils.free(allocator, matrix_row_slice);
         },
     }
@@ -792,7 +792,7 @@ pub fn blackenObject(object: *Obj) void {
 
     switch (object.*.type) {
         .OBJ_BOUND_METHOD => {
-            const bound: *obj_h.ObjBoundMethod = @ptrCast(@alignCast(object));
+            const bound: *object_h.ObjBoundMethod = @ptrCast(@alignCast(object));
             markValue(bound.*.receiver);
             markObject(@ptrCast(@alignCast(bound.*.method)));
         },
@@ -800,13 +800,13 @@ pub fn blackenObject(object: *Obj) void {
             // ObjRange has no GC-managed fields to mark
         },
         .OBJ_CLASS => {
-            var klass: *obj_h.ObjClass = @ptrCast(@alignCast(object));
+            var klass: *object_h.ObjClass = @ptrCast(@alignCast(object));
             _ = &klass;
             markObject(@ptrCast(@alignCast(klass.*.name)));
             markTable(&klass.*.methods);
         },
         .OBJ_CLOSURE => {
-            const closure: *obj_h.ObjClosure = @ptrCast(@alignCast(object));
+            const closure: *object_h.ObjClosure = @ptrCast(@alignCast(object));
             markObject(@ptrCast(@alignCast(closure.*.function)));
             for (0..@intCast(closure.*.upvalueCount)) |i| {
                 if (closure.upvalues.?[i]) |upvalue| {
@@ -815,21 +815,21 @@ pub fn blackenObject(object: *Obj) void {
             }
         },
         .OBJ_FUNCTION => {
-            const function: *obj_h.ObjFunction = @ptrCast(@alignCast(object));
+            const function: *object_h.ObjFunction = @ptrCast(@alignCast(object));
             markObject(@ptrCast(@alignCast(function.*.name)));
             markArray(&function.*.chunk.constants);
         },
         .OBJ_INSTANCE => {
-            const instance: *obj_h.ObjInstance = @ptrCast(@alignCast(object));
+            const instance: *object_h.ObjInstance = @ptrCast(@alignCast(object));
             markObject(@ptrCast(@alignCast(instance.*.klass)));
             markTable(&instance.*.fields);
         },
         .OBJ_UPVALUE => {
-            markValue(@as(*obj_h.ObjUpvalue, @ptrCast(@alignCast(object))).*.closed);
+            markValue(@as(*object_h.ObjUpvalue, @ptrCast(@alignCast(object))).*.closed);
         },
 
         .OBJ_LINKED_LIST => {
-            const linkedList: *obj_h.LinkedList = @ptrCast(@alignCast(object));
+            const linkedList: *object_h.LinkedList = @ptrCast(@alignCast(object));
             var current: ?*Node = linkedList.head;
             while (current) |node| {
                 markValue(node.data);
@@ -841,7 +841,7 @@ pub fn blackenObject(object: *Obj) void {
             markHashMap(hashTable);
         },
         .OBJ_PAIR => {
-            const pair: *obj_h.ObjPair = @ptrCast(@alignCast(object));
+            const pair: *object_h.ObjPair = @ptrCast(@alignCast(object));
             markValue(pair.key);
             markValue(pair.value);
         },
@@ -849,7 +849,7 @@ pub fn blackenObject(object: *Obj) void {
             // Matrix has no GC-managed fields to mark (only contains f64 data)
         },
         .OBJ_MATRIX_ROW => {
-            const matrix_row: *obj_h.MatrixRow = @ptrCast(@alignCast(object));
+            const matrix_row: *object_h.MatrixRow = @ptrCast(@alignCast(object));
             // Mark the parent matrix to keep it alive
             markObject(@ptrCast(matrix_row.matrix));
         },
@@ -903,7 +903,7 @@ pub fn incrementalGC() void {
                     markTable(&vm_h.vm.strings);
                     markObject(@ptrCast(@alignCast(vm_h.vm.initString)));
 
-                    var upvalue: ?*obj_h.ObjUpvalue = vm_h.vm.openUpvalues;
+                    var upvalue: ?*object_h.ObjUpvalue = vm_h.vm.openUpvalues;
 
                     while (upvalue) |current| {
                         markObject(@ptrCast(@alignCast(current)));

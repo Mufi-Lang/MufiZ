@@ -1,8 +1,8 @@
 const std = @import("std");
 const stdlib_core = @import("../stdlib_core.zig");
 const Value = @import("../value.zig").Value;
-const obj_h = @import("../object.zig");
-const Matrix = obj_h.Matrix;
+const object_h = @import("../object.zig");
+const Matrix = object_h.Matrix;
 
 const DefineFunction = stdlib_core.DefineFunction;
 const ParamSpec = stdlib_core.ParamSpec;

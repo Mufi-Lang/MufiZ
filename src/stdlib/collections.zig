@@ -10,11 +10,11 @@ const OneNumber = stdlib_core.OneNumber;
 
 const conv = @import("../conv.zig");
 const mem_utils = @import("../mem_utils.zig");
-const obj_h = @import("../object.zig");
-const ObjType = obj_h.ObjType;
-const ObjLinkedList = obj_h.LinkedList;
-const ObjHashTable = obj_h.ObjHashTable;
-const FloatVector = obj_h.FloatVector;
+const object_h = @import("../object.zig");
+const ObjType = object_h.ObjType;
+const ObjLinkedList = object_h.LinkedList;
+const ObjHashTable = object_h.ObjHashTable;
+const FloatVector = object_h.FloatVector;
 const fvector = @import("../objects/fvec.zig");
 const ObjRange = @import("../objects/range.zig").ObjRange;
 const valuesEqual = @import("../value.zig").valuesEqual;

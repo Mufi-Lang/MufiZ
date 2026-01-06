@@ -4,7 +4,7 @@ const Value = @import("../value.zig").Value;
 const mem_utils = @import("../mem_utils.zig");
 const net = @import("../net.zig");
 const ContentType = net.ContentType;
-const obj_h = @import("../object.zig");
+const object_h = @import("../object.zig");
 const vm = @import("../vm.zig");
 
 const DefineFunction = stdlib_v2.DefineFunction;
@@ -32,7 +32,7 @@ fn http_get_impl(_: i32, args: [*]Value) Value {
         return Value.init_nil();
     };
 
-    return Value.init_obj(@ptrCast(obj_h.copyString(result.ptr, result.len)));
+    return Value.init_obj(@ptrCast(object_h.copyString(result.ptr, result.len)));
 }
 
 fn http_post_impl(_: i32, args: [*]Value) Value {
@@ -54,7 +54,7 @@ fn http_post_impl(_: i32, args: [*]Value) Value {
         return Value.init_nil();
     };
 
-    return Value.init_obj(@ptrCast(obj_h.copyString(result.ptr, result.len)));
+    return Value.init_obj(@ptrCast(object_h.copyString(result.ptr, result.len)));
 }
 
 fn http_put_impl(_: i32, args: [*]Value) Value {
@@ -76,7 +76,7 @@ fn http_put_impl(_: i32, args: [*]Value) Value {
         return Value.init_nil();
     };
 
-    return Value.init_obj(@ptrCast(obj_h.copyString(result.ptr, result.len)));
+    return Value.init_obj(@ptrCast(object_h.copyString(result.ptr, result.len)));
 }
 
 fn http_delete_impl(_: i32, args: [*]Value) Value {
@@ -96,7 +96,7 @@ fn http_delete_impl(_: i32, args: [*]Value) Value {
         return Value.init_nil();
     };
 
-    return Value.init_obj(@ptrCast(obj_h.copyString(result.ptr, result.len)));
+    return Value.init_obj(@ptrCast(object_h.copyString(result.ptr, result.len)));
 }
 
 fn set_content_type_impl(_: i32, args: [*]Value) Value {
@@ -110,11 +110,11 @@ fn set_content_type_impl(_: i32, args: [*]Value) Value {
 
     // Create a hash table with the available content types for reference
     _ = content_type_str;
-    const result = obj_h.HashTable.init();
-    _ = result.put(obj_h.copyString("text", 4), Value.init_obj(@ptrCast(obj_h.copyString("text/plain", 10))));
-    _ = result.put(obj_h.copyString("html", 4), Value.init_obj(@ptrCast(obj_h.copyString("text/html", 9))));
-    _ = result.put(obj_h.copyString("json", 4), Value.init_obj(@ptrCast(obj_h.copyString("application/json", 16))));
-    _ = result.put(obj_h.copyString("xml", 3), Value.init_obj(@ptrCast(obj_h.copyString("application/xml", 15))));
+    const result = object_h.HashTable.init();
+    _ = result.put(object_h.copyString("text", 4), Value.init_obj(@ptrCast(object_h.copyString("text/plain", 10))));
+    _ = result.put(object_h.copyString("html", 4), Value.init_obj(@ptrCast(object_h.copyString("text/html", 9))));
+    _ = result.put(object_h.copyString("json", 4), Value.init_obj(@ptrCast(object_h.copyString("application/json", 16))));
+    _ = result.put(object_h.copyString("xml", 3), Value.init_obj(@ptrCast(object_h.copyString("application/xml", 15))));
 
     return Value.init_obj(@ptrCast(result));
 }
@@ -146,14 +146,14 @@ fn parse_url_impl(_: i32, args: [*]Value) Value {
     };
 
     // Create a hash table to hold the parsed URL parts
-    const result = obj_h.HashTable.init();
+    const result = object_h.HashTable.init();
 
     // Add the parsed components to the hash table
     if (uri.scheme.len > 0) {
-        _ = result.put(obj_h.copyString("scheme", 6), Value.init_obj(@ptrCast(obj_h.copyString(uri.scheme.ptr, uri.scheme.len))));
+        _ = result.put(object_h.copyString("scheme", 6), Value.init_obj(@ptrCast(object_h.copyString(uri.scheme.ptr, uri.scheme.len))));
     }
     if (uri.user) |user| {
-        _ = result.put(obj_h.copyString("user", 4), Value.init_obj(@ptrCast(obj_h.copyString(switch (user) {
+        _ = result.put(object_h.copyString("user", 4), Value.init_obj(@ptrCast(object_h.copyString(switch (user) {
             .raw => |raw| raw.ptr,
             .percent_encoded => |encoded| encoded.ptr,
         }, switch (user) {
@@ -162,7 +162,7 @@ fn parse_url_impl(_: i32, args: [*]Value) Value {
         }))));
     }
     if (uri.password) |password| {
-        _ = result.put(obj_h.copyString("password", 8), Value.init_obj(@ptrCast(obj_h.copyString(switch (password) {
+        _ = result.put(object_h.copyString("password", 8), Value.init_obj(@ptrCast(object_h.copyString(switch (password) {
             .raw => |raw| raw.ptr,
             .percent_encoded => |encoded| encoded.ptr,
         }, switch (password) {
@@ -171,7 +171,7 @@ fn parse_url_impl(_: i32, args: [*]Value) Value {
         }))));
     }
     if (uri.host) |host| {
-        _ = result.put(obj_h.copyString("host", 4), Value.init_obj(@ptrCast(obj_h.copyString(switch (host) {
+        _ = result.put(object_h.copyString("host", 4), Value.init_obj(@ptrCast(object_h.copyString(switch (host) {
             .raw => |raw| raw.ptr,
             .percent_encoded => |encoded| encoded.ptr,
         }, switch (host) {
@@ -180,12 +180,12 @@ fn parse_url_impl(_: i32, args: [*]Value) Value {
         }))));
     }
     if (uri.port != null) {
-        _ = result.put(obj_h.copyString("port", 4), Value.init_int(@intCast(uri.port.?)));
+        _ = result.put(object_h.copyString("port", 4), Value.init_int(@intCast(uri.port.?)));
     }
     // Path is non-optional Component type
     {
         const path = uri.path;
-        _ = result.put(obj_h.copyString("path", 4), Value.init_obj(@ptrCast(obj_h.copyString(switch (path) {
+        _ = result.put(object_h.copyString("path", 4), Value.init_obj(@ptrCast(object_h.copyString(switch (path) {
             .raw => |raw| raw.ptr,
             .percent_encoded => |encoded| encoded.ptr,
         }, switch (path) {
@@ -194,7 +194,7 @@ fn parse_url_impl(_: i32, args: [*]Value) Value {
         }))));
     }
     if (uri.query) |query| {
-        _ = result.put(obj_h.copyString("query", 5), Value.init_obj(@ptrCast(obj_h.copyString(switch (query) {
+        _ = result.put(object_h.copyString("query", 5), Value.init_obj(@ptrCast(object_h.copyString(switch (query) {
             .raw => |raw| raw.ptr,
             .percent_encoded => |encoded| encoded.ptr,
         }, switch (query) {
@@ -203,7 +203,7 @@ fn parse_url_impl(_: i32, args: [*]Value) Value {
         }))));
     }
     if (uri.fragment) |fragment| {
-        _ = result.put(obj_h.copyString("fragment", 8), Value.init_obj(@ptrCast(obj_h.copyString(switch (fragment) {
+        _ = result.put(object_h.copyString("fragment", 8), Value.init_obj(@ptrCast(object_h.copyString(switch (fragment) {
             .raw => |raw| raw.ptr,
             .percent_encoded => |encoded| encoded.ptr,
         }, switch (fragment) {
@@ -254,7 +254,7 @@ fn url_encode_impl(_: i32, args: [*]Value) Value {
         }
     }
 
-    return Value.init_obj(@ptrCast(obj_h.copyString(buffer.ptr, pos)));
+    return Value.init_obj(@ptrCast(object_h.copyString(buffer.ptr, pos)));
 }
 
 fn url_decode_impl(_: i32, args: [*]Value) Value {
@@ -295,7 +295,7 @@ fn url_decode_impl(_: i32, args: [*]Value) Value {
         }
     }
 
-    return Value.init_obj(@ptrCast(obj_h.copyString(buffer.ptr, pos)));
+    return Value.init_obj(@ptrCast(object_h.copyString(buffer.ptr, pos)));
 }
 
 fn open_url_impl(_: i32, args: [*]Value) Value {
