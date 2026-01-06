@@ -2,10 +2,10 @@ const std = @import("std");
 
 const reallocate = @import("../memory.zig").reallocate;
 const allocateObject = @import("../object.zig").allocateObject;
-const obj_h = @import("../object.zig");
-const Obj = obj_h.Obj;
-const ObjString = obj_h.ObjString;
-const FloatVector = obj_h.FloatVector;
+const object_h = @import("../object.zig");
+const Obj = object_h.Obj;
+const ObjString = object_h.ObjString;
+const FloatVector = object_h.FloatVector;
 const fvector = @import("../objects/fvec.zig");
 const value_h = @import("../value.zig");
 const Value = value_h.Value;
@@ -197,7 +197,7 @@ pub const ObjRange = struct {
         const operator = if (self.inclusive) "..=" else "..";
         const format_str = std.fmt.allocPrint(std.heap.page_allocator, "{d}{s}{d}", .{ self.start, operator, self.end }) catch "range(error)";
 
-        const string = obj_h.copyString(format_str.ptr, @intCast(format_str.len));
+        const string = object_h.copyString(format_str.ptr, @intCast(format_str.len));
         return Value.init_obj(@ptrCast(string));
     }
 };

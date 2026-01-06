@@ -1,9 +1,9 @@
 const std = @import("std");
 
 const mem_utils = @import("../mem_utils.zig");
-const obj_h = @import("../object.zig");
-const Obj = obj_h.Obj;
-const allocateObject = obj_h.allocateObject;
+const object_h = @import("../object.zig");
+const Obj = object_h.Obj;
+const allocateObject = object_h.allocateObject;
 const value_h = @import("../value.zig");
 const Value = value_h.Value;
 const __obj = @import("obj.zig");

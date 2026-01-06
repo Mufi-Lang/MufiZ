@@ -45,16 +45,16 @@ const print = std.debug.print;
 
 const memcpy = @import("mem_utils.zig").memcpyFast;
 const mem_utils = @import("mem_utils.zig");
-const obj_h = @import("object.zig");
-const Obj = obj_h.Obj;
-const ObjString = obj_h.ObjString;
-const ObjArray = obj_h.ObjArray;
-const ObjFunction = obj_h.ObjFunction;
-const ObjLinkedList = obj_h.LinkedList;
-const Node = obj_h.Node;
-const FloatVector = obj_h.FloatVector;
-const Matrix = obj_h.Matrix;
-const MatrixRow = obj_h.MatrixRow;
+const object_h = @import("object.zig");
+const Obj = object_h.Obj;
+const ObjString = object_h.ObjString;
+const ObjArray = object_h.ObjArray;
+const ObjFunction = object_h.ObjFunction;
+const ObjLinkedList = object_h.LinkedList;
+const Node = object_h.Node;
+const FloatVector = object_h.FloatVector;
+const Matrix = object_h.Matrix;
+const MatrixRow = object_h.MatrixRow;
 const fvec = @import("objects/fvec.zig");
 const obj_range = @import("objects/range.zig");
 
@@ -142,7 +142,7 @@ pub const Value = struct {
     pub fn init_string(s: []u8) Self {
         const chars: [*]const u8 = @ptrCast(@alignCast(s.ptr));
         const length: usize = @intCast(s.len);
-        const obj_str = obj_h.copyString(chars, length);
+        const obj_str = object_h.copyString(chars, length);
         return Value.init_obj(@ptrCast(obj_str));
     }
 
@@ -247,7 +247,7 @@ pub const Value = struct {
                     _ = memcpy(@ptrCast(chars), @ptrCast(a.*.chars), @intCast(a.*.length));
                     _ = memcpy(@ptrCast(chars + @as(usize, @bitCast(@as(isize, @intCast(a.*.length))))), @ptrCast(b.*.chars), @intCast(b.*.length));
                     chars[@intCast(length)] = '\x00';
-                    const result = obj_h.takeString(chars, length);
+                    const result = object_h.takeString(chars, length);
                     return Value.init_obj(@ptrCast(@alignCast(result)));
                 } else if (self.is_fvec() and other.is_fvec()) {
                     // Both are FloatVectors
@@ -300,7 +300,7 @@ pub const Value = struct {
                     _ = memcpy(@ptrCast(chars), @ptrCast(self_str.ptr), @intCast(self_str.len));
                     _ = memcpy(@ptrCast(chars + @as(usize, @intCast(self_str.len))), @ptrCast(other_str.ptr), @intCast(other_str.len));
                     chars[@intCast(length)] = '\x00';
-                    const result = obj_h.takeString(chars, length);
+                    const result = object_h.takeString(chars, length);
                     return Value.init_obj(@ptrCast(@alignCast(result)));
                 }
             },
@@ -504,7 +504,7 @@ pub const Value = struct {
         return self.type == .VAL_INT or self.type == .VAL_DOUBLE;
     }
 
-    pub fn is_obj_type(self: Self, ty: obj_h.ObjType) bool {
+    pub fn is_obj_type(self: Self, ty: object_h.ObjType) bool {
         return self.is_obj() and self.as.obj.?.type == ty;
     }
 
@@ -586,7 +586,7 @@ pub const Value = struct {
         return @ptrCast(@alignCast(self.as.obj));
     }
 
-    pub fn as_pair(self: Self) *obj_h.ObjPair {
+    pub fn as_pair(self: Self) *object_h.ObjPair {
         return @ptrCast(@alignCast(self.as.obj));
     }
 
@@ -620,15 +620,15 @@ pub const Value = struct {
         return @ptrCast(@alignCast(self.as.obj));
     }
 
-    pub fn as_hash_table(self: Self) *obj_h.ObjHashTable {
+    pub fn as_hash_table(self: Self) *object_h.ObjHashTable {
         return @ptrCast(@alignCast(self.as.obj));
     }
 
-    pub fn as_vector(self: Self) *obj_h.FloatVector {
+    pub fn as_vector(self: Self) *object_h.FloatVector {
         return @ptrCast(@alignCast(self.as.obj));
     }
 
-    pub fn as_class(self: Self) *obj_h.ObjClass {
+    pub fn as_class(self: Self) *object_h.ObjClass {
         return @ptrCast(@alignCast(self.as.obj));
     }
 
@@ -736,8 +736,8 @@ pub fn valuesEqual(a: Value, b: Value) bool {
                             range_a.inclusive == range_b.inclusive;
                     },
                     .OBJ_PAIR => {
-                        const pair_a = @as(*obj_h.ObjPair, @ptrCast(@alignCast(a.as.obj)));
-                        const pair_b = @as(*obj_h.ObjPair, @ptrCast(@alignCast(b.as.obj)));
+                        const pair_a = @as(*object_h.ObjPair, @ptrCast(@alignCast(a.as.obj)));
+                        const pair_b = @as(*object_h.ObjPair, @ptrCast(@alignCast(b.as.obj)));
 
                         return valuesEqual(pair_a.key, pair_b.key) and
                             valuesEqual(pair_a.value, pair_b.value);
@@ -844,7 +844,7 @@ pub fn printValue(value: Value) void {
             print("{d} + {d}i", .{ c.r, c.i });
         },
         .VAL_OBJ => {
-            obj_h.printObject(value);
+            object_h.printObject(value);
         },
     }
 }
@@ -856,7 +856,7 @@ fn objToString(value: Value) []const u8 {
     switch (value.as.obj.?.type) {
         .OBJ_STRING => return value.as_zstring(),
         .OBJ_FUNCTION => {
-            const function = @as(*obj_h.ObjFunction, @ptrCast(@alignCast(value.as.obj)));
+            const function = @as(*object_h.ObjFunction, @ptrCast(@alignCast(value.as.obj)));
             if (function.*.name) |name| {
                 return std.fmt.allocPrint(std.heap.page_allocator, "<fn {s}>", .{name.*.chars[0..@intCast(name.*.length)]}) catch unreachable;
             } else {
@@ -864,7 +864,7 @@ fn objToString(value: Value) []const u8 {
             }
         },
         .OBJ_HASH_TABLE => {
-            const ht = @as(*obj_h.ObjHashTable, @ptrCast(@alignCast(value.as.obj)));
+            const ht = @as(*object_h.ObjHashTable, @ptrCast(@alignCast(value.as.obj)));
             var result = std.fmt.allocPrint(std.heap.page_allocator, "{{", .{}) catch unreachable;
 
             var count: i32 = 0;
@@ -893,7 +893,7 @@ fn objToString(value: Value) []const u8 {
         .OBJ_FVECTOR => return "<vector>",
         .OBJ_LINKED_LIST => return "<list>",
         .OBJ_PAIR => {
-            const pair = @as(*obj_h.ObjPair, @ptrCast(@alignCast(value.as.obj)));
+            const pair = @as(*object_h.ObjPair, @ptrCast(@alignCast(value.as.obj)));
             const keyStr = valueToString(pair.key);
             const valueStr = valueToString(pair.value);
             return std.fmt.allocPrint(std.heap.page_allocator, "({s}, {s})", .{ keyStr, valueStr }) catch unreachable;
