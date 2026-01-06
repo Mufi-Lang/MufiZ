@@ -651,16 +651,14 @@ pub fn valuesEqual(a: Value, b: Value) bool {
         if (a.type == .VAL_OBJ and a.as.obj != null and a.as.obj.?.type == .OBJ_RANGE and
             (b.type == .VAL_INT or b.type == .VAL_DOUBLE))
         {
-            const range = @import("objects/range.zig");
-            const range_obj: *range.ObjRange = @ptrCast(@alignCast(a.as.obj));
+            const range_obj: *obj_range.ObjRange = @ptrCast(@alignCast(a.as.obj));
             const value = b.as_num_int();
             return range_obj.contains(value);
         }
         if (b.type == .VAL_OBJ and b.as.obj != null and b.as.obj.?.type == .OBJ_RANGE and
             (a.type == .VAL_INT or a.type == .VAL_DOUBLE))
         {
-            const range = @import("objects/range.zig");
-            const range_obj: *range.ObjRange = @ptrCast(@alignCast(b.as.obj));
+            const range_obj: *obj_range.ObjRange = @ptrCast(@alignCast(b.as.obj));
             const value = a.as_num_int();
             return range_obj.contains(value);
         }
