@@ -55,8 +55,6 @@ const FloatVector = fvec.FloatVector;
 const Matrix = object_h.Matrix;
 const obj_range = @import("objects/range.zig");
 const ObjRange = obj_range.ObjRange;
-const simd_string = @import("simd_string.zig");
-const SIMDString = simd_string.SIMDString;
 const utils = @import("stdlib/utils.zig");
 const table_h = @import("table.zig");
 const tableGet = table_h.tableGet;
@@ -538,7 +536,7 @@ pub fn simdFindNative(argCount: i32, args: [*]Value) Value {
     const haystack = haystack_str.chars[0..haystack_str.length];
     const needle = needle_str.chars[0..needle_str.length];
 
-    if (SIMDString.findSIMD(haystack, needle)) |pos| {
+    if (ObjString.findSIMD(haystack, needle)) |pos| {
         return Value.init_int(@intCast(pos));
     } else {
         return Value.init_int(-1);
@@ -562,7 +560,7 @@ pub fn simdEqualsNative(argCount: i32, args: [*]Value) Value {
     const s1 = str1.chars[0..str1.length];
     const s2 = str2.chars[0..str2.length];
 
-    return Value.init_bool(SIMDString.equalsSIMD(s1, s2));
+    return Value.init_bool(ObjString.equalsSIMD(s1, s2));
 }
 
 pub fn simdCompareNative(argCount: i32, args: [*]Value) Value {
@@ -582,7 +580,7 @@ pub fn simdCompareNative(argCount: i32, args: [*]Value) Value {
     const s1 = str1.chars[0..str1.length];
     const s2 = str2.chars[0..str2.length];
 
-    const result = SIMDString.compareSIMD(s1, s2);
+    const result = ObjString.compareSIMD(s1, s2);
     return Value.init_int(result);
 }
 
