@@ -445,13 +445,9 @@ pub fn cloneValue(value: Value, allocator: std.mem.Allocator) !Value {
                 .OBJ_HASH_TABLE => {
                     // Clone hash table
                     const original = @as(*ObjHashTable, @ptrCast(@alignCast(obj)));
-                    const new_table = try allocator.create(ObjHashTable);
-                    new_table.* = ObjHashTable{
-                        .obj = Obj{ .type = .OBJ_HASH_TABLE, .next = null },
-                        .map = undefined,
-                    };
-                    // Initialize the internal map and copy entries
-                    new_table.map.init();
+                    const new_table = object_h.HashTable.init();
+                    
+                    // Copy all entries
                     var iterator = original.iterator();
                     while (iterator.next()) |entry| {
                         const cloned_value = try cloneValue(entry.value, allocator);
@@ -594,8 +590,7 @@ pub const testing = struct {
                 
                 var iter = table_a.iterator();
                 while (iter.next()) |entry| {
-                    var value_b: Value = undefined;
-                    if (!table_b.map.get(entry.key, &value_b)) return false;
+                    const value_b = table_b.get(entry.key) orelse return false;
                     if (!valuesEqual(entry.value, value_b)) return false;
                 }
                 return true;

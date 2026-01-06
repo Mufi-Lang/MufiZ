@@ -569,7 +569,7 @@ const YamlParser = struct {
     /// This is different from double-quoted strings which support
     /// full escape sequences like \n, \t, \uXXXX, etc.
     fn processSingleQuoteEscapes(self: *Self, content: []const u8) ![]u8 {
-        var result = std.ArrayList(u8).initCapacity(self.allocator, 0) catch unreachable;
+        var result = std.ArrayList(u8).init(self.allocator);
 
         var i: usize = 0;
         while (i < content.len) {
