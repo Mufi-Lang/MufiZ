@@ -211,8 +211,14 @@ pub const ErrorManager = struct {
 
 // Predefined error templates with suggestions
 pub const ErrorTemplates = struct {
+    /// Helper function to format strings using the global allocator
+    /// This reduces repetition of std.fmt.allocPrint(mem_utils.getAllocator(), ...) pattern
+    inline fn fmt(comptime format: []const u8, args: anytype) []const u8 {
+        return std.fmt.allocPrint(mem_utils.getAllocator(), format, args) catch format;
+    }
+
     pub fn unexpectedToken(actual: []const u8, expected: []const u8) ErrorInfo {
-        const message = std.fmt.allocPrint(mem_utils.getAllocator(), "Unexpected token '{s}', expected '{s}'", .{ actual, expected }) catch "Unexpected token";
+        const message = fmt("Unexpected token '{s}', expected '{s}'", .{ actual, expected });
 
         return ErrorInfo{
             .code = .UNEXPECTED_TOKEN,
@@ -223,24 +229,24 @@ pub const ErrorTemplates = struct {
             .length = @intCast(actual.len),
             .message = message,
             .suggestions = &[_]ErrorSuggestion{
-                .{ .message = std.fmt.allocPrint(mem_utils.getAllocator(), "Replace '{s}' with '{s}'", .{ actual, expected }) catch "Check syntax" },
+                .{ .message = fmt("Replace '{s}' with '{s}'", .{ actual, expected }) },
             },
         };
     }
 
     pub fn undefinedVariable(name: []const u8, similar_names: []const []const u8) ErrorInfo {
-        const message = std.fmt.allocPrint(mem_utils.getAllocator(), "Undefined variable '{s}'", .{name}) catch "Undefined variable";
+        const message = fmt("Undefined variable '{s}'", .{name});
 
         var suggestions = std.ArrayList(ErrorSuggestion).initCapacity(mem_utils.getAllocator(), 0) catch unreachable;
         suggestions.append(mem_utils.getAllocator(), .{ .message = "Declare the variable before using it" }) catch {};
 
         if (similar_names.len > 0) {
-            const suggestion_msg = std.fmt.allocPrint(mem_utils.getAllocator(), "Did you mean '{s}'?", .{similar_names[0]}) catch "Check spelling";
+            const suggestion_msg = fmt("Did you mean '{s}'?", .{similar_names[0]});
             suggestions.append(mem_utils.getAllocator(), .{ .message = suggestion_msg }) catch {};
             defer suggestions.deinit(mem_utils.getAllocator());
 
             // Add fix suggestion if there's a close match
-            const fix_msg = std.fmt.allocPrint(mem_utils.getAllocator(), "Replace '{s}' with '{s}'", .{ name, similar_names[0] }) catch "Fix variable name";
+            const fix_msg = fmt("Replace '{s}' with '{s}'", .{ name, similar_names[0] });
             suggestions.append(mem_utils.getAllocator(), .{ .message = fix_msg }) catch {};
         } else {
             // No similar names found, provide more general suggestions
@@ -253,7 +259,7 @@ pub const ErrorTemplates = struct {
             suggestions.append(mem_utils.getAllocator(), .{ .message = "Variable names should be descriptive and longer than 2 characters" }) catch {};
         }
 
-        suggestions.append(mem_utils.getAllocator(), .{ .message = "Example variable declaration", .example = std.fmt.allocPrint(mem_utils.getAllocator(), "var {s} = value;", .{name}) catch "var myVar = value;" }) catch {};
+        suggestions.append(mem_utils.getAllocator(), .{ .message = "Example variable declaration", .example = fmt("var {s} = value;", .{name}) }) catch {};
 
         return ErrorInfo{
             .code = .UNDEFINED_VARIABLE,
@@ -268,12 +274,12 @@ pub const ErrorTemplates = struct {
     }
 
     pub fn wrongArgumentCount(function_name: []const u8, expected: u32, actual: u32) ErrorInfo {
-        const message = std.fmt.allocPrint(mem_utils.getAllocator(), "Function '{s}' expects {d} arguments, but {d} were provided", .{ function_name, expected, actual }) catch "Wrong argument count";
+        const message = fmt("Function '{s}' expects {d} arguments, but {d} were provided", .{ function_name, expected, actual });
 
         const fix_msg = if (actual > expected)
-            std.fmt.allocPrint(mem_utils.getAllocator(), "Remove {} argument{s}", .{ actual - expected, if (actual - expected == 1) "" else "s" }) catch "Adjust arguments"
+            fmt("Remove {} argument{s}", .{ actual - expected, if (actual - expected == 1) "" else "s" })
         else
-            std.fmt.allocPrint(mem_utils.getAllocator(), "Add {} argument{s}", .{ expected - actual, if (expected - actual == 1) "" else "s" }) catch "Adjust arguments";
+            fmt("Add {} argument{s}", .{ expected - actual, if (expected - actual == 1) "" else "s" });
 
         return ErrorInfo{
             .code = .WRONG_ARGUMENT_COUNT,
@@ -343,7 +349,7 @@ pub const ErrorTemplates = struct {
     }
 
     pub fn indexOutOfBounds(index: i32, size: i32) ErrorInfo {
-        const message = std.fmt.allocPrint(mem_utils.getAllocator(), "Index {d} is out of bounds for size {d}", .{ index, size }) catch "Index out of bounds";
+        const message = fmt("Index {d} is out of bounds for size {d}", .{ index, size });
 
         return ErrorInfo{
             .code = .INDEX_OUT_OF_BOUNDS,
@@ -354,7 +360,7 @@ pub const ErrorTemplates = struct {
             .length = 1,
             .message = message,
             .suggestions = &[_]ErrorSuggestion{
-                .{ .message = std.fmt.allocPrint(mem_utils.getAllocator(), "Valid indices are 0 to {d}", .{size - 1}) catch "Check bounds" },
+                .{ .message = fmt("Valid indices are 0 to {d}", .{size - 1}) },
                 .{ .message = "Check array/vector size before accessing elements" },
                 .{ .message = "Use bounds checking", .example = "if (index >= 0 && index < size) { ... }" },
             },
