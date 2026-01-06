@@ -333,8 +333,8 @@ const JsonStringifier = struct {
                 if (value.is_string()) {
                     try self.buffer.append(self.allocator, '"');
                     const str = value.as_zstring();
-                    // TODO: Escape special characters
-                    try self.buffer.appendSlice(self.allocator, str);
+                    // Escape special characters for JSON
+                    try self.escapeJsonString(str);
                     try self.buffer.append(self.allocator, '"');
                 } else if (value.is_obj_type(.OBJ_HASH_TABLE)) {
                     const hash_table = @as(*ObjHashTable, @ptrCast(@alignCast(value.as.obj)));
@@ -357,6 +357,28 @@ const JsonStringifier = struct {
         }
     }
 
+    /// Escape special characters in a JSON string
+    fn escapeJsonString(self: *JsonStringifier, str: []const u8) std.mem.Allocator.Error!void {
+        for (str) |c| {
+            switch (c) {
+                '"' => try self.buffer.appendSlice(self.allocator, "\\\""),
+                '\\' => try self.buffer.appendSlice(self.allocator, "\\\\"),
+                '\n' => try self.buffer.appendSlice(self.allocator, "\\n"),
+                '\r' => try self.buffer.appendSlice(self.allocator, "\\r"),
+                '\t' => try self.buffer.appendSlice(self.allocator, "\\t"),
+                '\x08' => try self.buffer.appendSlice(self.allocator, "\\b"),
+                '\x0C' => try self.buffer.appendSlice(self.allocator, "\\f"),
+                0x00...0x1F => {
+                    // Control characters: use \uXXXX format
+                    const escaped = try std.fmt.allocPrint(self.allocator, "\\u{x:0>4}", .{c});
+                    defer self.allocator.free(escaped);
+                    try self.buffer.appendSlice(self.allocator, escaped);
+                },
+                else => try self.buffer.append(self.allocator, c),
+            }
+        }
+    }
+
     fn stringifyObject(self: *JsonStringifier, hash_table: *ObjHashTable) std.mem.Allocator.Error!void {
         try self.buffer.append(self.allocator, '{');
 
@@ -369,9 +391,9 @@ const JsonStringifier = struct {
             }
             first = false;
 
-            // Key (always string)
+            // Key (always string) - escape special characters
             try self.buffer.append(self.allocator, '"');
-            try self.buffer.appendSlice(self.allocator, entry.key.chars);
+            try self.escapeJsonString(entry.key.chars);
             try self.buffer.appendSlice(self.allocator, "\":");
 
             // Value
