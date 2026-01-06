@@ -1,40 +1,46 @@
+/// MufiZ Build Configuration
+/// This build script configures the MufiZ interpreter with various feature flags
+/// and debug options. It supports cross-compilation and WASM targets.
+///
+/// Build Options:
+/// - enable_net: Enable network functionality (default: true)
+/// - enable_fs: Enable file system access (default: true)
+/// - sandbox: Restrict to REPL-only mode (default: false)
+/// - print_code: Debug option to print opcodes (default: false)
+/// - trace_exec: Debug option to trace execution (default: false)
+/// - stress_gc: Debug option to stress test garbage collector (default: false)
+/// - log_gc: Debug option to log GC allocations (default: false)
+
 const std = @import("std");
 const builtin = @import("builtin");
-
-//comptime {
-//    const supported_version = std.SemanticVersion.parse("0.13.0") catch unreachable;
-//    if (builtin.zig_version.order(supported_version) != .eq) {
-//        @compileError(std.fmt.comptimePrint("Unsupported Zig version ({}). Required Zig version 0.13.0.", .{builtin.zig_version}));
-//    }
-//}
 
 pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+    
+    // Main executable artifact
     const exe = b.addExecutable(.{
         .name = "mufiz",
-        // .root_source_file = b.path("src/main.zig"),
         .root_module = b.createModule(.{ .root_source_file = b.path("src/main.zig"), .target = target, .optimize = optimize }),
-        // .target = target,
-        // .optimize = optimize,
     });
 
+    // Check-only executable (for 'zig build check')
     const exe_check = b.addExecutable(.{
         .name = "mufiz",
-        // .root_source_file = b.path("src/main.zig"),
-        // .target = target,
-        // .optimize = optimize,
         .root_module = b.createModule(.{ .root_source_file = b.path("src/main.zig"), .target = target, .optimize = optimize }),
     });
 
+    // Enable WASM runtime if targeting WASM32
     if (target.query.cpu_arch == .wasm32) {
         b.enable_wasmtime = true;
     }
 
+    // Add command-line argument parsing dependency
     const clap = b.dependency("clap", .{});
     exe.root_module.addImport("clap", clap.module("clap"));
     exe_check.root_module.addImport("clap", clap.module("clap"));
 
+    // Feature flags configuration
     const options = b.addOptions();
     const net = b.option(bool, "enable_net", "Enable Network features") orelse true;
     const fs = b.option(bool, "enable_fs", "Enable File System features") orelse true;
@@ -43,6 +49,7 @@ pub fn build(b: *std.Build) !void {
     options.addOption(bool, "enable_fs", fs);
     options.addOption(bool, "sandbox", sandbox);
 
+    // Debug options configuration
     const debug_options = b.addOptions();
     const debug_print_code = b.option(bool, "print_code", "Enables printing the OpCodes for Debugging") orelse false;
     const debug_trace_execution = b.option(bool, "trace_exec", "Enables Tracing for Debugging") orelse false;
@@ -54,15 +61,16 @@ pub fn build(b: *std.Build) !void {
     debug_options.addOption(bool, "stress_gc", debug_stress_gc);
     debug_options.addOption(bool, "log_gc", debug_log_gc);
 
+    // Apply options to both executables
     exe.root_module.addOptions("features", options);
     exe.root_module.addOptions("debug", debug_options);
 
     exe_check.root_module.addOptions("features", options);
     exe_check.root_module.addOptions("debug", debug_options);
 
-    // zig fmt: on
     b.installArtifact(exe);
 
+    // Documentation generation step
     const install_docs = b.addInstallDirectory(.{
         .source_dir = exe.getEmittedDocs(),
         .install_dir = .prefix,
@@ -75,6 +83,7 @@ pub fn build(b: *std.Build) !void {
     const check = b.step("check", "Check if MufiZ compiles");
     check.dependOn(&exe_check.step);
 
+    // Run step for executing the built binary
     const run_cmd = b.addRunArtifact(exe);
     run_cmd.step.dependOn(b.getInstallStep());
     if (b.args) |args| {
