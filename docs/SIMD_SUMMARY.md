@@ -26,12 +26,14 @@ MufiZ VM now uses SIMD (Single Instruction, Multiple Data) optimizations by defa
 - **greater_than**, **less_than**: Vectorized comparisons
 - **Performance**: 2-4x speedup vs scalar operations
 
-#### 3. SIMD String Operations (`simd_string.zig`)
+#### 3. SIMD String Operations (`objects/string.zig`)
+String SIMD methods are now integrated as bounded methods in the String object:
 - **findSIMD**: 16-byte vector string search
 - **equalsSIMD**: 16-byte vector string comparison
 - **compareSIMD**: Lexicographic comparison with SIMD
 - **toLowerSIMD**, **toUpperSIMD**: Vectorized case conversion
 - **countCharSIMD**: Character counting with SIMD
+- **reverseSIMD**: Vectorized string reversal
 - **Performance**: 1.5-3x speedup for text processing
 
 #### 4. Complex Number Arrays (`objects/complex_array.zig`)
