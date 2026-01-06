@@ -59,8 +59,6 @@ const fvec = @import("objects/fvec.zig");
 const obj_range = @import("objects/range.zig");
 
 const scanner_h = @import("scanner_optimized.zig");
-const simd_string = @import("simd_string.zig");
-const SIMDString = simd_string.SIMDString;
 
 pub const ValueType = enum(i32) { VAL_BOOL = 0, VAL_NIL = 1, VAL_INT = 2, VAL_DOUBLE = 3, VAL_OBJ = 4, VAL_COMPLEX = 5 };
 
@@ -686,7 +684,7 @@ pub fn valuesEqual(a: Value, b: Value) bool {
                             if (str_a.length >= 32) {
                                 const slice_a = str_a.chars[0..str_a.length];
                                 const slice_b = str_b.chars[0..str_b.length];
-                                return SIMDString.equalsSIMD(slice_a, slice_b);
+                                return ObjString.equalsSIMD(slice_a, slice_b);
                             } else {
                                 // Use standard comparison for small strings
 

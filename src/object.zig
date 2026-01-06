@@ -32,8 +32,9 @@
 ///    - ObjInstance: Class instance with fields
 ///
 /// 3. **Strings**
-///    - ObjString: Immutable string with hash caching
+///    - ObjString: Immutable string with hash caching and SIMD operations
 ///    - Uses string interning for memory efficiency
+///    - Includes SIMD-optimized string operations (find, equals, compare, etc.)
 ///
 /// 4. **Collections**
 ///    - LinkedList: Doubly-linked list
@@ -55,19 +56,27 @@
 ///
 /// ### Extending the Object System
 /// To add a new object type:
-/// 1. Add variant to ObjType enum in objects/obj.zig
-/// 2. Create struct with Obj as first field (for casting)
-/// 3. Add constructor function (e.g., newMyObject)
-/// 4. Update printObject() for display
-/// 5. Update freeObject() in memory.zig for cleanup
-/// 6. Add type checking methods to Value (is_myobject, as_myobject)
-/// 7. Update GC marking in memory.zig
-/// 8. Add relevant operations to value.zig if needed
+/// 1. Create a new file in objects/ directory (e.g., objects/myobject.zig)
+/// 2. Define struct with Obj as first field (for casting)
+/// 3. Add variant to ObjType enum in objects/obj.zig
+/// 4. Import and re-export the type in object.zig
+/// 5. Add constructor function in object.zig (e.g., newMyObject)
+/// 6. Update printObject() for display
+/// 7. Update freeObject() in memory.zig for cleanup
+/// 8. Add type checking methods to Value (is_myobject, as_myobject)
+/// 9. Update GC marking in memory.zig
+/// 10. Add relevant operations as bounded methods in your object file
+///
+/// ### File Organization
+/// - All object types are defined in separate files in the objects/ directory
+/// - Each object file contains its struct definition and bounded methods
+/// - SIMD implementations are integrated as methods within object files
+/// - Factory functions remain in object.zig for centralized object creation
 ///
 /// ### Performance Notes
 /// - Object allocation is fast due to generational GC
 /// - String interning reduces memory for duplicate strings
-/// - SIMD optimizations for FloatVector and Matrix operations
+/// - SIMD optimizations integrated in String and FloatVector as bounded methods
 /// - Field reordering minimizes cache misses (24-byte headers)
 
 const std = @import("std");
@@ -104,6 +113,14 @@ pub const ObjPair = @import("objects/pair.zig").ObjPair;
 pub const ObjRange = @import("objects/range.zig").ObjRange;
 pub const String = @import("objects/string.zig").String;
 pub const ObjString = String;
+
+// Function-related objects
+pub const ObjFunction = @import("objects/function.zig").ObjFunction;
+pub const ObjNative = @import("objects/native.zig").ObjNative;
+pub const NativeFn = @import("objects/native.zig").NativeFn;
+pub const ObjUpvalue = @import("objects/upvalue.zig").ObjUpvalue;
+pub const ObjClosure = @import("objects/closure.zig").ObjClosure;
+pub const ObjBoundMethod = @import("objects/bound_method.zig").ObjBoundMethod;
 const scanner_h = @import("scanner_optimized.zig");
 const table_h = @import("table.zig");
 const vm_h = @import("vm.zig");
@@ -116,42 +133,7 @@ const valuesEqual = value_h.valuesEqual;
 const push = vm_h.push;
 const pop = vm_h.pop;
 
-// Object Types
-
-pub const ObjFunction = struct {
-    obj: Obj,
-    arity: i32,
-    upvalueCount: i32,
-    chunk: Chunk,
-    name: ?*ObjString,
-};
-
-pub const NativeFn = ?*const fn (i32, [*]Value) Value;
-pub const ObjNative = struct {
-    obj: Obj,
-    function: NativeFn,
-};
-
-pub const ObjUpvalue = struct {
-    obj: Obj,
-    location: [*]Value,
-    closed: Value,
-    next: ?*ObjUpvalue,
-};
-
-pub const ObjClosure = struct {
-    obj: Obj,
-    function: *ObjFunction,
-    upvalues: ?[*]?*ObjUpvalue,
-    upvalueCount: i32,
-};
-
-pub const ObjBoundMethod = struct {
-    obj: Obj,
-    receiver: Value,
-    method: *ObjClosure,
-};
-
+// Object allocation and factory functions
 pub fn allocateObject(size: usize, type_: ObjType) *Obj {
     const allocator = mem_utils.getAllocator();
     const mem_slice = mem_utils.alloc(allocator, u8, size) catch {
