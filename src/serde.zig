@@ -593,12 +593,12 @@ pub const testing = struct {
             .OBJ_LINKED_LIST => {
                 const list_a = @as(*LinkedList, @ptrCast(@alignCast(a)));
                 const list_b = @as(*LinkedList, @ptrCast(@alignCast(b)));
-                if (list_a.size != list_b.size) return false;
+                if (list_a.count != list_b.count) return false;
                 
                 var node_a = list_a.head;
                 var node_b = list_b.head;
                 while (node_a != null and node_b != null) {
-                    if (!valuesEqual(node_a.?.value, node_b.?.value)) return false;
+                    if (!valuesEqual(node_a.?.data, node_b.?.data)) return false;
                     node_a = node_a.?.next;
                     node_b = node_b.?.next;
                 }
