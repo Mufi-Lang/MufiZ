@@ -416,7 +416,7 @@ const TomlParser = struct {
         const new_table = object_h.HashTable.init();
         const table_value = Value.init_obj(@as(*Obj, @ptrCast(new_table)));
         
-        // Add the table to the array (LinkedList)
+        // Add the table to the array (LinkedList) using push method
         const list = @as(*object_h.LinkedList, @ptrCast(@alignCast(array.as.obj)));
         list.push(table_value);
         

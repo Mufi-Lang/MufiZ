@@ -429,63 +429,51 @@ pub fn cloneValue(value: Value, allocator: std.mem.Allocator) !Value {
                     return value;
                 },
                 .OBJ_FVECTOR => {
-                    // Clone float vector
+                    // Clone float vector using proper constructor
                     const original = @as(*FloatVector, @ptrCast(@alignCast(obj)));
-                    const new_vector = try allocator.create(FloatVector);
-                    new_vector.* = FloatVector{
-                        .obj = Obj{ .type = .OBJ_FVECTOR, .next = null },
-                        .count = original.count,
-                        .capacity = original.capacity,
-                    };
-                    // Allocate and copy data
-                    new_vector.data = try allocator.alloc(f64, original.capacity);
+                    const new_vector = FloatVector.init(original.size);
+                    
+                    // Copy data
+                    new_vector.count = original.count;
                     @memcpy(new_vector.data[0..original.count], original.data[0..original.count]);
+                    new_vector.sorted = original.sorted;
+                    
                     return Value.init_obj(@as(*Obj, @ptrCast(new_vector)));
                 },
                 .OBJ_HASH_TABLE => {
-                    // Clone hash table
+                    // Clone hash table using proper constructor
                     const original = @as(*ObjHashTable, @ptrCast(@alignCast(obj)));
                     const new_table = object_h.HashTable.init();
                     
-                    // Copy all entries
+                    // Copy all entries using the put method
                     var iterator = original.iterator();
                     while (iterator.next()) |entry| {
                         const cloned_value = try cloneValue(entry.value, allocator);
-                        _ = new_table.map.set(entry.key, cloned_value);
+                        _ = new_table.put(entry.key, cloned_value);
                     }
                     return Value.init_obj(@as(*Obj, @ptrCast(new_table)));
                 },
                 .OBJ_MATRIX => {
-                    // Clone matrix
+                    // Clone matrix using proper constructor
                     const original = @as(*Matrix, @ptrCast(@alignCast(obj)));
-                    const new_matrix = try allocator.create(Matrix);
-                    new_matrix.* = Matrix{
-                        .obj = Obj{ .type = .OBJ_MATRIX, .next = null },
-                        .rows = original.rows,
-                        .cols = original.cols,
-                        .data = undefined,
-                    };
-                    // Allocate and copy data
+                    const new_matrix = Matrix.init(original.rows, original.cols);
+                    
+                    // Copy data
                     const total_size = original.rows * original.cols;
-                    new_matrix.data = try allocator.alloc(f64, total_size);
-                    @memcpy(new_matrix.data, original.data);
+                    @memcpy(new_matrix.data[0..total_size], original.data[0..total_size]);
+                    
                     return Value.init_obj(@as(*Obj, @ptrCast(new_matrix)));
                 },
                 .OBJ_LINKED_LIST => {
-                    // Clone linked list
+                    // Clone linked list using proper constructor
                     const original = @as(*LinkedList, @ptrCast(@alignCast(obj)));
-                    const new_list = try allocator.create(LinkedList);
-                    new_list.* = LinkedList{
-                        .obj = Obj{ .type = .OBJ_LINKED_LIST, .next = null },
-                        .head = null,
-                        .tail = null,
-                        .size = 0,
-                    };
-                    // Copy all nodes
+                    const new_list = LinkedList.init();
+                    
+                    // Copy all nodes using push method
                     var current = original.head;
                     while (current) |node| {
-                        const cloned_value = try cloneValue(node.value, allocator);
-                        try new_list.append(cloned_value);
+                        const cloned_value = try cloneValue(node.data, allocator);
+                        new_list.push(cloned_value);
                         current = node.next;
                     }
                     return Value.init_obj(@as(*Obj, @ptrCast(new_list)));
@@ -495,14 +483,11 @@ pub fn cloneValue(value: Value, allocator: std.mem.Allocator) !Value {
                     return value;
                 },
                 .OBJ_PAIR => {
-                    // Clone pair
+                    // Clone pair using proper constructor
                     const original = @as(*ObjPair, @ptrCast(@alignCast(obj)));
-                    const new_pair = try allocator.create(ObjPair);
-                    new_pair.* = ObjPair{
-                        .obj = Obj{ .type = .OBJ_PAIR, .next = null },
-                        .first = try cloneValue(original.first, allocator),
-                        .second = try cloneValue(original.second, allocator),
-                    };
+                    const cloned_key = try cloneValue(original.key, allocator);
+                    const cloned_value = try cloneValue(original.value, allocator);
+                    const new_pair = ObjPair.create(cloned_key, cloned_value);
                     return Value.init_obj(@as(*Obj, @ptrCast(new_pair)));
                 },
                 else => {
@@ -622,15 +607,15 @@ pub const testing = struct {
             .OBJ_PAIR => {
                 const pair_a = @as(*ObjPair, @ptrCast(@alignCast(a)));
                 const pair_b = @as(*ObjPair, @ptrCast(@alignCast(b)));
-                return valuesEqual(pair_a.first, pair_b.first) and 
-                       valuesEqual(pair_a.second, pair_b.second);
+                return valuesEqual(pair_a.key, pair_b.key) and 
+                       valuesEqual(pair_a.value, pair_b.value);
             },
             .OBJ_RANGE => {
                 const range_a = @as(*ObjRange, @ptrCast(@alignCast(a)));
                 const range_b = @as(*ObjRange, @ptrCast(@alignCast(b)));
                 return range_a.start == range_b.start and 
                        range_a.end == range_b.end and
-                       range_a.step == range_b.step;
+                       range_a.inclusive == range_b.inclusive;
             },
             else => {
                 // For other types (functions, classes, etc.), use pointer equality
