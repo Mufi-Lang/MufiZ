@@ -11,6 +11,7 @@ const vm_allocator = @import("vm_allocator.zig");
 
 // Import string hash utilities for consistent hashing
 const string_hash = @import("string_hash.zig");
+
 pub const Class = @import("objects/class.zig").Class;
 pub const ObjClass = Class;
 pub const FloatVector = @import("objects/fvec.zig").FloatVector;

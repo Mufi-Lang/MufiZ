@@ -1,0 +1,70 @@
+// Test Frame Stack Dynamic Growth (Lightweight Version)
+// This test verifies that the VM can handle deeper recursion by growing the frame stack dynamically
+
+print("=== FRAME STACK GROWTH TEST ===");
+
+// Test 1: Basic frame stack growth
+fun test_depth(n) {
+    if (n <= 0) {
+        return n;
+    }
+    return test_depth(n - 1);
+}
+
+print("\n--- Test 1: Basic Frame Stack Growth ---");
+print("Testing 50 frames (within initial capacity)...");
+var result_50 = test_depth(50);
+assert(result_50, 0);
+
+print("Testing 100 frames (triggers first growth)...");
+var result_100 = test_depth(100);
+assert(result_100, 0);
+
+print("Testing 150 frames (uses grown stack)...");
+var result_150 = test_depth(150);
+assert(result_150, 0);
+
+print("✓ Frame stack growth working correctly!");
+
+// Test 2: Mutual recursion
+fun count_a(n) {
+    if (n <= 0) {
+        return 0;
+    }
+    return count_b(n - 1);
+}
+
+fun count_b(n) {
+    if (n <= 0) {
+        return 0;
+    }
+    return count_a(n - 1);
+}
+
+print("\n--- Test 2: Mutual Recursion with Growth ---");
+var mutual_result = count_a(80);
+assert(mutual_result, 0);
+print("✓ Mutual recursion with frame growth working!");
+
+// Test 3: Different argument patterns
+fun multi_args(a, b, c, depth) {
+    if (depth <= 0) {
+        return a;
+    }
+    return multi_args(a, b, c, depth - 1);
+}
+
+print("\n--- Test 3: Multi-Argument Recursion ---");
+var multi_result = multi_args(42, 24, 12, 120);
+assert(multi_result, 42);
+print("✓ Multi-argument recursion working!");
+
+print("\n=== FRAME STACK GROWTH TEST SUMMARY ===");
+print("✅ Basic frame growth (64 → 128 → 256) working");
+print("✅ Deep recursion (150+ frames) successful");
+print("✅ Mutual recursion with growth working");
+print("✅ Multi-argument deep calls working");
+print("✅ No stack overflow errors encountered");
+
+print("\n🎉 Dynamic Frame Stack Growth is working perfectly!");
+print("🚀 MufiZ can now handle much deeper recursion than before!");

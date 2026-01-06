@@ -818,12 +818,7 @@ pub fn blackenObject(object: *Obj) void {
         .OBJ_UPVALUE => {
             markValue(@as(*obj_h.ObjUpvalue, @ptrCast(@alignCast(object))).*.closed);
         },
-        // .OBJ_ARRAY => {
-        //     const array: *obj_h.ObjArray = @ptrCast(object);
-        //     for (0..@intCast(array.*.count)) |i| {
-        //         markValue(array.*.values[i]);
-        //     }
-        // },
+
         .OBJ_LINKED_LIST => {
             const linkedList: *obj_h.LinkedList = @ptrCast(@alignCast(object));
             var current: ?*Node = linkedList.head;

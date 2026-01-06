@@ -134,7 +134,6 @@ const JsonParser = struct {
         if (self.peek() != '[') return null;
         _ = self.advance(); // consume '['
 
-        const vector = FloatVector.init(8);
         var array_values = std.ArrayList(Value).initCapacity(std.heap.page_allocator, 0) catch unreachable;
         defer array_values.deinit(std.heap.page_allocator);
 
@@ -143,7 +142,8 @@ const JsonParser = struct {
         // Empty array
         if (self.peek() == ']') {
             _ = self.advance();
-            return Value.init_obj(@ptrCast(vector));
+            const empty_vector = FloatVector.init(0);
+            return Value.init_obj(@ptrCast(empty_vector));
         }
 
         while (true) {
@@ -164,7 +164,7 @@ const JsonParser = struct {
             }
         }
 
-        // Convert to float vector if all values are numbers
+        // Check if all values are numbers - if so, use FloatVector (true arrays)
         var all_numbers = true;
         for (array_values.items) |val| {
             if (!val.is_prim_num()) {
@@ -174,6 +174,7 @@ const JsonParser = struct {
         }
 
         if (all_numbers) {
+            const vector = FloatVector.init(@intCast(array_values.items.len));
             for (array_values.items) |val| {
                 const num_val = val.as_num_double();
                 vector.push(num_val);
@@ -181,13 +182,17 @@ const JsonParser = struct {
             return Value.init_obj(@ptrCast(vector));
         }
 
-        // For mixed arrays, we'll return the first element for simplicity
-        // In a full implementation, we'd want a proper array object type
-        if (array_values.items.len > 0) {
-            return array_values.items[0];
+        // For mixed arrays (objects, strings, etc.), use hash table with string indices
+        // This allows indexing like array["0"], array["1"], etc. but using hash table semantics
+        const hash_table = ObjHashTable.init();
+        for (array_values.items, 0..) |val, i| {
+            // Create index string like "0", "1", "2", etc.
+            var index_buf: [16]u8 = undefined;
+            const index_str_slice = std.fmt.bufPrint(&index_buf, "{d}", .{i}) catch unreachable;
+            const index_str = object_h.copyString(index_str_slice.ptr, index_str_slice.len);
+            _ = hash_table.put(index_str, val);
         }
-
-        return Value.init_obj(@ptrCast(vector));
+        return Value.init_obj(@ptrCast(hash_table));
     }
 
     fn parseObject(self: *JsonParser) ?Value {

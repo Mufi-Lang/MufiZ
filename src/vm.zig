@@ -79,7 +79,8 @@ pub const CallFrame = struct {
 };
 
 pub const VM = struct {
-    frames: [64]CallFrame = undefined,
+    frames: []CallFrame,
+    frameCapacity: i32 = 64,
     frameCount: i32 = 0,
     currentFrame: ?*CallFrame = null,
     chunk: ?*Chunk = null,
@@ -102,6 +103,13 @@ pub const VM = struct {
 pub fn initVM() void {
     // Clear the entire VM structure to avoid undefined behavior
     @memset(@as([*]u8, @ptrCast(&vm))[0..@sizeOf(VM)], 0);
+
+    // Initialize dynamic frame stack
+    const allocator = mem_utils.getAllocator();
+    vm.frames = allocator.alloc(CallFrame, 64) catch {
+        @panic("Failed to allocate initial frame stack");
+    };
+    vm.frameCapacity = 64;
 
     resetStack();
     vm.objects = null;
@@ -189,6 +197,8 @@ pub fn freeVM() void {
     freeTable(&vm.strings);
     vm.initString = null;
     freeObjects();
+    const allocator = mem_utils.getAllocator();
+    allocator.free(vm.frames);
 }
 
 pub fn ZSTR(s: ?*ObjString) []const u8 {
@@ -259,14 +269,38 @@ pub fn resetStack() void {
     vm.openUpvalues = null;
 }
 
+fn growFrameStack() bool {
+    const newCapacity = vm.frameCapacity * 2;
+    if (newCapacity > 1024) { // Reasonable upper limit
+        return false;
+    }
+
+    const allocator = mem_utils.getAllocator();
+    const newFrames = allocator.realloc(vm.frames, @intCast(newCapacity)) catch {
+        return false;
+    };
+
+    vm.frames = newFrames;
+    vm.frameCapacity = newCapacity;
+
+    // Update current frame pointer if it exists
+    if (vm.frameCount > 0) {
+        vm.currentFrame = &vm.frames[@intCast(vm.frameCount - 1)];
+    }
+
+    return true;
+}
+
 pub fn call(closure: *ObjClosure, argCount: i32) bool {
     if (argCount != closure.*.function.*.arity) {
         runtimeError("Expected {d} arguments but got {d}.", .{ closure.*.function.*.arity, argCount });
         return false;
     }
-    if (vm.frameCount == @as(i32, 64)) {
-        runtimeError("Stack overflow.", .{});
-        return false;
+    if (vm.frameCount >= vm.frameCapacity) {
+        if (!growFrameStack()) {
+            runtimeError("Stack overflow.", .{});
+            return false;
+        }
     }
     const frame: *CallFrame = &vm.frames[@intCast(next_frame_count())];
 
@@ -1361,6 +1395,56 @@ fn opCall() InterpretResult {
     return .INTERPRET_OK;
 }
 
+fn opTailCall() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const argCount = frame.ip[0];
+    frame.ip += 1;
+
+    const callee = peek(argCount);
+
+    // For tail calls, we reuse the current frame instead of creating a new one
+    if (callee.type == .VAL_OBJ and callee.as.obj.?.type == .OBJ_CLOSURE) {
+        const closure: *ObjClosure = @ptrCast(@alignCast(callee.as.obj));
+
+        // Check arity
+        if (argCount != closure.function.arity) {
+            runtimeError("Expected {d} arguments but got {d}.", .{ closure.function.arity, argCount });
+            return .INTERPRET_RUNTIME_ERROR;
+        }
+
+        // Close upvalues from the current frame
+        closeUpvalues(@ptrCast(&frame.slots[0]));
+
+        // Copy arguments to the beginning of the current frame's slot area
+        // The callee function is at stack position [stackTop - argCount - 1]
+        // Arguments are at positions [stackTop - argCount] through [stackTop - 1]
+        const stackBase = @intFromPtr(&vm.stack[0]);
+        const currentSlots = @intFromPtr(frame.slots);
+        const slotsOffset = (currentSlots - stackBase) / @sizeOf(Value);
+
+        // Move arguments to the start of the current frame
+        for (0..@intCast(argCount + 1)) |i| {
+            vm.stack[slotsOffset + i] = vm.stack[vm.stackTop - @as(usize, @intCast(argCount + 1)) + i];
+        }
+
+        // Update stack top to reflect the new argument layout
+        vm.stackTop = slotsOffset + @as(usize, @intCast(argCount + 1));
+
+        // Replace the current frame's closure and reset IP
+        frame.closure = closure;
+        frame.ip = closure.function.chunk.code.?;
+
+        return .INTERPRET_OK;
+    } else {
+        // For non-closure callees, fall back to regular call
+        if (!callValue(callee, argCount)) {
+            return .INTERPRET_RUNTIME_ERROR;
+        }
+        vm.currentFrame = &vm.frames[@intCast(vm.frameCount - 1)];
+        return .INTERPRET_OK;
+    }
+}
+
 fn opInvoke() InterpretResult {
     const frame = vm.currentFrame.?;
     const constant_index = frame.ip[0];
@@ -1585,11 +1669,24 @@ fn opGetIndex() InterpretResult {
             },
             .OBJ_HASH_TABLE => {
                 const table: *object_h.ObjHashTable = @ptrCast(@alignCast(target.as.obj));
-                if (!index.is_string()) {
-                    runtimeError("Hash table key must be a string.", .{});
+
+                var key_str: *object_h.ObjString = undefined;
+                if (index.is_string()) {
+                    key_str = index.as_string();
+                } else if (index.is_int()) {
+                    // Convert integer index to string for JSON array-like behavior
+                    var index_buf: [16]u8 = undefined;
+                    const index_str_slice = std.fmt.bufPrint(&index_buf, "{d}", .{index.as_int()}) catch {
+                        runtimeError("Failed to convert index to string.", .{});
+                        return .INTERPRET_RUNTIME_ERROR;
+                    };
+                    key_str = object_h.copyString(index_str_slice.ptr, index_str_slice.len);
+                } else {
+                    runtimeError("Hash table key must be a string or integer.", .{});
                     return .INTERPRET_RUNTIME_ERROR;
                 }
-                if (table.get(index.as_string())) |val| {
+
+                if (table.get(key_str)) |val| {
                     push(val);
                 } else {
                     push(Value.init_nil());
@@ -1795,11 +1892,24 @@ fn opSetIndex() InterpretResult {
             },
             .OBJ_HASH_TABLE => {
                 const table: *object_h.ObjHashTable = @ptrCast(@alignCast(target.as.obj));
-                if (!index.is_string()) {
-                    runtimeError("Hash table key must be a string.", .{});
+
+                var key_str: *object_h.ObjString = undefined;
+                if (index.is_string()) {
+                    key_str = index.as_string();
+                } else if (index.is_int()) {
+                    // Convert integer index to string for JSON array-like behavior
+                    var index_buf: [16]u8 = undefined;
+                    const index_str_slice = std.fmt.bufPrint(&index_buf, "{d}", .{index.as_int()}) catch {
+                        runtimeError("Failed to convert index to string.", .{});
+                        return .INTERPRET_RUNTIME_ERROR;
+                    };
+                    key_str = object_h.copyString(index_str_slice.ptr, index_str_slice.len);
+                } else {
+                    runtimeError("Hash table key must be a string or integer.", .{});
                     return .INTERPRET_RUNTIME_ERROR;
                 }
-                _ = table.put(index.as_string(), value);
+
+                _ = table.put(key_str, value);
                 push(value);
             },
             .OBJ_MATRIX_ROW => {
@@ -2004,6 +2114,7 @@ const jumpTable = blk: {
     table[@intFromEnum(OpCode.OP_JUMP_IF_FALSE)] = opJumpIfFalse;
     table[@intFromEnum(OpCode.OP_LOOP)] = opLoop;
     table[@intFromEnum(OpCode.OP_CALL)] = opCall;
+    table[@intFromEnum(OpCode.OP_TAIL_CALL)] = opTailCall;
     table[@intFromEnum(OpCode.OP_INVOKE)] = opInvoke;
     table[@intFromEnum(OpCode.OP_SUPER_INVOKE)] = opSuperInvoke;
     table[@intFromEnum(OpCode.OP_CLOSURE)] = opClosure;

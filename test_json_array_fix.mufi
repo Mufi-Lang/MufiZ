@@ -1,0 +1,42 @@
+// Test to mimic the exact failing scenario from the original test
+
+print("=== EXACT SCENARIO REPRODUCTION ===");
+
+// This is the exact JSON string from the failing test
+var array_of_objects_json = "[{\"id\": 1, \"name\": \"Alice\"}, {\"id\": 2, \"name\": \"Bob\"}, {\"id\": 3, \"name\": \"Charlie\"}]";
+
+print("Step 1: Testing JSON validation...");
+var is_valid = json_is_valid(array_of_objects_json);
+print("json_is_valid result: " + str(is_valid));
+
+if (is_valid) {
+    print("Step 2: Parsing JSON...");
+    var array_of_objects = json_parse(array_of_objects_json);
+    print("json_parse succeeded");
+    print("Parsed type: " + what_is(array_of_objects));
+    print("Parsed length: " + str(len(array_of_objects)));
+
+    print("Step 3: Attempting to access first element...");
+    print("About to execute: array_of_objects[0]");
+
+    // This is the exact line that fails (line 62 in original test)
+    var first_obj = array_of_objects[0];
+
+    print("Successfully got first element!");
+    print("First element type: " + what_is(first_obj));
+
+    if (what_is(first_obj) == "Hash Table") {
+        print("Step 4: Accessing object properties...");
+        var id = json_get(first_obj, "id");
+        var name = json_get(first_obj, "name");
+        print("ID: " + str(id));
+        print("Name: " + name);
+        print("✅ All steps completed successfully!");
+    } else {
+        print("❌ First element is not a hash table");
+    }
+} else {
+    print("❌ JSON validation failed");
+}
+
+print("\n=== SCENARIO TEST COMPLETE ===");

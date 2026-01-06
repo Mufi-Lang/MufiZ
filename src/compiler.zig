@@ -2169,9 +2169,23 @@ pub fn returnStatement() void {
             };
             errorWithSuggestions(&parser.previous, .INVALID_RETURN, "Cannot return a value from an initializer", &suggestions);
         }
+
+        // Simple approach: parse the expression and check if last instruction was OP_CALL
+        const chunkBeforeExpr = currentChunk().count;
         expression();
         consume(.TOKEN_SEMICOLON, "Expect ';' after return value.");
-        emitByte(@intCast(@intFromEnum(OpCode.OP_RETURN)));
+
+        // Check if the last two bytes were OP_CALL + argCount, and convert to tail call
+        const chunk = currentChunk();
+        if (chunk.count >= chunkBeforeExpr + 2 and
+            chunk.code.?[@intCast(chunk.count - 2)] == @intFromEnum(OpCode.OP_CALL))
+        {
+            // Replace OP_CALL with OP_TAIL_CALL for tail position calls
+            chunk.code.?[@intCast(chunk.count - 2)] = @intFromEnum(OpCode.OP_TAIL_CALL);
+            // Don't emit OP_RETURN for tail calls - the tail call handles it
+        } else {
+            emitByte(@intCast(@intFromEnum(OpCode.OP_RETURN)));
+        }
     }
 }
 pub fn whileStatement() void {
