@@ -517,7 +517,6 @@ pub fn addTime() !void {
     try registerTime();
 }
 
-// TODO: Add these when filesystem and network modules are migrated
 pub fn addFs() !void {
     try registerFs();
 }

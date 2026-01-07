@@ -500,9 +500,8 @@ const YamlParser = struct {
             if (quote_char == '"') {
                 result = try self.processEscapeSequences(content);
             } else {
-                // Single quoted - only escape '' -> '
-                result = try self.allocator.dupe(u8, content);
-                // TODO: Handle single quote escapes
+                // Single quoted - in YAML, '' (two single quotes) escapes to '
+                result = try self.processSingleQuoteEscapes(content);
             }
         } else {
             // Plain string
@@ -551,6 +550,32 @@ const YamlParser = struct {
                         try result.append(self.allocator, content[i + 1]);
                     },
                 }
+                i += 2;
+            } else {
+                try result.append(self.allocator, content[i]);
+                i += 1;
+            }
+        }
+
+        return result.toOwnedSlice(self.allocator);
+    }
+
+    /// Process single quote escapes in YAML single-quoted strings
+    ///
+    /// In YAML, single-quoted strings have minimal escaping:
+    /// - '' (two single quotes) -> ' (one single quote)
+    /// - All other characters are literal (including backslashes)
+    ///
+    /// This is different from double-quoted strings which support
+    /// full escape sequences like \n, \t, \uXXXX, etc.
+    fn processSingleQuoteEscapes(self: *Self, content: []const u8) ![]u8 {
+        var result = try std.ArrayList(u8).initCapacity(self.allocator, content.len);
+
+        var i: usize = 0;
+        while (i < content.len) {
+            if (content[i] == '\'' and i + 1 < content.len and content[i + 1] == '\'') {
+                // Two single quotes -> one single quote
+                try result.append(self.allocator, '\'');
                 i += 2;
             } else {
                 try result.append(self.allocator, content[i]);

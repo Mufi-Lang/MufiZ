@@ -373,6 +373,22 @@ const TomlParser = struct {
         }
     }
 
+    /// Parse TOML array of tables: [[key.path]]
+    /// 
+    /// Array of tables allow multiple table instances under the same key.
+    /// Example TOML:
+    /// ```toml
+    /// [[products]]
+    /// name = "Hammer"
+    /// sku = 738594937
+    /// 
+    /// [[products]]
+    /// name = "Nail"
+    /// sku = 284758393
+    /// ```
+    /// 
+    /// This creates an array at root["products"] containing two table objects.
+    /// Each [[products]] declaration creates a new table and appends it to the array.
     fn parseArrayTable(self: *Self, root: *Value) !void {
         try self.consume(.ArrayTableStart);
 
@@ -383,8 +399,59 @@ const TomlParser = struct {
         try self.consume(.RightBracket);
         try self.skipNewlinesAndComments();
 
-        // TODO: Implement array of tables
-        _ = root;
+        // Array of tables: [[key.path]]
+        // Navigate to the parent table and create/append to array
+        var current = root;
+        
+        // Navigate to parent (all keys except the last)
+        for (key_path[0 .. key_path.len - 1]) |key| {
+            current = try self.getOrCreateTable(current, key);
+        }
+        
+        // Get or create array for the last key
+        const array_key = key_path[key_path.len - 1];
+        const array = try self.getOrCreateArray(current, array_key);
+        
+        // Create a new table and add it to the array
+        const new_table = object_h.HashTable.init();
+        const table_value = Value.init_obj(@as(*Obj, @ptrCast(new_table)));
+        
+        // Add the table to the array (LinkedList) using push method
+        const list = @as(*object_h.LinkedList, @ptrCast(@alignCast(array.as.obj)));
+        list.push(table_value);
+        
+        // Parse key-value pairs for this table instance
+        const table_ptr = @constCast(&table_value);
+        while (self.current_token.type == .Identifier) {
+            try self.parseKeyValue(table_ptr);
+            try self.skipNewlinesAndComments();
+        }
+    }
+
+    fn getOrCreateArray(self: *Self, parent: *Value, key: []const u8) !Value {
+        _ = self;
+        if (!parent.is_obj() or !parent.is_obj_type(.OBJ_HASH_TABLE)) {
+            return error.NotATable;
+        }
+
+        const hash_table = @as(*ObjHashTable, @ptrCast(@alignCast(parent.as.obj)));
+        const key_obj = object_h.String.copy(key, key.len);
+
+        if (hash_table.get(key_obj)) |existing| {
+            // Ensure it's a linked list (array)
+            if (existing.is_obj() and existing.is_obj_type(.OBJ_LINKED_LIST)) {
+                return existing;
+            } else {
+                return error.KeyAlreadyExistsAsNonArray;
+            }
+        }
+
+        // Create new linked list for the array
+        const new_list = object_h.LinkedList.init();
+        const list_value = Value.init_obj(@as(*Obj, @ptrCast(new_list)));
+
+        _ = hash_table.put(key_obj, list_value);
+        return hash_table.get(key_obj).?;
     }
 
     fn parseKeyValue(self: *Self, table: *Value) !void {

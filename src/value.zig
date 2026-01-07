@@ -148,18 +148,19 @@ pub const Value = struct {
         return Value{ .type = .VAL_COMPLEX, .as = .{ .complex = c } };
     }
 
-    // Reference counting support
+    // Reference counting stubs for API compatibility
+    // Memory management is handled by the mark-and-sweep garbage collector
+    // in memory.zig. These functions are kept for potential future hybrid
+    // approach or API compatibility, but currently perform no operations.
     pub fn retain(self: Self) void {
         if (self.is_obj()) {
-            // TODO: Implement reference counting with new allocator approach
-            // For now, skip reference counting - will be handled by GC
+            // No-op: GC handles memory management
         }
     }
 
     pub fn release(self: Self) void {
         if (self.is_obj()) {
-            // TODO: Implement reference counting with new allocator approach
-            // For now, skip reference counting - will be handled by GC
+            // No-op: GC handles memory management
         }
     }
 
