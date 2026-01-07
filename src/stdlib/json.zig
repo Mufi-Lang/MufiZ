@@ -375,12 +375,12 @@ const JsonStringifier = struct {
             switch (c) {
                 '"' => try self.buffer.appendSlice(self.allocator, "\\\""),
                 '\\' => try self.buffer.appendSlice(self.allocator, "\\\\"),
-                '\n' => try self.buffer.appendSlice(self.allocator, "\\n"),
-                '\r' => try self.buffer.appendSlice(self.allocator, "\\r"),
-                '\t' => try self.buffer.appendSlice(self.allocator, "\\t"),
-                '\x08' => try self.buffer.appendSlice(self.allocator, "\\b"),
-                '\x0C' => try self.buffer.appendSlice(self.allocator, "\\f"),
-                0x00...0x1F => {
+                // '\n' => try self.buffer.appendSlice(self.allocator, "\\n"),
+                // '\r' => try self.buffer.appendSlice(self.allocator, "\\r"),
+                // '\t' => try self.buffer.appendSlice(self.allocator, "\\t"),
+                // '\x08' => try self.buffer.appendSlice(self.allocator, "\\b"),
+                // '\x0C' => try self.buffer.appendSlice(self.allocator, "\\f"),
+                '\x00'...'\x1F' => {
                     // Control characters: use \uXXXX format
                     // Use stack buffer to avoid allocation
                     var buf: [6]u8 = undefined;

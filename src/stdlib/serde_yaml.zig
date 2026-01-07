@@ -561,15 +561,15 @@ const YamlParser = struct {
     }
 
     /// Process single quote escapes in YAML single-quoted strings
-    /// 
+    ///
     /// In YAML, single-quoted strings have minimal escaping:
     /// - '' (two single quotes) -> ' (one single quote)
     /// - All other characters are literal (including backslashes)
-    /// 
+    ///
     /// This is different from double-quoted strings which support
     /// full escape sequences like \n, \t, \uXXXX, etc.
     fn processSingleQuoteEscapes(self: *Self, content: []const u8) ![]u8 {
-        var result = std.ArrayList(u8).init(self.allocator);
+        var result = try std.ArrayList(u8).initCapacity(self.allocator, content.len);
 
         var i: usize = 0;
         while (i < content.len) {
