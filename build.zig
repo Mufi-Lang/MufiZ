@@ -18,28 +18,6 @@ pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
     
-    // Main executable artifact
-    const exe = b.addExecutable(.{
-        .name = "mufiz",
-        .root_module = b.createModule(.{ .root_source_file = b.path("src/main.zig"), .target = target, .optimize = optimize }),
-    });
-
-    // Check-only executable (for 'zig build check')
-    const exe_check = b.addExecutable(.{
-        .name = "mufiz",
-        .root_module = b.createModule(.{ .root_source_file = b.path("src/main.zig"), .target = target, .optimize = optimize }),
-    });
-
-    // Enable WASM runtime if targeting WASM32
-    if (target.query.cpu_arch == .wasm32) {
-        b.enable_wasmtime = true;
-    }
-
-    // Add command-line argument parsing dependency
-    const clap = b.dependency("clap", .{});
-    exe.root_module.addImport("clap", clap.module("clap"));
-    exe_check.root_module.addImport("clap", clap.module("clap"));
-
     // Feature flags configuration
     const options = b.addOptions();
     const net = b.option(bool, "enable_net", "Enable Network features") orelse true;
@@ -61,18 +39,59 @@ pub fn build(b: *std.Build) !void {
     debug_options.addOption(bool, "stress_gc", debug_stress_gc);
     debug_options.addOption(bool, "log_gc", debug_log_gc);
 
-    // Apply options to both executables
+    // Add command-line argument parsing dependency
+    const clap = b.dependency("clap", .{});
+
+    // Library artifact - can be imported by other Zig projects
+    const lib = b.addStaticLibrary(.{
+        .name = "mufiz",
+        .root_module = b.createModule(.{ 
+            .root_source_file = b.path("src/lib.zig"), 
+            .target = target, 
+            .optimize = optimize 
+        }),
+    });
+    lib.root_module.addOptions("features", options);
+    lib.root_module.addOptions("debug", debug_options);
+    lib.root_module.addImport("clap", clap.module("clap"));
+    b.installArtifact(lib);
+
+    // Main executable artifact
+    const exe = b.addExecutable(.{
+        .name = "mufiz",
+        .root_module = b.createModule(.{ 
+            .root_source_file = b.path("src/main.zig"), 
+            .target = target, 
+            .optimize = optimize 
+        }),
+    });
     exe.root_module.addOptions("features", options);
     exe.root_module.addOptions("debug", debug_options);
+    exe.root_module.addImport("clap", clap.module("clap"));
 
+    // Check-only executable (for 'zig build check')
+    const exe_check = b.addExecutable(.{
+        .name = "mufiz",
+        .root_module = b.createModule(.{ 
+            .root_source_file = b.path("src/main.zig"), 
+            .target = target, 
+            .optimize = optimize 
+        }),
+    });
     exe_check.root_module.addOptions("features", options);
     exe_check.root_module.addOptions("debug", debug_options);
+    exe_check.root_module.addImport("clap", clap.module("clap"));
+
+    // Enable WASM runtime if targeting WASM32
+    if (target.query.cpu_arch == .wasm32) {
+        b.enable_wasmtime = true;
+    }
 
     b.installArtifact(exe);
 
     // Documentation generation step
     const install_docs = b.addInstallDirectory(.{
-        .source_dir = exe.getEmittedDocs(),
+        .source_dir = lib.getEmittedDocs(),
         .install_dir = .prefix,
         .install_subdir = "docs",
     });
@@ -92,4 +111,20 @@ pub fn build(b: *std.Build) !void {
 
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
+
+    // Test step for running library tests
+    const lib_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/lib.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    lib_tests.root_module.addOptions("features", options);
+    lib_tests.root_module.addOptions("debug", debug_options);
+    lib_tests.root_module.addImport("clap", clap.module("clap"));
+
+    const run_lib_tests = b.addRunArtifact(lib_tests);
+    const test_step = b.step("test", "Run library tests");
+    test_step.dependOn(&run_lib_tests.step);
 }
