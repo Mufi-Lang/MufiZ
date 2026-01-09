@@ -1,7 +1,6 @@
 /// MufiZ Interpreter Entry Point
 /// This is the main entry point for the MufiZ language interpreter.
-/// It initializes the VM, memory management, and standard library,
-/// then processes command-line arguments to execute scripts or start the REPL.
+/// It provides the command-line interface to the MufiZ library.
 
 const std = @import("std");
 const builtin = @import("builtin");
@@ -9,21 +8,17 @@ const builtin = @import("builtin");
 const clap = @import("clap");
 const features = @import("features");
 
-const stdlib = @import("stdlib_main.zig");
-const system = @import("system.zig");
-const mem_utils = @import("mem_utils.zig");
-const InterpreterError = system.InterpreterError;
-pub const vm_h = @import("vm.zig");
+const mufiz = @import("lib.zig");
 
-// Interpreter exit codes
-pub const OK: u8 = vm_h.INTERPRET_OK;
-pub const COMPILE_ERROR: u8 = vm_h.INTERPRET_COMPILE_ERROR;
-pub const RUNTIME_ERROR: u8 = vm_h.INTERPRET_RUNTIME_ERROR;
+// Interpreter exit codes (re-exported from library)
+pub const OK: u8 = mufiz.OK;
+pub const COMPILE_ERROR: u8 = mufiz.COMPILE_ERROR;
+pub const RUNTIME_ERROR: u8 = mufiz.RUNTIME_ERROR;
 
 /// Returns the global allocator used throughout the interpreter
 /// This provides a centralized memory management interface
 pub fn getGlobalAllocator() std.mem.Allocator {
-    return mem_utils.getAllocator();
+    return mufiz.getAllocator() catch unreachable; // Safe because init() is always called first
 }
 
 // Command-line parameter definitions
@@ -39,31 +34,17 @@ const params = clap.parseParamsComptime(
 /// Main entry point for the MufiZ interpreter
 /// Initializes all subsystems and handles command-line arguments
 pub fn main() !void {
-    // Initialize memory management with leak detection and safety checks
-    mem_utils.initAllocator(.{
+    // Initialize the MufiZ library with leak detection and safety checks
+    try mufiz.init(.{
         .enable_leak_detection = true,
         .enable_tracking = true,
         .enable_safety = true,
     });
-    defer {
-        if (mem_utils.checkForLeaks()) {
-            std.debug.print("Warning: Memory leaks detected!\n", .{});
-            mem_utils.printMemStats();
-        }
-        mem_utils.deinit();
-    }
-
-    // Initialize the virtual machine
-    vm_h.initVM();
-    defer vm_h.freeVM();
-    
-    // Initialize and register standard library functions
-    try stdlib.initializeStdlib();
-    stdlib.registerWithVM();
+    defer mufiz.deinit();
     
     // Check if running in sandbox mode (REPL-only)
     if (features.sandbox) {
-        try system.repl();
+        try mufiz.startRepl();
     } else {
         // Parse command-line arguments
         var diag = clap.Diagnostic{};
@@ -78,9 +59,9 @@ pub fn main() !void {
 
         // Handle command-line arguments
         if (res.args.version != 0) {
-            system.version();
+            mufiz.printVersion();
         } else if (res.args.run) |s| {
-            var runner = system.Runner.init(getGlobalAllocator());
+            var runner = mufiz.Runner.init(getGlobalAllocator());
             defer runner.deinit();
             try runner.setMain(@constCast(s));
             if (res.args.link) |l| {
@@ -88,12 +69,12 @@ pub fn main() !void {
             }
             try runner.runFile();
         } else if (res.args.repl != 0) {
-            try system.repl();
+            try mufiz.startRepl();
         } else if (res.args.docs != 0) {
-            stdlib.printDocs();
+            mufiz.stdlib.printDocs();
         } else {
-            system.version();
-            system.usage();
+            mufiz.printVersion();
+            mufiz.printUsage();
             std.debug.print("Use --help for usage information\n", .{});
             return;
         }

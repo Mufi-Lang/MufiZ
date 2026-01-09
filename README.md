@@ -9,8 +9,86 @@ Zig Build system. We hope to integrate more features with this language and see 
 we can utilize both languages in unity. The advantage of Zig's Build system is easy cross-compatibility and caching, and as we integrate more,
 we can ensure more memory safety.
 
+## Project Structure
+
+MufiZ is structured as both a **library** and an **executable**:
+
+- **Library (`libmufiz`)**: Core compiler and interpreter functionality that can be imported by other Zig projects
+- **Executable (`mufiz`)**: Command-line interface for running MufiZ scripts and the REPL
+
+### Using MufiZ as a Library
+
+You can integrate MufiZ into your Zig project by importing it as a library:
+
+```zig
+const std = @import("std");
+const mufiz = @import("mufiz");
+
+pub fn main() !void {
+    // Initialize the MufiZ library
+    try mufiz.init(.{
+        .enable_leak_detection = true,
+        .enable_tracking = true,
+        .enable_safety = true,
+    });
+    defer mufiz.deinit();
+    
+    // Interpret some MufiZ code
+    const result = mufiz.interpret("var x = 42; print(x);");
+    
+    if (result == mufiz.OK) {
+        std.debug.print("Execution successful!\n", .{});
+    }
+}
+```
+
+#### Library API
+
+The library exposes the following key functions:
+
+- `init(options: InitOptions) !void` - Initialize the MufiZ library
+- `deinit()` - Clean up and deinitialize the library
+- `interpret(source: []const u8) u8` - Interpret MufiZ source code
+- `startRepl() !void` - Start the interactive REPL
+- `Runner` - Type for running MufiZ scripts from files
+- `getAllocator() std.mem.Allocator` - Get the global allocator
+
+Modules available:
+- `vm` - Virtual machine internals
+- `compiler` - Compiler internals  
+- `value` - Value representation
+- `object` - Object system
+- `chunk` - Bytecode chunks
+- `memory` - Memory management
+- `stdlib` - Standard library functions
+
+### Building
+
+```shell
+# Build both the library and executable
+zig build
+
+# Build only the library
+zig build install-lib
+
+# Build only the executable  
+zig build install
+
+# Run the executable
+zig build run
+
+# Run tests
+zig build test
+
+# Build and run the library usage example
+zig build run-example
+```
+
+See `examples/library_usage.zig` for a complete example of using MufiZ as a library.
+
 ## Recent Updates
 
+- **Library/Executable Split**: MufiZ is now structured as a reusable library with a separate executable interface
 - **Improved REPL Experience**: The interactive shell now provides a cleaner experience by not echoing characters while typing
 - **Hash Table Syntax Change**: Hash tables now use `#{}` syntax to differentiate from float vectors (`{}`)
 
