@@ -1,6 +1,11 @@
 /// MufiZ Build Configuration
-/// This build script configures the MufiZ interpreter with various feature flags
+/// This build script configures the MufiZ interpreter and library with various feature flags
 /// and debug options. It supports cross-compilation and WASM targets.
+///
+/// Artifacts:
+/// - libmufiz: Static library exposing core compiler and interpreter functionality
+/// - mufiz: Command-line executable for running scripts and REPL
+/// - library_usage: Example demonstrating library usage
 ///
 /// Build Options:
 /// - enable_net: Enable network functionality (default: true)
@@ -10,6 +15,14 @@
 /// - trace_exec: Debug option to trace execution (default: false)
 /// - stress_gc: Debug option to stress test garbage collector (default: false)
 /// - log_gc: Debug option to log GC allocations (default: false)
+///
+/// Build Steps:
+/// - zig build: Build both library and executable
+/// - zig build test: Run library tests
+/// - zig build run: Run the executable
+/// - zig build example: Build the library usage example
+/// - zig build run-example: Build and run the library usage example
+/// - zig build docs: Generate documentation
 
 const std = @import("std");
 const builtin = @import("builtin");
@@ -127,4 +140,25 @@ pub fn build(b: *std.Build) !void {
     const run_lib_tests = b.addRunArtifact(lib_tests);
     const test_step = b.step("test", "Run library tests");
     test_step.dependOn(&run_lib_tests.step);
+
+    // Example: Library usage example
+    const example_lib_usage = b.addExecutable(.{
+        .name = "library_usage",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("examples/library_usage.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    example_lib_usage.root_module.addOptions("features", options);
+    example_lib_usage.root_module.addOptions("debug", debug_options);
+    example_lib_usage.root_module.addImport("clap", clap.module("clap"));
+
+    const install_example = b.addInstallArtifact(example_lib_usage, .{});
+    const example_step = b.step("example", "Build library usage example");
+    example_step.dependOn(&install_example.step);
+
+    const run_example = b.addRunArtifact(example_lib_usage);
+    const run_example_step = b.step("run-example", "Run library usage example");
+    run_example_step.dependOn(&run_example.step);
 }

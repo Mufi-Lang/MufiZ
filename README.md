@@ -79,7 +79,12 @@ zig build run
 
 # Run tests
 zig build test
+
+# Build and run the library usage example
+zig build run-example
 ```
+
+See `examples/library_usage.zig` for a complete example of using MufiZ as a library.
 
 ## Recent Updates
 
