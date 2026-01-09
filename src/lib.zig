@@ -126,9 +126,10 @@ pub fn interpret(source: []const u8) u8 {
 
 /// Get the global allocator used by the library
 /// Requires the library to be initialized first.
-pub fn getAllocator() std.mem.Allocator {
+/// Returns LibraryError.NotInitialized if library is not initialized.
+pub fn getAllocator() !std.mem.Allocator {
     if (!is_initialized) {
-        @panic("Library not initialized. Call init() first.");
+        return LibraryError.NotInitialized;
     }
     return mem_utils.getAllocator();
 }
@@ -177,7 +178,7 @@ test "library initialization" {
     defer deinit();
     
     // Basic sanity check
-    const allocator = getAllocator();
+    const allocator = try getAllocator();
     _ = allocator;
 }
 

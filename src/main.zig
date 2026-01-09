@@ -18,7 +18,7 @@ pub const RUNTIME_ERROR: u8 = mufiz.RUNTIME_ERROR;
 /// Returns the global allocator used throughout the interpreter
 /// This provides a centralized memory management interface
 pub fn getGlobalAllocator() std.mem.Allocator {
-    return mufiz.getAllocator();
+    return mufiz.getAllocator() catch unreachable; // Safe because init() is always called first
 }
 
 // Command-line parameter definitions
