@@ -44,6 +44,15 @@ pub const OK: u8 = vm.INTERPRET_OK;
 pub const COMPILE_ERROR: u8 = vm.INTERPRET_COMPILE_ERROR;
 pub const RUNTIME_ERROR: u8 = vm.INTERPRET_RUNTIME_ERROR;
 
+// Track initialization state
+var is_initialized: bool = false;
+
+/// Error returned when library is used incorrectly
+pub const LibraryError = error{
+    AlreadyInitialized,
+    NotInitialized,
+};
+
 /// Configuration options for initializing the MufiZ library
 pub const InitOptions = struct {
     /// Enable memory leak detection
@@ -57,7 +66,12 @@ pub const InitOptions = struct {
 /// Initialize the MufiZ library
 /// Must be called before any other library functions.
 /// Call `deinit()` when done to clean up resources.
+/// Returns error.AlreadyInitialized if already initialized.
 pub fn init(options: InitOptions) !void {
+    if (is_initialized) {
+        return LibraryError.AlreadyInitialized;
+    }
+    
     // Initialize memory management
     mem_utils.initAllocator(.{
         .enable_leak_detection = options.enable_leak_detection,
@@ -71,12 +85,19 @@ pub fn init(options: InitOptions) !void {
     // Initialize and register standard library functions
     try stdlib.initializeStdlib();
     stdlib.registerWithVM();
+    
+    is_initialized = true;
 }
 
 /// Clean up and deinitialize the MufiZ library
 /// Should be called when the library is no longer needed.
 /// Optionally checks for memory leaks.
+/// This function is idempotent and safe to call multiple times.
 pub fn deinit() void {
+    if (!is_initialized) {
+        return; // Already deinitialized or never initialized
+    }
+    
     // Free the virtual machine
     vm.freeVM();
     
@@ -88,16 +109,27 @@ pub fn deinit() void {
     
     // Clean up memory management
     mem_utils.deinit();
+    
+    is_initialized = false;
 }
 
 /// Interpret MufiZ source code
 /// Returns the exit code (OK, COMPILE_ERROR, or RUNTIME_ERROR)
+/// Requires the library to be initialized first.
 pub fn interpret(source: []const u8) u8 {
+    if (!is_initialized) {
+        std.debug.print("Error: Library not initialized. Call init() first.\n", .{});
+        return RUNTIME_ERROR;
+    }
     return vm.interpret(source);
 }
 
 /// Get the global allocator used by the library
+/// Requires the library to be initialized first.
 pub fn getAllocator() std.mem.Allocator {
+    if (!is_initialized) {
+        @panic("Library not initialized. Call init() first.");
+    }
     return mem_utils.getAllocator();
 }
 
@@ -107,7 +139,11 @@ pub const Runner = system.Runner;
 
 /// Start the interactive REPL
 /// Returns an error if initialization fails.
+/// Requires the library to be initialized first.
 pub fn startRepl() !void {
+    if (!is_initialized) {
+        return LibraryError.NotInitialized;
+    }
     try system.repl();
 }
 
@@ -145,6 +181,23 @@ test "library initialization" {
     _ = allocator;
 }
 
+test "double initialization error" {
+    try init(.{});
+    defer deinit();
+    
+    // Attempting to initialize again should fail
+    const result = init(.{});
+    try std.testing.expectError(LibraryError.AlreadyInitialized, result);
+}
+
+test "idempotent deinitialization" {
+    try init(.{});
+    deinit();
+    
+    // Calling deinit again should be safe
+    deinit();
+}
+
 test "basic interpretation" {
     try init(.{});
     defer deinit();
@@ -152,4 +205,19 @@ test "basic interpretation" {
     // Test a simple expression
     const result = interpret("1 + 1;");
     try std.testing.expectEqual(OK, result);
+}
+
+test "interpret without initialization" {
+    // Ensure library is not initialized
+    if (is_initialized) {
+        deinit();
+    }
+    
+    // This should fail gracefully
+    const result = interpret("1 + 1;");
+    try std.testing.expectEqual(RUNTIME_ERROR, result);
+    
+    // Clean up - initialize and deinitialize for next test
+    try init(.{});
+    deinit();
 }

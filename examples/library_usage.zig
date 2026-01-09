@@ -5,6 +5,11 @@
 const std = @import("std");
 const mufiz = @import("../src/lib.zig");
 
+// Example code snippets
+const Example1Code = "print(2 + 2 * 10);";
+const Example2Code = "var message = \"Hello from MufiZ library!\"; print(message);";
+const Example3Code = "fn greet(name) { return \"Hello, \" + name + \"!\"; } print(greet(\"World\"));";
+
 pub fn main() !void {
     std.debug.print("=== MufiZ Library Example ===\n\n", .{});
 
@@ -26,9 +31,8 @@ pub fn main() !void {
 
     // Example 1: Simple arithmetic
     std.debug.print("\n--- Example 1: Simple Arithmetic ---\n", .{});
-    const code1 = "print(2 + 2 * 10);";
-    std.debug.print("Executing: {s}\n", .{code1});
-    const result1 = mufiz.interpret(code1);
+    std.debug.print("Executing: {s}\n", .{Example1Code});
+    const result1 = mufiz.interpret(Example1Code);
     if (result1 == mufiz.OK) {
         std.debug.print("✓ Execution successful\n", .{});
     } else {
@@ -37,9 +41,8 @@ pub fn main() !void {
 
     // Example 2: Variables
     std.debug.print("\n--- Example 2: Variables ---\n", .{});
-    const code2 = "var message = \"Hello from MufiZ library!\"; print(message);";
-    std.debug.print("Executing: {s}\n", .{code2});
-    const result2 = mufiz.interpret(code2);
+    std.debug.print("Executing: {s}\n", .{Example2Code});
+    const result2 = mufiz.interpret(Example2Code);
     if (result2 == mufiz.OK) {
         std.debug.print("✓ Execution successful\n", .{});
     } else {
@@ -48,9 +51,8 @@ pub fn main() !void {
 
     // Example 3: Functions
     std.debug.print("\n--- Example 3: Functions ---\n", .{});
-    const code3 = "fn greet(name) { return \"Hello, \" + name + \"!\"; } print(greet(\"World\"));";
-    std.debug.print("Executing: {s}\n", .{code3});
-    const result3 = mufiz.interpret(code3);
+    std.debug.print("Executing: {s}\n", .{Example3Code});
+    const result3 = mufiz.interpret(Example3Code);
     if (result3 == mufiz.OK) {
         std.debug.print("✓ Execution successful\n", .{});
     } else {
