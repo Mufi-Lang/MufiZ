@@ -23,14 +23,13 @@
 /// - zig build example: Build the library usage example
 /// - zig build run-example: Build and run the library usage example
 /// - zig build docs: Generate documentation
-
 const std = @import("std");
 const builtin = @import("builtin");
 
 pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
-    
+
     // Feature flags configuration
     const options = b.addOptions();
     const net = b.option(bool, "enable_net", "Enable Network features") orelse true;
@@ -56,13 +55,9 @@ pub fn build(b: *std.Build) !void {
     const clap = b.dependency("clap", .{});
 
     // Library artifact - can be imported by other Zig projects
-    const lib = b.addStaticLibrary(.{
+    const lib = b.addLibrary(.{
         .name = "mufiz",
-        .root_module = b.createModule(.{ 
-            .root_source_file = b.path("src/lib.zig"), 
-            .target = target, 
-            .optimize = optimize 
-        }),
+        .root_module = b.createModule(.{ .root_source_file = b.path("src/lib.zig"), .target = target, .optimize = optimize }),
     });
     lib.root_module.addOptions("features", options);
     lib.root_module.addOptions("debug", debug_options);
@@ -72,11 +67,7 @@ pub fn build(b: *std.Build) !void {
     // Main executable artifact
     const exe = b.addExecutable(.{
         .name = "mufiz",
-        .root_module = b.createModule(.{ 
-            .root_source_file = b.path("src/main.zig"), 
-            .target = target, 
-            .optimize = optimize 
-        }),
+        .root_module = b.createModule(.{ .root_source_file = b.path("src/main.zig"), .target = target, .optimize = optimize }),
     });
     exe.root_module.addOptions("features", options);
     exe.root_module.addOptions("debug", debug_options);
@@ -85,11 +76,7 @@ pub fn build(b: *std.Build) !void {
     // Check-only executable (for 'zig build check')
     const exe_check = b.addExecutable(.{
         .name = "mufiz",
-        .root_module = b.createModule(.{ 
-            .root_source_file = b.path("src/main.zig"), 
-            .target = target, 
-            .optimize = optimize 
-        }),
+        .root_module = b.createModule(.{ .root_source_file = b.path("src/main.zig"), .target = target, .optimize = optimize }),
     });
     exe_check.root_module.addOptions("features", options);
     exe_check.root_module.addOptions("debug", debug_options);
