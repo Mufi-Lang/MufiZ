@@ -5,7 +5,7 @@
 /// Example usage:
 /// ```zig
 /// const mufiz = @import("mufiz");
-/// 
+///
 /// pub fn main() !void {
 ///     // Initialize the library
 ///     try mufiz.init(.{
@@ -14,12 +14,11 @@
 ///         .enable_safety = true,
 ///     });
 ///     defer mufiz.deinit();
-///     
+///
 ///     // Interpret some code
 ///     const result = try mufiz.interpret("var x = 42; print(x);");
 /// }
 /// ```
-
 const std = @import("std");
 
 // Re-export core modules
@@ -40,9 +39,9 @@ pub const Chunk = chunk.Chunk;
 pub const OpCode = chunk.OpCode;
 
 // Re-export interpreter exit codes
-pub const OK: u8 = vm.INTERPRET_OK;
-pub const COMPILE_ERROR: u8 = vm.INTERPRET_COMPILE_ERROR;
-pub const RUNTIME_ERROR: u8 = vm.INTERPRET_RUNTIME_ERROR;
+pub const OK: u8 = @intFromEnum(vm.InterpretResult.INTERPRET_OK);
+pub const COMPILE_ERROR: u8 = @intFromEnum(vm.InterpretResult.INTERPRET_COMPILE_ERROR);
+pub const RUNTIME_ERROR: u8 = @intFromEnum(vm.InterpretResult.INTERPRET_RUNTIME_ERROR);
 
 // Track initialization state
 var is_initialized: bool = false;
@@ -71,21 +70,21 @@ pub fn init(options: InitOptions) !void {
     if (is_initialized) {
         return LibraryError.AlreadyInitialized;
     }
-    
+
     // Initialize memory management
     mem_utils.initAllocator(.{
         .enable_leak_detection = options.enable_leak_detection,
         .enable_tracking = options.enable_tracking,
         .enable_safety = options.enable_safety,
     });
-    
+
     // Initialize the virtual machine
     vm.initVM();
-    
+
     // Initialize and register standard library functions
     try stdlib.initializeStdlib();
     stdlib.registerWithVM();
-    
+
     is_initialized = true;
 }
 
@@ -97,19 +96,19 @@ pub fn deinit() void {
     if (!is_initialized) {
         return; // Already deinitialized or never initialized
     }
-    
+
     // Free the virtual machine
     vm.freeVM();
-    
+
     // Check for memory leaks if leak detection was enabled
     if (mem_utils.checkForLeaks()) {
         std.debug.print("Warning: Memory leaks detected!\n", .{});
         mem_utils.printMemStats();
     }
-    
+
     // Clean up memory management
     mem_utils.deinit();
-    
+
     is_initialized = false;
 }
 
@@ -121,7 +120,7 @@ pub fn interpret(source: []const u8) u8 {
         std.debug.print("Error: Library not initialized. Call init() first.\n", .{});
         return RUNTIME_ERROR;
     }
-    return vm.interpret(source);
+    return @intFromEnum(vm.interpret(source.ptr));
 }
 
 /// Get the global allocator used by the library
@@ -176,7 +175,7 @@ test "library initialization" {
         .enable_safety = true,
     });
     defer deinit();
-    
+
     // Basic sanity check
     const allocator = try getAllocator();
     _ = allocator;
@@ -185,7 +184,7 @@ test "library initialization" {
 test "double initialization error" {
     try init(.{});
     defer deinit();
-    
+
     // Attempting to initialize again should fail
     const result = init(.{});
     try std.testing.expectError(LibraryError.AlreadyInitialized, result);
@@ -194,7 +193,7 @@ test "double initialization error" {
 test "idempotent deinitialization" {
     try init(.{});
     deinit();
-    
+
     // Calling deinit again should be safe
     deinit();
 }
@@ -202,7 +201,7 @@ test "idempotent deinitialization" {
 test "basic interpretation" {
     try init(.{});
     defer deinit();
-    
+
     // Test a simple expression
     const result = interpret("1 + 1;");
     try std.testing.expectEqual(OK, result);
@@ -213,11 +212,11 @@ test "interpret without initialization" {
     if (is_initialized) {
         deinit();
     }
-    
+
     // This should fail gracefully
     const result = interpret("1 + 1;");
     try std.testing.expectEqual(RUNTIME_ERROR, result);
-    
+
     // Clean up - initialize and deinitialize for next test
     try init(.{});
     deinit();

@@ -7,7 +7,6 @@
 /// - Native function integration
 /// - REPL mode with echo control
 /// - Complex number support
-
 const std = @import("std");
 const print = std.debug.print;
 const sqrt = std.math.sqrt;
@@ -138,7 +137,7 @@ pub fn initVM() void {
     defineSIMDNatives();
 }
 
-pub const InterpretResult = enum(i32) {
+pub const InterpretResult = enum(u8) {
     INTERPRET_OK = 0,
     INTERPRET_COMPILE_ERROR = 1,
     INTERPRET_RUNTIME_ERROR = 2,

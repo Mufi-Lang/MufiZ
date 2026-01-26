@@ -1,28 +1,3 @@
-/// MufiZ Build Configuration
-/// This build script configures the MufiZ interpreter and library with various feature flags
-/// and debug options. It supports cross-compilation and WASM targets.
-///
-/// Artifacts:
-/// - libmufiz: Static library exposing core compiler and interpreter functionality
-/// - mufiz: Command-line executable for running scripts and REPL
-/// - library_usage: Example demonstrating library usage
-///
-/// Build Options:
-/// - enable_net: Enable network functionality (default: true)
-/// - enable_fs: Enable file system access (default: true)
-/// - sandbox: Restrict to REPL-only mode (default: false)
-/// - print_code: Debug option to print opcodes (default: false)
-/// - trace_exec: Debug option to trace execution (default: false)
-/// - stress_gc: Debug option to stress test garbage collector (default: false)
-/// - log_gc: Debug option to log GC allocations (default: false)
-///
-/// Build Steps:
-/// - zig build: Build both library and executable
-/// - zig build test: Run library tests
-/// - zig build run: Run the executable
-/// - zig build example: Build the library usage example
-/// - zig build run-example: Build and run the library usage example
-/// - zig build docs: Generate documentation
 const std = @import("std");
 const builtin = @import("builtin");
 
@@ -30,7 +5,7 @@ pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    // Feature flags configuration
+    // Feature flags
     const options = b.addOptions();
     const net = b.option(bool, "enable_net", "Enable Network features") orelse true;
     const fs = b.option(bool, "enable_fs", "Enable File System features") orelse true;
@@ -39,7 +14,7 @@ pub fn build(b: *std.Build) !void {
     options.addOption(bool, "enable_fs", fs);
     options.addOption(bool, "sandbox", sandbox);
 
-    // Debug options configuration
+    // Debug options
     const debug_options = b.addOptions();
     const debug_print_code = b.option(bool, "print_code", "Enables printing the OpCodes for Debugging") orelse false;
     const debug_trace_execution = b.option(bool, "trace_exec", "Enables Tracing for Debugging") orelse false;
@@ -51,10 +26,10 @@ pub fn build(b: *std.Build) !void {
     debug_options.addOption(bool, "stress_gc", debug_stress_gc);
     debug_options.addOption(bool, "log_gc", debug_log_gc);
 
-    // Add command-line argument parsing dependency
+    // Dependencies
     const clap = b.dependency("clap", .{});
 
-    // Library artifact - can be imported by other Zig projects
+    // Main library (Zig consumers)
     const lib = b.addLibrary(.{
         .name = "mufiz",
         .root_module = b.createModule(.{ .root_source_file = b.path("src/lib.zig"), .target = target, .optimize = optimize }),
@@ -64,7 +39,41 @@ pub fn build(b: *std.Build) !void {
     lib.root_module.addImport("clap", clap.module("clap"));
     b.installArtifact(lib);
 
-    // Main executable artifact
+    // Shared library (C ABI) - root module is `src/c_api.zig`
+    const shlib = b.addLibrary(.{
+        .name = "mufiz",
+        .linkage = .dynamic,
+        .root_module = b.createModule(.{ .root_source_file = b.path("src/c_api.zig"), .target = target, .optimize = optimize, .link_libc = true }),
+    });
+    shlib.root_module.addOptions("features", options);
+    shlib.root_module.addOptions("debug", debug_options);
+    shlib.root_module.addImport("clap", clap.module("clap"));
+    b.installArtifact(shlib);
+
+    // WASM build support (opt-in).
+    // The default build no longer produces JS + WASM automatically in order to
+    // keep native builds stable. If you want to produce a wasm artifact, use the
+    // helper script:
+    //
+    //   ./scripts/build-wasm.sh
+    //
+    // The script builds a wasm-target static archive for the C API and will
+    // optionally link with Emscripten (if `emcc` is present). It accepts
+    // environment and CLI flags for fine-grained control.
+    //
+    // For convenience you can enable an optional `wasm` build step that runs
+    // the helper script. This step is intentionally opt-in so it only runs when
+    // you explicitly request it (e.g. `zig build -Dwasm` or `zig build wasm`).
+    const enable_wasm = b.option(bool, "wasm", "Build WebAssembly artifacts (runs scripts/build-wasm.sh)") orelse false;
+    if (enable_wasm) {
+        const wasm_cmd = b.addSystemCommand(&[_][]const u8{
+            "sh", "scripts/build-wasm.sh",
+        });
+        const wasm_step = b.step("wasm", "Build WebAssembly artifacts (via scripts/build-wasm.sh)");
+        wasm_step.dependOn(&wasm_cmd.step);
+    }
+
+    // Executable (native)
     const exe = b.addExecutable(.{
         .name = "mufiz",
         .root_module = b.createModule(.{ .root_source_file = b.path("src/main.zig"), .target = target, .optimize = optimize }),
@@ -72,8 +81,17 @@ pub fn build(b: *std.Build) !void {
     exe.root_module.addOptions("features", options);
     exe.root_module.addOptions("debug", debug_options);
     exe.root_module.addImport("clap", clap.module("clap"));
+    b.installArtifact(exe);
 
-    // Check-only executable (for 'zig build check')
+    // Install headers
+    const install_headers = b.addInstallDirectory(.{
+        .source_dir = b.path("include"),
+        .install_dir = .prefix,
+        .install_subdir = "include",
+    });
+    b.getInstallStep().dependOn(&install_headers.step);
+
+    // check-only exe for 'zig build check'
     const exe_check = b.addExecutable(.{
         .name = "mufiz",
         .root_module = b.createModule(.{ .root_source_file = b.path("src/main.zig"), .target = target, .optimize = optimize }),
@@ -82,14 +100,11 @@ pub fn build(b: *std.Build) !void {
     exe_check.root_module.addOptions("debug", debug_options);
     exe_check.root_module.addImport("clap", clap.module("clap"));
 
-    // Enable WASM runtime if targeting WASM32
     if (target.query.cpu_arch == .wasm32) {
         b.enable_wasmtime = true;
     }
 
-    b.installArtifact(exe);
-
-    // Documentation generation step
+    // docs install step (keeps behavior from before)
     const install_docs = b.addInstallDirectory(.{
         .source_dir = lib.getEmittedDocs(),
         .install_dir = .prefix,
@@ -98,21 +113,21 @@ pub fn build(b: *std.Build) !void {
 
     const docs_step = b.step("docs", "Copy documentation artifacts to prefix path");
     docs_step.dependOn(&install_docs.step);
+    docs_step.dependOn(&install_headers.step);
 
     const check = b.step("check", "Check if MufiZ compiles");
     check.dependOn(&exe_check.step);
 
-    // Run step for executing the built binary
+    // Run / Run step
     const run_cmd = b.addRunArtifact(exe);
     run_cmd.step.dependOn(b.getInstallStep());
     if (b.args) |args| {
         run_cmd.addArgs(args);
     }
-
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
 
-    // Test step for running library tests
+    // Tests
     const lib_tests = b.addTest(.{
         .root_module = b.createModule(.{
             .root_source_file = b.path("src/lib.zig"),
@@ -128,7 +143,7 @@ pub fn build(b: *std.Build) !void {
     const test_step = b.step("test", "Run library tests");
     test_step.dependOn(&run_lib_tests.step);
 
-    // Example: Library usage example
+    // Example: Library usage
     const example_lib_usage = b.addExecutable(.{
         .name = "library_usage",
         .root_module = b.createModule(.{

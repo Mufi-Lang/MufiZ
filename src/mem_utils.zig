@@ -2,20 +2,29 @@ const std = @import("std");
 const allocator_mod = @import("allocator.zig");
 
 // Use a simple GPA for dynamic allocations and arena for VM-lifetime objects
-var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+var gpa: ?std.heap.GeneralPurposeAllocator(.{}) = null;
 var arena_allocator: ?std.heap.ArenaAllocator = null;
 var is_initialized = false;
+
+/// Ensure GPA is initialized (lazy initialization for dynamic library safety)
+fn ensureGPAInitialized() void {
+    if (gpa == null) {
+        gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    }
+}
 
 /// Initialize the global allocator with configuration
 pub fn initAllocator(config: allocator_mod.AllocatorConfig) void {
     _ = config; // Ignore config for now
-    arena_allocator = std.heap.ArenaAllocator.init(gpa.allocator());
+    ensureGPAInitialized();
+    arena_allocator = std.heap.ArenaAllocator.init(gpa.?.allocator());
     is_initialized = true;
 }
 
 /// Get the global allocator - use this throughout the codebase
 pub fn getAllocator() std.mem.Allocator {
-    return gpa.allocator();
+    ensureGPAInitialized();
+    return gpa.?.allocator();
 }
 
 /// Check for memory leaks and cleanup
@@ -25,7 +34,10 @@ pub fn checkForLeaks() bool {
     if (arena_allocator) |*arena| {
         arena.deinit();
     }
-    return gpa.deinit() == .leak;
+    if (gpa) |*g| {
+        return g.deinit() == .leak;
+    }
+    return false;
 }
 
 /// Deinitialize the memory system
@@ -44,7 +56,8 @@ pub fn getVMArenaAllocator() std.mem.Allocator {
         return arena.allocator();
     }
     // Fallback to GPA if arena not initialized
-    return gpa.allocator();
+    ensureGPAInitialized();
+    return gpa.?.allocator();
 }
 
 /// Print memory statistics for debugging
