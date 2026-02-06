@@ -137,7 +137,7 @@ pub fn disassembleInstruction(chunk: *chunk_h.Chunk, offset: i32) i32 {
         58 => return byteInstruction("OP_FVECTOR", chunk, offset),
         59 => return twoByteInstruction("OP_MATRIX", chunk, offset),
         60 => return simpleInstruction("OP_GET_MATRIX_FLAT", offset),
-        // Import opcodes (note: these are 62-65 in OpCode enum)
+        // Import opcodes (62-65 in OpCode enum)
         62 => return constantInstruction("OP_IMPORT_MODULE", chunk, offset),
         63 => return constantInstruction("OP_IMPORT_FILE", chunk, offset),
         64 => {
