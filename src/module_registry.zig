@@ -144,21 +144,30 @@ pub fn loadFile(path: []const u8) !void {
     };
     
     // Create closure and call it in the current VM context
+    // Push the function first (will be popped when creating closure)
     vm_module.push(Value{
         .type = .VAL_OBJ,
         .as = .{ .obj = @ptrCast(@alignCast(function)) },
     });
     const closure = object_h.newClosure(@ptrCast(function));
     _ = vm_module.pop();
+    
+    // Push the closure on the stack for the call
     vm_module.push(Value{
         .type = .VAL_OBJ,
         .as = .{ .obj = @ptrCast(@alignCast(closure)) },
     });
     
+    // Call the closure with 0 arguments
     if (!vm_module.call(closure, 0)) {
         std.debug.print("Error: Failed to execute file '{s}'\n", .{path});
         return error.InterpretError;
     }
+    
+    // Update the current frame to the newly created frame so execution continues there
+    // This is similar to what opCall does
+    const vm_ptr = vm_module.getVM();
+    vm_ptr.currentFrame = &vm_ptr.frames[@intCast(vm_ptr.frameCount - 1)];
 }
 
 /// Check if a module is loaded

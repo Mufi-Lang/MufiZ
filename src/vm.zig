@@ -205,6 +205,11 @@ pub fn freeVM() void {
     allocator.free(vm.frames);
 }
 
+/// Get a pointer to the VM for external modules
+pub fn getVM() *VM {
+    return &vm;
+}
+
 pub fn ZSTR(s: ?*ObjString) []const u8 {
     if (s) |str| {
         return str.chars[0..str.length];
