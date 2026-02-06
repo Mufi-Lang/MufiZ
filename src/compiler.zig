@@ -2020,6 +2020,8 @@ pub fn fileImportStatement() void {
         },
     });
     emitBytes(@intCast(@intFromEnum(OpCode.OP_IMPORT_FILE)), pathConstant);
+    // Pop the return value from the imported file (imports don't return values to the caller)
+    emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
 }
 
 // from math import sin, cos;
