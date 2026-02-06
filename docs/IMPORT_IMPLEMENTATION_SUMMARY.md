@@ -260,8 +260,8 @@ Existing MufiZ code continues to work because:
 
 ## Known Limitations
 
-1. **No Alias Support**: `as` keyword recognized but not functional
-2. **Module-Level Only**: Imports must be at top level (not inside functions)
+1. **No Alias Support**: `as` keyword will produce a clear compile-time error until implemented
+2. **Import Scope**: Imports can be placed anywhere declarations are allowed, including inside functions
 3. **No Namespace**: Imported functions added to global scope
 4. **No Circular Detection**: Can cause stack overflow
 5. **No Module Unloading**: Once loaded, modules stay in memory

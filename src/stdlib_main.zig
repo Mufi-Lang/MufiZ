@@ -236,20 +236,33 @@ pub fn initializeStdlib() !void {
 
     const registry = stdlib_core.getGlobalRegistry();
 
-    // Register ONLY core functions by default
-    // Other modules will be loaded on demand via import statements
+    // Register core functions
     try registry.register(what_is);
     
-    // Register essential IO functions (print, println, etc.) for basic functionality
+    // Register all modules by default for backward compatibility
+    // Users can explicitly use imports to load modules on-demand, but all modules
+    // are available without imports to maintain backward compatibility
+    try MathModule.register();
     try IoModule.register();
-    
-    // Register essential type conversion functions
     try TypesModule.register();
-
-    // All other modules (math, collections, matrix, utils, json, serde, etc.)
-    // are now loaded lazily via the import system
+    try UtilsModule.register();
+    try CollectionsModule.register();
     
-    std.log.info("Standard library core initialized", .{});
+    // Conditionally register optional modules
+    if (enable_fs) {
+        try FsModule.register();
+    }
+    
+    if (enable_net) {
+        try NetworkModule.register();
+    }
+    
+    // Always register matrix, json, and serde modules
+    try MatrixModule.register();
+    try JsonModule.register();
+    try SerdeModule.register();
+
+    std.log.info("Standard library initialized with all modules", .{});
 }
 
 // Register all functions with the VM

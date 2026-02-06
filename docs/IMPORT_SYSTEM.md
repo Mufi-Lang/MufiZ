@@ -164,7 +164,7 @@ Four new opcodes were added to support imports:
 
 ### Compiler Integration
 
-The compiler recognizes the new `import`, `from`, and `as` keywords and generates the appropriate bytecode. Import statements must be at the top level (not inside functions or blocks).
+The compiler recognizes the new `import`, `from`, and `as` keywords and generates the appropriate bytecode. Import statements are allowed anywhere a declaration is valid (at the top level or within blocks), though idiomatic MufiZ code keeps them at the top level of a file for clarity and better organization.
 
 ## Testing
 

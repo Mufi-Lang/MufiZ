@@ -2,11 +2,8 @@
 /// Manages lazy-loading of standard library modules and file imports
 
 const std = @import("std");
-const Value = @import("value.zig").Value;
 const stdlib_main = @import("stdlib_main.zig");
-const vm = @import("vm.zig");
-const compiler = @import("compiler.zig");
-const mem_utils = @import("mem_utils.zig");
+const stdlib_core = @import("stdlib_core.zig");
 
 /// Information about a module that can be loaded
 pub const ModuleInfo = struct {
@@ -83,8 +80,13 @@ pub fn loadModule(name: []const u8) !void {
     // Find module in registry
     for (MODULE_REGISTRY) |module| {
         if (std.mem.eql(u8, module.name, name)) {
-            // Call the module's registration function
+            // Call the module's registration function to add functions to registry
             try module.register_fn();
+            
+            // Actually register the module's functions with the VM
+            const registry = stdlib_core.getGlobalRegistry();
+            registry.registerModule(name);
+            
             try loaded_modules.put(name, true);
             return;
         }
@@ -130,10 +132,30 @@ pub fn loadFile(path: []const u8) !void {
     defer allocator.free(source_with_null);
     @memcpy(source_with_null[0..source.len], source);
 
-    // Compile and interpret the file
-    const result = vm.interpret(@ptrCast(source_with_null.ptr));
+    // Compile the file
+    const compiler_h = @import("compiler.zig");
+    const object_h = @import("object.zig");
+    const Value = @import("value.zig").Value;
+    const vm_module = @import("vm.zig");
     
-    if (result != .INTERPRET_OK) {
+    const function = compiler_h.compile(@ptrCast(source_with_null.ptr)) orelse {
+        std.debug.print("Error: Failed to compile file '{s}'\n", .{path});
+        return error.CompileError;
+    };
+    
+    // Create closure and call it in the current VM context
+    vm_module.push(Value{
+        .type = .VAL_OBJ,
+        .as = .{ .obj = @ptrCast(@alignCast(function)) },
+    });
+    const closure = object_h.newClosure(@ptrCast(function));
+    _ = vm_module.pop();
+    vm_module.push(Value{
+        .type = .VAL_OBJ,
+        .as = .{ .obj = @ptrCast(@alignCast(closure)) },
+    });
+    
+    if (!vm_module.call(closure, 0)) {
         std.debug.print("Error: Failed to execute file '{s}'\n", .{path});
         return error.InterpretError;
     }

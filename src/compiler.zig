@@ -1967,15 +1967,17 @@ pub fn moduleImportStatement() void {
     if (match(.TOKEN_AS)) {
         consume(.TOKEN_IDENTIFIER, "Expect identifier after 'as'.");
         alias = parser.previous;
+        
+        // Alias support is not yet implemented
+        const suggestions = [_]errors.ErrorSuggestion{
+            .{ .message = "Module aliasing is not yet supported" },
+            .{ .message = "Use import without 'as' for now: import module_name;" },
+        };
+        errorWithSuggestions(&parser.previous, .EXPECTED_EXPRESSION, "Module aliasing with 'as' is not yet implemented", &suggestions);
+        return;
     }
     
     consume(.TOKEN_SEMICOLON, "Expect ';' after import statement.");
-    
-    // Emit bytecode to load module at runtime
-    if (alias) |a| {
-        _ = a; // For now, we ignore the alias (can be implemented later)
-        // Future: Store the alias and use it for scoping
-    }
     
     // Emit the module name as a constant
     const nameConstant = makeConstant(Value{
@@ -1995,14 +1997,17 @@ pub fn fileImportStatement() void {
     if (match(.TOKEN_AS)) {
         consume(.TOKEN_IDENTIFIER, "Expect identifier after 'as'.");
         alias = parser.previous;
+        
+        // Alias support is not yet implemented
+        const suggestions = [_]errors.ErrorSuggestion{
+            .{ .message = "File import aliasing is not yet supported" },
+            .{ .message = "Use import without 'as' for now: import \"file.mufi\";" },
+        };
+        errorWithSuggestions(&parser.previous, .EXPECTED_EXPRESSION, "File import aliasing with 'as' is not yet implemented", &suggestions);
+        return;
     }
     
     consume(.TOKEN_SEMICOLON, "Expect ';' after import statement.");
-    
-    // Emit bytecode to load file at runtime
-    if (alias) |a| {
-        _ = a; // For now, we ignore the alias
-    }
     
     // The file path token already includes quotes, so we need to remove them
     const pathStart = filePath.start + 1; // Skip opening quote
