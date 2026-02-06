@@ -552,8 +552,9 @@ pub fn moduleImportStatement() void {
     // Check for alias: import math as m
     if (match(.TOKEN_AS)) {
         consume(.TOKEN_IDENTIFIER, "Expect identifier after 'as'.");
-        // TODO: Implement aliasing with namespace support
-        // For now, just load the module normally
+        // Aliasing is not yet supported - emit error
+        errorAtCurrent("Module aliasing with 'as' is not yet implemented. Use 'import module;' instead.");
+        return;
     }
 
     consume(.TOKEN_SEMICOLON, "Expect ';' after import statement.");
@@ -571,6 +572,7 @@ pub fn fromImportStatement() void {
     consume(.TOKEN_IMPORT, "Expect 'import' after module name.");
 
     // Collect function names first to count them
+    // Note: Limited to 256 functions per import statement (u8 limit)
     var func_tokens: [256]Token = undefined;
     var functionCount: u8 = 0;
 
@@ -581,6 +583,10 @@ pub fn fromImportStatement() void {
 
     // Additional functions
     while (match(.TOKEN_COMMA)) {
+        if (functionCount >= 255) {
+            errorAtCurrent("Too many functions in import statement (maximum 255).");
+            return;
+        }
         consume(.TOKEN_IDENTIFIER, "Expect function name.");
         func_tokens[functionCount] = parser.previous;
         functionCount += 1;
@@ -614,7 +620,9 @@ pub fn fileImportStatement() void {
     // Check for alias
     if (match(.TOKEN_AS)) {
         consume(.TOKEN_IDENTIFIER, "Expect identifier after 'as'.");
-        // Store alias for namespace support (future enhancement)
+        // Aliasing is not yet supported - emit error
+        errorAtCurrent("File import aliasing with 'as' is not yet implemented. Use 'import \"file.mufi\";' instead.");
+        return;
     }
 
     consume(.TOKEN_SEMICOLON, "Expect ';' after import statement.");

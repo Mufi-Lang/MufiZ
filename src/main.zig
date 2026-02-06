@@ -52,17 +52,8 @@ pub fn main() !void {
     module_registry.init(mem_utils.getAllocator());
     defer module_registry.deinit();
     
-    // Only load core/prelude by default - other modules loaded on import
+    // Only load core/prelude by default - other modules are now loaded lazily via import statements
     stdlib.prelude();
-    
-    // REMOVED - these are now loaded lazily via import statements:
-    // stdlib.addMath();
-    // stdlib.addMatrix();
-    // stdlib.addCollections();
-    // stdlib.addTime();
-    // stdlib.addFs();
-    // stdlib.addUtils();
-    // stdlib.addNet();
     
     if (features.sandbox) {
         try system.repl();
