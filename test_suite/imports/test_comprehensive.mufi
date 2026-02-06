@@ -1,0 +1,31 @@
+# Comprehensive import test
+
+# Test 1: Full module import
+print "=== Test 1: Full module import ===";
+import math;
+var result1 = sqrt(25);
+print result1;  # Should print 5
+
+# Test 2: Selective function import  
+print "=== Test 2: Selective function import ===";
+from time import now_ms;
+var timestamp = now_ms();
+print timestamp;  # Should print current timestamp in ms
+
+# Test 3: File import with functions
+print "=== Test 3: File import ===";
+import "test_suite/imports/math_helper.mufi";
+var result3 = multiply(6, 7);
+print result3;  # Should print 42
+
+# Test 4: Multiple collections functions
+print "=== Test 4: Collections import ===";
+import collections;
+var list = linked_list();
+push(list, 10);
+push(list, 20);
+push(list, 30);
+var length = len(list);
+print length;  # Should print 3
+
+print "=== All tests completed ===";

@@ -1,0 +1,19 @@
+# Test lazy loading - modules should only be loaded when imported
+
+# Initially, math functions should NOT be available
+# This would cause an error if we tried to call sin() here
+
+# Now import math
+print "Importing math module...";
+import math;
+
+# Now sin() should be available
+var x = sin(3.14159);
+print x;
+
+# Import math again - should be a no-op since it's already loaded
+import math;
+var y = cos(0);
+print y;  # Should print 1
+
+print "Lazy loading test completed!";
