@@ -81,7 +81,12 @@ pub fn init(options: InitOptions) !void {
     // Initialize the virtual machine
     vm.initVM();
 
-    // Initialize and register standard library functions
+    // Initialize the module registry for lazy loading
+    const module_registry = @import("module_registry.zig");
+    module_registry.init(mem_utils.getAllocator());
+
+    // Initialize and register ONLY core/essential functions
+    // Standard library modules are now loaded on demand via import statements
     try stdlib.initializeStdlib();
     stdlib.registerWithVM();
 
@@ -96,6 +101,10 @@ pub fn deinit() void {
     if (!is_initialized) {
         return; // Already deinitialized or never initialized
     }
+
+    // Deinitialize the module registry
+    const module_registry = @import("module_registry.zig");
+    module_registry.deinit();
 
     // Free the virtual machine
     vm.freeVM();

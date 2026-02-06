@@ -526,6 +526,10 @@ pub fn declaration() void {
         varDeclaration();
     } else if (match(.TOKEN_CONST)) {
         constDeclaration();
+    } else if (match(.TOKEN_IMPORT)) {
+        importStatement();
+    } else if (match(.TOKEN_FROM)) {
+        fromImportStatement();
     } else {
         statement();
     }
@@ -607,6 +611,10 @@ pub fn getRule(type_: TokenType) ParseRule {
         .TOKEN_END => ParseRule{ .precedence = PREC_NONE },
         .TOKEN_CONST => ParseRule{ .precedence = PREC_NONE },
         .TOKEN_ARROW => ParseRule{ .infix = &pair, .precedence = PREC_TERM },
+        // Import tokens
+        .TOKEN_IMPORT => ParseRule{ .precedence = PREC_NONE },
+        .TOKEN_FROM => ParseRule{ .precedence = PREC_NONE },
+        .TOKEN_AS => ParseRule{ .precedence = PREC_NONE },
         else => ParseRule{ .precedence = PREC_NONE },
     };
 }
@@ -1933,6 +1941,123 @@ pub fn classDeclaration() void {
 
     currentClass = currentClass.?.enclosing;
 }
+
+// Import statement handling functions
+pub fn importStatement() void {
+    if (check(.TOKEN_STRING)) {
+        // File import: import "file_path"
+        fileImportStatement();
+    } else if (check(.TOKEN_IDENTIFIER)) {
+        // Module import: import math
+        moduleImportStatement();
+    } else {
+        const suggestions = [_]errors.ErrorSuggestion{
+            .{ .message = "Provide a module name or file path after 'import'" },
+            .{ .message = "Use: import module_name; or import \"file.mufi\";" },
+        };
+        errorWithSuggestions(&parser.current, .EXPECTED_EXPRESSION, "Expect module name or file path after 'import'.", &suggestions);
+    }
+}
+
+pub fn moduleImportStatement() void {
+    consume(.TOKEN_IDENTIFIER, "Expect module name.");
+    const moduleName = parser.previous;
+    
+    var alias: ?Token = null;
+    if (match(.TOKEN_AS)) {
+        consume(.TOKEN_IDENTIFIER, "Expect identifier after 'as'.");
+        alias = parser.previous;
+    }
+    
+    consume(.TOKEN_SEMICOLON, "Expect ';' after import statement.");
+    
+    // Emit bytecode to load module at runtime
+    if (alias) |a| {
+        _ = a; // For now, we ignore the alias (can be implemented later)
+        // Future: Store the alias and use it for scoping
+    }
+    
+    // Emit the module name as a constant
+    const nameConstant = makeConstant(Value{
+        .type = .VAL_OBJ,
+        .as = .{
+            .obj = @ptrCast(object_h.copyString(moduleName.start, @intCast(moduleName.length))),
+        },
+    });
+    emitBytes(@intCast(@intFromEnum(OpCode.OP_IMPORT_MODULE)), nameConstant);
+}
+
+pub fn fileImportStatement() void {
+    consume(.TOKEN_STRING, "Expect file path string.");
+    const filePath = parser.previous;
+    
+    var alias: ?Token = null;
+    if (match(.TOKEN_AS)) {
+        consume(.TOKEN_IDENTIFIER, "Expect identifier after 'as'.");
+        alias = parser.previous;
+    }
+    
+    consume(.TOKEN_SEMICOLON, "Expect ';' after import statement.");
+    
+    // Emit bytecode to load file at runtime
+    if (alias) |a| {
+        _ = a; // For now, we ignore the alias
+    }
+    
+    // The file path token already includes quotes, so we need to remove them
+    const pathStart = filePath.start + 1; // Skip opening quote
+    const pathLength = filePath.length - 2; // Remove both quotes
+    
+    const pathConstant = makeConstant(Value{
+        .type = .VAL_OBJ,
+        .as = .{
+            .obj = @ptrCast(object_h.copyString(pathStart, @intCast(pathLength))),
+        },
+    });
+    emitBytes(@intCast(@intFromEnum(OpCode.OP_IMPORT_FILE)), pathConstant);
+}
+
+// from math import sin, cos;
+pub fn fromImportStatement() void {
+    consume(.TOKEN_IDENTIFIER, "Expect module name after 'from'.");
+    const moduleName = parser.previous;
+    
+    consume(.TOKEN_IMPORT, "Expect 'import' after module name.");
+    
+    // Parse list of function names
+    var count: u8 = 0;
+    while (true) {
+        consume(.TOKEN_IDENTIFIER, "Expect function name.");
+        const funcName = parser.previous;
+        
+        // Emit module name and function name as constants
+        const moduleConstant = makeConstant(Value{
+            .type = .VAL_OBJ,
+            .as = .{
+                .obj = @ptrCast(object_h.copyString(moduleName.start, @intCast(moduleName.length))),
+            },
+        });
+        const funcConstant = makeConstant(Value{
+            .type = .VAL_OBJ,
+            .as = .{
+                .obj = @ptrCast(object_h.copyString(funcName.start, @intCast(funcName.length))),
+            },
+        });
+        
+        emitByte(@intCast(@intFromEnum(OpCode.OP_IMPORT_SPECIFIC)));
+        emitByte(moduleConstant);
+        emitByte(funcConstant);
+        
+        count += 1;
+        
+        if (!match(.TOKEN_COMMA)) {
+            break;
+        }
+    }
+    
+    consume(.TOKEN_SEMICOLON, "Expect ';' after import statement.");
+}
+
 pub fn funDeclaration() void {
     var global: u8 = parseVariable("Expect function name.");
     _ = &global;

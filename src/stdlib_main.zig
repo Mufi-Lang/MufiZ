@@ -46,7 +46,7 @@ pub const what_is = stdlib_core.DefineFunction(
 );
 
 // Manual registration functions since AutoRegisterModule is disabled
-const MathModule = struct {
+pub const MathModule = struct {
     pub fn register() !void {
         const registry = stdlib_core.getGlobalRegistry();
         try registry.register(math.ln);
@@ -75,7 +75,7 @@ const MathModule = struct {
     }
 };
 
-const IoModule = struct {
+pub const IoModule = struct {
     pub fn register() !void {
         const registry = stdlib_core.getGlobalRegistry();
         try registry.register(io.print);
@@ -85,7 +85,7 @@ const IoModule = struct {
     }
 };
 
-const TypesModule = struct {
+pub const TypesModule = struct {
     pub fn register() !void {
         const registry = stdlib_core.getGlobalRegistry();
         try registry.register(types.str);
@@ -100,13 +100,13 @@ const TypesModule = struct {
     }
 };
 
-const TimeModule = struct {
+pub const TimeModule = struct {
     pub fn register() !void {
         // Time module registration would go here - temporarily disabled
     }
 };
 
-const UtilsModule = struct {
+pub const UtilsModule = struct {
     pub fn register() !void {
         const registry = stdlib_core.getGlobalRegistry();
         try registry.register(utils.assert);
@@ -120,7 +120,7 @@ const UtilsModule = struct {
     }
 };
 
-const CollectionsModule = struct {
+pub const CollectionsModule = struct {
     pub fn register() !void {
         const registry = stdlib_core.getGlobalRegistry();
         try registry.register(collections.linked_list);
@@ -160,19 +160,19 @@ const CollectionsModule = struct {
     }
 };
 
-const FsModule = struct {
+pub const FsModule = struct {
     pub fn register() !void {
         // FS module registration would go here - temporarily disabled
     }
 };
 
-const NetworkModule = struct {
+pub const NetworkModule = struct {
     pub fn register() !void {
         // Network module registration would go here - temporarily disabled
     }
 };
 
-const MatrixModule = struct {
+pub const MatrixModule = struct {
     pub fn register() !void {
         const registry = stdlib_core.getGlobalRegistry();
         try registry.register(matrix.eye);
@@ -198,7 +198,7 @@ const MatrixModule = struct {
     }
 };
 
-const JsonModule = struct {
+pub const JsonModule = struct {
     pub fn register() !void {
         const registry = stdlib_core.getGlobalRegistry();
         try registry.register(json.json_parse);
@@ -210,7 +210,7 @@ const JsonModule = struct {
     }
 };
 
-const SerdeModule = struct {
+pub const SerdeModule = struct {
     pub fn register() !void {
         const registry = stdlib_core.getGlobalRegistry();
         try registry.register(serde.serde_serialize);
@@ -236,18 +236,19 @@ pub fn initializeStdlib() !void {
 
     const registry = stdlib_core.getGlobalRegistry();
 
-    // Register core functions
+    // Register ONLY core functions by default
+    // Other modules will be loaded on demand via import statements
     try registry.register(what_is);
-
-    // Register all modules
-    try MathModule.register();
+    
+    // Register essential IO functions (print, println, etc.) for basic functionality
     try IoModule.register();
+    
+    // Register essential type conversion functions
     try TypesModule.register();
-    // try TimeModule.register();
-    try UtilsModule.register();
-    try CollectionsModule.register();
 
-    // Conditionally register optional modules
+    // All other modules (math, collections, matrix, utils, json, serde, etc.)
+    // are now loaded lazily via the import system
+}
     if (enable_fs) {
         std.log.info("File system functions enabled", .{});
         try FsModule.register();
