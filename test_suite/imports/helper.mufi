@@ -1,0 +1,5 @@
+fun helper_function(x) {
+    return x * 2;
+}
+
+print "Helper module loaded!";

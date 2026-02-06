@@ -1,0 +1,5 @@
+import "test_suite/imports/math_helper.mufi";
+var result = multiply(5, 3);
+print result;
+var sum = add(10, 20);
+print sum;

@@ -2089,7 +2089,9 @@ fn opImportModule() InterpretResult {
 fn opImportFrom() InterpretResult {
     const frame = vm.currentFrame.?;
     
-    // Read module name
+    // Bytecode layout: [module_name_const_idx][function_count][func1_const_idx][func2_const_idx]...
+    
+    // Read module name constant index
     const module_constant_index = frame.ip[0];
     frame.ip += 1;
     const module_constant = getConstant(frame, module_constant_index) orelse {

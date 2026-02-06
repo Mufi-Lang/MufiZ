@@ -570,29 +570,41 @@ pub fn fromImportStatement() void {
 
     consume(.TOKEN_IMPORT, "Expect 'import' after module name.");
 
-    // Parse list of functions to import
+    // Collect function names first to count them
+    var func_tokens: [256]Token = undefined;
     var functionCount: u8 = 0;
 
     // First function
     consume(.TOKEN_IDENTIFIER, "Expect function name.");
-    const firstFunc = parser.previous;
-    emitConstant(Value.init_string(firstFunc.start[0..@intCast(firstFunc.length)]));
+    func_tokens[functionCount] = parser.previous;
     functionCount += 1;
 
     // Additional functions
     while (match(.TOKEN_COMMA)) {
         consume(.TOKEN_IDENTIFIER, "Expect function name.");
-        const func = parser.previous;
-        emitConstant(Value.init_string(func.start[0..@intCast(func.length)]));
+        func_tokens[functionCount] = parser.previous;
         functionCount += 1;
     }
 
     consume(.TOKEN_SEMICOLON, "Expect ';' after import statement.");
 
-    // Emit opcode with module name and function count
+    // Now emit the bytecode:
+    // [OP_IMPORT_FROM][module_name_const_idx][function_count][func1_const_idx][func2_const_idx]...
     emitByte(@intFromEnum(OpCode.OP_IMPORT_FROM));
-    emitConstant(Value.init_string(moduleName.start[0..@intCast(moduleName.length)]));
+    
+    // Emit module name constant index
+    const module_const = makeConstant(Value.init_string(moduleName.start[0..@intCast(moduleName.length)]));
+    emitByte(module_const);
+    
+    // Emit function count
     emitByte(functionCount);
+    
+    // Emit function name constant indices
+    var i: u8 = 0;
+    while (i < functionCount) : (i += 1) {
+        const func_const = makeConstant(Value.init_string(func_tokens[i].start[0..@intCast(func_tokens[i].length)]));
+        emitByte(func_const);
+    }
 }
 
 pub fn fileImportStatement() void {

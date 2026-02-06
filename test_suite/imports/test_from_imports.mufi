@@ -1,0 +1,6 @@
+# Test: Specific function imports
+from math import sqrt, abs;
+var root = sqrt(16);
+var absolute = abs(-5);
+print root;
+print absolute;

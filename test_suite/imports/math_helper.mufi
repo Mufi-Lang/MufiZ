@@ -1,0 +1,9 @@
+fun multiply(a, b) {
+    return a * b;
+}
+
+fun add(a, b) {
+    return a + b;
+}
+
+print "Math helper module loaded!";

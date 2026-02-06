@@ -1,0 +1,12 @@
+# Test 1: Basic module import
+import math;
+var x = sin(3.14);
+var y = cos(3.14);
+print x;
+print y;
+
+# Test 2: Square root and absolute value
+var root = sqrt(16);
+var absolute = abs(-5);
+print root;
+print absolute;
