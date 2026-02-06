@@ -2025,7 +2025,7 @@ pub fn fromImportStatement() void {
     consume(.TOKEN_IMPORT, "Expect 'import' after module name.");
     
     // Parse list of function names
-    var count: u8 = 0;
+    var count: u8 = 0; // Track number of imports (reserved for future validation/limits)
     while (true) {
         consume(.TOKEN_IDENTIFIER, "Expect function name.");
         const funcName = parser.previous;
