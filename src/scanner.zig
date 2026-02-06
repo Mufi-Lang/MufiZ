@@ -47,6 +47,9 @@ fn initKeywordMap() void {
     keyword_map.put("case", .TOKEN_CASE) catch unreachable;
     keyword_map.put("break", .TOKEN_BREAK) catch unreachable;
     keyword_map.put("continue", .TOKEN_CONTINUE) catch unreachable;
+    keyword_map.put("import", .TOKEN_IMPORT) catch unreachable;
+    keyword_map.put("from", .TOKEN_FROM) catch unreachable;
+    keyword_map.put("as", .TOKEN_AS) catch unreachable;
 
     keyword_map_initialized = true;
 }
@@ -128,6 +131,9 @@ pub const TokenType = enum(c_int) {
     TOKEN_HASH = 68,
     TOKEN_RANGE_EXCLUSIVE = 69,
     TOKEN_RANGE_INCLUSIVE = 70,
+    TOKEN_IMPORT = 71,
+    TOKEN_FROM = 72,
+    TOKEN_AS = 73,
 };
 
 pub const Token = struct {

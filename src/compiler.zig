@@ -513,7 +513,11 @@ pub fn statement() void {
     }
 }
 pub fn declaration() void {
-    if (match(.TOKEN_CLASS)) {
+    if (match(.TOKEN_IMPORT)) {
+        importStatement();
+    } else if (match(.TOKEN_FROM)) {
+        fromImportStatement();
+    } else if (match(.TOKEN_CLASS)) {
         classDeclaration();
     } else if (match(.TOKEN_FUN)) {
         funDeclaration();
@@ -528,6 +532,86 @@ pub fn declaration() void {
         synchronize();
     }
 }
+
+pub fn importStatement() void {
+    if (match(.TOKEN_STRING)) {
+        // File import: import "path/to/file.mufi"
+        fileImportStatement();
+    } else if (match(.TOKEN_IDENTIFIER)) {
+        // Module import: import math
+        moduleImportStatement();
+    } else {
+        errorAtCurrent("Expect module name or file path after 'import'.");
+    }
+}
+
+pub fn moduleImportStatement() void {
+    const moduleName = parser.previous;
+    const name_slice = moduleName.start[0..@intCast(moduleName.length)];
+
+    // Check for alias: import math as m
+    if (match(.TOKEN_AS)) {
+        consume(.TOKEN_IDENTIFIER, "Expect identifier after 'as'.");
+        // TODO: Implement aliasing with namespace support
+        // For now, just load the module normally
+    }
+
+    consume(.TOKEN_SEMICOLON, "Expect ';' after import statement.");
+
+    // Emit opcode to load module at runtime
+    emitByte(@intFromEnum(OpCode.OP_IMPORT_MODULE));
+    emitConstant(Value.init_string(name_slice));
+}
+
+pub fn fromImportStatement() void {
+    // from math import sin, cos
+    consume(.TOKEN_IDENTIFIER, "Expect module name after 'from'.");
+    const moduleName = parser.previous;
+
+    consume(.TOKEN_IMPORT, "Expect 'import' after module name.");
+
+    // Parse list of functions to import
+    var functionCount: u8 = 0;
+
+    // First function
+    consume(.TOKEN_IDENTIFIER, "Expect function name.");
+    const firstFunc = parser.previous;
+    emitConstant(Value.init_string(firstFunc.start[0..@intCast(firstFunc.length)]));
+    functionCount += 1;
+
+    // Additional functions
+    while (match(.TOKEN_COMMA)) {
+        consume(.TOKEN_IDENTIFIER, "Expect function name.");
+        const func = parser.previous;
+        emitConstant(Value.init_string(func.start[0..@intCast(func.length)]));
+        functionCount += 1;
+    }
+
+    consume(.TOKEN_SEMICOLON, "Expect ';' after import statement.");
+
+    // Emit opcode with module name and function count
+    emitByte(@intFromEnum(OpCode.OP_IMPORT_FROM));
+    emitConstant(Value.init_string(moduleName.start[0..@intCast(moduleName.length)]));
+    emitByte(functionCount);
+}
+
+pub fn fileImportStatement() void {
+    const pathToken = parser.previous;
+    const path_slice = pathToken.start[1..@intCast(pathToken.length - 1)]; // Remove quotes
+
+    // Check for alias
+    if (match(.TOKEN_AS)) {
+        consume(.TOKEN_IDENTIFIER, "Expect identifier after 'as'.");
+        // Store alias for namespace support (future enhancement)
+    }
+
+    consume(.TOKEN_SEMICOLON, "Expect ';' after import statement.");
+
+    // Emit opcode to import file
+    emitByte(@intFromEnum(OpCode.OP_IMPORT_FILE));
+    emitConstant(Value.init_string(path_slice));
+}
+
 pub fn getRule(type_: TokenType) ParseRule {
     return switch (type_) {
         // Single character tokens

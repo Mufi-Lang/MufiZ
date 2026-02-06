@@ -64,6 +64,10 @@ pub const OpCode = enum(i32) {
     OP_FVECTOR = 58,
     OP_MATRIX = 59,
     OP_GET_MATRIX_FLAT = 60,
+    OP_IMPORT_MODULE = 61,
+    OP_IMPORT_FILE = 62,
+    OP_IMPORT_MODULE_AS = 63,
+    OP_IMPORT_FROM = 64,
 };
 
 pub const Chunk = struct {

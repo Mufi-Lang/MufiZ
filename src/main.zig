@@ -46,15 +46,24 @@ pub fn main() !void {
 
     vm_h.initVM();
     defer vm_h.freeVM();
+    
+    // Initialize module registry
+    const module_registry = @import("module_registry.zig");
+    module_registry.init(mem_utils.getAllocator());
+    defer module_registry.deinit();
+    
+    // Only load core/prelude by default - other modules loaded on import
     stdlib.prelude();
-    stdlib.addMath();
-    stdlib.addMatrix();
-    stdlib.addCollections();
-    stdlib.addTime();
-    stdlib.addFs();
-    stdlib.addUtils();
-    stdlib.addNet();
-    stdlib.addMatrix();
+    
+    // REMOVED - these are now loaded lazily via import statements:
+    // stdlib.addMath();
+    // stdlib.addMatrix();
+    // stdlib.addCollections();
+    // stdlib.addTime();
+    // stdlib.addFs();
+    // stdlib.addUtils();
+    // stdlib.addNet();
+    
     if (features.sandbox) {
         try system.repl();
     } else {

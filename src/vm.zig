@@ -2031,6 +2031,10 @@ const jumpTable = blk: {
     table[@intFromEnum(OpCode.OP_FVECTOR)] = opFVector;
     table[@intFromEnum(OpCode.OP_MATRIX)] = opMatrix;
     table[@intFromEnum(OpCode.OP_GET_MATRIX_FLAT)] = opGetMatrixFlat;
+    table[@intFromEnum(OpCode.OP_IMPORT_MODULE)] = opImportModule;
+    table[@intFromEnum(OpCode.OP_IMPORT_FILE)] = opImportFile;
+    table[@intFromEnum(OpCode.OP_IMPORT_MODULE_AS)] = opUnknown;
+    table[@intFromEnum(OpCode.OP_IMPORT_FROM)] = opImportFrom;
 
     break :blk table;
 };
@@ -2061,6 +2065,102 @@ fn opGetMatrixFlat() InterpretResult {
     const element = matrix.getFlat(@intCast(idx));
     push(Value.init_double(element));
     return .INTERPRET_OK;
+}
+
+fn opImportModule() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant_index = frame.ip[0];
+    frame.ip += 1;
+    const constant = getConstant(frame, constant_index) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    const moduleName = constant.as_zstring();
+
+    const module_registry = @import("module_registry.zig");
+    module_registry.loadModule(moduleName) catch |err| {
+        runtimeError("Failed to import module '{s}': {}", .{ moduleName, err });
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+
+    return .INTERPRET_OK;
+}
+
+fn opImportFrom() InterpretResult {
+    const frame = vm.currentFrame.?;
+    
+    // Read module name
+    const module_constant_index = frame.ip[0];
+    frame.ip += 1;
+    const module_constant = getConstant(frame, module_constant_index) orelse {
+        runtimeError("Invalid constant index for module name.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    const moduleName = module_constant.as_zstring();
+    
+    // Read function count
+    const functionCount = frame.ip[0];
+    frame.ip += 1;
+
+    const module_registry = @import("module_registry.zig");
+
+    // Load each specified function
+    var i: u8 = 0;
+    while (i < functionCount) : (i += 1) {
+        const func_constant_index = frame.ip[0];
+        frame.ip += 1;
+        const func_constant = getConstant(frame, func_constant_index) orelse {
+            runtimeError("Invalid constant index for function name.", .{});
+            return .INTERPRET_RUNTIME_ERROR;
+        };
+        const funcName = func_constant.as_zstring();
+
+        module_registry.loadSpecificFunction(moduleName, funcName) catch |err| {
+            runtimeError("Failed to import function '{s}' from module '{s}': {}", .{ funcName, moduleName, err });
+            return .INTERPRET_RUNTIME_ERROR;
+        };
+    }
+
+    return .INTERPRET_OK;
+}
+
+fn opImportFile() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant_index = frame.ip[0];
+    frame.ip += 1;
+    const constant = getConstant(frame, constant_index) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    const filePath = constant.as_zstring();
+
+    // Read the file
+    const file_content = std.fs.cwd().readFileAlloc(
+        mem_utils.getAllocator(),
+        filePath,
+        10 * 1024 * 1024, // 10MB max
+    ) catch |err| {
+        runtimeError("Failed to read file '{s}': {}", .{ filePath, err });
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    defer mem_utils.getAllocator().free(file_content);
+
+    // Compile the imported file
+    const function = compiler_h.compile(@ptrCast(file_content.ptr)) orelse {
+        runtimeError("Failed to compile imported file '{s}'", .{filePath});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+
+    // Execute the imported file's code
+    push(Value.init_obj(@ptrCast(function)));
+    const closure = object_h.allocateObject(ObjClosure, .{
+        .function = function,
+        .upvalues = null,
+        .upvalueCount = 0,
+    });
+    _ = pop();
+    push(Value.init_obj(@ptrCast(closure)));
+    return callValue(peek(0), 0);
 }
 
 pub fn run() InterpretResult {
