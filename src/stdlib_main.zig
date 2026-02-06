@@ -248,23 +248,8 @@ pub fn initializeStdlib() !void {
 
     // All other modules (math, collections, matrix, utils, json, serde, etc.)
     // are now loaded lazily via the import system
-}
-    if (enable_fs) {
-        std.log.info("File system functions enabled", .{});
-        try FsModule.register();
-    }
-
-    if (enable_net) {
-        std.log.info("Network functions enabled", .{});
-        try NetworkModule.register();
-    }
-
-    // Always register matrix, json, and serde modules (no feature flag needed)
-    try MatrixModule.register();
-    try JsonModule.register();
-    try SerdeModule.register();
-
-    std.log.info("Standard library initialized with {d} functions", .{registry.getFunctionCount()});
+    
+    std.log.info("Standard library core initialized", .{});
 }
 
 // Register all functions with the VM

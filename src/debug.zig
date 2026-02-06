@@ -137,10 +137,10 @@ pub fn disassembleInstruction(chunk: *chunk_h.Chunk, offset: i32) i32 {
         58 => return byteInstruction("OP_FVECTOR", chunk, offset),
         59 => return twoByteInstruction("OP_MATRIX", chunk, offset),
         60 => return simpleInstruction("OP_GET_MATRIX_FLAT", offset),
-        // Import opcodes
-        61 => return constantInstruction("OP_IMPORT_MODULE", chunk, offset),
-        62 => return constantInstruction("OP_IMPORT_FILE", chunk, offset),
-        63 => {
+        // Import opcodes (note: these are 62-65 in OpCode enum)
+        62 => return constantInstruction("OP_IMPORT_MODULE", chunk, offset),
+        63 => return constantInstruction("OP_IMPORT_FILE", chunk, offset),
+        64 => {
             // OP_IMPORT_SPECIFIC has 2 constant indices
             const nameSlice = "OP_IMPORT_SPECIFIC";
             const moduleConstant: u8 = getByte(chunk, offset + 1);
@@ -148,7 +148,7 @@ pub fn disassembleInstruction(chunk: *chunk_h.Chunk, offset: i32) i32 {
             print("{s: <16} {d:4} {d:4}\n", .{ nameSlice, moduleConstant, funcConstant });
             return offset + 3;
         },
-        64 => return constantInstruction("OP_IMPORT_MODULE_AS", chunk, offset),
+        65 => return constantInstruction("OP_IMPORT_MODULE_AS", chunk, offset),
 
         else => {
             std.debug.print("Unknown opcode {d}\n", .{instruction});
