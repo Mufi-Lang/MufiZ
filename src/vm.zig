@@ -2136,11 +2136,14 @@ fn opImportFile() InterpretResult {
     };
     const filePath = constant.as_zstring();
 
-    // Read the file
-    const file_content = std.fs.cwd().readFileAlloc(
+    // Read the file with null termination for the compiler
+    const file_content = std.fs.cwd().readFileAllocOptions(
         mem_utils.getAllocator(),
         filePath,
         10 * 1024 * 1024, // 10MB max
+        null,
+        1,
+        0, // null terminator
     ) catch |err| {
         runtimeError("Failed to read file '{s}': {}", .{ filePath, err });
         return .INTERPRET_RUNTIME_ERROR;
@@ -2155,14 +2158,16 @@ fn opImportFile() InterpretResult {
 
     // Execute the imported file's code
     push(Value.init_obj(@ptrCast(function)));
-    const closure = object_h.allocateObject(ObjClosure, .{
-        .function = function,
-        .upvalues = null,
-        .upvalueCount = 0,
-    });
+    const closure = object_h.newClosure(function);
     _ = pop();
     push(Value.init_obj(@ptrCast(closure)));
-    return callValue(peek(0), 0);
+    
+    // Call the closure and handle the result
+    if (!callValue(peek(0), 0)) {
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    vm.currentFrame = &vm.frames[@intCast(vm.frameCount - 1)];
+    return .INTERPRET_OK;
 }
 
 pub fn run() InterpretResult {
