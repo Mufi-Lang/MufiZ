@@ -2,7 +2,7 @@
 
 This plan follows the TDD approach and phase completion verification protocol defined in the project workflow.
 
-## Phase 1: Robust LU Decomposition Exposure
+## Phase 1: Robust LU Decomposition Exposure [checkpoint: 4e00433]
 
 - [x] **Task: Refactor LU Decomposition in Zig** [ac55373]
     - [x] Write Zig unit tests for `Matrix.luDecomposition` in `src/objects/matrix.zig` (if they don't exist) or new tests in a separate file.
@@ -14,7 +14,7 @@ This plan follows the TDD approach and phase completion verification protocol de
     - [x] Implement `lu_impl` in `src/stdlib/matrix.zig`.
     - [x] Register `lu` in `MatrixModule`.
 
-- [ ] **Task: Conductor - User Manual Verification 'Phase 1: Robust LU Decomposition Exposure' (Protocol in workflow.md)**
+- [x] **Task: Conductor - User Manual Verification 'Phase 1: Robust LU Decomposition Exposure' (Protocol in workflow.md)**
 
 ## Phase 2: Linear System Solver
 
