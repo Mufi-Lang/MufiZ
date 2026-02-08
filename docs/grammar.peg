@@ -1,0 +1,119 @@
+# Mufi-Lang Grammar (PEG)
+# Modeled after Zig's grammar specification
+
+# Top-level program
+Program <- _ (Declaration / Statement)* EOF
+
+# Declarations
+Declaration <- ClassDecl / FunDecl / VarDecl / ConstDecl / ImportStmt
+
+ClassDecl <- "class" _ Identifier (_ "<" _ Identifier)? _ "{" _ Method* "}" _
+Method <- Identifier _ "(" _ Parameters? ")" _ Block
+
+FunDecl <- "fun" _ Identifier _ "(" _ Parameters? ")" _ Block
+
+VarDecl <- "var" _ Identifier (_ "=" _ Expression)? _ ";" _
+ConstDecl <- "const" _ Identifier _ "=" _ Expression _ ";" _
+
+ImportStmt <- "import" _ (String / Identifier) (_ "as" _ Identifier)? _ ";" _
+            / "from" _ String _ "import" _ (Identifier / "*") _ ";" _
+
+# Statements
+Statement <- PrintStmt / ForStmt / ForeachStmt / IfStmt / ReturnStmt / BreakStmt / ContinueStmt / SwitchStmt / WhileStmt / Block / ExpressionStmt
+
+Block <- "{" _ (Declaration / Statement)* "}" _
+
+PrintStmt <- "print" _ Expression _ ";" _
+
+ForStmt <- "for" _ "(" _ (VarDecl / ExpressionStmt / ";") _ Expression? _ ";" _ Expression? ")" _ Statement
+ForeachStmt <- "foreach" _ "(" _ Identifier _ "in" _ Expression _ ")" _ Statement
+
+IfStmt <- "if" _ "(" _ Expression _ ")" _ Statement (_ "else" _ Statement)?
+
+WhileStmt <- "while" _ "(" _ Expression _ ")" _ Statement
+
+ReturnStmt <- "return" _ Expression? _ ";" _
+
+BreakStmt <- "break" _ ";" _
+ContinueStmt <- "continue" _ ";" _
+
+SwitchStmt <- "switch" _ "(" _ Expression _ ")" _ "{" _ CaseClause* DefaultClause? "}" _
+CaseClause <- "case" _ Expression _ "=>" _ (Block / ExpressionStmt)
+DefaultClause <- "_" _ "=>" _ (Block / ExpressionStmt)
+
+ExpressionStmt <- Expression _ ";" _
+
+# Expressions (ordered by precedence)
+Expression <- Assignment
+
+Assignment <- Ternary (_ ("=" / "+=" / "-=" / "*=" / "/=") _ Assignment)?
+
+Ternary <- LogicOr (_ "?" _ Expression _ ":" _ Ternary)?
+
+LogicOr <- LogicAnd (_ "or" _ LogicAnd)*
+
+LogicAnd <- Equality (_ "and" _ Equality)*
+
+Equality <- Comparison (_ ("!=" / "==") _ Comparison)*
+
+Comparison <- Term (_ (">=" / ">" / "<=" / "<") _ Term)*
+
+Term <- Factor (_ ("+" / "-" / "=>") _ Factor)*
+
+Factor <- Exponent (_ ("*" / "/" / "%") _ Exponent)*
+
+Exponent <- Range (_ "^" _ Range)*
+
+Range <- Unary (_ ("..=" / "..") _ Unary)?
+
+Unary <- ("!" / "-") _ Unary
+       / Postfix
+
+Postfix <- Primary (_ ("(" _ ArgumentList? ")" / "." _ Identifier / "[" _ IndexExpr _ "]" / "++" / "--"))*
+
+IndexExpr <- Expression? (_ ":" _ Expression?)?
+
+ArgumentList <- Expression (_ "," _ Expression)*
+
+Primary <- Identifier
+         / Number
+         / String
+         / "true" _
+         / "false" _
+         / "nil" _
+         / "(" _ Expression _ ")"
+         / HashTable
+         / VectorOrMatrix
+
+HashTable <- "#" _ "{" _ (Entry (_ "," _ Entry)* _ ","?)? "}" _
+Entry <- (String / Identifier) _ ":" _ Expression
+
+VectorOrMatrix <- "[" _ (Expression (_ "," _ Expression)* _ ","?)? "]" _
+
+# Lexical elements
+Identifier <- !Keyword [A-Za-z_] [A-Za-z0-9_]* _
+
+Keyword <- ("and" / "as" / "break" / "case" / "class" / "const" / "continue" / "each" / "else" / "end" / "false" / "for" / "foreach" / "from" / "fun" / "if" / "import" / "in" / "item" / "let" / "nil" / "or" / "print" / "return" / "self" / "super" / "switch" / "true" / "var" / "while") ![A-Za-z0-9_]
+
+Number <- (Float / Integer / Imaginary) _
+Float <- [0-9]* "." [0-9]+
+Integer <- [0-9]+
+Imaginary <- [0-9]+ ("." [0-9]+)? "i"
+
+String <- TripleQuotedString / RegularString / BacktickString / FString
+TripleQuotedString <- """"" (!""""" .)* """"" _
+RegularString <- """ (!""" (EscapeSequence / .))* """ _
+BacktickString <- "`" (!"`" .)* "`" _
+FString <- "f"" (!""" (EscapeSequence / .))* """ _
+EscapeSequence <- "" .
+
+Parameters <- Identifier (_ "," _ Identifier)*
+
+_ <- (Whitespace / Comment)*
+Whitespace <- [ 	
+]
+Comment <- "//" (!"
+" .)*
+         / "/#" (!"#/" .)* "#/"
+
+EOF <- !.

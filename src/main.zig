@@ -29,6 +29,8 @@ const params = clap.parseParamsComptime(
     \\-l, --link <str>       Link another Mufi Script when interpreting
     \\--repl                 Runs Mufi Repl system
     \\--docs                 Standard Library Documentation
+    \\--fmt <str>            Formats a Mufi Script
+    \\--test-gen             Generates synthetic Mufi tests
 );
 
 /// Main entry point for the MufiZ interpreter
@@ -58,7 +60,21 @@ pub fn main() !void {
         defer res.deinit();
 
         // Handle command-line arguments
-        if (res.args.version != 0) {
+        if (res.args.help != 0) {
+            std.debug.print(
+                \\MufiZ v{d}.{d}.{d}
+                \\-h, --help             Displays this help and exit.
+                \\-v, --version          Prints the version and codename.
+                \\-r, --run <str>        Runs a Mufi Script
+                \\-l, --link <str>       Link another Mufi Script when interpreting
+                \\--repl                 Runs Mufi Repl system
+                \\--docs                 Standard Library Documentation
+                \\--fmt <str>            Formats a Mufi Script
+                \\--test-gen             Generates synthetic Mufi tests
+                \\
+            , .{ mufiz.system.MAJOR, mufiz.system.MINOR, mufiz.system.PATCH });
+            return;
+        } else if (res.args.version != 0) {
             mufiz.printVersion();
         } else if (res.args.run) |s| {
             var runner = mufiz.Runner.init(getGlobalAllocator());
@@ -68,6 +84,10 @@ pub fn main() !void {
                 try runner.setLink(@constCast(l));
             }
             try runner.runFile();
+        } else if (res.args.fmt) |s| {
+            try mufiz.system.format(s);
+        } else if (res.args.@"test-gen" != 0) {
+            try mufiz.system.generateTests();
         } else if (res.args.repl != 0) {
             try mufiz.startRepl();
         } else if (res.args.docs != 0) {

@@ -8,9 +8,9 @@ const SimpleLineEditor = @import("simple_line.zig").SimpleLineEditor;
 const syntax = @import("syntax_min.zig");
 const vm_h = @import("vm.zig");
 
-const MAJOR: u8 = 0;
-const MINOR: u8 = 11;
-const PATCH: u8 = 0;
+pub const MAJOR: u8 = 0;
+pub const MINOR: u8 = 11;
+pub const PATCH: u8 = 0;
 const CODENAME: []const u8 = "Dusk";
 
 pub inline fn version() void {
@@ -336,4 +336,12 @@ fn replSimple() !void {
             .INTERPRET_RUNTIME_ERROR => std.debug.print("🚨 Runtime error\n", .{}),
         }
     }
+}
+
+pub fn format(file_path: []const u8) !void {
+    std.debug.print("Formatting file: {s} (Not implemented yet)\n", .{file_path});
+}
+
+pub fn generateTests() !void {
+    std.debug.print("Generating synthetic tests... (Not implemented yet)\n", .{});
 }
