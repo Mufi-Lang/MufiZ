@@ -30,17 +30,17 @@ This plan follows the TDD approach and phase completion verification protocol de
 
 - [x] **Task: Conductor - User Manual Verification 'Phase 2: WebAssembly Library Functional Validation' (Protocol in workflow.md)**
 
-## Phase 3: Automation Tools Implementation
+## Phase 3: Automation Tools Implementation [checkpoint: fed0e13]
 
-- [ ] **Task: Implement MufiZ Formatter (`fmt`)**
-    - [ ] Write unit tests for formatting logic (e.g., indentation, spacing).
-    - [ ] Implement the PEG-based parser for the formatter.
-    - [ ] Implement the code re-writing logic in `src/system.zig` or a new module.
-    - [ ] Verify `mufiz fmt` correctly formats files from the `test_suite/`.
+- [x] **Task: Implement MufiZ Formatter (`fmt`)** [dd385e6]
+    - [x] Write unit tests for formatting logic (e.g., indentation, spacing).
+    - [x] Implement the PEG-based parser for the formatter.
+    - [x] Implement the code re-writing logic in `src/system.zig` or a new module.
+    - [x] Verify `mufiz fmt` correctly formats files from the `test_suite/`.
 
-- [ ] **Task: Implement Synthetic Test Generator (`test-gen`)**
-    - [ ] Implement a recursive-descent generator based on `grammar.peg`.
-    - [ ] Add logic to generate random valid expression trees.
-    - [ ] Verify generated scripts execute without runtime errors in the VM.
+- [x] **Task: Implement Synthetic Test Generator (`test-gen`)** [c69b15e]
+    - [x] Implement a recursive-descent generator based on `grammar.peg`.
+    - [x] Add logic to generate random valid expression trees.
+    - [x] Verify generated scripts execute without runtime errors in the VM.
 
-- [ ] **Task: Conductor - User Manual Verification 'Phase 3: Automation Tools Implementation' (Protocol in workflow.md)**
+- [x] **Task: Conductor - User Manual Verification 'Phase 3: Automation Tools Implementation' (Protocol in workflow.md)**
