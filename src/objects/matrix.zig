@@ -777,3 +777,23 @@ test "Matrix Solve" {
     try std.testing.expectApproxEqAbs(@as(f64, 3.0), x.get(2, 0), 1e-10);
 }
 
+test "Matrix Singular Case" {
+    const lib = @import("../lib.zig");
+    try lib.init(.{});
+    defer lib.deinit();
+
+    const A = Matrix.init(2, 2);
+    A.set(0, 0, 1); A.set(0, 1, 2);
+    A.set(1, 0, 2); A.set(1, 1, 4); // Row 2 = 2 * Row 1
+
+    const lu = A.luDecomposition();
+    try std.testing.expect(lu == null);
+    
+    const inv = A.inv();
+    try std.testing.expect(inv == null);
+    
+    const b = Matrix.init(2, 1);
+    const x = A.solve(b);
+    try std.testing.expect(x == null);
+}
+
