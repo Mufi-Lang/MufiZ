@@ -1,0 +1,22 @@
+// Test multiple module imports
+import math;
+import collections;
+import matrix;
+
+// Use math functions
+var x = sin(1.0);
+print("sin(1.0) = ");
+println(x);
+
+// Use collections
+var list = linked_list();
+push(list, 1);
+push(list, 2);
+push(list, 3);
+print("List length: ");
+println(len(list));
+
+// Use matrix functions
+var m = eye(3);
+print("Identity matrix size: ");
+println(size(m));

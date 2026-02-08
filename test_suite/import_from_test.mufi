@@ -1,0 +1,14 @@
+// Test importing specific functions from a module
+from math import sin, cos, sqrt;
+
+var x = sin(3.14159);
+print("sin(pi) = ");
+println(x);
+
+var y = cos(0);
+print("cos(0) = ");
+println(y);
+
+var z = sqrt(16);
+print("sqrt(16) = ");
+println(z);

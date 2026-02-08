@@ -1,0 +1,10 @@
+// Test file import - helper file
+fun add(a, b) {
+    return a + b;
+}
+
+fun multiply(a, b) {
+    return a * b;
+}
+
+var CONSTANT = 42;
