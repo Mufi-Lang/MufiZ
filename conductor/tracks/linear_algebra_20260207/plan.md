@@ -31,12 +31,12 @@ This plan follows the TDD approach and phase completion verification protocol de
 
 ## Phase 3: Refinement and Documentation
 
-- [ ] **Task: Improve Error Handling**
-    - [ ] Write tests for singular matrix cases for `lu`, `inv`, and `solve`.
-    - [ ] Ensure clear error messages are returned to Mufi-Lang.
+- [x] **Task: Improve Error Handling** [bd56f2c]
+    - [x] Write tests for singular matrix cases for `lu`, `inv`, and `solve`.
+    - [x] Ensure clear error messages are returned to Mufi-Lang.
 
-- [ ] **Task: Documentation Update**
-    - [ ] Update `docs/analysis.md` or create `docs/linalg.md` describing the new functions.
-    - [ ] Update examples in `examples/` if applicable.
+- [x] **Task: Documentation Update** [bd56f2c]
+    - [x] Update `docs/analysis.md` or create `docs/linalg.md` describing the new functions.
+    - [x] Update examples in `examples/` if applicable.
 
-- [ ] **Task: Conductor - User Manual Verification 'Phase 3: Refinement and Documentation' (Protocol in workflow.md)**
+- [x] **Task: Conductor - User Manual Verification 'Phase 3: Refinement and Documentation' (Protocol in workflow.md)**
