@@ -16,7 +16,7 @@ This plan follows the TDD approach and phase completion verification protocol de
 
 - [x] **Task: Conductor - User Manual Verification 'Phase 1: Robust LU Decomposition Exposure' (Protocol in workflow.md)**
 
-## Phase 2: Linear System Solver
+## Phase 2: Linear System Solver [checkpoint: e1e79f4]
 
 - [x] **Task: Implement Solve Algorithm in Zig** [07c7ea8]
     - [x] Write Zig unit tests for `Matrix.solve(b)` in `src/objects/matrix.zig`.
@@ -27,7 +27,7 @@ This plan follows the TDD approach and phase completion verification protocol de
     - [x] Implement `solve_impl` in `src/stdlib/matrix.zig`.
     - [x] Register `solve` in `MatrixModule`.
 
-- [ ] **Task: Conductor - User Manual Verification 'Phase 2: Linear System Solver' (Protocol in workflow.md)**
+- [x] **Task: Conductor - User Manual Verification 'Phase 2: Linear System Solver' (Protocol in workflow.md)**
 
 ## Phase 3: Refinement and Documentation
 
