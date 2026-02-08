@@ -1,5 +1,16 @@
 const std = @import("std");
 
+const builtin = @import("builtin");
+
+const Mutex = if (builtin.target.cpu.arch == .wasm32) struct {
+    pub fn lock(self: *@This()) void {
+        _ = self;
+    }
+    pub fn unlock(self: *@This()) void {
+        _ = self;
+    }
+} else std.Thread.Mutex;
+
 /// Allocator configuration options
 pub const AllocatorConfig = struct {
     /// Enable memory leak detection
@@ -92,7 +103,7 @@ pub const AllocatorManager = struct {
     }),
     config: AllocatorConfig,
     stats: MemoryStats,
-    mutex: std.Thread.Mutex,
+    mutex: Mutex,
     initialized: bool,
 
     const Self = @This();
@@ -171,7 +182,7 @@ pub const AllocatorManager = struct {
 
 /// Global allocator manager instance
 var global_manager: ?AllocatorManager = null;
-var global_mutex = std.Thread.Mutex{};
+var global_mutex = Mutex{};
 
 /// Initialize the global allocator manager
 pub fn initGlobal(config: AllocatorConfig) void {

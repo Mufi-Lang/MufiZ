@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const Value = @import("../value.zig").Value;
 const stdlib_core = @import("../stdlib_core.zig");
 const DefineFunction = stdlib_core.DefineFunction;
@@ -41,7 +42,9 @@ fn sleep_impl(argc: i32, args: [*]Value) Value {
     _ = argc;
     const seconds = args[0].as_num_double();
     const nanoseconds = @as(u64, @intFromFloat(seconds * 1_000_000_000));
-    std.Thread.sleep(nanoseconds);
+    if (builtin.target.cpu.arch != .wasm32) {
+        std.Thread.sleep(nanoseconds);
+    }
     return Value.init_nil();
 }
 
@@ -49,7 +52,9 @@ fn sleep_ms_impl(argc: i32, args: [*]Value) Value {
     _ = argc;
     const milliseconds = args[0].as_num_double();
     const nanoseconds = @as(u64, @intFromFloat(milliseconds * 1_000_000));
-    std.Thread.sleep(nanoseconds);
+    if (builtin.target.cpu.arch != .wasm32) {
+        std.Thread.sleep(nanoseconds);
+    }
     return Value.init_nil();
 }
 
@@ -57,7 +62,9 @@ fn sleep_us_impl(argc: i32, args: [*]Value) Value {
     _ = argc;
     const microseconds = args[0].as_num_double();
     const nanoseconds = @as(u64, @intFromFloat(microseconds * 1_000));
-    std.Thread.sleep(nanoseconds);
+    if (builtin.target.cpu.arch != .wasm32) {
+        std.Thread.sleep(nanoseconds);
+    }
     return Value.init_nil();
 }
 

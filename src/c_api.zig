@@ -164,3 +164,5 @@ test "c api strdup and free" {
         try std.testing.expectEqual(s[i], dup[i]);
     }
 }
+
+pub fn main() void {}

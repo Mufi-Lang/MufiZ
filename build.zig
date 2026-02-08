@@ -54,12 +54,13 @@ pub fn build(b: *std.Build) !void {
     const wasm_lib = b.addExecutable(.{
         .name = "mufiz_wasm",
         .root_module = b.createModule(.{
-            .root_source_file = b.path("src/lib_wasm_stub.zig"),
+            .root_source_file = b.path("src/c_api.zig"),
             .target = b.resolveTargetQuery(.{
                 .cpu_arch = .wasm32,
-                .os_tag = .freestanding,
+                .os_tag = .wasi,
             }),
             .optimize = .ReleaseSmall,
+            .link_libc = true,
         }),
     });
     wasm_lib.root_module.addOptions("features", options);
@@ -67,6 +68,7 @@ pub fn build(b: *std.Build) !void {
     wasm_lib.root_module.addImport("clap", clap.module("clap"));
     wasm_lib.entry = .disabled;
     wasm_lib.rdynamic = true;
+    wasm_lib.root_module.export_symbol_names = &[_][]const u8{ "mufiz_init", "mufiz_deinit", "mufiz_interpret" };
 
     const install_wasm = b.addInstallArtifact(wasm_lib, .{
         .dest_dir = .{ .override = .{ .custom = "wasm" } },
@@ -91,59 +93,90 @@ pub fn build(b: *std.Build) !void {
         \\    <div style="margin-bottom: 10px;">
         \\        <textarea id="input" rows="10" style="width: 100%; background: #2d2d2d; color: #fff; border: 1px solid #444; padding: 10px;">print("Hello from MufiZ WASM!");</textarea>
         \\    </div>
-        \\    <button id="runBtn" disabled style="padding: 10px 20px; cursor: pointer;">Run Mufi-Lang</button>
-        \\    <div id="output" style="margin-top: 20px;">Loading MufiZ...</div>
+        \\        \\    <button id="runBtn" disabled style="padding: 10px 20px; cursor: pointer;">Run Mufi-Lang</button>
+        \\    <div id="status" style="margin-top: 10px; color: #888;">Loading MufiZ...</div>
+        \\    <div id="output" style="margin-top: 20px; border-top: 1px solid #333; padding-top: 10px;"></div>
         \\
         \\    <script>
         \\        let wasmExports = null;
         \\
         \\        async function init() {
+        \\            const status = document.getElementById('status');
         \\            const output = document.getElementById('output');
         \\            const runBtn = document.getElementById('runBtn');
         \\            const input = document.getElementById('input');
         \\
         \\            try {
-        \\                output.innerText = 'Fetching mufiz_wasm.wasm...\n';
+        \\                status.innerText = 'Fetching mufiz_wasm.wasm...';
         \\                const response = await fetch('mufiz_wasm.wasm');
         \\                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         \\                
         \\                const bytes = await response.arrayBuffer();
-        \\                output.innerText += `Fetched ${bytes.byteLength} bytes.\n`;
-        \\
-        \\                const results = await WebAssembly.instantiate(bytes, {});
+        \\                const results = await WebAssembly.instantiate(bytes, {
+        \\                    wasi_snapshot_preview1: {
+        \\                        fd_write: (fd, iovs, iovs_len, nwritten) => {
+        \\                            // Very simple implementation to capture stdout
+        \\                            const view = new DataView(wasmExports.memory.buffer);
+        \\                            let total = 0;
+        \\                            for (let i = 0; i < iovs_len; i++) {
+        \\                                const ptr = view.getUint32(iovs + i * 8, true);
+        \\                                const len = view.getUint32(iovs + i * 8 + 4, true);
+        \\                                const buf = new Uint8Array(wasmExports.memory.buffer, ptr, len);
+        \\                                const text = new TextDecoder().decode(buf);
+        \\                                output.innerText += text;
+        \\                                total += len;
+        \\                            }
+        \\                            view.setUint32(nwritten, total, true);
+        \\                            return 0;
+        \\                        },
+        \\                        proc_exit: (code) => { console.log('Exit:', code); },
+        \\                        environ_get: () => 0,
+        \\                        environ_sizes_get: (n, buf_size) => {
+        \\                            const view = new DataView(wasmExports.memory.buffer);
+        \\                            view.setUint32(n, 0, true);
+        \\                            view.setUint32(buf_size, 0, true);
+        \\                            return 0;
+        \\                        },
+        \\                        fd_close: () => 0,
+        \\                        fd_seek: () => 0,
+        \\                        fd_fdstat_get: (fd, stat) => 0,
+        \\                    }
+        \\                });
         \\                wasmExports = results.instance.exports;
         \\
-        \\                output.innerText += 'MufiZ WASM Instantiated!\n';
-        \\                output.innerText += 'Ready to interpret Mufi-Lang.\n';
+        \\                status.innerText = 'MufiZ WASM Instantiated! Initializing...';
         \\                
+        \\                // call mufiz_init(leak_detection, tracking, safety)
+        \\                wasmExports.mufiz_init(false, false, false);
+        \\
+        \\                status.innerText = 'Ready to interpret Mufi-Lang.';
         \\                runBtn.disabled = false;
+        \\
         \\                runBtn.onclick = () => {
         \\                    const code = input.value;
         \\                    const encoder = new TextEncoder();
         \\                    const codeBytes = encoder.encode(code + '\0');
         \\                    
-        \\                    const ptr = wasmExports.wasm_alloc(codeBytes.length);
-        \\                    if (ptr === 0) {
-        \\                        output.innerText += 'Error: Failed to allocate memory in WASM\n';
-        \\                        return;
-        \\                    }
+        \\                    // Use a simple buffer for now or implement wasm_alloc in c_api.zig
+        \\                    // Since we are using WASI and full c_api, we can't use our stub's wasm_alloc.
+        \\                    // For this demo, let's just use a fixed large buffer offset if we can find one,
+        \\                    // or just use the stack if it's large enough.
+        \\                    // Better: use the memory after __heap_base
+        \\                    const ptr = wasmExports.__heap_base || 1024 * 64; 
         \\
         \\                    const mem = new Uint8Array(wasmExports.memory.buffer);
         \\                    mem.set(codeBytes, ptr);
         \\
-        \\                    const result = wasmExports.wasm_interpret(ptr);
-        \\                    output.innerText += `\n[Input]: ${code}\n[Result Code]: ${result}\n`;
-        \\                    
-        \\                    wasmExports.wasm_free(ptr, codeBytes.length);
+        \\                    output.innerText += `\n> ${code}\n`;
+        \\                    const result = wasmExports.mufiz_interpret(ptr);
+        \\                    output.innerText += `[Exit Code]: ${result}\n`;
         \\                };
         \\
         \\            } catch (err) {
-        \\                output.innerText += '\nError: ' + err.message;
+        \\                status.innerText = 'Error: ' + err.message;
         \\                console.error(err);
         \\            }
         \\        }
-        \\        init();
-        \\    </script>
         \\</body>
         \\</html>
     );
