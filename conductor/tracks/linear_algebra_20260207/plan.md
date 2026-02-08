@@ -18,14 +18,14 @@ This plan follows the TDD approach and phase completion verification protocol de
 
 ## Phase 2: Linear System Solver
 
-- [~] **Task: Implement Solve Algorithm in Zig**
-    - [~] Write Zig unit tests for `Matrix.solve(b)` in `src/objects/matrix.zig`.
-    - [ ] Implement `solve` method on the `Matrix` struct using forward and backward substitution.
+- [x] **Task: Implement Solve Algorithm in Zig** [07c7ea8]
+    - [x] Write Zig unit tests for `Matrix.solve(b)` in `src/objects/matrix.zig`.
+    - [x] Implement `solve` method on the `Matrix` struct using forward and backward substitution.
 
-- [ ] **Task: Expose `solve` to Mufi-Lang**
-    - [ ] Write Mufi-Lang tests for `solve(A, b)` in `test_suite/linalg_solve_test.mufi`.
-    - [ ] Implement `solve_impl` in `src/stdlib/matrix.zig`.
-    - [ ] Register `solve` in `MatrixModule`.
+- [x] **Task: Expose `solve` to Mufi-Lang** [07c7ea8]
+    - [x] Write Mufi-Lang tests for `solve(A, b)` in `test_suite/linalg_solve_test.mufi`.
+    - [x] Implement `solve_impl` in `src/stdlib/matrix.zig`.
+    - [x] Register `solve` in `MatrixModule`.
 
 - [ ] **Task: Conductor - User Manual Verification 'Phase 2: Linear System Solver' (Protocol in workflow.md)**
 
