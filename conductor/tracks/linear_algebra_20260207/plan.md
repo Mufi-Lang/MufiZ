@@ -4,22 +4,22 @@ This plan follows the TDD approach and phase completion verification protocol de
 
 ## Phase 1: Robust LU Decomposition Exposure
 
-- [ ] **Task: Refactor LU Decomposition in Zig**
-    - [ ] Write Zig unit tests for `Matrix.luDecomposition` in `src/objects/matrix.zig` (if they don't exist) or new tests in a separate file.
-    - [ ] Modify `Matrix.luDecomposition` to return L, U, and a Permutation matrix/vector.
-    - [ ] Ensure `Matrix.det()` and `Matrix.inv()` are updated to use the new LU implementation.
+- [x] **Task: Refactor LU Decomposition in Zig** [ac55373]
+    - [x] Write Zig unit tests for `Matrix.luDecomposition` in `src/objects/matrix.zig` (if they don't exist) or new tests in a separate file.
+    - [x] Modify `Matrix.luDecomposition` to return L, U, and a Permutation matrix/vector.
+    - [x] Ensure `Matrix.det()` and `Matrix.inv()` are updated to use the new LU implementation.
 
-- [ ] **Task: Expose `lu` to Mufi-Lang**
-    - [ ] Write Mufi-Lang tests for `lu(A)` in `test_suite/linalg_lu_test.mufi`.
-    - [ ] Implement `lu_impl` in `src/stdlib/matrix.zig`.
-    - [ ] Register `lu` in `MatrixModule`.
+- [x] **Task: Expose `lu` to Mufi-Lang** [ac55373]
+    - [x] Write Mufi-Lang tests for `lu(A)` in `test_suite/linalg_lu_test.mufi`.
+    - [x] Implement `lu_impl` in `src/stdlib/matrix.zig`.
+    - [x] Register `lu` in `MatrixModule`.
 
 - [ ] **Task: Conductor - User Manual Verification 'Phase 1: Robust LU Decomposition Exposure' (Protocol in workflow.md)**
 
 ## Phase 2: Linear System Solver
 
-- [ ] **Task: Implement Solve Algorithm in Zig**
-    - [ ] Write Zig unit tests for `Matrix.solve(b)` in `src/objects/matrix.zig`.
+- [~] **Task: Implement Solve Algorithm in Zig**
+    - [~] Write Zig unit tests for `Matrix.solve(b)` in `src/objects/matrix.zig`.
     - [ ] Implement `solve` method on the `Matrix` struct using forward and backward substitution.
 
 - [ ] **Task: Expose `solve` to Mufi-Lang**
