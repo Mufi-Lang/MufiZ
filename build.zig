@@ -51,9 +51,8 @@ pub fn build(b: *std.Build) !void {
     b.installArtifact(shlib);
 
     // WASM build support
-    const wasm_lib = b.addLibrary(.{
+    const wasm_lib = b.addExecutable(.{
         .name = "mufiz_wasm",
-        .linkage = .static,
         .root_module = b.createModule(.{
             .root_source_file = b.path("src/lib_wasm_stub.zig"),
             .target = b.resolveTargetQuery(.{
@@ -66,6 +65,8 @@ pub fn build(b: *std.Build) !void {
     wasm_lib.root_module.addOptions("features", options);
     wasm_lib.root_module.addOptions("debug", debug_options);
     wasm_lib.root_module.addImport("clap", clap.module("clap"));
+    wasm_lib.entry = .disabled;
+    wasm_lib.rdynamic = true;
 
     const install_wasm = b.addInstallArtifact(wasm_lib, .{
         .dest_dir = .{ .override = .{ .custom = "wasm" } },
@@ -92,20 +93,21 @@ pub fn build(b: *std.Build) !void {
         \\        async function init() {
         \\            const output = document.getElementById('output');
         \\            try {
+        \\                output.innerText = 'Fetching mufiz_wasm.wasm...\n';
         \\                const response = await fetch('mufiz_wasm.wasm');
+        \\                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        \\                
         \\                const bytes = await response.arrayBuffer();
+        \\                output.innerText += `Fetched ${bytes.byteLength} bytes.\n`;
+        \\
         \\                const results = await WebAssembly.instantiate(bytes, {});
         \\                const exports = results.instance.exports;
         \\
-        \\                output.innerText = 'MufiZ WASM Loaded!\n';
-        \\                
-        \\                // Initialize with default options (3 bools)
-        // Since we used extern struct with 3 bools, we can pass them as arguments if callconv(.c) handles it,
-        // but WASM usually expects simple types. However, Zig's callconv(.c) wasm_init might expect them as separate i32s or a pointer.
-        // For simplicity in this demo stub, we just show it loads.
+        \\                output.innerText += 'MufiZ WASM Instantiated!\n';
         \\                output.innerText += 'Ready to interpret Mufi-Lang.';
         \\            } catch (err) {
-        \\                output.innerText = 'Error: ' + err.message;
+        \\                output.innerText += '\nError: ' + err.message;
+        \\                console.error(err);
         \\            }
         \\        }
         \\        init();
