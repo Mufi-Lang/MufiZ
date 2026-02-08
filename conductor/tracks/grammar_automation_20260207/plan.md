@@ -2,7 +2,7 @@
 
 This plan follows the TDD approach and phase completion verification protocol defined in the project workflow.
 
-## Phase 1: Formal Grammar and CLI Infrastructure
+## Phase 1: Formal Grammar and CLI Infrastructure [checkpoint: fdb8c4d]
 
 - [x] **Task: Create Formal PEG Grammar** [f9f232c]
     - [x] Research and document all current Mufi-Lang syntax rules.
@@ -14,7 +14,7 @@ This plan follows the TDD approach and phase completion verification protocol de
     - [x] Create stub implementations for the new sub-commands.
     - [x] Verify `mufiz --help` displays the new commands.
 
-- [ ] **Task: Conductor - User Manual Verification 'Phase 1: Formal Grammar and CLI Infrastructure' (Protocol in workflow.md)**
+- [x] **Task: Conductor - User Manual Verification 'Phase 1: Formal Grammar and CLI Infrastructure' (Protocol in workflow.md)**
 
 ## Phase 2: WebAssembly Library Functional Validation
 
