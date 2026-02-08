@@ -88,10 +88,20 @@ pub fn build(b: *std.Build) !void {
         \\</head>
         \\<body>
         \\    <h1>MufiZ WebAssembly Demo</h1>
-        \\    <div id="output">Loading MufiZ...</div>
+        \\    <div style="margin-bottom: 10px;">
+        \\        <textarea id="input" rows="10" style="width: 100%; background: #2d2d2d; color: #fff; border: 1px solid #444; padding: 10px;">print("Hello from MufiZ WASM!");</textarea>
+        \\    </div>
+        \\    <button id="runBtn" disabled style="padding: 10px 20px; cursor: pointer;">Run Mufi-Lang</button>
+        \\    <div id="output" style="margin-top: 20px;">Loading MufiZ...</div>
+        \\
         \\    <script>
+        \\        let wasmExports = null;
+        \\
         \\        async function init() {
         \\            const output = document.getElementById('output');
+        \\            const runBtn = document.getElementById('runBtn');
+        \\            const input = document.getElementById('input');
+        \\
         \\            try {
         \\                output.innerText = 'Fetching mufiz_wasm.wasm...\n';
         \\                const response = await fetch('mufiz_wasm.wasm');
@@ -101,10 +111,32 @@ pub fn build(b: *std.Build) !void {
         \\                output.innerText += `Fetched ${bytes.byteLength} bytes.\n`;
         \\
         \\                const results = await WebAssembly.instantiate(bytes, {});
-        \\                const exports = results.instance.exports;
+        \\                wasmExports = results.instance.exports;
         \\
         \\                output.innerText += 'MufiZ WASM Instantiated!\n';
-        \\                output.innerText += 'Ready to interpret Mufi-Lang.';
+        \\                output.innerText += 'Ready to interpret Mufi-Lang.\n';
+        \\                
+        \\                runBtn.disabled = false;
+        \\                runBtn.onclick = () => {
+        \\                    const code = input.value;
+        \\                    const encoder = new TextEncoder();
+        \\                    const codeBytes = encoder.encode(code + '\0');
+        \\                    
+        \\                    const ptr = wasmExports.wasm_alloc(codeBytes.length);
+        \\                    if (ptr === 0) {
+        \\                        output.innerText += 'Error: Failed to allocate memory in WASM\n';
+        \\                        return;
+        \\                    }
+        \\
+        \\                    const mem = new Uint8Array(wasmExports.memory.buffer);
+        \\                    mem.set(codeBytes, ptr);
+        \\
+        \\                    const result = wasmExports.wasm_interpret(ptr);
+        \\                    output.innerText += `\n[Input]: ${code}\n[Result Code]: ${result}\n`;
+        \\                    
+        \\                    wasmExports.wasm_free(ptr, codeBytes.length);
+        \\                };
+        \\
         \\            } catch (err) {
         \\                output.innerText += '\nError: ' + err.message;
         \\                console.error(err);

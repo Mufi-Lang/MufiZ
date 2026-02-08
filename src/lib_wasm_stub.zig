@@ -32,11 +32,25 @@ pub export fn wasm_deinit() callconv(.c) void {
     initialized = false;
 }
 
-/// Interpret the provided source string. Returns 0 on success (OK).
-/// This stub does not actually execute code.
+/// Interpret the provided source string. Returns the length of the string as a test.
+/// This stub does not actually execute code yet.
 pub export fn wasm_interpret(source: [*]const u8) callconv(.c) u8 {
-    _ = source; // no-op
-    return 0;
+    var len: usize = 0;
+    while (source[len] != 0) : (len += 1) {}
+    return @intCast(len & 0xFF);
+}
+
+/// Allocate memory in WASM for string passing
+pub export fn wasm_alloc(size: usize) callconv(.c) ?[*]u8 {
+    const allocator = std.heap.wasm_allocator;
+    const buf = allocator.alloc(u8, size) catch return null;
+    return buf.ptr;
+}
+
+/// Free memory in WASM
+pub export fn wasm_free(ptr: [*]u8, size: usize) callconv(.c) void {
+    const allocator = std.heap.wasm_allocator;
+    allocator.free(ptr[0..size]);
 }
 
 /// Whether the last run detected memory leaks (always false for the stub).
