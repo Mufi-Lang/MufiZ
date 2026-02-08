@@ -473,6 +473,46 @@ pub const Matrix = struct {
         return result;
     }
 
+    /// Solve linear system Ax = b using LU decomposition (Octave: A \ b)
+    pub fn solve(self: Self, b: Self) ?Self {
+        if (self.rows != self.cols or self.rows != b.rows) return null;
+
+        const n = self.rows;
+        const lu_result = self.luDecomposition();
+        if (lu_result == null) return null; // Singular matrix
+
+        const x = Matrix.zeros(n, b.cols);
+
+        // PAx = Pb => LUx = Pb
+        const Pb = lu_result.?.p.mul(b) orelse return null;
+
+        for (0..b.cols) |col| {
+            // Forward substitution (solve Ly = Pb)
+            var y = Matrix.init(n, 1);
+            for (0..n) |i| {
+                var sum: f64 = 0.0;
+                for (0..i) |j| {
+                    sum += lu_result.?.l.get(i, j) * y.get(j, 0);
+                }
+                y.set(i, 0, (Pb.get(i, col) - sum)); // L has unit diagonal
+            }
+
+            // Backward substitution (solve Ux = y)
+            var idx: usize = n;
+            while (idx > 0) {
+                idx -= 1;
+                var sum: f64 = 0.0;
+                var j: usize = idx + 1;
+                while (j < n) : (j += 1) {
+                    sum += lu_result.?.u.get(idx, j) * x.get(j, col);
+                }
+                x.set(idx, col, (y.get(idx, 0) - sum) / lu_result.?.u.get(idx, idx));
+            }
+        }
+
+        return x;
+    }
+
     /// Matrix trace (sum of diagonal elements) (Octave: trace(A))
     pub fn trace(self: Self) f64 {
         var sum: f64 = 0.0;
@@ -711,5 +751,29 @@ test "Matrix Determinant" {
 
     const det_val = A.det() orelse return error.TestUnexpectedResult;
     try std.testing.expectApproxEqAbs(@as(f64, 1.0), det_val, 1e-10);
+}
+
+test "Matrix Solve" {
+    const lib = @import("../lib.zig");
+    try lib.init(.{});
+    defer lib.deinit();
+
+    const A = Matrix.init(3, 3);
+    // [1 2 3; 4 5 6; 7 8 10]
+    A.set(0, 0, 1); A.set(0, 1, 2); A.set(0, 2, 3);
+    A.set(1, 0, 4); A.set(1, 1, 5); A.set(1, 2, 6);
+    A.set(2, 0, 7); A.set(2, 1, 8); A.set(2, 2, 10);
+
+    const b = Matrix.init(3, 1);
+    b.set(0, 0, 14); // 1*1 + 2*2 + 3*3 = 1 + 4 + 9 = 14
+    b.set(1, 0, 32); // 4*1 + 5*2 + 6*3 = 4 + 10 + 18 = 32
+    b.set(2, 0, 53); // 7*1 + 8*2 + 10*3 = 7 + 16 + 30 = 53
+
+    const x = A.solve(b) orelse return error.TestUnexpectedResult;
+    
+    // Expected x = [1; 2; 3]
+    try std.testing.expectApproxEqAbs(@as(f64, 1.0), x.get(0, 0), 1e-10);
+    try std.testing.expectApproxEqAbs(@as(f64, 2.0), x.get(1, 0), 1e-10);
+    try std.testing.expectApproxEqAbs(@as(f64, 3.0), x.get(2, 0), 1e-10);
 }
 

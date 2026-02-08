@@ -196,6 +196,7 @@ pub const MatrixModule = struct {
         try registry.register(matrix.rref);
         try registry.register(matrix.rank);
         try registry.register(matrix.lu);
+        try registry.register(matrix.solve);
     }
 };
 

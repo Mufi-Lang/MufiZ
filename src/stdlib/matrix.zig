@@ -270,6 +270,18 @@ fn lu_impl(_: i32, args: [*]Value) Value {
     return Value.init_obj(@ptrCast(htable));
 }
 
+fn solve_impl(_: i32, args: [*]Value) Value {
+    const a = args[0].as_matrix();
+    const b = args[1].as_matrix();
+
+    const x = a.solve(b);
+    if (x == null) {
+        return stdlib_core.stdlib_error("Matrix must be square and non-singular, and row dimensions must match", .{});
+    }
+
+    return Value.init_obj(@ptrCast(x.?));
+}
+
 // === Parameter Specifications ===
 
 const SizeParam = &[_]ParamSpec{.{ .name = "size", .type = .int }};
@@ -520,4 +532,14 @@ pub const lu = DefineFunction(
     .object,
     &[_][]const u8{ "lu(A) -> #{ \"L\": L, \"U\": U, \"P\": P }" },
     lu_impl,
+);
+
+pub const solve = DefineFunction(
+    "solve",
+    "matrix",
+    "Solve a linear system Ax = b using LU decomposition",
+    TwoMatrixParams,
+    .object,
+    &[_][]const u8{ "solve(A, b) -> solution vector/matrix x" },
+    solve_impl,
 );
