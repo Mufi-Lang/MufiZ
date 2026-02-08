@@ -29,7 +29,7 @@ This plan follows the TDD approach and phase completion verification protocol de
 
 - [x] **Task: Conductor - User Manual Verification 'Phase 2: Linear System Solver' (Protocol in workflow.md)**
 
-## Phase 3: Refinement and Documentation
+## Phase 3: Refinement and Documentation [checkpoint: f7d3c42]
 
 - [x] **Task: Improve Error Handling** [bd56f2c]
     - [x] Write tests for singular matrix cases for `lu`, `inv`, and `solve`.
