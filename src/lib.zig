@@ -32,6 +32,8 @@ pub const chunk = @import("chunk.zig");
 pub const memory = @import("memory.zig");
 pub const mem_utils = @import("mem_utils.zig");
 pub const system = @import("system.zig");
+pub const fmt = @import("fmt.zig");
+pub const test_gen = @import("test_gen.zig");
 pub const stdlib = @import("stdlib_main.zig");
 
 // Re-export commonly used types
@@ -179,6 +181,10 @@ pub fn printMemoryStats() void {
 }
 
 // Tests
+test {
+    std.testing.refAllDecls(@This());
+}
+
 test "library initialization" {
     try init(.{
         .enable_leak_detection = true,
