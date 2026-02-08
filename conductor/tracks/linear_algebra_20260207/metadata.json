@@ -1,8 +1,0 @@
-{
-  "track_id": "linear_algebra_20260207",
-  "type": "feature",
-  "status": "new",
-  "created_at": "2026-02-07T14:30:00Z",
-  "updated_at": "2026-02-07T14:30:00Z",
-  "description": "Implement a basic Linear Algebra module in the MufiZ standard library, starting with LU Decomposition and Matrix Inversion."
-}

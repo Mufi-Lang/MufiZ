@@ -51,8 +51,8 @@ pub fn build(b: *std.Build) !void {
     b.installArtifact(shlib);
 
     // WASM build support
-    const wasm_lib = b.addExecutable(.{
-        .name = "mufiz_wasm",
+    const wasm_exe = b.addExecutable(.{
+        .name = "mufiz",
         .root_module = b.createModule(.{
             .root_source_file = b.path("src/c_api.zig"),
             .target = b.resolveTargetQuery(.{
@@ -60,140 +60,19 @@ pub fn build(b: *std.Build) !void {
                 .os_tag = .wasi,
             }),
             .optimize = .ReleaseSmall,
-            .link_libc = true,
         }),
     });
-    wasm_lib.root_module.addOptions("features", options);
-    wasm_lib.root_module.addOptions("debug", debug_options);
-    wasm_lib.root_module.addImport("clap", clap.module("clap"));
-    wasm_lib.entry = .disabled;
-    wasm_lib.rdynamic = true;
-    wasm_lib.root_module.export_symbol_names = &[_][]const u8{ "mufiz_init", "mufiz_deinit", "mufiz_interpret" };
+    wasm_exe.rdynamic = true;
+    wasm_exe.entry = .disabled;
+    wasm_exe.root_module.addOptions("features", options);
+    wasm_exe.root_module.addOptions("debug", debug_options);
+    wasm_exe.root_module.addImport("clap", clap.module("clap"));
 
-    const install_wasm = b.addInstallArtifact(wasm_lib, .{
+    const install_wasm = b.addInstallArtifact(wasm_exe, .{
         .dest_dir = .{ .override = .{ .custom = "wasm" } },
     });
     const wasm_step = b.step("wasm", "Build WebAssembly library");
     wasm_step.dependOn(&install_wasm.step);
-
-    // WASM Demo HTML
-    const wasm_demo_html = b.addWriteFiles();
-    _ = wasm_demo_html.add("index.html",
-        \\<!DOCTYPE html>
-        \\<html>
-        \\<head>
-        \\    <title>MufiZ WASM Demo</title>
-        \\    <style>
-        \\        body { font-family: monospace; background: #1e1e1e; color: #d4d4d4; padding: 20px; }
-        \\        #output { white-space: pre-wrap; border: 1px solid #333; padding: 10px; min-height: 200px; }
-        \\    </style>
-        \\</head>
-        \\<body>
-        \\    <h1>MufiZ WebAssembly Demo</h1>
-        \\    <div style="margin-bottom: 10px;">
-        \\        <textarea id="input" rows="10" style="width: 100%; background: #2d2d2d; color: #fff; border: 1px solid #444; padding: 10px;">print("Hello from MufiZ WASM!");</textarea>
-        \\    </div>
-        \\        \\    <button id="runBtn" disabled style="padding: 10px 20px; cursor: pointer;">Run Mufi-Lang</button>
-        \\    <div id="status" style="margin-top: 10px; color: #888;">Loading MufiZ...</div>
-        \\    <div id="output" style="margin-top: 20px; border-top: 1px solid #333; padding-top: 10px;"></div>
-        \\
-        \\    <script>
-        \\        let wasmInstance = null;
-        \\
-        \\        async function init() {
-        \\            const status = document.getElementById('status');
-        \\            const output = document.getElementById('output');
-        \\            const runBtn = document.getElementById('runBtn');
-        \\            const input = document.getElementById('input');
-        \\
-        \\            try {
-        \\                status.innerText = 'Fetching mufiz_wasm.wasm...';
-        \\                const response = await fetch('mufiz_wasm.wasm');
-        \\                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        \\                
-        \\                const bytes = await response.arrayBuffer();
-        \\                status.innerText = `Fetched ${bytes.byteLength} bytes. Instantiating...`;
-        \\
-        \\                const wasiShim = {
-        \\                    fd_write: (fd, iovs, iovs_len, nwritten) => {
-        \\                        if (!wasmInstance) return 0;
-        \\                        const view = new DataView(wasmInstance.exports.memory.buffer);
-        \\                        let total = 0;
-        \\                        for (let i = 0; i < iovs_len; i++) {
-        \\                            const ptr = view.getUint32(iovs + i * 8, true);
-        \\                            const len = view.getUint32(iovs + i * 8 + 4, true);
-        \\                            const buf = new Uint8Array(wasmInstance.exports.memory.buffer, ptr, len);
-        \\                            const text = new TextDecoder().decode(buf);
-        \\                            output.innerText += text;
-        \\                            total += len;
-        \\                        }
-        \\                        view.setUint32(nwritten, total, true);
-        \\                        return 0;
-        \\                    },
-        \\                    proc_exit: (code) => { console.log('Exit:', code); },
-        \\                    environ_get: () => 0,
-        \\                    environ_sizes_get: (n, buf_size) => {
-        \\                        if (!wasmInstance) return 0;
-        \\                        const view = new DataView(wasmInstance.exports.memory.buffer);
-        \\                        view.setUint32(n, 0, true);
-        \\                        view.setUint32(buf_size, 0, true);
-        \\                        return 0;
-        \\                    },
-        \\                    fd_close: () => 0,
-        \\                    fd_seek: () => 0,
-        \\                    fd_fdstat_get: (fd, stat) => 0,
-        \\                };
-        \\
-        \\                const results = await WebAssembly.instantiate(bytes, {
-        \\                    wasi_snapshot_preview1: wasiShim
-        \\                });
-        \\                wasmInstance = results.instance;
-        \\
-        \\                status.innerText = 'MufiZ WASM Instantiated! Initializing...';
-        \\                
-        \\                if (wasmInstance.exports.mufiz_init) {
-        \\                    wasmInstance.exports.mufiz_init(false, false, false);
-        \\                    status.innerText = 'Ready to interpret Mufi-Lang.';
-        \\                    runBtn.disabled = false;
-        \\                } else {
-        \\                    throw new Error('mufiz_init not found in WASM exports');
-        \\                }
-        \\
-        \\                runBtn.onclick = () => {
-        \\                    const code = input.value;
-        \\                    const encoder = new TextEncoder();
-        \\                    const codeBytes = encoder.encode(code + '\0');
-        \\                    
-        \\                    // Use a safe buffer location
-        \\                    const ptr = wasmInstance.exports.__heap_base || 65536; 
-        \\                    const mem = new Uint8Array(wasmInstance.exports.memory.buffer);
-        \\                    
-        \\                    if (ptr + codeBytes.length > mem.length) {
-        \\                        output.innerText += '\nError: Input too large for WASM memory\n';
-        \\                        return;
-        \\                    }
-        \\
-        \\                    mem.set(codeBytes, ptr);
-        \\                    output.innerText += `\n> ${code}\n`;
-        \\                    const result = wasmInstance.exports.mufiz_interpret(ptr);
-        \\                    output.innerText += `[Exit Code]: ${result}\n`;
-        \\                };
-        \\
-        \\            } catch (err) {
-        \\                status.innerText = 'Error: ' + err.message;
-        \\                console.error(err);
-        \\            }
-        \\        }
-        \\</body>
-        \\</html>
-    );
-
-    const install_demo = b.addInstallDirectory(.{
-        .source_dir = wasm_demo_html.getDirectory(),
-        .install_dir = .{ .custom = "wasm" },
-        .install_subdir = ".",
-    });
-    wasm_step.dependOn(&install_demo.step);
 
     // Executable (native)
     const exe = b.addExecutable(.{

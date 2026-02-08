@@ -46,8 +46,23 @@ jobs:
       - name: Run Build Multi
         run: zig build --build-file build_multi.zig
 
+      - name: Build WASM
+        run: zig build wasm
+
       - name: Run Package Man
         run: python3 pkgman.py
+
+      - name: Get version
+        id: get_version
+        run: |
+          VERSION=$(python3 -c "import re; data = open('build.zig.zon').read(); match = re.search(r'\.version\s*=\s*\"([\d.]+)\"', data); print(match.group(1) if match else 'unknown')")
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Prepare release artifacts
+        run: |
+          chmod +x scripts/prepare_release_artifacts.sh
+          ./scripts/prepare_release_artifacts.sh ${{ steps.get_version.outputs.VERSION }}
 
       - name: Create release
         id: create_release
@@ -59,6 +74,10 @@ jobs:
           generate_release_notes: true
           draft: true
           prerelease: false
-          files: "pkg/*"
+          files: |
+            pkg/*.zip
+            pkg/*.deb
+            pkg/*.rpm
+            pkg/ARTIFACTS.md
       - name: Upload deb and rpm to packagecloud
         run: ./upload.sh -u ${{env.version}}

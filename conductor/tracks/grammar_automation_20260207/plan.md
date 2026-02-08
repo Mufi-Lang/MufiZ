@@ -16,14 +16,14 @@ This plan follows the TDD approach and phase completion verification protocol de
 
 - [x] **Task: Conductor - User Manual Verification 'Phase 1: Formal Grammar and CLI Infrastructure' (Protocol in workflow.md)**
 
-## Phase 2: WebAssembly Library Functional Validation [checkpoint: 903c13b]
+## Phase 2: WebAssembly Library Functional Validation [checkpoint: dd385e6]
 
-- [x] **Task: Audit and Fix Wasm Build** [903c13b]
+- [x] **Task: Audit and Fix Wasm Build** [dd385e6]
     - [x] Execute `scripts/build-wasm.sh` and identify any build errors with Zig v0.15.2.
     - [x] Update `build.zig` and the build script to ensure a valid `libmufiz.wasm` is produced.
     - [x] Verify that core functions (`init`, `deinit`, `interpret`) are correctly exported.
 
-- [x] **Task: Create Wasm Browser Demo** [903c13b]
+- [x] **Task: Create Wasm Browser Demo** [dd385e6]
     - [x] Create `index.html` and `mufiz_wasm_demo.js` in the project root.
     - [x] Implement code to load `libmufiz.wasm` and run a simple "Hello World" Mufi script.
     - [x] Verify the demo works in a modern web browser.
