@@ -50,28 +50,76 @@ pub fn build(b: *std.Build) !void {
     shlib.root_module.addImport("clap", clap.module("clap"));
     b.installArtifact(shlib);
 
-    // WASM build support (opt-in).
-    // The default build no longer produces JS + WASM automatically in order to
-    // keep native builds stable. If you want to produce a wasm artifact, use the
-    // helper script:
-    //
-    //   ./scripts/build-wasm.sh
-    //
-    // The script builds a wasm-target static archive for the C API and will
-    // optionally link with Emscripten (if `emcc` is present). It accepts
-    // environment and CLI flags for fine-grained control.
-    //
-    // For convenience you can enable an optional `wasm` build step that runs
-    // the helper script. This step is intentionally opt-in so it only runs when
-    // you explicitly request it (e.g. `zig build -Dwasm` or `zig build wasm`).
-    const enable_wasm = b.option(bool, "wasm", "Build WebAssembly artifacts (runs scripts/build-wasm.sh)") orelse false;
-    if (enable_wasm) {
-        const wasm_cmd = b.addSystemCommand(&[_][]const u8{
-            "sh", "scripts/build-wasm.sh",
-        });
-        const wasm_step = b.step("wasm", "Build WebAssembly artifacts (via scripts/build-wasm.sh)");
-        wasm_step.dependOn(&wasm_cmd.step);
-    }
+    // WASM build support
+    const wasm_lib = b.addLibrary(.{
+        .name = "mufiz_wasm",
+        .linkage = .static,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/lib_wasm_stub.zig"),
+            .target = b.resolveTargetQuery(.{
+                .cpu_arch = .wasm32,
+                .os_tag = .freestanding,
+            }),
+            .optimize = .ReleaseSmall,
+        }),
+    });
+    wasm_lib.root_module.addOptions("features", options);
+    wasm_lib.root_module.addOptions("debug", debug_options);
+    wasm_lib.root_module.addImport("clap", clap.module("clap"));
+
+    const install_wasm = b.addInstallArtifact(wasm_lib, .{
+        .dest_dir = .{ .override = .{ .custom = "wasm" } },
+    });
+    const wasm_step = b.step("wasm", "Build WebAssembly library");
+    wasm_step.dependOn(&install_wasm.step);
+
+    // WASM Demo HTML
+    const wasm_demo_html = b.addWriteFiles();
+    _ = wasm_demo_html.add("index.html",
+        \\<!DOCTYPE html>
+        \\<html>
+        \\<head>
+        \\    <title>MufiZ WASM Demo</title>
+        \\    <style>
+        \\        body { font-family: monospace; background: #1e1e1e; color: #d4d4d4; padding: 20px; }
+        \\        #output { white-space: pre-wrap; border: 1px solid #333; padding: 10px; min-height: 200px; }
+        \\    </style>
+        \\</head>
+        \\<body>
+        \\    <h1>MufiZ WebAssembly Demo</h1>
+        \\    <div id="output">Loading MufiZ...</div>
+        \\    <script>
+        \\        async function init() {
+        \\            const output = document.getElementById('output');
+        \\            try {
+        \\                const response = await fetch('mufiz_wasm.wasm');
+        \\                const bytes = await response.arrayBuffer();
+        \\                const results = await WebAssembly.instantiate(bytes, {});
+        \\                const exports = results.instance.exports;
+        \\
+        \\                output.innerText = 'MufiZ WASM Loaded!\n';
+        \\                
+        \\                // Initialize with default options (3 bools)
+        // Since we used extern struct with 3 bools, we can pass them as arguments if callconv(.c) handles it,
+        // but WASM usually expects simple types. However, Zig's callconv(.c) wasm_init might expect them as separate i32s or a pointer.
+        // For simplicity in this demo stub, we just show it loads.
+        \\                output.innerText += 'Ready to interpret Mufi-Lang.';
+        \\            } catch (err) {
+        \\                output.innerText = 'Error: ' + err.message;
+        \\            }
+        \\        }
+        \\        init();
+        \\    </script>
+        \\</body>
+        \\</html>
+    );
+
+    const install_demo = b.addInstallDirectory(.{
+        .source_dir = wasm_demo_html.getDirectory(),
+        .install_dir = .{ .custom = "wasm" },
+        .install_subdir = ".",
+    });
+    wasm_step.dependOn(&install_demo.step);
 
     // Executable (native)
     const exe = b.addExecutable(.{

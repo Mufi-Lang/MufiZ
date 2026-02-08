@@ -9,7 +9,7 @@ const std = @import("std");
 /// The stub intentionally avoids platform-specific functionality and performs
 /// no real interpretation — it is meant for demos/tests and to produce a
 /// small, linkable artifact for Emscripten workflows.
-pub const InitOptions = struct {
+pub const InitOptions = extern struct {
     enable_leak_detection: bool,
     enable_tracking: bool,
     enable_safety: bool,
@@ -21,20 +21,20 @@ var initialized: bool = false;
 
 /// Initialize the (stub) runtime. Returns `LibraryError.AlreadyInitialized` if
 /// called more than once.
-pub fn init(options: InitOptions) !void {
+pub export fn wasm_init(options: InitOptions) callconv(.c) void {
     _ = options; // silence unused
-    if (initialized) return LibraryError.AlreadyInitialized;
+    if (initialized) return;
     initialized = true;
 }
 
 /// Deinitialize the runtime (idempotent).
-pub fn deinit() void {
+pub export fn wasm_deinit() callconv(.c) void {
     initialized = false;
 }
 
 /// Interpret the provided source string. Returns 0 on success (OK).
 /// This stub does not actually execute code.
-pub fn interpret(source: []const u8) u8 {
+pub export fn wasm_interpret(source: [*]const u8) callconv(.c) u8 {
     _ = source; // no-op
     return 0;
 }
