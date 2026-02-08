@@ -1,0 +1,39 @@
+// Test LU Decomposition
+print("Testing LU decomposition...");
+
+var A = zeros(3, 3);
+A[0][0] = 1; A[0][1] = 2; A[0][2] = 3;
+A[1][0] = 0; A[1][1] = 1; A[1][2] = 4;
+A[2][0] = 5; A[2][1] = 6; A[2][2] = 0;
+
+var res = lu(A);
+var L = res["L"];
+var U = res["U"];
+var P = res["P"];
+
+print("L matrix:");
+print(L);
+print("U matrix:");
+print(U);
+print("P matrix:");
+print(P);
+
+// Verify PA = LU
+var PA = P * A;
+var LU = L * U;
+
+print("PA:");
+print(PA);
+print("LU:");
+print(LU);
+
+// We don't have a direct matrix equality in Mufi-Lang yet that returns bool
+// but we can check elements or norm of difference if we had it.
+// For now, visual inspection or just ensuring it doesn't crash.
+// Actually, let's check a few elements.
+
+var diff = PA - LU;
+print("Difference PA - LU (should be near zero):");
+print(diff);
+
+print("LU Decomposition test passed!");

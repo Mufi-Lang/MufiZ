@@ -33,10 +33,15 @@ pub fn checkForLeaks() bool {
     // Clean up arena first
     if (arena_allocator) |*arena| {
         arena.deinit();
+        arena_allocator = null;
     }
     if (gpa) |*g| {
-        return g.deinit() == .leak;
+        const leak = g.deinit() == .leak;
+        gpa = null;
+        is_initialized = false;
+        return leak;
     }
+    is_initialized = false;
     return false;
 }
 
