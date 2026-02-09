@@ -61,6 +61,7 @@ IMAGINARY = /[0-9]+(\.[0-9]+)?i/ ;
 
 # Keywords:
 # and -> TOKEN_AND
+# as -> TOKEN_AS
 # break -> TOKEN_BREAK
 # case -> TOKEN_CASE
 # class -> TOKEN_CLASS
@@ -72,8 +73,10 @@ IMAGINARY = /[0-9]+(\.[0-9]+)?i/ ;
 # false -> TOKEN_FALSE
 # for -> TOKEN_FOR
 # foreach -> TOKEN_FOREACH
+# from -> TOKEN_FROM
 # fun -> TOKEN_FUN
 # if -> TOKEN_IF
+# import -> TOKEN_IMPORT
 # in -> TOKEN_IN
 # item -> TOKEN_ITEM
 # let -> TOKEN_LET

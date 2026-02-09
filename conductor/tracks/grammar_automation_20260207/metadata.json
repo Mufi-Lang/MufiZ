@@ -1,8 +1,0 @@
-{
-  "track_id": "grammar_automation_20260207",
-  "type": "feature",
-  "status": "new",
-  "created_at": "2026-02-07T15:00:00Z",
-  "updated_at": "2026-02-07T15:00:00Z",
-  "description": "Introduce a formal PEG grammar, integrated automation tools (fmt, test-gen), and ensure functional WebAssembly library support."
-}

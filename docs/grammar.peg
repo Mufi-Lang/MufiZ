@@ -88,7 +88,10 @@ Primary <- Identifier
 HashTable <- "#" _ "{" _ (Entry (_ "," _ Entry)* _ ","?)? "}" _
 Entry <- (String / Identifier) _ ":" _ Expression
 
-VectorOrMatrix <- "[" _ (Expression (_ "," _ Expression)* _ ","?)? "]" _
+VectorOrMatrix <- "[" _ (MatrixLiteral / VectorElements)? "]" _
+MatrixLiteral <- MatrixRow (_ "," _ MatrixRow)*
+MatrixRow <- "[" _ Expression (_ "," _ Expression)* _ "]"
+VectorElements <- Expression (_ "," _ Expression)*
 
 # Lexical elements
 Identifier <- !Keyword [A-Za-z_] [A-Za-z0-9_]* _
