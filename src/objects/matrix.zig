@@ -348,19 +348,21 @@ pub const Matrix = struct {
     }
 
     /// LU Decomposition with partial pivoting
-    /// Returns struct with L, U matrices and number of row swaps
-    const LUResult = struct {
+    /// Returns struct with L, U, P matrices and number of row swaps
+    pub const LUResult = struct {
         l: Self,
         u: Self,
+        p: Self,
         swaps: usize,
     };
 
-    fn luDecomposition(self: Self) ?LUResult {
+    pub fn luDecomposition(self: Self) ?LUResult {
         if (self.rows != self.cols) return null;
 
         const n = self.rows;
         var l = Matrix.eye(n);
         var u = self.clone();
+        var p = Matrix.eye(n);
         var swaps: usize = 0;
 
         for (0..n) |k| {
@@ -379,13 +381,20 @@ pub const Matrix = struct {
             // Swap rows if necessary
             if (pivot_row != k) {
                 u.swapRows(k, pivot_row);
-                l.swapRows(k, pivot_row);
+                p.swapRows(k, pivot_row);
+                
+                // Swap rows in L for the ALREADY computed multipliers (columns 0..k)
+                for (0..k) |j| {
+                    const temp = l.get(k, j);
+                    l.set(k, j, l.get(pivot_row, j));
+                    l.set(pivot_row, j, temp);
+                }
+                
                 swaps += 1;
             }
 
             // Check for singularity
             if (@abs(u.get(k, k)) < 1e-14) {
-                // Let GC handle cleanup
                 return null; // Singular matrix
             }
 
@@ -400,7 +409,7 @@ pub const Matrix = struct {
             }
         }
 
-        return LUResult{ .l = l, .u = u, .swaps = swaps };
+        return LUResult{ .l = l, .u = u, .p = p, .swaps = swaps };
     }
 
     /// Swap two rows in the matrix
@@ -423,14 +432,16 @@ pub const Matrix = struct {
         const lu_result = self.luDecomposition();
         if (lu_result == null) return null; // Singular matrix
 
-        var result = Matrix.eye(n);
+        var result = Matrix.init(n, n);
 
+        // PA = LU => Ax = b => PAx = Pb => LUx = Pb
+        // For inverse, Ax = I => LUx = P
         // Solve for each column of the inverse
         for (0..n) |col| {
-            // Extract column from identity matrix
+            // Extract column from permutation matrix P
             var b = Matrix.init(n, 1);
             for (0..n) |i| {
-                b.set(i, 0, if (i == col) 1.0 else 0.0);
+                b.set(i, 0, lu_result.?.p.get(i, col));
             }
 
             // Forward substitution (solve Ly = b)
@@ -439,7 +450,7 @@ pub const Matrix = struct {
                 for (0..i) |j| {
                     sum += lu_result.?.l.get(i, j) * b.get(j, 0);
                 }
-                b.set(i, 0, (b.get(i, 0) - sum) / lu_result.?.l.get(i, i));
+                b.set(i, 0, (b.get(i, 0) - sum)); // L has unit diagonal
             }
 
             // Backward substitution (solve Ux = y)
@@ -457,13 +468,49 @@ pub const Matrix = struct {
             for (0..n) |row_idx| {
                 result.set(row_idx, col, b.get(row_idx, 0));
             }
-
-            // Let GC handle cleanup of temporary matrix b
         }
 
-        // Let GC handle cleanup of LU matrices
-
         return result;
+    }
+
+    /// Solve linear system Ax = b using LU decomposition (Octave: A \ b)
+    pub fn solve(self: Self, b: Self) ?Self {
+        if (self.rows != self.cols or self.rows != b.rows) return null;
+
+        const n = self.rows;
+        const lu_result = self.luDecomposition();
+        if (lu_result == null) return null; // Singular matrix
+
+        const x = Matrix.zeros(n, b.cols);
+
+        // PAx = Pb => LUx = Pb
+        const Pb = lu_result.?.p.mul(b) orelse return null;
+
+        for (0..b.cols) |col| {
+            // Forward substitution (solve Ly = Pb)
+            var y = Matrix.init(n, 1);
+            for (0..n) |i| {
+                var sum: f64 = 0.0;
+                for (0..i) |j| {
+                    sum += lu_result.?.l.get(i, j) * y.get(j, 0);
+                }
+                y.set(i, 0, (Pb.get(i, col) - sum)); // L has unit diagonal
+            }
+
+            // Backward substitution (solve Ux = y)
+            var idx: usize = n;
+            while (idx > 0) {
+                idx -= 1;
+                var sum: f64 = 0.0;
+                var j: usize = idx + 1;
+                while (j < n) : (j += 1) {
+                    sum += lu_result.?.u.get(idx, j) * x.get(j, col);
+                }
+                x.set(idx, col, (y.get(idx, 0) - sum) / lu_result.?.u.get(idx, idx));
+            }
+        }
+
+        return x;
     }
 
     /// Matrix trace (sum of diagonal elements) (Octave: trace(A))
@@ -654,3 +701,99 @@ pub const Matrix = struct {
         return rank_count;
     }
 };
+
+test "Matrix LU Decomposition basic" {
+    const lib = @import("../lib.zig");
+    try lib.init(.{});
+    defer lib.deinit();
+
+    const A = Matrix.init(3, 3);
+    // [1 2 3; 4 5 6; 7 8 10]
+    A.set(0, 0, 1); A.set(0, 1, 2); A.set(0, 2, 3);
+    A.set(1, 0, 4); A.set(1, 1, 5); A.set(1, 2, 6);
+    A.set(2, 0, 7); A.set(2, 1, 8); A.set(2, 2, 10);
+
+    const lu = A.luDecomposition() orelse return error.TestUnexpectedResult;
+    
+    // Verify PA = LU
+    const PA = lu.p.mul(A) orelse return error.TestUnexpectedResult;
+    const LU = lu.l.mul(lu.u) orelse return error.TestUnexpectedResult;
+    
+    try std.testing.expect(PA.equal(LU, 1e-10));
+}
+
+test "Matrix Inverse" {
+    const lib = @import("../lib.zig");
+    try lib.init(.{});
+    defer lib.deinit();
+
+    const A = Matrix.init(3, 3);
+    A.set(0, 0, 1); A.set(0, 1, 2); A.set(0, 2, 3);
+    A.set(1, 0, 0); A.set(1, 1, 1); A.set(1, 2, 4);
+    A.set(2, 0, 5); A.set(2, 1, 6); A.set(2, 2, 0);
+
+    const inv = A.inv() orelse return error.TestUnexpectedResult;
+    const I = A.mul(inv) orelse return error.TestUnexpectedResult;
+    const expected_I = Matrix.eye(3);
+    
+    try std.testing.expect(I.equal(expected_I, 1e-10));
+}
+
+test "Matrix Determinant" {
+    const lib = @import("../lib.zig");
+    try lib.init(.{});
+    defer lib.deinit();
+
+    const A = Matrix.init(3, 3);
+    A.set(0, 0, 1); A.set(0, 1, 2); A.set(0, 2, 3);
+    A.set(1, 0, 0); A.set(1, 1, 1); A.set(1, 2, 4);
+    A.set(2, 0, 5); A.set(2, 1, 6); A.set(2, 2, 0);
+
+    const det_val = A.det() orelse return error.TestUnexpectedResult;
+    try std.testing.expectApproxEqAbs(@as(f64, 1.0), det_val, 1e-10);
+}
+
+test "Matrix Solve" {
+    const lib = @import("../lib.zig");
+    try lib.init(.{});
+    defer lib.deinit();
+
+    const A = Matrix.init(3, 3);
+    // [1 2 3; 4 5 6; 7 8 10]
+    A.set(0, 0, 1); A.set(0, 1, 2); A.set(0, 2, 3);
+    A.set(1, 0, 4); A.set(1, 1, 5); A.set(1, 2, 6);
+    A.set(2, 0, 7); A.set(2, 1, 8); A.set(2, 2, 10);
+
+    const b = Matrix.init(3, 1);
+    b.set(0, 0, 14); // 1*1 + 2*2 + 3*3 = 1 + 4 + 9 = 14
+    b.set(1, 0, 32); // 4*1 + 5*2 + 6*3 = 4 + 10 + 18 = 32
+    b.set(2, 0, 53); // 7*1 + 8*2 + 10*3 = 7 + 16 + 30 = 53
+
+    const x = A.solve(b) orelse return error.TestUnexpectedResult;
+    
+    // Expected x = [1; 2; 3]
+    try std.testing.expectApproxEqAbs(@as(f64, 1.0), x.get(0, 0), 1e-10);
+    try std.testing.expectApproxEqAbs(@as(f64, 2.0), x.get(1, 0), 1e-10);
+    try std.testing.expectApproxEqAbs(@as(f64, 3.0), x.get(2, 0), 1e-10);
+}
+
+test "Matrix Singular Case" {
+    const lib = @import("../lib.zig");
+    try lib.init(.{});
+    defer lib.deinit();
+
+    const A = Matrix.init(2, 2);
+    A.set(0, 0, 1); A.set(0, 1, 2);
+    A.set(1, 0, 2); A.set(1, 1, 4); // Row 2 = 2 * Row 1
+
+    const lu = A.luDecomposition();
+    try std.testing.expect(lu == null);
+    
+    const inv = A.inv();
+    try std.testing.expect(inv == null);
+    
+    const b = Matrix.init(2, 1);
+    const x = A.solve(b);
+    try std.testing.expect(x == null);
+}
+

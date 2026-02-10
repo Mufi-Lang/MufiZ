@@ -89,8 +89,23 @@ jobs:
       - name: Run Build Multi
         run: zig build --build-file build_multi.zig
 
+      - name: Build WASM
+        run: zig build wasm
+
       - name: Run Package Man
         run: python3 pkgman.py
+
+      - name: Get version
+        id: get_version
+        run: |
+          VERSION=$(python3 -c "import re; data = open('build.zig.zon').read(); match = re.search(r'\.version\s*=\s*\"([\d.]+)\"', data); print(match.group(1) if match else 'unknown')")
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Prepare release artifacts
+        run: |
+          chmod +x scripts/prepare_release_artifacts.sh
+          ./scripts/prepare_release_artifacts.sh ${{ steps.get_version.outputs.VERSION }}
 
       - name: Delete previous experimental releases
         run: |
@@ -150,7 +165,11 @@ jobs:
           generate_release_notes: true
           draft: false
           prerelease: true
-          files: "pkg/*"
+          files: |
+            pkg/*.zip
+            pkg/*.deb
+            pkg/*.rpm
+            pkg/ARTIFACTS.md
 
       - name: Release summary
         if: always()
@@ -158,13 +177,21 @@ jobs:
           echo "## 🚀 Release Workflow Results" >> $GITHUB_STEP_SUMMARY
           echo "**Branch:** next" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ steps.get_version.outputs.VERSION }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           if [ ${{ job.status }} == 'success' ]; then
             echo "✅ **Release created successfully!**" >> $GITHUB_STEP_SUMMARY
             echo "- All tests passed" >> $GITHUB_STEP_SUMMARY
             echo "- Packages built successfully" >> $GITHUB_STEP_SUMMARY
+            echo "- C library artifacts included" >> $GITHUB_STEP_SUMMARY
+            echo "- WebAssembly binary included" >> $GITHUB_STEP_SUMMARY
             echo "- Experimental release published" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 📦 Artifacts" >> $GITHUB_STEP_SUMMARY
+            echo "- Standard packages (zip, deb, rpm)" >> $GITHUB_STEP_SUMMARY
+            echo "- C library (mufiz-c-library-${{ steps.get_version.outputs.VERSION }}.zip)" >> $GITHUB_STEP_SUMMARY
+            echo "- WASM binary (mufiz-wasm-${{ steps.get_version.outputs.VERSION }}.zip)" >> $GITHUB_STEP_SUMMARY
           else
             echo "❌ **Release failed**" >> $GITHUB_STEP_SUMMARY
             echo "**Possible causes:**" >> $GITHUB_STEP_SUMMARY

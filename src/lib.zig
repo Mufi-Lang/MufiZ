@@ -22,6 +22,8 @@
 const std = @import("std");
 
 // Re-export core modules
+pub const features = @import("features");
+pub const debug = @import("debug");
 pub const vm = @import("vm.zig");
 pub const compiler = @import("compiler.zig");
 pub const value = @import("value.zig");
@@ -30,6 +32,8 @@ pub const chunk = @import("chunk.zig");
 pub const memory = @import("memory.zig");
 pub const mem_utils = @import("mem_utils.zig");
 pub const system = @import("system.zig");
+pub const fmt = @import("fmt.zig");
+pub const test_gen = @import("test_gen.zig");
 pub const stdlib = @import("stdlib_main.zig");
 
 // Re-export commonly used types
@@ -81,7 +85,12 @@ pub fn init(options: InitOptions) !void {
     // Initialize the virtual machine
     vm.initVM();
 
-    // Initialize and register standard library functions
+    // Initialize the module registry for lazy loading
+    const module_registry = @import("module_registry.zig");
+    module_registry.init(mem_utils.getAllocator());
+
+    // Initialize and register ONLY core/essential functions
+    // Standard library modules are now loaded on demand via import statements
     try stdlib.initializeStdlib();
     stdlib.registerWithVM();
 
@@ -96,6 +105,10 @@ pub fn deinit() void {
     if (!is_initialized) {
         return; // Already deinitialized or never initialized
     }
+
+    // Deinitialize the module registry
+    const module_registry = @import("module_registry.zig");
+    module_registry.deinit();
 
     // Free the virtual machine
     vm.freeVM();
@@ -168,6 +181,10 @@ pub fn printMemoryStats() void {
 }
 
 // Tests
+test {
+    std.testing.refAllDecls(@This());
+}
+
 test "library initialization" {
     try init(.{
         .enable_leak_detection = true,

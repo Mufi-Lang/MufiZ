@@ -1,8 +1,0 @@
-{
-  "track_id": "stdlib_foundation_20260205",
-  "type": "feature",
-  "status": "new",
-  "created_at": "2026-02-05T12:00:00Z",
-  "updated_at": "2026-02-05T12:00:00Z",
-  "description": "Comprehensive Standard Library Foundation: Implement core I/O and File System modules in the Standard Library to support the language's growth toward a full-fledged programming language."
-}

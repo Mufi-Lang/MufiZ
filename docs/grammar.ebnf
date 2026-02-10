@@ -1,0 +1,92 @@
+# Auto-generated MufiZ grammar (EBNF)
+# Do not edit by hand; run tools/generate_grammar.py to regenerate.
+
+program = { declaration } EOF ;
+
+declaration = class_decl | fun_decl | var_decl | const_decl | statement ;
+
+class_decl = "class" IDENTIFIER [ "<" IDENTIFIER ] "{" { method } "}" ;
+fun_decl = "fun" IDENTIFIER "(" [ parameters ] ")" "{" { declaration } "}" ;
+var_decl = "var" IDENTIFIER [ "=" expression ] ";" ;
+const_decl = "const" IDENTIFIER "=" expression ";" ;
+
+statement = print_stmt | for_stmt | foreach_stmt | if_stmt | return_stmt | break_stmt | continue_stmt | switch_stmt | while_stmt | block | expression_stmt ;
+block = "{" { declaration } "}" ;
+expression_stmt = expression ";" ;
+print_stmt = "print" expression ";" ;
+
+foreach_stmt = "foreach" "(" IDENTIFIER "in" expression ")" statement ;
+if_stmt = "if" "(" expression ")" statement [ "else" statement ] ;
+return_stmt = "return" ( ";" | ( expression ";" ) ) ;
+break_stmt = "break" ";" ;
+continue_stmt = "continue" ";" ;
+while_stmt = "while" "(" expression ")" statement ;
+
+switch_stmt = "switch" "(" expression ")" "{" { case_clause } [ default_clause ] "}" ;
+case_clause = "case" expression "=>" ( block | expression ";" ) ;
+default_clause = "_" "=>" ( block | expression ";" ) ;
+
+parameters = IDENTIFIER { "," IDENTIFIER } ;
+argument_list = expression { "," expression } ;
+
+expression = assignment ;
+assignment = ternary [ "=" assignment ] ;
+ternary = or [ "?" expression ":" expression ] ;
+or = and { "or" and } ;
+and = equality { "and" equality } ;
+equality = comparison { ( "!=" | "==" ) comparison } ;
+comparison = term { ( ">" | ">=" | "<" | "<=" ) term } ;
+term = range { ( "-" | "+" | "=>" ) range } ;
+range = factor { ( ".." | "..=" ) factor } ;
+factor = exponent { ( "/" | "*" | "%" ) exponent } ;
+exponent = unary { ( "^" ) unary } ;
+unary = ( "!" | "-" ) unary | call ;
+call = primary { "(" [ argument_list ] ")" | "." IDENTIFIER | "[" index_expr "]" } ;
+index_expr = [ expression ] ( ":" [ expression ] )? ;
+primary = IDENTIFIER | INT | DOUBLE | STRING | MULTILINE_STRING | BACKTICK_STRING | F_STRING | IMAGINARY | "true" | "false" | "nil" | "(" expression ")" | object_literal | float_vector | hash_table ;
+
+object_literal = "{" ( ( STRING | IDENTIFIER ) ":" expression { "," ( STRING | IDENTIFIER ) ":" expression } )? "}" ;
+hash_table = "#" "{" ( ( STRING | IDENTIFIER ) ":" expression { "," ( STRING | IDENTIFIER ) ":" expression } )? "}" ;
+float_vector = "{" ( expression { "," expression } )? "}" ;
+
+# Tokens (terminals)
+IDENTIFIER = /[A-Za-z_][A-Za-z0-9_]*/ ;
+INT = /[0-9]+/ ;
+DOUBLE = /[0-9]*\.[0-9]+/ ;
+STRING = /"(\\.|[^"\\])*"/ ;
+MULTILINE_STRING = /"""(.*?)"""/s ;
+BACKTICK_STRING = /`([^`]*)`/ ;
+F_STRING = /f"(.*?)"/ ;
+IMAGINARY = /[0-9]+(\.[0-9]+)?i/ ;
+
+# Keywords:
+# and -> TOKEN_AND
+# as -> TOKEN_AS
+# break -> TOKEN_BREAK
+# case -> TOKEN_CASE
+# class -> TOKEN_CLASS
+# const -> TOKEN_CONST
+# continue -> TOKEN_CONTINUE
+# each -> TOKEN_EACH
+# else -> TOKEN_ELSE
+# end -> TOKEN_END
+# false -> TOKEN_FALSE
+# for -> TOKEN_FOR
+# foreach -> TOKEN_FOREACH
+# from -> TOKEN_FROM
+# fun -> TOKEN_FUN
+# if -> TOKEN_IF
+# import -> TOKEN_IMPORT
+# in -> TOKEN_IN
+# item -> TOKEN_ITEM
+# let -> TOKEN_LET
+# nil -> TOKEN_NIL
+# or -> TOKEN_OR
+# print -> TOKEN_PRINT
+# return -> TOKEN_RETURN
+# self -> TOKEN_SELF
+# super -> TOKEN_SUPER
+# switch -> TOKEN_SWITCH
+# true -> TOKEN_TRUE
+# var -> TOKEN_VAR
+# while -> TOKEN_WHILE

@@ -1,0 +1,31 @@
+{
+  "keywords": [
+    "and",
+    "break",
+    "case",
+    "class",
+    "const",
+    "continue",
+    "each",
+    "else",
+    "end",
+    "false",
+    "for",
+    "foreach",
+    "fun",
+    "if",
+    "in",
+    "item",
+    "let",
+    "nil",
+    "or",
+    "print",
+    "return",
+    "self",
+    "super",
+    "switch",
+    "true",
+    "var",
+    "while"
+  ]
+}

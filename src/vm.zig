@@ -205,6 +205,11 @@ pub fn freeVM() void {
     allocator.free(vm.frames);
 }
 
+/// Get a pointer to the VM for external modules
+pub fn getVM() *VM {
+    return &vm;
+}
+
 pub fn ZSTR(s: ?*ObjString) []const u8 {
     if (s) |str| {
         return str.chars[0..str.length];
@@ -2085,6 +2090,133 @@ fn opUnknown() InterpretResult {
     return .INTERPRET_RUNTIME_ERROR;
 }
 
+// Import opcode handlers
+fn opImportModule() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const name_constant = frame.ip[0];
+    frame.ip += 1;
+    
+    // Validate constant index
+    if (name_constant >= frame.closure.function.chunk.constants.count) {
+        runtimeError("Invalid constant index for module name", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    
+    const name_value = frame.closure.function.chunk.constants.values[@intCast(name_constant)];
+    
+    // Validate that the value is an object string
+    if (name_value.type != .VAL_OBJ) {
+        runtimeError("Module name must be a string", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    
+    const name_obj = name_value.as.obj;
+    if (!isObjType(name_value, .OBJ_STRING)) {
+        runtimeError("Module name must be a string", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    
+    const name_str = @as(*ObjString, @ptrCast(@alignCast(name_obj)));
+    const module_name = name_str.chars[0..@intCast(name_str.length)];
+    
+    const registry = @import("module_registry.zig");
+    registry.loadModule(module_name) catch {
+        runtimeError("Failed to load module '{s}'", .{module_name});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    
+    return .INTERPRET_OK;
+}
+
+fn opImportFile() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const path_constant = frame.ip[0];
+    frame.ip += 1;
+    
+    // Validate constant index
+    if (path_constant >= frame.closure.function.chunk.constants.count) {
+        runtimeError("Invalid constant index for file path", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    
+    const path_value = frame.closure.function.chunk.constants.values[@intCast(path_constant)];
+    
+    // Validate that the value is an object string
+    if (path_value.type != .VAL_OBJ) {
+        runtimeError("File path must be a string", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    
+    const path_obj = path_value.as.obj;
+    if (!isObjType(path_value, .OBJ_STRING)) {
+        runtimeError("File path must be a string", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    
+    const path_str = @as(*ObjString, @ptrCast(@alignCast(path_obj)));
+    const file_path = path_str.chars[0..@intCast(path_str.length)];
+    
+    const registry = @import("module_registry.zig");
+    registry.loadFile(file_path) catch {
+        runtimeError("Failed to load file '{s}'", .{file_path});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    
+    return .INTERPRET_OK;
+}
+
+fn opImportSpecific() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const module_constant = frame.ip[0];
+    const func_constant = frame.ip[1];
+    frame.ip += 2;
+    
+    // Validate constant indices
+    if (module_constant >= frame.closure.function.chunk.constants.count or
+        func_constant >= frame.closure.function.chunk.constants.count) {
+        runtimeError("Invalid constant index for import", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    
+    const module_value = frame.closure.function.chunk.constants.values[@intCast(module_constant)];
+    
+    // Validate module name is a string
+    if (module_value.type != .VAL_OBJ or !isObjType(module_value, .OBJ_STRING)) {
+        runtimeError("Module name must be a string", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    
+    const module_obj = module_value.as.obj;
+    const module_str = @as(*ObjString, @ptrCast(@alignCast(module_obj)));
+    const module_name = module_str.chars[0..@intCast(module_str.length)];
+    
+    const func_value = frame.closure.function.chunk.constants.values[@intCast(func_constant)];
+    
+    // Validate function name is a string
+    if (func_value.type != .VAL_OBJ or !isObjType(func_value, .OBJ_STRING)) {
+        runtimeError("Function name must be a string", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    
+    const func_obj = func_value.as.obj;
+    const func_str = @as(*ObjString, @ptrCast(@alignCast(func_obj)));
+    const func_name = func_str.chars[0..@intCast(func_str.length)];
+    
+    const registry = @import("module_registry.zig");
+    registry.loadSpecificFunction(module_name, func_name) catch {
+        runtimeError("Failed to import '{s}' from '{s}'", .{ func_name, module_name });
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    
+    return .INTERPRET_OK;
+}
+
+fn opImportModuleAs() InterpretResult {
+    // For now, just do the same as opImportModule
+    // In the future, we can implement proper aliasing
+    return opImportModule();
+}
+
 const jumpTable = blk: {
     var table: [256]OpHandler = undefined;
     for (0..256) |i| {
@@ -2152,6 +2284,11 @@ const jumpTable = blk: {
     table[@intFromEnum(OpCode.OP_FVECTOR)] = opFVector;
     table[@intFromEnum(OpCode.OP_MATRIX)] = opMatrix;
     table[@intFromEnum(OpCode.OP_GET_MATRIX_FLAT)] = opGetMatrixFlat;
+    // Import opcodes
+    table[@intFromEnum(OpCode.OP_IMPORT_MODULE)] = opImportModule;
+    table[@intFromEnum(OpCode.OP_IMPORT_FILE)] = opImportFile;
+    table[@intFromEnum(OpCode.OP_IMPORT_SPECIFIC)] = opImportSpecific;
+    table[@intFromEnum(OpCode.OP_IMPORT_MODULE_AS)] = opImportModuleAs;
 
     break :blk table;
 };

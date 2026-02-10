@@ -50,28 +50,29 @@ pub fn build(b: *std.Build) !void {
     shlib.root_module.addImport("clap", clap.module("clap"));
     b.installArtifact(shlib);
 
-    // WASM build support (opt-in).
-    // The default build no longer produces JS + WASM automatically in order to
-    // keep native builds stable. If you want to produce a wasm artifact, use the
-    // helper script:
-    //
-    //   ./scripts/build-wasm.sh
-    //
-    // The script builds a wasm-target static archive for the C API and will
-    // optionally link with Emscripten (if `emcc` is present). It accepts
-    // environment and CLI flags for fine-grained control.
-    //
-    // For convenience you can enable an optional `wasm` build step that runs
-    // the helper script. This step is intentionally opt-in so it only runs when
-    // you explicitly request it (e.g. `zig build -Dwasm` or `zig build wasm`).
-    const enable_wasm = b.option(bool, "wasm", "Build WebAssembly artifacts (runs scripts/build-wasm.sh)") orelse false;
-    if (enable_wasm) {
-        const wasm_cmd = b.addSystemCommand(&[_][]const u8{
-            "sh", "scripts/build-wasm.sh",
-        });
-        const wasm_step = b.step("wasm", "Build WebAssembly artifacts (via scripts/build-wasm.sh)");
-        wasm_step.dependOn(&wasm_cmd.step);
-    }
+    // WASM build support
+    const wasm_exe = b.addExecutable(.{
+        .name = "mufiz",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/c_api.zig"),
+            .target = b.resolveTargetQuery(.{
+                .cpu_arch = .wasm32,
+                .os_tag = .wasi,
+            }),
+            .optimize = .ReleaseSmall,
+        }),
+    });
+    wasm_exe.rdynamic = true;
+    wasm_exe.entry = .disabled;
+    wasm_exe.root_module.addOptions("features", options);
+    wasm_exe.root_module.addOptions("debug", debug_options);
+    wasm_exe.root_module.addImport("clap", clap.module("clap"));
+
+    const install_wasm = b.addInstallArtifact(wasm_exe, .{
+        .dest_dir = .{ .override = .{ .custom = "wasm" } },
+    });
+    const wasm_step = b.step("wasm", "Build WebAssembly library");
+    wasm_step.dependOn(&install_wasm.step);
 
     // Executable (native)
     const exe = b.addExecutable(.{

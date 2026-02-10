@@ -16,7 +16,13 @@
 ////  - Use `mufiz_strdup()` / `mufiz_free_cstring()` for C string ownership if needed.
 ////
 const std = @import("std");
+const builtin = @import("builtin");
 const mufiz = @import("lib.zig");
+
+const allocator = if (builtin.target.cpu.arch == .wasm32)
+    std.heap.wasm_allocator
+else
+    std.heap.c_allocator;
 
 /// C-style error codes returned by `mufiz_init`
 pub const MUFIZ_OK: i32 = 0;
@@ -116,7 +122,7 @@ export fn mufiz_print_memory_stats() void {
 export fn mufiz_strdup(src: [*:0]const u8) ?[*:0]u8 {
     const len: usize = std.mem.len(src);
     // allocate len + 1 to store the trailing NUL
-    var dst = std.heap.c_allocator.alloc(u8, len + 1) catch return null;
+    var dst = allocator.alloc(u8, len + 1) catch return null;
     // copy bytes (src is a null-terminated C string; slice it directly)
     var idx: usize = 0;
     while (idx < len) : (idx += 1) {
@@ -136,7 +142,7 @@ export fn mufiz_free_cstring(ptr: ?[*:0]u8) void {
     const len: usize = std.mem.len(p);
     // Free the original allocation which was of size len + 1 (includes trailing NUL)
     const slice = @as([]u8, p[0 .. len + 1]);
-    std.heap.c_allocator.free(slice);
+    allocator.free(slice);
 }
 
 test "c api basic init / interpret / deinit" {
@@ -164,3 +170,5 @@ test "c api strdup and free" {
         try std.testing.expectEqual(s[i], dup[i]);
     }
 }
+
+pub fn main() void {}

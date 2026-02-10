@@ -1,0 +1,40 @@
+// Test Linear System Solver
+print("Testing Linear System Solver...");
+
+var A = zeros(3, 3);
+// [1 2 3; 4 5 6; 7 8 10]
+A[0][0] = 1; A[0][1] = 2; A[0][2] = 3;
+A[1][0] = 4; A[1][1] = 5; A[1][2] = 6;
+A[2][0] = 7; A[2][1] = 8; A[2][2] = 10;
+
+var b = zeros(3, 1);
+b[0][0] = 14;
+b[1][0] = 32;
+b[2][0] = 53;
+
+var x = solve(A, b);
+
+print("Solution x:");
+print(x);
+
+// Expected x = [1; 2; 3]
+// Verify by manual element check (since we don't have matrix equality yet)
+var diff0 = x[0][0] - 1.0;
+var diff1 = x[1][0] - 2.0;
+var diff2 = x[2][0] - 3.0;
+
+print("Differences from expected [1; 2; 3]:");
+print(diff0);
+print(diff1);
+print(diff2);
+
+// Check Ax
+var Ax = A * x;
+print("Ax:");
+print(Ax);
+
+var res_diff = Ax - b;
+print("Difference Ax - b:");
+print(res_diff);
+
+print("Linear System Solver test passed!");

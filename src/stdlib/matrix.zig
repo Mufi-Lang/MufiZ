@@ -250,6 +250,38 @@ fn rank_impl(_: i32, args: [*]Value) Value {
     return Value.init_int(@intCast(rank_val));
 }
 
+fn lu_impl(_: i32, args: [*]Value) Value {
+    const matrix = args[0].as_matrix();
+    const res = matrix.luDecomposition();
+    if (res == null) {
+        return stdlib_core.stdlib_error("Matrix must be square and non-singular for LU decomposition", .{});
+    }
+
+    const htable = object_h.HashTable.init();
+
+    const l_str = object_h.copyString("L", 1);
+    const u_str = object_h.copyString("U", 1);
+    const p_str = object_h.copyString("P", 1);
+
+    _ = htable.put(l_str, Value.init_obj(@ptrCast(res.?.l)));
+    _ = htable.put(u_str, Value.init_obj(@ptrCast(res.?.u)));
+    _ = htable.put(p_str, Value.init_obj(@ptrCast(res.?.p)));
+
+    return Value.init_obj(@ptrCast(htable));
+}
+
+fn solve_impl(_: i32, args: [*]Value) Value {
+    const a = args[0].as_matrix();
+    const b = args[1].as_matrix();
+
+    const x = a.solve(b);
+    if (x == null) {
+        return stdlib_core.stdlib_error("Matrix must be square and non-singular, and row dimensions must match", .{});
+    }
+
+    return Value.init_obj(@ptrCast(x.?));
+}
+
 // === Parameter Specifications ===
 
 const SizeParam = &[_]ParamSpec{.{ .name = "size", .type = .int }};
@@ -490,4 +522,24 @@ pub const rank = DefineFunction(
     .int,
     &[_][]const u8{ "rank([[1, 2], [2, 4]]) -> 1", "rank(eye(3)) -> 3" },
     rank_impl,
+);
+
+pub const lu = DefineFunction(
+    "lu",
+    "matrix",
+    "Calculate the LU decomposition of a square matrix",
+    MatrixParam,
+    .object,
+    &[_][]const u8{ "lu(A) -> #{ \"L\": L, \"U\": U, \"P\": P }" },
+    lu_impl,
+);
+
+pub const solve = DefineFunction(
+    "solve",
+    "matrix",
+    "Solve a linear system Ax = b using LU decomposition",
+    TwoMatrixParams,
+    .object,
+    &[_][]const u8{ "solve(A, b) -> solution vector/matrix x" },
+    solve_impl,
 );

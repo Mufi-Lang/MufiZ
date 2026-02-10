@@ -1,0 +1,13 @@
+// Test file import
+import "test_suite/helper_module.mufi";
+
+var result1 = add(5, 3);
+print("add(5, 3) = ");
+println(result1);
+
+var result2 = multiply(4, 7);
+print("multiply(4, 7) = ");
+println(result2);
+
+print("CONSTANT = ");
+println(CONSTANT);

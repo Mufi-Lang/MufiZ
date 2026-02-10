@@ -8,9 +8,9 @@ const SimpleLineEditor = @import("simple_line.zig").SimpleLineEditor;
 const syntax = @import("syntax_min.zig");
 const vm_h = @import("vm.zig");
 
-const MAJOR: u8 = 0;
-const MINOR: u8 = 11;
-const PATCH: u8 = 0;
+pub const MAJOR: u8 = 0;
+pub const MINOR: u8 = 11;
+pub const PATCH: u8 = 0;
 const CODENAME: []const u8 = "Dusk";
 
 pub inline fn version() void {
@@ -336,4 +336,43 @@ fn replSimple() !void {
             .INTERPRET_RUNTIME_ERROR => std.debug.print("🚨 Runtime error\n", .{}),
         }
     }
+}
+
+pub fn format(file_path: []const u8) !void {
+    const allocator = mem_utils.getAllocator();
+    
+    // Read the file
+    const file = try std.fs.cwd().openFile(file_path, .{});
+    defer file.close();
+    
+    const source = try file.readToEndAlloc(allocator, std.math.maxInt(u16));
+    defer allocator.free(source);
+
+    // Initialize formatter
+    const fmt = @import("fmt.zig");
+    var formatter = fmt.Formatter.init(allocator);
+    
+    // Format the source
+    const formatted = try formatter.format(source);
+    defer allocator.free(formatted);
+
+    // Write back to the file
+    const output_file = try std.fs.cwd().createFile(file_path, .{});
+    defer output_file.close();
+    try output_file.writeAll(formatted);
+
+    std.debug.print("Formatted {s}\n", .{file_path});
+}
+
+pub fn generateTests() !void {
+    const allocator = mem_utils.getAllocator();
+    
+    var prng = std.Random.DefaultPrng.init(@intCast(std.time.timestamp()));
+    const test_gen = @import("test_gen.zig");
+    var gen = test_gen.TestGenerator.init(allocator, prng.random());
+    
+    const script = try gen.generateScript();
+    defer allocator.free(script);
+
+    std.debug.print("Generated Synthetic Test:\n\n{s}\n", .{script});
 }
