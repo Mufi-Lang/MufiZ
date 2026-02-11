@@ -1,7 +1,6 @@
 /// MufiZ Interpreter Entry Point
 /// This is the main entry point for the MufiZ language interpreter.
 /// It provides the command-line interface to the MufiZ library.
-
 const std = @import("std");
 const builtin = @import("builtin");
 
@@ -9,6 +8,7 @@ const clap = @import("clap");
 const features = @import("features");
 
 const mufiz = @import("lib.zig");
+const pm = @import("pm.zig");
 
 // Interpreter exit codes (re-exported from library)
 pub const OK: u8 = mufiz.OK;
@@ -36,6 +36,20 @@ const params = clap.parseParamsComptime(
 /// Main entry point for the MufiZ interpreter
 /// Initializes all subsystems and handles command-line arguments
 pub fn main() !void {
+    // Get arguments
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    const gpa_allocator = gpa.allocator();
+
+    const args = try std.process.argsAlloc(gpa_allocator);
+    defer std.process.argsFree(gpa_allocator, args);
+
+    // Check for 'pm' command first (before mufiz init)
+    if (args.len >= 2 and std.mem.eql(u8, args[1], "pm")) {
+        try handlePmCommand(args);
+        return;
+    }
+
     // Initialize the MufiZ library with leak detection and safety checks
     try mufiz.init(.{
         .enable_leak_detection = true,
@@ -43,7 +57,7 @@ pub fn main() !void {
         .enable_safety = true,
     });
     defer mufiz.deinit();
-    
+
     // Check if running in sandbox mode (REPL-only)
     if (features.sandbox) {
         try mufiz.startRepl();
@@ -72,6 +86,14 @@ pub fn main() !void {
                 \\--fmt <str>            Formats a Mufi Script
                 \\--test-gen             Generates synthetic Mufi tests
                 \\
+                \\PACKAGE MANAGER:
+                \\pm <command>           Package manager commands
+                \\  new <name>           Create a new MufiZ project
+                \\  init <name>          Initialize a MufiZ project in current directory
+                \\  info                 Display project information
+                \\  run                  Run the current project
+                \\  help                 Show package manager help
+                \\
             , .{ mufiz.system.MAJOR, mufiz.system.MINOR, mufiz.system.PATCH });
             return;
         } else if (res.args.version != 0) {
@@ -98,5 +120,50 @@ pub fn main() !void {
             std.debug.print("Use --help for usage information\n", .{});
             return;
         }
+    }
+}
+
+/// Handle package manager commands
+fn handlePmCommand(args: [][:0]u8) !void {
+    if (args.len < 3) {
+        pm.printHelp();
+        return;
+    }
+
+    const subcommand = args[2];
+    const allocator = std.heap.page_allocator;
+
+    if (std.mem.eql(u8, subcommand, "new")) {
+        if (args.len < 4) {
+            std.debug.print("Error: 'pm new' requires a project name\n", .{});
+            std.debug.print("Usage: mufiz pm new <project_name>\n", .{});
+            return;
+        }
+        const project_name = args[3];
+        try pm.newProject(allocator, project_name);
+    } else if (std.mem.eql(u8, subcommand, "init")) {
+        if (args.len < 4) {
+            std.debug.print("Error: 'pm init' requires a project name\n", .{});
+            std.debug.print("Usage: mufiz pm init <project_name>\n", .{});
+            return;
+        }
+        const project_name = args[3];
+        try pm.initProject(allocator, project_name);
+    } else if (std.mem.eql(u8, subcommand, "info")) {
+        try pm.info(allocator);
+    } else if (std.mem.eql(u8, subcommand, "run")) {
+        // Initialize mufiz for running
+        try mufiz.init(.{
+            .enable_leak_detection = true,
+            .enable_tracking = true,
+            .enable_safety = true,
+        });
+        defer mufiz.deinit();
+        try pm.run(allocator);
+    } else if (std.mem.eql(u8, subcommand, "help")) {
+        pm.printHelp();
+    } else {
+        std.debug.print("Error: Unknown pm command: {s}\n", .{subcommand});
+        pm.printHelp();
     }
 }
