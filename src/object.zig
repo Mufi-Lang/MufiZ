@@ -78,7 +78,6 @@
 /// - String interning reduces memory for duplicate strings
 /// - SIMD optimizations integrated in String and FloatVector as bounded methods
 /// - Field reordering minimizes cache misses (24-byte headers)
-
 const std = @import("std");
 const print = std.debug.print;
 
@@ -113,6 +112,8 @@ pub const ObjPair = @import("objects/pair.zig").ObjPair;
 pub const ObjRange = @import("objects/range.zig").ObjRange;
 pub const String = @import("objects/string.zig").String;
 pub const ObjString = String;
+pub const Module = @import("objects/module.zig").Module;
+pub const ObjModule = Module;
 
 // Function-related objects
 pub const ObjFunction = @import("objects/function.zig").ObjFunction;
@@ -222,6 +223,15 @@ pub fn newNative(function: NativeFn) *ObjNative {
     const native: *ObjNative = @as(*ObjNative, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjNative), .OBJ_NATIVE))));
     native.*.function = function;
     return native;
+}
+
+pub fn newModule(name: *ObjString) *ObjModule {
+    const module: *ObjModule = @as(*ObjModule, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjModule), .OBJ_MODULE))));
+    const allocator = mem_utils.getAllocator();
+    module.*.name = name;
+    module.*.members = std.StringHashMap(Value).init(allocator);
+    module.*.allocator = allocator;
+    return module;
 }
 
 // String allocation is now handled internally by String bounded methods
@@ -363,6 +373,11 @@ pub fn printObject(value: Value) void {
             print(", ", .{});
             value_h.printValue(pair.value);
             print(")", .{});
+        },
+        .OBJ_MODULE => {
+            const module = @as(*ObjModule, @ptrCast(@alignCast(value.as.obj)));
+            const nameStr = zstr(module.*.name);
+            print("<module {s}>", .{nameStr});
         },
     }
 }

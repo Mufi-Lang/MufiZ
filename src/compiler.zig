@@ -2,7 +2,6 @@
 /// This module implements the bytecode compiler for the MufiZ language.
 /// It handles parsing, semantic analysis, and bytecode generation.
 /// The compiler uses a single-pass approach with recursive descent parsing.
-
 const std = @import("std");
 const print = std.debug.print;
 
@@ -975,6 +974,10 @@ pub fn dot(canAssign: bool) void {
         emitBytes(@intCast(@intFromEnum(OpCode.OP_INVOKE)), name);
         emitByte(argCount);
     } else {
+        // Check if we're accessing a module member or instance property
+        // At runtime, OP_GET_PROPERTY will check the object type and route accordingly
+        // For modules, it will use OP_GET_MODULE_MEMBER behavior
+        // For instances, it will use the normal property access
         emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_PROPERTY)), name);
     }
 }
@@ -1962,23 +1965,15 @@ pub fn importStatement() void {
 pub fn moduleImportStatement() void {
     consume(.TOKEN_IDENTIFIER, "Expect module name.");
     const moduleName = parser.previous;
-    
+
     var alias: ?Token = null;
     if (match(.TOKEN_AS)) {
         consume(.TOKEN_IDENTIFIER, "Expect identifier after 'as'.");
         alias = parser.previous;
-        
-        // Alias support is not yet implemented
-        const suggestions = [_]errors.ErrorSuggestion{
-            .{ .message = "Module aliasing is not yet supported" },
-            .{ .message = "Use import without 'as' for now: import module_name;" },
-        };
-        errorWithSuggestions(&parser.previous, .EXPECTED_EXPRESSION, "Module aliasing with 'as' is not yet implemented", &suggestions);
-        return;
     }
-    
+
     consume(.TOKEN_SEMICOLON, "Expect ';' after import statement.");
-    
+
     // Emit the module name as a constant
     const nameConstant = makeConstant(Value{
         .type = .VAL_OBJ,
@@ -1986,18 +1981,32 @@ pub fn moduleImportStatement() void {
             .obj = @ptrCast(object_h.copyString(moduleName.start, @intCast(moduleName.length))),
         },
     });
-    emitBytes(@intCast(@intFromEnum(OpCode.OP_IMPORT_MODULE)), nameConstant);
+
+    // If there's an alias, emit it too
+    if (alias) |aliasToken| {
+        const aliasConstant = makeConstant(Value{
+            .type = .VAL_OBJ,
+            .as = .{
+                .obj = @ptrCast(object_h.copyString(aliasToken.start, @intCast(aliasToken.length))),
+            },
+        });
+        emitByte(@intCast(@intFromEnum(OpCode.OP_IMPORT_MODULE_AS)));
+        emitByte(nameConstant);
+        emitByte(aliasConstant);
+    } else {
+        emitBytes(@intCast(@intFromEnum(OpCode.OP_IMPORT_MODULE)), nameConstant);
+    }
 }
 
 pub fn fileImportStatement() void {
     consume(.TOKEN_STRING, "Expect file path string.");
     const filePath = parser.previous;
-    
+
     var alias: ?Token = null;
     if (match(.TOKEN_AS)) {
         consume(.TOKEN_IDENTIFIER, "Expect identifier after 'as'.");
         alias = parser.previous;
-        
+
         // Alias support is not yet implemented
         const suggestions = [_]errors.ErrorSuggestion{
             .{ .message = "File import aliasing is not yet supported" },
@@ -2006,13 +2015,13 @@ pub fn fileImportStatement() void {
         errorWithSuggestions(&parser.previous, .EXPECTED_EXPRESSION, "File import aliasing with 'as' is not yet implemented", &suggestions);
         return;
     }
-    
+
     consume(.TOKEN_SEMICOLON, "Expect ';' after import statement.");
-    
+
     // The file path token already includes quotes, so we need to remove them
     const pathStart = filePath.start + 1; // Skip opening quote
     const pathLength = filePath.length - 2; // Remove both quotes
-    
+
     const pathConstant = makeConstant(Value{
         .type = .VAL_OBJ,
         .as = .{
@@ -2028,15 +2037,15 @@ pub fn fileImportStatement() void {
 pub fn fromImportStatement() void {
     consume(.TOKEN_IDENTIFIER, "Expect module name after 'from'.");
     const moduleName = parser.previous;
-    
+
     consume(.TOKEN_IMPORT, "Expect 'import' after module name.");
-    
+
     // Parse list of function names
     var count: u8 = 0; // Track number of imports (reserved for future validation/limits)
     while (true) {
         consume(.TOKEN_IDENTIFIER, "Expect function name.");
         const funcName = parser.previous;
-        
+
         // Emit module name and function name as constants
         const moduleConstant = makeConstant(Value{
             .type = .VAL_OBJ,
@@ -2050,18 +2059,18 @@ pub fn fromImportStatement() void {
                 .obj = @ptrCast(object_h.copyString(funcName.start, @intCast(funcName.length))),
             },
         });
-        
+
         emitByte(@intCast(@intFromEnum(OpCode.OP_IMPORT_SPECIFIC)));
         emitByte(moduleConstant);
         emitByte(funcConstant);
-        
+
         count += 1;
-        
+
         if (!match(.TOKEN_COMMA)) {
             break;
         }
     }
-    
+
     consume(.TOKEN_SEMICOLON, "Expect ';' after import statement.");
 }
 

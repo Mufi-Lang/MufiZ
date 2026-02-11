@@ -43,4 +43,5 @@ pub const ObjType = enum(i32) {
     OBJ_PAIR = 12,
     OBJ_MATRIX = 13,
     OBJ_MATRIX_ROW = 14,
+    OBJ_MODULE = 15,
 };

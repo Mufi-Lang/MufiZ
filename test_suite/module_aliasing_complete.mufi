@@ -1,0 +1,90 @@
+// Comprehensive test for module aliasing with dot notation for constants
+// This demonstrates the Python-like module system
+
+println("=== Module Aliasing and Dot Notation Tests ===\n");
+
+// Test 1: Import with alias and access constants
+println("Test 1: Import math module with alias 'm'");
+import math as m;
+println("m.PI = ");
+println(m.PI);
+println("m.E = ");
+println(m.E);
+
+// Test 2: Use aliased module functions
+println("\nTest 2: Use functions from aliased module");
+var sin_result = sin(m.PI / 2);
+println("sin(m.PI / 2) = ");
+println(sin_result);
+
+var sqrt_result = sqrt(16);
+println("sqrt(16) = ");
+println(sqrt_result);
+
+// Test 3: Constants in calculations with alias
+println("\nTest 3: Use aliased constants in calculations");
+var circle_area = m.PI * 10 * 10;
+println("Area of circle (radius=10): m.PI * 10 * 10 = ");
+println(circle_area);
+
+var euler_power = pow(m.E, 2);
+println("m.E^2 using pow(m.E, 2) = ");
+println(euler_power);
+
+// Test 4: Multiple aliased imports
+println("\nTest 4: Import collections with alias");
+import collections as coll;
+println("Collections module imported as 'coll'");
+
+// Test 5: Mathematical expressions with constants
+println("\nTest 5: Complex expressions with module constants");
+var expr1 = 2 * m.PI + m.E;
+println("2 * m.PI + m.E = ");
+println(expr1);
+
+var expr2 = m.PI / m.E;
+println("m.PI / m.E = ");
+println(expr2);
+
+var expr3 = (m.PI + m.E) / 2;
+println("(m.PI + m.E) / 2 = ");
+println(expr3);
+
+// Test 6: Using constants as function arguments
+println("\nTest 6: Pass module constants to functions");
+var cos_pi = cos(m.PI);
+println("cos(m.PI) = ");
+println(cos_pi);
+
+var ln_e = ln(m.E);
+println("ln(m.E) = ");
+println(ln_e);
+
+var log2_result = log2(8);
+println("log2(8) = ");
+println(log2_result);
+
+// Test 7: Nested calculations
+println("\nTest 7: Nested calculations with constants");
+var nested = sin(m.PI / 4) * cos(m.PI / 4);
+println("sin(m.PI / 4) * cos(m.PI / 4) = ");
+println(nested);
+
+var nested2 = sqrt(m.PI * m.PI + m.E * m.E);
+println("sqrt(m.PI^2 + m.E^2) = ");
+println(nested2);
+
+// Test 8: Store constants in variables
+println("\nTest 8: Store module constants in variables");
+var pi_value = m.PI;
+var e_value = m.E;
+println("Stored pi_value = m.PI: ");
+println(pi_value);
+println("Stored e_value = m.E: ");
+println(e_value);
+
+var sum = pi_value + e_value;
+println("pi_value + e_value = ");
+println(sum);
+
+println("\n=== All Module Aliasing Tests Passed! ===");

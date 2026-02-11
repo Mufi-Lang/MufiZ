@@ -1,6 +1,5 @@
 /// Module Registry System for MufiZ
 /// Manages lazy-loading of standard library modules and file imports
-
 const std = @import("std");
 const stdlib_main = @import("stdlib_main.zig");
 const stdlib_core = @import("stdlib_core.zig");
@@ -82,11 +81,11 @@ pub fn loadModule(name: []const u8) !void {
         if (std.mem.eql(u8, module.name, name)) {
             // Call the module's registration function to add functions to registry
             try module.register_fn();
-            
+
             // Actually register the module's functions with the VM
             const registry = stdlib_core.getGlobalRegistry();
             registry.registerModule(name);
-            
+
             try loaded_modules.put(name, true);
             return;
         }
@@ -137,12 +136,12 @@ pub fn loadFile(path: []const u8) !void {
     const object_h = @import("object.zig");
     const Value = @import("value.zig").Value;
     const vm_module = @import("vm.zig");
-    
+
     const function = compiler_h.compile(@ptrCast(source_with_null.ptr)) orelse {
         std.debug.print("Error: Failed to compile file '{s}'\n", .{path});
         return error.CompileError;
     };
-    
+
     // Create closure and call it in the current VM context
     // Push the function first (will be popped when creating closure)
     vm_module.push(Value{
@@ -151,19 +150,19 @@ pub fn loadFile(path: []const u8) !void {
     });
     const closure = object_h.newClosure(@ptrCast(function));
     _ = vm_module.pop();
-    
+
     // Push the closure on the stack for the call
     vm_module.push(Value{
         .type = .VAL_OBJ,
         .as = .{ .obj = @ptrCast(@alignCast(closure)) },
     });
-    
+
     // Call the closure with 0 arguments
     if (!vm_module.call(closure, 0)) {
         std.debug.print("Error: Failed to execute file '{s}'\n", .{path});
         return error.InterpretError;
     }
-    
+
     // Update the current frame to the newly created frame so execution continues there
     // This is similar to what opCall does
     const vm_ptr = vm_module.getVM();
@@ -174,4 +173,55 @@ pub fn loadFile(path: []const u8) !void {
 pub fn isModuleLoaded(name: []const u8) bool {
     if (!initialized) return false;
     return loaded_modules.get(name) orelse false;
+}
+
+/// Populate a module object with its members (constants and functions)
+pub fn populateModuleMembers(module: *@import("object.zig").ObjModule, module_name: []const u8) !void {
+    const vm_module = @import("vm.zig");
+    const Value = @import("value.zig").Value;
+
+    // Get all globals from the VM that belong to this module
+    const iterator = vm_module.vm.globals.entries;
+    var i: usize = 0;
+
+    // For math module, also add constants
+    if (std.mem.eql(u8, module_name, "math")) {
+        // Add PI constant
+        const pi_value = Value{
+            .type = .VAL_DOUBLE,
+            .as = .{ .num_double = 3.141592653589793 },
+        };
+        try module.setMember("PI", pi_value);
+
+        // Add E constant
+        const e_value = Value{
+            .type = .VAL_DOUBLE,
+            .as = .{ .num_double = 2.718281828459045 },
+        };
+        try module.setMember("E", e_value);
+    }
+
+    // Add all functions from the module to the module object
+    if (iterator) |entries| {
+        while (i < vm_module.vm.globals.capacity) : (i += 1) {
+            if (entries[i].key) |objString| {
+                // Validate the string object before accessing its fields
+                if (objString.length > 0 and objString.length < 1000000) {
+                    const varName = objString.chars[0..@intCast(objString.length)];
+                    const value = entries[i].value;
+
+                    // Check if this is a native function
+                    if (value.type == .VAL_OBJ) {
+                        if (value.as.obj) |obj| {
+                            if (obj.type == .OBJ_NATIVE) {
+                                // Add this function to the module
+                                // We'll add all functions for simplicity, but could filter by module
+                                try module.setMember(varName, value);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

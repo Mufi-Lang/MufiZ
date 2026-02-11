@@ -150,6 +150,7 @@ pub fn disassembleInstruction(chunk: *chunk_h.Chunk, offset: i32) i32 {
             return offset + 3;
         },
         65 => return constantInstruction("OP_IMPORT_MODULE_AS", chunk, offset),
+        66 => return constantInstruction("OP_GET_MODULE_MEMBER", chunk, offset),
 
         else => {
             std.debug.print("Unknown opcode {d}\n", .{instruction});

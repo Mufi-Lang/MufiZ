@@ -794,6 +794,47 @@ fn opSetUpvalue() InterpretResult {
     return .INTERPRET_OK;
 }
 
+fn opGetModuleMember() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const name_constant = frame.ip[0];
+    frame.ip += 1;
+
+    // Validate constant index
+    if (name_constant >= frame.closure.function.chunk.constants.count) {
+        runtimeError("Invalid constant index for member name", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    const name_value = frame.closure.function.chunk.constants.values[@intCast(name_constant)];
+
+    // Validate that the value is an object string
+    if (name_value.type != .VAL_OBJ or !isObjType(name_value, .OBJ_STRING)) {
+        runtimeError("Member name must be a string", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    // Peek at the module on the stack
+    const module_value = peek(0);
+    if (!isObjType(module_value, .OBJ_MODULE)) {
+        runtimeError("Can only access members of modules", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    const module = @as(*object_h.ObjModule, @ptrCast(@alignCast(module_value.as.obj)));
+    const member_name_str = @as(*ObjString, @ptrCast(@alignCast(name_value.as.obj)));
+    const member_name = member_name_str.chars[0..@intCast(member_name_str.length)];
+
+    // Look up the member in the module
+    if (module.getMember(member_name)) |member_value| {
+        _ = pop(); // Pop the module
+        push(member_value); // Push the member value
+        return .INTERPRET_OK;
+    }
+
+    runtimeError("Module '{s}' has no member '{s}'", .{ module.name.chars[0..@intCast(module.name.length)], member_name });
+    return .INTERPRET_RUNTIME_ERROR;
+}
+
 fn opGetProperty() InterpretResult {
     const frame = vm.currentFrame.?;
     const constant_index = frame.ip[0];
@@ -804,6 +845,22 @@ fn opGetProperty() InterpretResult {
     };
     const name = constant.as_string();
     const receiver = peek(0);
+
+    // Handle module member access
+    if (isObjType(receiver, .OBJ_MODULE)) {
+        const module = @as(*object_h.ObjModule, @ptrCast(@alignCast(receiver.as.obj)));
+        const member_name = name.chars[0..@intCast(name.length)];
+
+        // Look up the member in the module
+        if (module.getMember(member_name)) |member_value| {
+            _ = pop(); // Pop the module
+            push(member_value); // Push the member value
+            return .INTERPRET_OK;
+        }
+
+        runtimeError("Module '{s}' has no member '{s}'", .{ module.name.chars[0..@intCast(module.name.length)], member_name });
+        return .INTERPRET_RUNTIME_ERROR;
+    }
 
     if (isObjType(receiver, .OBJ_INSTANCE)) {
         const instance: *ObjInstance = @ptrCast(@alignCast(receiver.as.obj));
@@ -2095,36 +2152,52 @@ fn opImportModule() InterpretResult {
     const frame = vm.currentFrame.?;
     const name_constant = frame.ip[0];
     frame.ip += 1;
-    
+
     // Validate constant index
     if (name_constant >= frame.closure.function.chunk.constants.count) {
         runtimeError("Invalid constant index for module name", .{});
         return .INTERPRET_RUNTIME_ERROR;
     }
-    
+
     const name_value = frame.closure.function.chunk.constants.values[@intCast(name_constant)];
-    
+
     // Validate that the value is an object string
     if (name_value.type != .VAL_OBJ) {
         runtimeError("Module name must be a string", .{});
         return .INTERPRET_RUNTIME_ERROR;
     }
-    
+
     const name_obj = name_value.as.obj;
     if (!isObjType(name_value, .OBJ_STRING)) {
         runtimeError("Module name must be a string", .{});
         return .INTERPRET_RUNTIME_ERROR;
     }
-    
+
     const name_str = @as(*ObjString, @ptrCast(@alignCast(name_obj)));
     const module_name = name_str.chars[0..@intCast(name_str.length)];
-    
+
     const registry = @import("module_registry.zig");
     registry.loadModule(module_name) catch {
         runtimeError("Failed to load module '{s}'", .{module_name});
         return .INTERPRET_RUNTIME_ERROR;
     };
-    
+
+    // Create a module object and register it as a global
+    const module_obj = object_h.newModule(name_str);
+
+    // Populate the module with its members (constants and functions)
+    registry.populateModuleMembers(module_obj, module_name) catch {
+        runtimeError("Failed to populate module '{s}'", .{module_name});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+
+    // Define the module as a global variable with the module name
+    const module_value = Value{
+        .type = .VAL_OBJ,
+        .as = .{ .obj = @ptrCast(@alignCast(module_obj)) },
+    };
+    _ = table_h.tableSet(&vm.globals, name_str, module_value);
+
     return .INTERPRET_OK;
 }
 
@@ -2132,36 +2205,36 @@ fn opImportFile() InterpretResult {
     const frame = vm.currentFrame.?;
     const path_constant = frame.ip[0];
     frame.ip += 1;
-    
+
     // Validate constant index
     if (path_constant >= frame.closure.function.chunk.constants.count) {
         runtimeError("Invalid constant index for file path", .{});
         return .INTERPRET_RUNTIME_ERROR;
     }
-    
+
     const path_value = frame.closure.function.chunk.constants.values[@intCast(path_constant)];
-    
+
     // Validate that the value is an object string
     if (path_value.type != .VAL_OBJ) {
         runtimeError("File path must be a string", .{});
         return .INTERPRET_RUNTIME_ERROR;
     }
-    
+
     const path_obj = path_value.as.obj;
     if (!isObjType(path_value, .OBJ_STRING)) {
         runtimeError("File path must be a string", .{});
         return .INTERPRET_RUNTIME_ERROR;
     }
-    
+
     const path_str = @as(*ObjString, @ptrCast(@alignCast(path_obj)));
     const file_path = path_str.chars[0..@intCast(path_str.length)];
-    
+
     const registry = @import("module_registry.zig");
     registry.loadFile(file_path) catch {
         runtimeError("Failed to load file '{s}'", .{file_path});
         return .INTERPRET_RUNTIME_ERROR;
     };
-    
+
     return .INTERPRET_OK;
 }
 
@@ -2170,51 +2243,103 @@ fn opImportSpecific() InterpretResult {
     const module_constant = frame.ip[0];
     const func_constant = frame.ip[1];
     frame.ip += 2;
-    
+
     // Validate constant indices
     if (module_constant >= frame.closure.function.chunk.constants.count or
-        func_constant >= frame.closure.function.chunk.constants.count) {
+        func_constant >= frame.closure.function.chunk.constants.count)
+    {
         runtimeError("Invalid constant index for import", .{});
         return .INTERPRET_RUNTIME_ERROR;
     }
-    
+
     const module_value = frame.closure.function.chunk.constants.values[@intCast(module_constant)];
-    
+
     // Validate module name is a string
     if (module_value.type != .VAL_OBJ or !isObjType(module_value, .OBJ_STRING)) {
         runtimeError("Module name must be a string", .{});
         return .INTERPRET_RUNTIME_ERROR;
     }
-    
+
     const module_obj = module_value.as.obj;
     const module_str = @as(*ObjString, @ptrCast(@alignCast(module_obj)));
     const module_name = module_str.chars[0..@intCast(module_str.length)];
-    
+
     const func_value = frame.closure.function.chunk.constants.values[@intCast(func_constant)];
-    
+
     // Validate function name is a string
     if (func_value.type != .VAL_OBJ or !isObjType(func_value, .OBJ_STRING)) {
         runtimeError("Function name must be a string", .{});
         return .INTERPRET_RUNTIME_ERROR;
     }
-    
+
     const func_obj = func_value.as.obj;
     const func_str = @as(*ObjString, @ptrCast(@alignCast(func_obj)));
     const func_name = func_str.chars[0..@intCast(func_str.length)];
-    
+
     const registry = @import("module_registry.zig");
     registry.loadSpecificFunction(module_name, func_name) catch {
         runtimeError("Failed to import '{s}' from '{s}'", .{ func_name, module_name });
         return .INTERPRET_RUNTIME_ERROR;
     };
-    
+
     return .INTERPRET_OK;
 }
 
 fn opImportModuleAs() InterpretResult {
-    // For now, just do the same as opImportModule
-    // In the future, we can implement proper aliasing
-    return opImportModule();
+    const frame = vm.currentFrame.?;
+    const name_constant = frame.ip[0];
+    const alias_constant = frame.ip[1];
+    frame.ip += 2;
+
+    // Validate constant indices
+    if (name_constant >= frame.closure.function.chunk.constants.count or
+        alias_constant >= frame.closure.function.chunk.constants.count)
+    {
+        runtimeError("Invalid constant index for module import", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    const name_value = frame.closure.function.chunk.constants.values[@intCast(name_constant)];
+    const alias_value = frame.closure.function.chunk.constants.values[@intCast(alias_constant)];
+
+    // Validate that both values are object strings
+    if (name_value.type != .VAL_OBJ or !isObjType(name_value, .OBJ_STRING)) {
+        runtimeError("Module name must be a string", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    if (alias_value.type != .VAL_OBJ or !isObjType(alias_value, .OBJ_STRING)) {
+        runtimeError("Module alias must be a string", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    const name_str = @as(*ObjString, @ptrCast(@alignCast(name_value.as.obj)));
+    const alias_str = @as(*ObjString, @ptrCast(@alignCast(alias_value.as.obj)));
+    const module_name = name_str.chars[0..@intCast(name_str.length)];
+
+    const registry = @import("module_registry.zig");
+    registry.loadModule(module_name) catch {
+        runtimeError("Failed to load module '{s}'", .{module_name});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+
+    // Create a module object and register it with the alias name
+    const module_obj = object_h.newModule(name_str);
+
+    // Populate the module with its members (constants and functions)
+    registry.populateModuleMembers(module_obj, module_name) catch {
+        runtimeError("Failed to populate module '{s}'", .{module_name});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+
+    // Define the module as a global variable with the alias name
+    const module_value = Value{
+        .type = .VAL_OBJ,
+        .as = .{ .obj = @ptrCast(@alignCast(module_obj)) },
+    };
+    _ = table_h.tableSet(&vm.globals, alias_str, module_value);
+
+    return .INTERPRET_OK;
 }
 
 const jumpTable = blk: {
@@ -2289,6 +2414,7 @@ const jumpTable = blk: {
     table[@intFromEnum(OpCode.OP_IMPORT_FILE)] = opImportFile;
     table[@intFromEnum(OpCode.OP_IMPORT_SPECIFIC)] = opImportSpecific;
     table[@intFromEnum(OpCode.OP_IMPORT_MODULE_AS)] = opImportModuleAs;
+    table[@intFromEnum(OpCode.OP_GET_MODULE_MEMBER)] = opGetModuleMember;
 
     break :blk table;
 };

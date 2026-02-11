@@ -1,0 +1,68 @@
+// Test module aliasing and constant access with dot notation
+
+// Test 1: Basic import and access module constants with dot notation
+import math;
+println("=== Test 1: Module Constants with Dot Notation ===");
+println("math.PI:");
+println(math.PI);
+println("math.E:");
+println(math.E);
+
+// Test 2: Module aliasing
+import collections as col;
+println("\n=== Test 2: Module Aliasing ===");
+println("Module 'collections' imported as 'col'");
+
+// Test 3: Using module functions with original name
+println("\n=== Test 3: Using Functions with Original Module Name ===");
+var x = sin(math.PI / 2);
+println("sin(math.PI / 2):");
+println(x);
+
+var y = cos(0);
+println("cos(0):");
+println(y);
+
+var z = sqrt(16);
+println("sqrt(16):");
+println(z);
+
+// Test 4: Using constants in calculations
+println("\n=== Test 4: Constants in Calculations ===");
+var circumference = 2 * math.PI * 5;
+println("Circumference of circle with radius 5 (2 * math.PI * 5):");
+println(circumference);
+
+var area = math.PI * 5 * 5;
+println("Area of circle with radius 5 (math.PI * 5 * 5):");
+println(area);
+
+var euler_calc = math.E * 2;
+println("math.E * 2:");
+println(euler_calc);
+
+// Test 5: Mix constants with functions
+println("\n=== Test 5: Mix Constants with Functions ===");
+var result = sin(math.PI);
+println("sin(math.PI):");
+println(result);
+
+var result2 = exp(1);
+println("exp(1) (should be close to math.E):");
+println(result2);
+
+// Test 6: Multiple calculations with constants
+println("\n=== Test 6: Multiple Calculations ===");
+var pi_squared = math.PI * math.PI;
+println("math.PI * math.PI:");
+println(pi_squared);
+
+var e_squared = math.E * math.E;
+println("math.E * math.E:");
+println(e_squared);
+
+var combo = math.PI + math.E;
+println("math.PI + math.E:");
+println(combo);
+
+println("\n=== All Tests Completed Successfully! ===");

@@ -1,0 +1,3 @@
+import math as m;
+println("Testing aliased module:");
+println(m.PI);

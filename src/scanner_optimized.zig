@@ -6,7 +6,6 @@
 /// - Better error reporting with position tracking
 /// - Support for complex numbers (e.g., 3+4i)
 /// - Efficient string handling
-
 const std = @import("std");
 
 const errors = @import("errors.zig");
@@ -438,9 +437,10 @@ pub fn identifierType() TokenType {
             return .TOKEN_IDENTIFIER;
         },
         2 => {
-            // Handle 2-letter keywords: "if", "in", "or"
+            // Handle 2-letter keywords: "as", "if", "in", "or"
             const first = identifier_slice[0];
             const second = identifier_slice[1];
+            if (first == 'a' and second == 's') return .TOKEN_AS;
             if (first == 'i' and second == 'f') return .TOKEN_IF;
             if (first == 'i' and second == 'n') return .TOKEN_IN;
             if (first == 'o' and second == 'r') return .TOKEN_OR;

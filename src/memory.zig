@@ -6,7 +6,6 @@
 /// - Cycle detection for circular references
 /// - Memory pressure monitoring
 /// - Incremental collection support
-
 const std = @import("std");
 const print = std.debug.print;
 const exit = std.process.exit;
@@ -780,6 +779,13 @@ pub fn freeObject(object: *Obj) void {
             const matrix_row_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(object_h.MatrixRow)];
             mem_utils.free(allocator, matrix_row_slice);
         },
+        .OBJ_MODULE => {
+            const module: *object_h.ObjModule = @ptrCast(@alignCast(object));
+            module.deinit();
+            const allocator = mem_utils.getAllocator();
+            const module_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(object_h.ObjModule)];
+            mem_utils.free(allocator, module_slice);
+        },
     }
 }
 
@@ -852,6 +858,16 @@ pub fn blackenObject(object: *Obj) void {
             const matrix_row: *object_h.MatrixRow = @ptrCast(@alignCast(object));
             // Mark the parent matrix to keep it alive
             markObject(@ptrCast(matrix_row.matrix));
+        },
+        .OBJ_MODULE => {
+            const module: *object_h.ObjModule = @ptrCast(@alignCast(object));
+            // Mark the module name
+            markObject(@ptrCast(@alignCast(module.name)));
+            // Mark all values in the module's members HashMap
+            var iterator = module.members.iterator();
+            while (iterator.next()) |entry| {
+                markValue(entry.value_ptr.*);
+            }
         },
 
         else => {},

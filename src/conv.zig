@@ -37,6 +37,7 @@ pub fn what_is(val: Value) []const u8 {
                 .OBJ_MATRIX_ROW => return "Matrix Row",
                 .OBJ_RANGE => return "Range",
                 .OBJ_PAIR => return "Pair",
+                .OBJ_MODULE => return "Module",
             }
         },
         .VAL_COMPLEX => return "Complex",

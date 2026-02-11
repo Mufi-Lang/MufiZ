@@ -70,6 +70,7 @@ pub const OpCode = enum(i32) {
     OP_IMPORT_FILE = 63,
     OP_IMPORT_SPECIFIC = 64,
     OP_IMPORT_MODULE_AS = 65,
+    OP_GET_MODULE_MEMBER = 66,
 };
 
 pub const Chunk = struct {
