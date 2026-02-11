@@ -171,4 +171,169 @@ test "c api strdup and free" {
     }
 }
 
+// ============================================================================
+// Package Management C API
+// ============================================================================
+
+/// Initialize a new MufiZ project in the current directory
+/// Returns MUFIZ_OK on success or a negative error code on failure.
+///
+/// C ABI:
+///   int32_t mufiz_pm_init(const char *project_name);
+export fn mufiz_pm_init(project_name: [*:0]const u8) i32 {
+    const slice = std.mem.span(@as([*:0]const u8, @ptrCast(project_name)));
+    mufiz.pmInit(allocator, slice) catch {
+        return MUFIZ_ERR_GENERIC;
+    };
+    return MUFIZ_OK;
+}
+
+/// Create a new MufiZ project in a new directory
+/// Returns MUFIZ_OK on success or a negative error code on failure.
+///
+/// C ABI:
+///   int32_t mufiz_pm_new(const char *project_name);
+export fn mufiz_pm_new(project_name: [*:0]const u8) i32 {
+    const slice = std.mem.span(@as([*:0]const u8, @ptrCast(project_name)));
+    mufiz.pmNew(allocator, slice) catch {
+        return MUFIZ_ERR_GENERIC;
+    };
+    return MUFIZ_OK;
+}
+
+/// Display information about the current project
+/// Returns MUFIZ_OK on success or a negative error code on failure.
+///
+/// C ABI:
+///   int32_t mufiz_pm_info(void);
+export fn mufiz_pm_info() i32 {
+    mufiz.pmInfo(allocator) catch {
+        return MUFIZ_ERR_GENERIC;
+    };
+    return MUFIZ_OK;
+}
+
+/// Run the current project
+/// Returns MUFIZ_OK on success or a negative error code on failure.
+///
+/// C ABI:
+///   int32_t mufiz_pm_run(void);
+export fn mufiz_pm_run() i32 {
+    mufiz.pmRun(allocator) catch {
+        return MUFIZ_ERR_GENERIC;
+    };
+    return MUFIZ_OK;
+}
+
+/// Install project dependencies
+/// Returns MUFIZ_OK on success or a negative error code on failure.
+///
+/// C ABI:
+///   int32_t mufiz_pm_install(void);
+export fn mufiz_pm_install() i32 {
+    mufiz.pmInstall(allocator) catch {
+        return MUFIZ_ERR_GENERIC;
+    };
+    return MUFIZ_OK;
+}
+
+/// Add a dependency to the project
+/// Returns MUFIZ_OK on success or a negative error code on failure.
+///
+/// C ABI:
+///   int32_t mufiz_pm_add_dependency(const char *name, const char *url, const char *version);
+export fn mufiz_pm_add_dependency(
+    name: [*:0]const u8,
+    url: [*:0]const u8,
+    version: [*:0]const u8,
+) i32 {
+    const name_slice = std.mem.span(@as([*:0]const u8, @ptrCast(name)));
+    const url_slice = std.mem.span(@as([*:0]const u8, @ptrCast(url)));
+    const version_slice = std.mem.span(@as([*:0]const u8, @ptrCast(version)));
+
+    mufiz.pmAddDependency(allocator, name_slice, url_slice, version_slice) catch {
+        return MUFIZ_ERR_GENERIC;
+    };
+    return MUFIZ_OK;
+}
+
+/// Get package cache statistics
+/// Returns MUFIZ_OK on success or a negative error code on failure.
+///
+/// C ABI:
+///   int32_t mufiz_pm_cache_info(void);
+export fn mufiz_pm_cache_info() i32 {
+    mufiz.pmCacheInfo(allocator) catch {
+        return MUFIZ_ERR_GENERIC;
+    };
+    return MUFIZ_OK;
+}
+
+/// Clear the package cache
+/// Returns MUFIZ_OK on success or a negative error code on failure.
+///
+/// C ABI:
+///   int32_t mufiz_pm_cache_clear(void);
+export fn mufiz_pm_cache_clear() i32 {
+    mufiz.pmCacheClear(allocator) catch {
+        return MUFIZ_ERR_GENERIC;
+    };
+    return MUFIZ_OK;
+}
+
+// ============================================================================
+// Formatting C API
+// ============================================================================
+
+/// Format a MufiZ source string and return the formatted result
+/// The returned string must be freed with mufiz_free_cstring()
+/// Returns NULL on error
+///
+/// C ABI:
+///   char *mufiz_format_source(const char *source);
+export fn mufiz_format_source(source: [*:0]const u8) ?[*:0]u8 {
+    const slice = std.mem.span(@as([*:0]const u8, @ptrCast(source)));
+
+    const formatted = mufiz.formatSource(allocator, slice) catch {
+        return null;
+    };
+
+    // Convert to null-terminated C string
+    const c_str = allocator.allocSentinel(u8, formatted.len, 0) catch {
+        allocator.free(formatted);
+        return null;
+    };
+
+    @memcpy(c_str[0..formatted.len], formatted);
+    allocator.free(formatted);
+
+    return @as([*:0]u8, @ptrCast(c_str.ptr));
+}
+
+/// Format a MufiZ file in-place
+/// Returns MUFIZ_OK on success or a negative error code on failure.
+///
+/// C ABI:
+///   int32_t mufiz_format_file(const char *filepath);
+export fn mufiz_format_file(filepath: [*:0]const u8) i32 {
+    const slice = std.mem.span(@as([*:0]const u8, @ptrCast(filepath)));
+    mufiz.formatFile(allocator, slice) catch {
+        return MUFIZ_ERR_GENERIC;
+    };
+    return MUFIZ_OK;
+}
+
+/// Check if a source string needs formatting
+/// Returns 1 if formatting would change the source, 0 if already formatted, -1 on error
+///
+/// C ABI:
+///   int32_t mufiz_needs_formatting(const char *source);
+export fn mufiz_needs_formatting(source: [*:0]const u8) i32 {
+    const slice = std.mem.span(@as([*:0]const u8, @ptrCast(source)));
+    const needs = mufiz.needsFormatting(allocator, slice) catch {
+        return -1;
+    };
+    return if (needs) 1 else 0;
+}
+
 pub fn main() void {}

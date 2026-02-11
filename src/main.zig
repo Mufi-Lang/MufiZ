@@ -92,6 +92,10 @@ pub fn main() !void {
                 \\  init <name>          Initialize a MufiZ project in current directory
                 \\  info                 Display project information
                 \\  run                  Run the current project
+                \\  install              Install project dependencies
+                \\  add <name> <url> <v> Add a dependency to project
+                \\  cache info           View package cache statistics
+                \\  cache clear          Clear package cache
                 \\  help                 Show package manager help
                 \\
             , .{ mufiz.system.MAJOR, mufiz.system.MINOR, mufiz.system.PATCH });
@@ -160,6 +164,32 @@ fn handlePmCommand(args: [][:0]u8) !void {
         });
         defer mufiz.deinit();
         try pm.run(allocator);
+    } else if (std.mem.eql(u8, subcommand, "install")) {
+        try pm.install(allocator);
+    } else if (std.mem.eql(u8, subcommand, "add")) {
+        if (args.len < 6) {
+            std.debug.print("Error: 'pm add' requires name, url, and version\n", .{});
+            std.debug.print("Usage: mufiz pm add <name> <url> <version>\n", .{});
+            return;
+        }
+        const name = args[3];
+        const url = args[4];
+        const version = args[5];
+        try pm.addDependency(allocator, name, url, version);
+    } else if (std.mem.eql(u8, subcommand, "cache")) {
+        if (args.len < 4) {
+            std.debug.print("Error: 'pm cache' requires a subcommand (info|clear)\n", .{});
+            return;
+        }
+        const cache_cmd = args[3];
+        if (std.mem.eql(u8, cache_cmd, "info")) {
+            try pm.cacheInfo(allocator);
+        } else if (std.mem.eql(u8, cache_cmd, "clear")) {
+            try pm.cacheClear(allocator);
+        } else {
+            std.debug.print("Error: Unknown cache command: {s}\n", .{cache_cmd});
+            std.debug.print("Available: info, clear\n", .{});
+        }
     } else if (std.mem.eql(u8, subcommand, "help")) {
         pm.printHelp();
     } else {

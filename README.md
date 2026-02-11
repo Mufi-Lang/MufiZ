@@ -117,6 +117,66 @@ $ mufiz --help
             Runs Mufi Repl system
 ```
 
+## Package Manager
+
+MufiZ includes a built-in package manager for creating and managing projects. Projects use **ZON (Zig Object Notation)** format for configuration, aligning with the Zig ecosystem.
+
+### Quick Start
+
+```shell
+# Create a new project
+$ mufiz pm new my-project
+$ cd my-project
+
+# Or initialize in current directory
+$ mufiz pm init my-project
+
+# View project information
+$ mufiz pm info
+
+# Run your project
+$ mufiz pm run
+```
+
+### Project Structure
+
+```
+my-project/
+├── mufi.zon       # Project metadata (ZON format)
+└── src/
+    └── main.mufi  # Entry point
+```
+
+### Configuration File (mufi.zon)
+
+Projects use ZON format for configuration, which is Zig's native object notation:
+
+```zon
+.{
+    .package = .{
+        .name = "my-project",
+        .version = "0.1.0",
+        .authors = .{},
+        .description = "A MufiZ project",
+        .license = "MIT",
+    },
+    .project = .{
+        .entry_point = "src/main.mufi",
+    },
+}
+```
+
+### Why ZON?
+
+- **Native Integration**: Same format as Zig's `build.zig.zon`
+- **Type Safety**: Structured data with compile-time validation
+- **Consistency**: One format across the entire Zig/MufiZ ecosystem
+- **Extensibility**: Easy to add new fields and nested structures
+
+For detailed information about the package manager and ZON format migration, see:
+- `docs/ZON_MIGRATION.md` - Migration guide from TOML to ZON
+- `docs/PM_ZON_UPDATE_SUMMARY.md` - Complete summary of changes
+
 ---
 
 ## Goal

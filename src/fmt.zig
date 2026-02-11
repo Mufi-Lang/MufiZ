@@ -24,7 +24,7 @@ pub const Formatter = struct {
         // We'll create a null-terminated copy to be safe.
         const source_z = try self.allocator.dupeZ(u8, source);
         defer self.allocator.free(source_z);
-        
+
         scanner_h.init_scanner(source_z.ptr);
 
         var indent_level: usize = 0;
@@ -53,16 +53,12 @@ pub const Formatter = struct {
             } else if (last_token_type) |last| {
                 // Add spacing logic
                 const is_op = switch (token.type) {
-                    .TOKEN_EQUAL, .TOKEN_EQUAL_EQUAL, .TOKEN_PLUS, .TOKEN_MINUS, .TOKEN_STAR, .TOKEN_SLASH,
-                    .TOKEN_GREATER, .TOKEN_GREATER_EQUAL, .TOKEN_LESS, .TOKEN_LESS_EQUAL, .TOKEN_BANG_EQUAL,
-                    .TOKEN_PERCENT, .TOKEN_ARROW, .TOKEN_AND, .TOKEN_OR, .TOKEN_QUESTION, .TOKEN_COLON => true,
+                    .TOKEN_EQUAL, .TOKEN_EQUAL_EQUAL, .TOKEN_PLUS, .TOKEN_MINUS, .TOKEN_STAR, .TOKEN_SLASH, .TOKEN_GREATER, .TOKEN_GREATER_EQUAL, .TOKEN_LESS, .TOKEN_LESS_EQUAL, .TOKEN_BANG_EQUAL, .TOKEN_PERCENT, .TOKEN_ARROW, .TOKEN_AND, .TOKEN_OR, .TOKEN_QUESTION, .TOKEN_COLON => true,
                     else => false,
                 };
 
                 const last_was_op = switch (last) {
-                    .TOKEN_EQUAL, .TOKEN_EQUAL_EQUAL, .TOKEN_PLUS, .TOKEN_MINUS, .TOKEN_STAR, .TOKEN_SLASH,
-                    .TOKEN_GREATER, .TOKEN_GREATER_EQUAL, .TOKEN_LESS, .TOKEN_LESS_EQUAL, .TOKEN_BANG_EQUAL,
-                    .TOKEN_PERCENT, .TOKEN_ARROW, .TOKEN_AND, .TOKEN_OR, .TOKEN_QUESTION, .TOKEN_COLON, .TOKEN_COMMA => true,
+                    .TOKEN_EQUAL, .TOKEN_EQUAL_EQUAL, .TOKEN_PLUS, .TOKEN_MINUS, .TOKEN_STAR, .TOKEN_SLASH, .TOKEN_GREATER, .TOKEN_GREATER_EQUAL, .TOKEN_LESS, .TOKEN_LESS_EQUAL, .TOKEN_BANG_EQUAL, .TOKEN_PERCENT, .TOKEN_ARROW, .TOKEN_AND, .TOKEN_OR, .TOKEN_QUESTION, .TOKEN_COLON, .TOKEN_COMMA => true,
                     else => false,
                 };
 
@@ -112,10 +108,10 @@ test "basic formatting - indentation" {
     var fmt = Formatter.init(testing.allocator);
     const source = "fun main() {\nprint(\"hello\");\n}";
     const expected = "fun main() {\n    print(\"hello\");\n}\n";
-    
+
     const result = try fmt.format(source);
     defer testing.allocator.free(result);
-    
+
     try testing.expectEqualStrings(expected, result);
 }
 
@@ -123,9 +119,42 @@ test "basic formatting - spacing" {
     var fmt = Formatter.init(testing.allocator);
     const source = "var x=10+20;";
     const expected = "var x = 10 + 20;\n";
-    
+
     const result = try fmt.format(source);
     defer testing.allocator.free(result);
-    
+
     try testing.expectEqualStrings(expected, result);
+}
+
+// ============================================================================
+// Public API Functions (for library use)
+// ============================================================================
+
+/// Format a MufiZ source string
+/// Returns allocated formatted string (caller must free)
+pub fn formatSource(allocator: std.mem.Allocator, source: []const u8) ![]const u8 {
+    var formatter = Formatter.init(allocator);
+    return try formatter.format(source);
+}
+
+/// Format a MufiZ file in-place
+pub fn formatFile(allocator: std.mem.Allocator, filepath: []const u8) !void {
+    const fs = std.fs;
+
+    // Read the file
+    const file = try fs.cwd().openFile(filepath, .{});
+    defer file.close();
+
+    const source = try file.readToEndAlloc(allocator, 10 * 1024 * 1024); // 10MB max
+    defer allocator.free(source);
+
+    // Format it
+    const formatted = try formatSource(allocator, source);
+    defer allocator.free(formatted);
+
+    // Write it back
+    const out_file = try fs.cwd().createFile(filepath, .{});
+    defer out_file.close();
+
+    try out_file.writeAll(formatted);
 }

@@ -35,6 +35,9 @@ pub const system = @import("system.zig");
 pub const fmt = @import("fmt.zig");
 pub const test_gen = @import("test_gen.zig");
 pub const stdlib = @import("stdlib_main.zig");
+pub const pm = @import("pm.zig");
+pub const cache = @import("cache.zig");
+pub const resolver = @import("resolver.zig");
 
 // Re-export commonly used types
 pub const Value = value.Value;
@@ -178,6 +181,85 @@ pub fn hasMemoryLeaks() bool {
 /// Print memory statistics
 pub fn printMemoryStats() void {
     mem_utils.printMemStats();
+}
+
+// ============================================================================
+// Package Management API
+// ============================================================================
+
+/// Package management errors
+pub const PackageError = error{
+    ProjectNotFound,
+    InvalidProjectName,
+    InstallFailed,
+    CacheFailed,
+};
+
+/// Initialize a new MufiZ project in the current directory
+pub fn pmInit(allocator: std.mem.Allocator, project_name: []const u8) !void {
+    try pm.initProject(allocator, project_name);
+}
+
+/// Create a new MufiZ project in a new directory
+pub fn pmNew(allocator: std.mem.Allocator, project_name: []const u8) !void {
+    try pm.newProject(allocator, project_name);
+}
+
+/// Display project information
+pub fn pmInfo(allocator: std.mem.Allocator) !void {
+    try pm.info(allocator);
+}
+
+/// Run the current project
+pub fn pmRun(allocator: std.mem.Allocator) !void {
+    try pm.run(allocator);
+}
+
+/// Install project dependencies
+pub fn pmInstall(allocator: std.mem.Allocator) !void {
+    try pm.install(allocator);
+}
+
+/// Add a dependency to the project
+pub fn pmAddDependency(
+    allocator: std.mem.Allocator,
+    name: []const u8,
+    url: []const u8,
+    version: []const u8,
+) !void {
+    try pm.addDependency(allocator, name, url, version);
+}
+
+/// Get package cache statistics
+pub fn pmCacheInfo(allocator: std.mem.Allocator) !void {
+    try pm.cacheInfo(allocator);
+}
+
+/// Clear the package cache
+pub fn pmCacheClear(allocator: std.mem.Allocator) !void {
+    try pm.cacheClear(allocator);
+}
+
+// ============================================================================
+// Formatting API
+// ============================================================================
+
+/// Format a MufiZ source file
+/// Returns formatted source as allocated string (caller must free)
+pub fn formatSource(allocator: std.mem.Allocator, source: []const u8) ![]const u8 {
+    return try fmt.formatSource(allocator, source);
+}
+
+/// Format a MufiZ file in-place
+pub fn formatFile(allocator: std.mem.Allocator, filepath: []const u8) !void {
+    try fmt.formatFile(allocator, filepath);
+}
+
+/// Check if a file needs formatting (returns true if formatting would change it)
+pub fn needsFormatting(allocator: std.mem.Allocator, source: []const u8) !bool {
+    const formatted = try formatSource(allocator, source);
+    defer allocator.free(formatted);
+    return !std.mem.eql(u8, source, formatted);
 }
 
 // Tests
