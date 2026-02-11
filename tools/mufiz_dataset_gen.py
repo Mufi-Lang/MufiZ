@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import json
 import multiprocessing
 import os
 import random
@@ -16,6 +17,7 @@ class MufiGenerator:
         self.indent_level = 0
         self.variables = []  # List of (name, is_const) tuples
         self.functions = []
+        self.classes = []  # List of (class_name, methods) tuples
         self.in_loop = False
 
         # Reserved keywords
@@ -50,6 +52,52 @@ class MufiGenerator:
             "true",
             "var",
             "while",
+        }
+
+        # Load standard library functions from JSON
+        self.stdlib_functions = self._load_stdlib_functions()
+
+    def _load_stdlib_functions(self):
+        """Load stdlib functions from the generated JSON file."""
+        script_dir = Path(__file__).parent
+        json_path = script_dir / "stdlib_functions.json"
+
+        if json_path.exists():
+            try:
+                with open(json_path, "r") as f:
+                    data = json.load(f)
+                    return data.get("functions", {})
+            except Exception as e:
+                print(f"Warning: Could not load stdlib functions from JSON: {e}")
+                return self._fallback_stdlib_functions()
+        else:
+            print("Warning: stdlib_functions.json not found, using fallback list")
+            return self._fallback_stdlib_functions()
+
+    def _fallback_stdlib_functions(self):
+        """Fallback list of common stdlib functions if JSON not available."""
+        return {
+            "sin": 1,
+            "cos": 1,
+            "tan": 1,
+            "abs": 1,
+            "sqrt": 1,
+            "ln": 1,
+            "log2": 1,
+            "log10": 1,
+            "exp": 1,
+            "pi": 0,
+            "len": 1,
+            "push": 2,
+            "pop": 1,
+            "get": 2,
+            "set": 3,
+            "contains": 2,
+            "clear": 1,
+            "is_empty": 1,
+            "type": 1,
+            "to_string": 1,
+            "clock": 0,
         }
 
     def indent(self):
@@ -150,6 +198,17 @@ class MufiGenerator:
 
         return "#{" + ", ".join(entries) + "}"
 
+    def generate_pair_literal(self, depth):
+        """Generate pair literal using => operator: key => value"""
+        if depth > self.depth_limit:
+            return f'"{self.generate_identifier()}" => nil'
+
+        # Generate key and value
+        key = self.generate_simple_value(depth + 1)
+        value = self.generate_simple_value(depth + 1)
+
+        return f"{key} => {value}"
+
     def generate_simple_value(self, depth):
         """Generate a simple, safe value (no complex expressions)."""
         choices = [
@@ -163,6 +222,107 @@ class MufiGenerator:
             return random.choice([name for name, _ in self.variables])
 
         return random.choice(choices)()
+
+    def generate_stdlib_call(self, depth):
+        """Generate a standard library function call."""
+        if depth > self.depth_limit:
+            return self.generate_simple_value(depth)
+
+        # Select a random stdlib function
+        func_name, param_count = random.choice(list(self.stdlib_functions.items()))
+
+        # Generate appropriate arguments based on the function
+        args = []
+        for _ in range(param_count):
+            if func_name in [
+                "sin",
+                "cos",
+                "tan",
+                "sqrt",
+                "ln",
+                "log2",
+                "log10",
+                "exp",
+                "abs",
+                "floor",
+                "ceil",
+                "asin",
+                "acos",
+                "atan",
+                "phase",
+            ]:
+                # Math functions need numbers
+                args.append(self.generate_number())
+            elif func_name in ["complex", "linspace"]:
+                # Functions that need multiple numbers
+                args.append(self.generate_number())
+            elif func_name in [
+                "len",
+                "pop",
+                "clear",
+                "is_empty",
+                "pop_front",
+                "pairs",
+                "range_to_array",
+            ]:
+                # Collection inspection functions
+                if self.variables and random.random() < 0.5:
+                    args.append(random.choice([name for name, _ in self.variables]))
+                else:
+                    args.append(self.generate_vector_literal(depth + 1))
+            elif func_name in ["get", "nth", "insert"]:
+                # Functions needing collection and index
+                if len(args) == 0:
+                    args.append(self.generate_vector_literal(depth + 1))
+                else:
+                    args.append(str(random.randint(0, 5)))
+            elif func_name in ["push", "push_front", "set"]:
+                # Functions that modify collections
+                if len(args) == 0:
+                    args.append(self.generate_vector_literal(depth + 1))
+                else:
+                    args.append(self.generate_simple_value(depth + 1))
+            elif func_name in ["contains", "find", "equals", "compare"]:
+                # Functions with two arguments
+                args.append(
+                    self.generate_string()
+                    if "string" in func_name
+                    or func_name in ["find", "equals", "compare"]
+                    else self.generate_simple_value(depth + 1)
+                )
+            elif func_name in ["put"]:
+                # Hash table put function
+                args.append(self.generate_string())  # key
+                args.append(self.generate_simple_value(depth + 1))  # value
+            elif func_name in [
+                "type",
+                "is_number",
+                "is_string",
+                "is_bool",
+                "is_nil",
+                "to_string",
+                "to_number",
+                "to_int",
+            ]:
+                # Type checking/conversion functions
+                args.append(self.generate_simple_value(depth + 1))
+            elif func_name in ["input"]:
+                args.append(self.generate_string())  # prompt
+            elif func_name in ["read_file"]:
+                args.append('"test.txt"')
+            elif func_name in ["write_file"]:
+                args.append('"output.txt"')
+                args.append(self.generate_string())
+            elif func_name in ["sleep"]:
+                args.append(str(random.randint(1, 3)))
+            elif func_name in ["fvec", "range"]:
+                args.append(str(random.randint(1, 10)))
+            else:
+                # Default: generate simple values
+                for _ in range(param_count):
+                    args.append(self.generate_simple_value(depth + 1))
+
+        return f"{func_name}({', '.join(args)})"
 
     def generate_primary(self, depth):
         """Generate primary expression."""
@@ -186,6 +346,14 @@ class MufiGenerator:
             choices.append(lambda: self.generate_vector_literal(depth + 1))
             if random.random() < 0.3:
                 choices.append(lambda: self.generate_hash_literal(depth + 1))
+
+        # Add stdlib function calls
+        if depth < self.depth_limit - 1 and random.random() < 0.3:
+            choices.append(lambda: self.generate_stdlib_call(depth + 1))
+
+        # Add pair literals (15% chance)
+        if depth < self.depth_limit - 1 and random.random() < 0.15:
+            choices.append(lambda: self.generate_pair_literal(depth + 1))
 
         # Parenthesized expression
         if depth < self.depth_limit - 1 and random.random() < 0.2:
@@ -225,7 +393,11 @@ class MufiGenerator:
 
     def generate_print_stmt(self, depth):
         """Generate print statement."""
-        expr = self.generate_simple_value(depth + 1)
+        # Sometimes print stdlib function results
+        if random.random() < 0.3:
+            expr = self.generate_stdlib_call(depth + 1)
+        else:
+            expr = self.generate_simple_value(depth + 1)
         return f"{self.indent()}print({expr});\n"
 
     def generate_var_decl(self, depth):
@@ -233,7 +405,12 @@ class MufiGenerator:
         is_const = random.choice([True, False])
         keyword = "const" if is_const else "var"
         name = self.generate_identifier()
-        value = self.generate_simple_value(depth + 1)
+
+        # Sometimes assign result of stdlib function
+        if random.random() < 0.25:
+            value = self.generate_stdlib_call(depth + 1)
+        else:
+            value = self.generate_simple_value(depth + 1)
 
         self.variables.append((name, is_const))
         return f"{self.indent()}{keyword} {name} = {value};\n"
@@ -353,7 +530,14 @@ class MufiGenerator:
             return self.generate_print_stmt(depth)
 
         iter_var = self.generate_identifier()
-        collection = self.generate_vector_literal(depth + 1)
+
+        # Sometimes use pairs() to iterate over hash tables (30% chance)
+        if random.random() < 0.3:
+            # Create a hash table and use pairs() to iterate
+            hash_table = self.generate_hash_literal(depth + 1)
+            collection = f"pairs({hash_table})"
+        else:
+            collection = self.generate_vector_literal(depth + 1)
 
         stmt = f"{self.indent()}foreach ({iter_var} in {collection}) {{\n"
 
@@ -379,20 +563,111 @@ class MufiGenerator:
 
         choice = random.random()
 
-        if choice < 0.3:
+        if choice < 0.22:
             return self.generate_print_stmt(depth)
-        elif choice < 0.5:
+        elif choice < 0.42:
             return self.generate_var_decl(depth)
-        elif choice < 0.6 and self.variables:
+        elif choice < 0.52 and self.variables:
             return self.generate_assignment(depth)
-        elif choice < 0.7:
+        elif choice < 0.57:
+            # Standalone stdlib function call (for side effects)
+            return f"{self.indent()}{self.generate_stdlib_call(depth)};\n"
+        elif choice < 0.62:
+            # Generate pairs-related code
+            return self.generate_pairs_statement(depth)
+        elif choice < 0.72:
             return self.generate_if_stmt(depth)
-        elif choice < 0.8:
+        elif choice < 0.82:
             return self.generate_for_stmt(depth)
-        elif choice < 0.9:
+        elif choice < 0.92:
             return self.generate_foreach_stmt(depth)
         else:
             return self.generate_while_stmt(depth)
+
+    def generate_pairs_statement(self, depth):
+        """Generate statements that use pairs() or work with pair objects."""
+        if depth > self.depth_limit:
+            return self.generate_print_stmt(depth)
+
+        choice = random.random()
+
+        if choice < 0.2:
+            # Create a pair literal using =>
+            pair_var = self.generate_identifier()
+            pair_literal = self.generate_pair_literal(depth + 1)
+            stmt = f"{self.indent()}var {pair_var} = {pair_literal};\n"
+            self.variables.append((pair_var, False))
+
+            # Access pair elements
+            stmt += f"{self.indent()}print({pair_var}[0]);\n"
+            stmt += f"{self.indent()}print({pair_var}[1]);\n"
+
+            return stmt
+        elif choice < 0.35:
+            # Create nested pairs
+            pair_var = self.generate_identifier()
+            key1 = self.generate_simple_value(depth + 1)
+            key2 = self.generate_simple_value(depth + 1)
+            val = self.generate_simple_value(depth + 1)
+            stmt = f"{self.indent()}var {pair_var} = {key1} => ({key2} => {val});\n"
+            self.variables.append((pair_var, False))
+
+            # Access nested elements
+            stmt += f"{self.indent()}print({pair_var}[1][0]);\n"
+            stmt += f"{self.indent()}print({pair_var}[1][1]);\n"
+
+            return stmt
+        elif choice < 0.5:
+            # Create list of pairs
+            list_var = self.generate_identifier()
+            stmt = f"{self.indent()}var {list_var} = linked_list();\n"
+            self.variables.append((list_var, False))
+
+            # Add multiple pairs to the list
+            for _ in range(random.randint(2, 4)):
+                pair_literal = self.generate_pair_literal(depth + 1)
+                stmt += f"{self.indent()}push({list_var}, {pair_literal});\n"
+
+            # Access a pair from the list
+            stmt += f"{self.indent()}var first_pair = nth({list_var}, 0);\n"
+            stmt += f"{self.indent()}print(first_pair[0]);\n"
+
+            return stmt
+        elif choice < 0.65:
+            # Create a hash table and convert to pairs
+            hash_table_var = self.generate_identifier()
+            stmt = f"{self.indent()}var {hash_table_var} = {self.generate_hash_literal(depth + 1)};\n"
+            self.variables.append((hash_table_var, False))
+
+            # Call pairs() on it
+            pairs_var = self.generate_identifier()
+            stmt += f"{self.indent()}var {pairs_var} = pairs({hash_table_var});\n"
+            self.variables.append((pairs_var, False))
+
+            return stmt
+        else:
+            # Iterate over pairs using foreach
+            hash_table = self.generate_hash_literal(depth + 1)
+            iter_var = self.generate_identifier()
+
+            stmt = f"{self.indent()}foreach ({iter_var} in pairs({hash_table})) {{\n"
+
+            self.indent_level += 1
+            saved_vars = self.variables.copy()
+            self.variables.append((iter_var, False))
+
+            # Print the pair or access its elements
+            if random.random() < 0.5:
+                stmt += f"{self.indent()}print({iter_var});\n"
+            else:
+                stmt += f"{self.indent()}print({iter_var}[0]);\n"
+                stmt += f"{self.indent()}print({iter_var}[1]);\n"
+
+            self.variables = saved_vars
+            self.indent_level -= 1
+            stmt += f"{self.indent()}}}\n"
+
+            return stmt
 
     def generate_function(self):
         """Generate a function definition."""
@@ -439,23 +714,86 @@ class MufiGenerator:
 
         return f"{self.indent()}{fname}({', '.join(args)});\n"
 
+    def generate_class(self):
+        """Generate a class definition with methods."""
+        class_name = self.generate_identifier().capitalize()
+
+        # Ensure class name doesn't conflict with keywords
+        while class_name.lower() in self.keywords:
+            class_name = self.generate_identifier().capitalize()
+
+        stmt = f"class {class_name} {{\n"
+        self.indent_level += 1
+
+        old_vars = self.variables.copy()
+        methods = []
+
+        # Generate 1-3 methods
+        method_count = random.randint(1, 3)
+        for _ in range(method_count):
+            method_name = self.generate_identifier()
+            param_count = random.randint(0, 2)
+            params = [self.generate_identifier() for _ in range(param_count)]
+
+            self.variables = [(p, False) for p in params]
+
+            stmt += f"{self.indent()}{method_name}("
+            stmt += ", ".join(params)
+            stmt += ") {\n"
+
+            self.indent_level += 1
+
+            # Generate method body (1-2 statements)
+            for _ in range(random.randint(1, 2)):
+                stmt += self.generate_statement(depth=1)
+
+            # Sometimes add a return
+            if random.random() < 0.4:
+                stmt += f"{self.indent()}return {self.generate_simple_value(1)};\n"
+
+            self.indent_level -= 1
+            stmt += f"{self.indent()}}}\n\n"
+
+            methods.append((method_name, param_count))
+
+        self.indent_level -= 1
+        stmt += "}\n\n"
+
+        self.variables = old_vars
+        self.classes.append((class_name, methods))
+
+        return stmt
+
     def generate_program(self):
         """Generate a complete MuFi program."""
         self.variables = []
         self.functions = []
+        self.classes = []
         self.indent_level = 0
         lines = []
 
         # Add a header comment
         lines.append("// Auto-generated MuFi program\n\n")
 
+        # Sometimes generate a class (20% chance)
+        if random.random() < 0.2:
+            lines.append(self.generate_class())
+
         # Generate 1-3 function definitions
         for _ in range(random.randint(1, 3)):
             lines.append(self.generate_function())
 
-        # Generate main program statements
+        # Sometimes add a pairs demonstration at the start (20% chance)
+        if random.random() < 0.2:
+            lines.append(self.generate_pairs_statement(0))
+
+        # Generate main program statements (with higher chance of pair statements)
         for _ in range(random.randint(5, 10)):
-            lines.append(self.generate_statement(depth=0))
+            # 10% chance of generating a pair statement directly
+            if random.random() < 0.1:
+                lines.append(self.generate_pairs_statement(0))
+            else:
+                lines.append(self.generate_statement(depth=0))
 
         # Call some functions we defined
         for _ in range(min(len(self.functions), 2)):

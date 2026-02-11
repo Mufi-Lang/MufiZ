@@ -6,55 +6,146 @@ pub fn build(b: *std.Build) !void {
     const optimize = b.standardOptimizeOption(.{});
 
     // Feature flags
-    const options = b.addOptions();
-    const net = b.option(bool, "enable_net", "Enable Network features") orelse true;
-    const fs = b.option(bool, "enable_fs", "Enable File System features") orelse true;
-    const sandbox = b.option(bool, "sandbox", "Enable Sandbox Mode (REPL only)") orelse false;
-    options.addOption(bool, "enable_net", net);
-    options.addOption(bool, "enable_fs", fs);
-    options.addOption(bool, "sandbox", sandbox);
-
-    // Debug options
-    const debug_options = b.addOptions();
-    const debug_print_code = b.option(bool, "print_code", "Enables printing the OpCodes for Debugging") orelse false;
-    const debug_trace_execution = b.option(bool, "trace_exec", "Enables Tracing for Debugging") orelse false;
-    const debug_stress_gc = b.option(bool, "stress_gc", "Enables GC Stressing") orelse false;
-    const debug_log_gc = b.option(bool, "log_gc", "Enables Logging the GC allocations") orelse false;
-
-    debug_options.addOption(bool, "print_code", debug_print_code);
-    debug_options.addOption(bool, "trace_exec", debug_trace_execution);
-    debug_options.addOption(bool, "stress_gc", debug_stress_gc);
-    debug_options.addOption(bool, "log_gc", debug_log_gc);
+    const features = createFeatureOptions(b);
+    const debug = createDebugOptions(b);
 
     // Dependencies
     const clap = b.dependency("clap", .{});
 
     // Main library (Zig consumers)
-    const lib = b.addLibrary(.{
-        .name = "mufiz",
-        .root_module = b.createModule(.{ .root_source_file = b.path("src/lib.zig"), .target = target, .optimize = optimize }),
-    });
-    lib.root_module.addOptions("features", options);
-    lib.root_module.addOptions("debug", debug_options);
-    lib.root_module.addImport("clap", clap.module("clap"));
+    const lib = createStaticLibrary(b, "mufiz", "src/lib.zig", target, optimize);
+    configureModule(lib.root_module, features, debug, clap);
     b.installArtifact(lib);
 
-    // Shared library (C ABI) - root module is `src/c_api.zig`
-    const shlib = b.addLibrary(.{
-        .name = "mufiz",
-        .linkage = .dynamic,
-        .root_module = b.createModule(.{ .root_source_file = b.path("src/c_api.zig"), .target = target, .optimize = optimize, .link_libc = true }),
-    });
-    shlib.root_module.addOptions("features", options);
-    shlib.root_module.addOptions("debug", debug_options);
-    shlib.root_module.addImport("clap", clap.module("clap"));
+    // Shared library (C ABI)
+    const shlib = createSharedLibrary(b, "mufiz", "src/c_api.zig", target, optimize);
+    configureModule(shlib.root_module, features, debug, clap);
     b.installArtifact(shlib);
 
     // WASM build support
-    const wasm_exe = b.addExecutable(.{
-        .name = "mufiz",
+    const wasm_exe = createWasmExecutable(b, "mufiz", "src/c_api.zig");
+    configureModule(wasm_exe.root_module, features, debug, clap);
+
+    const install_wasm = b.addInstallArtifact(wasm_exe, .{
+        .dest_dir = .{ .override = .{ .custom = "wasm" } },
+    });
+    const wasm_step = b.step("wasm", "Build WebAssembly library");
+    wasm_step.dependOn(&install_wasm.step);
+
+    // Executable (native)
+    const exe = createExecutable(b, "mufiz", "src/main.zig", target, optimize);
+    configureModule(exe.root_module, features, debug, clap);
+    b.installArtifact(exe);
+
+    // Check-only exe for 'zig build check'
+    const exe_check = createExecutable(b, "mufiz", "src/main.zig", target, optimize);
+    configureModule(exe_check.root_module, features, debug, clap);
+
+    if (target.query.cpu_arch == .wasm32) {
+        b.enable_wasmtime = true;
+    }
+
+    // Check step
+    const check = b.step("check", "Check if MufiZ compiles");
+    check.dependOn(&exe_check.step);
+
+    // Run step
+    setupRunStep(b, exe);
+
+    // Tests
+    setupTests(b, target, optimize, features, debug, clap);
+}
+
+fn createFeatureOptions(b: *std.Build) *std.Build.Step.Options {
+    const options = b.addOptions();
+    options.addOption(bool, "enable_net", b.option(bool, "enable_net", "Enable Network features") orelse true);
+    options.addOption(bool, "enable_fs", b.option(bool, "enable_fs", "Enable File System features") orelse true);
+    options.addOption(bool, "sandbox", b.option(bool, "sandbox", "Enable Sandbox Mode (REPL only)") orelse false);
+    return options;
+}
+
+fn createDebugOptions(b: *std.Build) *std.Build.Step.Options {
+    const options = b.addOptions();
+    options.addOption(bool, "print_code", b.option(bool, "print_code", "Enables printing the OpCodes for Debugging") orelse false);
+    options.addOption(bool, "trace_exec", b.option(bool, "trace_exec", "Enables Tracing for Debugging") orelse false);
+    options.addOption(bool, "stress_gc", b.option(bool, "stress_gc", "Enables GC Stressing") orelse false);
+    options.addOption(bool, "log_gc", b.option(bool, "log_gc", "Enables Logging the GC allocations") orelse false);
+    return options;
+}
+
+fn configureModule(
+    module: *std.Build.Module,
+    features: *std.Build.Step.Options,
+    debug: *std.Build.Step.Options,
+    clap: *std.Build.Dependency,
+) void {
+    module.addOptions("features", features);
+    module.addOptions("debug", debug);
+    module.addImport("clap", clap.module("clap"));
+}
+
+fn createStaticLibrary(
+    b: *std.Build,
+    name: []const u8,
+    root_source: []const u8,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+) *std.Build.Step.Compile {
+    return b.addLibrary(.{
+        .name = name,
         .root_module = b.createModule(.{
-            .root_source_file = b.path("src/c_api.zig"),
+            .root_source_file = b.path(root_source),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+}
+
+fn createSharedLibrary(
+    b: *std.Build,
+    name: []const u8,
+    root_source: []const u8,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+) *std.Build.Step.Compile {
+    return b.addLibrary(.{
+        .name = name,
+        .linkage = .dynamic,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path(root_source),
+            .target = target,
+            .optimize = optimize,
+            .link_libc = true,
+        }),
+    });
+}
+
+fn createExecutable(
+    b: *std.Build,
+    name: []const u8,
+    root_source: []const u8,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+) *std.Build.Step.Compile {
+    return b.addExecutable(.{
+        .name = name,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path(root_source),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+}
+
+fn createWasmExecutable(
+    b: *std.Build,
+    name: []const u8,
+    root_source: []const u8,
+) *std.Build.Step.Compile {
+    const wasm_exe = b.addExecutable(.{
+        .name = name,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path(root_source),
             .target = b.resolveTargetQuery(.{
                 .cpu_arch = .wasm32,
                 .os_tag = .wasi,
@@ -64,62 +155,10 @@ pub fn build(b: *std.Build) !void {
     });
     wasm_exe.rdynamic = true;
     wasm_exe.entry = .disabled;
-    wasm_exe.root_module.addOptions("features", options);
-    wasm_exe.root_module.addOptions("debug", debug_options);
-    wasm_exe.root_module.addImport("clap", clap.module("clap"));
+    return wasm_exe;
+}
 
-    const install_wasm = b.addInstallArtifact(wasm_exe, .{
-        .dest_dir = .{ .override = .{ .custom = "wasm" } },
-    });
-    const wasm_step = b.step("wasm", "Build WebAssembly library");
-    wasm_step.dependOn(&install_wasm.step);
-
-    // Executable (native)
-    const exe = b.addExecutable(.{
-        .name = "mufiz",
-        .root_module = b.createModule(.{ .root_source_file = b.path("src/main.zig"), .target = target, .optimize = optimize }),
-    });
-    exe.root_module.addOptions("features", options);
-    exe.root_module.addOptions("debug", debug_options);
-    exe.root_module.addImport("clap", clap.module("clap"));
-    b.installArtifact(exe);
-
-    // Install headers
-    const install_headers = b.addInstallDirectory(.{
-        .source_dir = b.path("include"),
-        .install_dir = .prefix,
-        .install_subdir = "include",
-    });
-    b.getInstallStep().dependOn(&install_headers.step);
-
-    // check-only exe for 'zig build check'
-    const exe_check = b.addExecutable(.{
-        .name = "mufiz",
-        .root_module = b.createModule(.{ .root_source_file = b.path("src/main.zig"), .target = target, .optimize = optimize }),
-    });
-    exe_check.root_module.addOptions("features", options);
-    exe_check.root_module.addOptions("debug", debug_options);
-    exe_check.root_module.addImport("clap", clap.module("clap"));
-
-    if (target.query.cpu_arch == .wasm32) {
-        b.enable_wasmtime = true;
-    }
-
-    // docs install step (keeps behavior from before)
-    const install_docs = b.addInstallDirectory(.{
-        .source_dir = lib.getEmittedDocs(),
-        .install_dir = .prefix,
-        .install_subdir = "docs",
-    });
-
-    const docs_step = b.step("docs", "Copy documentation artifacts to prefix path");
-    docs_step.dependOn(&install_docs.step);
-    docs_step.dependOn(&install_headers.step);
-
-    const check = b.step("check", "Check if MufiZ compiles");
-    check.dependOn(&exe_check.step);
-
-    // Run / Run step
+fn setupRunStep(b: *std.Build, exe: *std.Build.Step.Compile) void {
     const run_cmd = b.addRunArtifact(exe);
     run_cmd.step.dependOn(b.getInstallStep());
     if (b.args) |args| {
@@ -127,8 +166,16 @@ pub fn build(b: *std.Build) !void {
     }
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
+}
 
-    // Tests
+fn setupTests(
+    b: *std.Build,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    features: *std.Build.Step.Options,
+    debug: *std.Build.Step.Options,
+    clap: *std.Build.Dependency,
+) void {
     const lib_tests = b.addTest(.{
         .root_module = b.createModule(.{
             .root_source_file = b.path("src/lib.zig"),
@@ -136,32 +183,9 @@ pub fn build(b: *std.Build) !void {
             .optimize = optimize,
         }),
     });
-    lib_tests.root_module.addOptions("features", options);
-    lib_tests.root_module.addOptions("debug", debug_options);
-    lib_tests.root_module.addImport("clap", clap.module("clap"));
+    configureModule(lib_tests.root_module, features, debug, clap);
 
     const run_lib_tests = b.addRunArtifact(lib_tests);
     const test_step = b.step("test", "Run library tests");
     test_step.dependOn(&run_lib_tests.step);
-
-    // Example: Library usage
-    const example_lib_usage = b.addExecutable(.{
-        .name = "library_usage",
-        .root_module = b.createModule(.{
-            .root_source_file = b.path("examples/library_usage.zig"),
-            .target = target,
-            .optimize = optimize,
-        }),
-    });
-    example_lib_usage.root_module.addOptions("features", options);
-    example_lib_usage.root_module.addOptions("debug", debug_options);
-    example_lib_usage.root_module.addImport("clap", clap.module("clap"));
-
-    const install_example = b.addInstallArtifact(example_lib_usage, .{});
-    const example_step = b.step("example", "Build library usage example");
-    example_step.dependOn(&install_example.step);
-
-    const run_example = b.addRunArtifact(example_lib_usage);
-    const run_example_step = b.step("run-example", "Run library usage example");
-    run_example_step.dependOn(&run_example.step);
 }

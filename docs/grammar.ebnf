@@ -6,6 +6,8 @@ program = { declaration } EOF ;
 declaration = class_decl | fun_decl | var_decl | const_decl | statement ;
 
 class_decl = "class" IDENTIFIER [ "<" IDENTIFIER ] "{" { method } "}" ;
+method = IDENTIFIER "(" [ parameters ] ")" "{" { declaration } "}" ;
+
 fun_decl = "fun" IDENTIFIER "(" [ parameters ] ")" "{" { declaration } "}" ;
 var_decl = "var" IDENTIFIER [ "=" expression ] ";" ;
 const_decl = "const" IDENTIFIER "=" expression ";" ;

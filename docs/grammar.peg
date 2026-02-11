@@ -113,8 +113,9 @@ EscapeSequence <- "" .
 Parameters <- Identifier (_ "," _ Identifier)*
 
 _ <- (Whitespace / Comment)*
-Whitespace <- [ 	
-]
+Whitespace <- [
+
+]
 Comment <- "//" (!"
 " .)*
          / "/#" (!"#/" .)* "#/"
