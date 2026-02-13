@@ -35,9 +35,10 @@ pub const system = @import("system.zig");
 pub const fmt = @import("fmt.zig");
 pub const test_gen = @import("test_gen.zig");
 pub const stdlib = @import("stdlib_main.zig");
-pub const pm = @import("pm.zig");
-pub const cache = @import("cache.zig");
-pub const resolver = @import("resolver.zig");
+const builtin = @import("builtin");
+pub const pm = if (builtin.target.cpu.arch != .wasm32) @import("pm.zig") else struct {};
+pub const cache = if (builtin.target.cpu.arch != .wasm32) @import("cache.zig") else struct {};
+pub const resolver = if (builtin.target.cpu.arch != .wasm32) @import("resolver.zig") else struct {};
 
 // Re-export commonly used types
 pub const Value = value.Value;
@@ -197,26 +198,31 @@ pub const PackageError = error{
 
 /// Initialize a new MufiZ project in the current directory
 pub fn pmInit(allocator: std.mem.Allocator, project_name: []const u8) !void {
+    if (builtin.target.cpu.arch == .wasm32) return error.NotSupportedInWasm;
     try pm.initProject(allocator, project_name);
 }
 
 /// Create a new MufiZ project in a new directory
 pub fn pmNew(allocator: std.mem.Allocator, project_name: []const u8) !void {
+    if (builtin.target.cpu.arch == .wasm32) return error.NotSupportedInWasm;
     try pm.newProject(allocator, project_name);
 }
 
 /// Display project information
 pub fn pmInfo(allocator: std.mem.Allocator) !void {
+    if (builtin.target.cpu.arch == .wasm32) return error.NotSupportedInWasm;
     try pm.info(allocator);
 }
 
 /// Run the current project
 pub fn pmRun(allocator: std.mem.Allocator) !void {
+    if (builtin.target.cpu.arch == .wasm32) return error.NotSupportedInWasm;
     try pm.run(allocator);
 }
 
 /// Install project dependencies
 pub fn pmInstall(allocator: std.mem.Allocator) !void {
+    if (builtin.target.cpu.arch == .wasm32) return error.NotSupportedInWasm;
     try pm.install(allocator);
 }
 
@@ -227,16 +233,19 @@ pub fn pmAddDependency(
     url: []const u8,
     version: []const u8,
 ) !void {
+    if (builtin.target.cpu.arch == .wasm32) return error.NotSupportedInWasm;
     try pm.addDependency(allocator, name, url, version);
 }
 
 /// Get package cache statistics
 pub fn pmCacheInfo(allocator: std.mem.Allocator) !void {
+    if (builtin.target.cpu.arch == .wasm32) return error.NotSupportedInWasm;
     try pm.cacheInfo(allocator);
 }
 
 /// Clear the package cache
 pub fn pmCacheClear(allocator: std.mem.Allocator) !void {
+    if (builtin.target.cpu.arch == .wasm32) return error.NotSupportedInWasm;
     try pm.cacheClear(allocator);
 }
 
@@ -252,6 +261,7 @@ pub fn formatSource(allocator: std.mem.Allocator, source: []const u8) ![]const u
 
 /// Format a MufiZ file in-place
 pub fn formatFile(allocator: std.mem.Allocator, filepath: []const u8) !void {
+    if (builtin.target.cpu.arch == .wasm32) return error.NotSupportedInWasm;
     try fmt.formatFile(allocator, filepath);
 }
 
