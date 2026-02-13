@@ -39,6 +39,7 @@ const builtin = @import("builtin");
 pub const pm = if (builtin.target.cpu.arch != .wasm32) @import("pm.zig") else struct {};
 pub const cache = if (builtin.target.cpu.arch != .wasm32) @import("cache.zig") else struct {};
 pub const resolver = if (builtin.target.cpu.arch != .wasm32) @import("resolver.zig") else struct {};
+pub const docgen = if (builtin.target.cpu.arch != .wasm32) @import("docgen.zig") else struct {};
 
 // Re-export commonly used types
 pub const Value = value.Value;
@@ -247,6 +248,12 @@ pub fn pmCacheInfo(allocator: std.mem.Allocator) !void {
 pub fn pmCacheClear(allocator: std.mem.Allocator) !void {
     if (builtin.target.cpu.arch == .wasm32) return error.NotSupportedInWasm;
     try pm.cacheClear(allocator);
+}
+
+/// Generate documentation for the project
+pub fn pmDocs(allocator: std.mem.Allocator) !void {
+    if (builtin.target.cpu.arch == .wasm32) return error.NotSupportedInWasm;
+    try pm.docs(allocator);
 }
 
 // ============================================================================

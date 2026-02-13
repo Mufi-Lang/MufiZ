@@ -5,6 +5,7 @@ const fs = std.fs;
 const mem = std.mem;
 const cache = @import("cache.zig");
 const resolver = @import("resolver.zig");
+const docgen = @import("docgen.zig");
 
 pub const PMError = error{
     ProjectAlreadyExists,
@@ -450,12 +451,39 @@ pub fn cacheInfo(allocator: std.mem.Allocator) !void {
     std.debug.print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n", .{});
 }
 
-/// Clear package cache
+/// Clear the package cache
 pub fn cacheClear(allocator: std.mem.Allocator) !void {
-    var pkg_cache = try cache.Cache.init(allocator);
-    defer pkg_cache.deinit();
+    var package_cache = try cache.Cache.init(allocator);
+    defer package_cache.deinit();
 
-    try pkg_cache.clear();
+    try package_cache.clear();
+}
+
+/// Generate documentation for the current project
+pub fn docs(allocator: std.mem.Allocator) !void {
+    // Read project name from mufi.zon
+    const cwd = fs.cwd();
+    const zon_content = cwd.readFileAlloc(allocator, "mufi.zon", 1024 * 1024) catch |err| {
+        if (err == error.FileNotFound) {
+            std.debug.print("❌ Error: mufi.zon not found\n", .{});
+            std.debug.print("   Make sure you're in a MufiZ project directory.\n", .{});
+            return PMError.InvalidProjectName;
+        }
+        return err;
+    };
+    defer allocator.free(zon_content);
+
+    // Extract project name (simple parsing)
+    var project_name: []const u8 = "project";
+    if (std.mem.indexOf(u8, zon_content, ".name = .")) |start| {
+        const after_name = zon_content[start + 9 ..];
+        if (std.mem.indexOf(u8, after_name, ",")) |end| {
+            project_name = std.mem.trim(u8, after_name[0..end], " \t\r\n");
+        }
+    }
+
+    // Generate documentation
+    try docgen.generateDocs(allocator, project_name);
 }
 
 /// Print package manager help
@@ -473,6 +501,7 @@ pub fn printHelp() void {
         \\    run                  Run the current project (execute src/main.mufi)
         \\    install              Install project dependencies from mufi.zon
         \\    add <name> <url> <v> Add a dependency to mufi.zon
+        \\    docs                 Generate HTML documentation for the project
         \\    cache info           Show package cache statistics
         \\    cache clear          Clear the package cache
         \\    help                 Display this help message
@@ -485,6 +514,7 @@ pub fn printHelp() void {
         \\    mufiz pm install               Install all dependencies
         \\    mufiz pm add http https://github.com/user/mufiz-http v1.0.0
         \\                                   Add a dependency
+        \\    mufiz pm docs                  Generate documentation
         \\    mufiz pm cache info            View cache statistics
         \\    mufiz pm cache clear           Clear downloaded packages
         \\

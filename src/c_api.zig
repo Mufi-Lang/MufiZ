@@ -281,6 +281,18 @@ export fn mufiz_pm_cache_clear() i32 {
     return MUFIZ_OK;
 }
 
+/// Generate documentation for the project
+/// Returns MUFIZ_OK on success or a negative error code on failure.
+///
+/// C ABI:
+///   int32_t mufiz_pm_docs(void);
+export fn mufiz_pm_docs() i32 {
+    mufiz.pmDocs(allocator) catch {
+        return MUFIZ_ERR_GENERIC;
+    };
+    return MUFIZ_OK;
+}
+
 // ============================================================================
 // Formatting C API
 // ============================================================================

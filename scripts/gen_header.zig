@@ -289,6 +289,14 @@ fn generateHeader(allocator: std.mem.Allocator, version: []const u8) ![]const u8
         \\ */
         \\MUFIZ_API int32_t mufiz_pm_cache_clear(void);
         \\
+        \\/**
+        \\ * Generate HTML documentation for the project.
+        \\ * Creates documentation similar to cargo doc and zig doc.
+        \\ *
+        \\ * @return MUFIZ_OK on success, or a negative error code on failure
+        \\ */
+        \\MUFIZ_API int32_t mufiz_pm_docs(void);
+        \\
         \\// ============================================================================
         \\// Formatting Functions
         \\// ============================================================================

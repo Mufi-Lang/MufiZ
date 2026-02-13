@@ -190,6 +190,8 @@ fn handlePmCommand(args: [][:0]u8) !void {
             std.debug.print("Error: Unknown cache command: {s}\n", .{cache_cmd});
             std.debug.print("Available: info, clear\n", .{});
         }
+    } else if (std.mem.eql(u8, subcommand, "docs")) {
+        try pm.docs(allocator);
     } else if (std.mem.eql(u8, subcommand, "help")) {
         pm.printHelp();
     } else {
