@@ -22,6 +22,41 @@ pub fn build(b: *std.Build) !void {
     configureModule(shlib.root_module, features, debug, clap);
     b.installArtifact(shlib);
 
+    // Generate C header file
+    const gen_header = b.addExecutable(.{
+        .name = "gen_header",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("scripts/gen_header.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+
+    const run_gen_header = b.addRunArtifact(gen_header);
+    run_gen_header.addArg("zig-out/include/mufiz.h");
+
+    const header_step = b.step("header", "Generate C header file");
+    header_step.dependOn(&run_gen_header.step);
+
+    // Validate header matches c_api.zig
+    const validate_header = b.addExecutable(.{
+        .name = "validate_header",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("scripts/validate_header.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+
+    const run_validate = b.addRunArtifact(validate_header);
+    run_validate.step.dependOn(&run_gen_header.step);
+
+    const validate_step = b.step("validate-header", "Validate C header matches c_api.zig");
+    validate_step.dependOn(&run_validate.step);
+
+    // Ensure header is generated when building shared library
+    b.getInstallStep().dependOn(&run_gen_header.step);
+
     // WASM build support
     const wasm_exe = createWasmExecutable(b, "mufiz", "src/c_api.zig");
     configureModule(wasm_exe.root_module, features, debug, clap);

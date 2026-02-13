@@ -18,12 +18,27 @@ echo "📦 Packaging C library..."
 C_LIB_DIR="${ARTIFACTS_DIR}/c-library"
 mkdir -p "${C_LIB_DIR}"
 
+# Ensure header is generated
+echo "  → Generating C header..."
+zig build header || {
+    echo "  ❌ Failed to generate header"
+    exit 1
+}
+
+# Validate header matches c_api.zig
+echo "  → Validating header matches c_api.zig..."
+zig build validate-header || {
+    echo "  ❌ Header validation failed"
+    exit 1
+}
+
 # Copy header file
 if [ -f "zig-out/include/mufiz.h" ]; then
     cp "zig-out/include/mufiz.h" "${C_LIB_DIR}/"
-    echo "  ✓ Copied mufiz.h"
+    echo "  ✓ Copied mufiz.h (auto-generated)"
 else
-    echo "  ⚠️  Warning: mufiz.h not found"
+    echo "  ❌ Error: mufiz.h not found after generation"
+    exit 1
 fi
 
 # Copy shared libraries based on platform

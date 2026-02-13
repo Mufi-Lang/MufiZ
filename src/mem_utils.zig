@@ -1,5 +1,7 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const allocator_mod = @import("allocator.zig");
+const simd_utils = @import("simd_utils.zig");
 
 // Use a simple GPA for dynamic allocations and arena for VM-lifetime objects
 var gpa: ?std.heap.GeneralPurposeAllocator(.{}) = null;
@@ -144,30 +146,17 @@ pub fn memcpyFast(dest: [*]u8, src: [*]const u8, count: usize) void {
 }
 
 /// SIMD-optimized memory copy for large blocks
+/// Note: On ARM NEON, builtin @memcpy is highly optimized and faster than
+/// our SIMD implementation. Use this only on x86-64 or for specific benchmarked cases.
 pub fn memcpySIMD(dest: [*]u8, src: [*]const u8, count: usize) void {
-    if (count == 0) return;
-
-    const chunk_size = 32; // 256-bit chunks for AVX2
-
-    if (count >= chunk_size and std.simd.suggestVectorLength(u8) != null) {
-        var i: usize = 0;
-        const vector_len = std.simd.suggestVectorLength(u8) orelse 16;
-
-        // Process in SIMD chunks
-        while (i + vector_len <= count) {
-            const src_vec: @Vector(vector_len, u8) = src[i .. i + vector_len][0..vector_len].*;
-            dest[i .. i + vector_len][0..vector_len].* = src_vec;
-            i += vector_len;
-        }
-
-        // Copy remaining bytes
-        if (i < count) {
-            @memcpy(dest[i..count], src[i..count]);
-        }
-    } else {
-        // Fall back to regular memcpy
+    // On ARM, always use the builtin (it's faster due to platform optimizations)
+    if (builtin.cpu.arch == .aarch64) {
         @memcpy(dest[0..count], src[0..count]);
+        return;
     }
+
+    // On other platforms, try SIMD (benchmark to verify benefit)
+    simd_utils.SimdMemory.copy(dest, src, count);
 }
 
 /// Memory comparison
@@ -185,63 +174,26 @@ pub fn memcmp(ptr1: [*]const u8, ptr2: [*]const u8, count: usize) i32 {
 }
 
 /// SIMD-optimized memory comparison
+/// Note: On ARM NEON, builtin comparison is highly optimized.
 pub fn memcmpSIMD(ptr1: [*]const u8, ptr2: [*]const u8, count: usize) i32 {
-    if (count == 0) return 0;
-
-    const vector_len = std.simd.suggestVectorLength(u8) orelse 16;
-
-    if (count >= vector_len) {
-        var i: usize = 0;
-
-        // Compare in SIMD chunks
-        while (i + vector_len <= count) {
-            const vec1: @Vector(vector_len, u8) = ptr1[i .. i + vector_len][0..vector_len].*;
-            const vec2: @Vector(vector_len, u8) = ptr2[i .. i + vector_len][0..vector_len].*;
-
-            if (!std.meta.eql(vec1, vec2)) {
-                // Found difference, fall back to byte comparison
-                return memcmp(ptr1 + i, ptr2 + i, vector_len);
-            }
-
-            i += vector_len;
-        }
-
-        // Compare remaining bytes
-        if (i < count) {
-            return memcmp(ptr1 + i, ptr2 + i, count - i);
-        }
-
-        return 0;
-    } else {
-        // Fall back to regular memcmp
+    // On ARM, prefer builtin (faster due to platform optimizations)
+    if (builtin.cpu.arch == .aarch64) {
         return memcmp(ptr1, ptr2, count);
     }
+
+    return simd_utils.SimdMemory.compare(ptr1, ptr2, count);
 }
 
 /// SIMD-optimized memory set
+/// Note: On ARM NEON, builtin @memset is highly optimized.
 pub fn memsetSIMD(ptr: [*]u8, value: u8, count: usize) void {
-    if (count == 0) return;
-
-    const vector_len = std.simd.suggestVectorLength(u8) orelse 16;
-
-    if (count >= vector_len) {
-        const fill_vec: @Vector(vector_len, u8) = @splat(value);
-        var i: usize = 0;
-
-        // Set in SIMD chunks
-        while (i + vector_len <= count) {
-            ptr[i .. i + vector_len][0..vector_len].* = fill_vec;
-            i += vector_len;
-        }
-
-        // Set remaining bytes
-        if (i < count) {
-            @memset(ptr[i..count], value);
-        }
-    } else {
-        // Fall back to regular memset
+    // On ARM, prefer builtin (faster due to platform optimizations)
+    if (builtin.cpu.arch == .aarch64) {
         @memset(ptr[0..count], value);
+        return;
     }
+
+    simd_utils.SimdMemory.set(ptr, value, count);
 }
 
 /// Fast string length calculation
