@@ -89,6 +89,9 @@ pub fn build(b: *std.Build) !void {
 
     // Tests
     setupTests(b, target, optimize, features, debug, clap);
+
+    // Benchmarks
+    setupBenchmarks(b, target, features, debug, clap);
 }
 
 fn createFeatureOptions(b: *std.Build) *std.Build.Step.Options {
@@ -223,4 +226,63 @@ fn setupTests(
     const run_lib_tests = b.addRunArtifact(lib_tests);
     const test_step = b.step("test", "Run library tests");
     test_step.dependOn(&run_lib_tests.step);
+}
+
+fn setupBenchmarks(
+    b: *std.Build,
+    target: std.Build.ResolvedTarget,
+    features: *std.Build.Step.Options,
+    debug: *std.Build.Step.Options,
+    clap: *std.Build.Dependency,
+) void {
+    const scanner_bench = b.addExecutable(.{
+        .name = "scanner_bench",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("benchmark/scanner_bench.zig"),
+            .target = target,
+            .optimize = .ReleaseFast,
+        }),
+    });
+    configureModule(scanner_bench.root_module, features, debug, clap);
+
+    // Add scanner module as import
+    scanner_bench.root_module.addAnonymousImport("scanner", .{
+        .root_source_file = b.path("src/scanner_optimized.zig"),
+    });
+
+    const run_scanner_bench = b.addRunArtifact(scanner_bench);
+    const bench_step = b.step("bench-scanner", "Run scanner benchmarks");
+    bench_step.dependOn(&run_scanner_bench.step);
+
+    // Parallel scanner benchmark
+    const parallel_scanner_bench = b.addExecutable(.{
+        .name = "parallel_scanner_bench",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("benchmark/parallel_scanner_bench.zig"),
+            .target = target,
+            .optimize = .ReleaseFast,
+        }),
+    });
+    configureModule(parallel_scanner_bench.root_module, features, debug, clap);
+
+    // Create scanner module
+    const scanner_module = b.createModule(.{
+        .root_source_file = b.path("src/scanner_optimized.zig"),
+    });
+
+    // Add scanner module as import
+    parallel_scanner_bench.root_module.addImport("scanner", scanner_module);
+
+    // Create parallel scanner module with scanner dependency
+    const parallel_scanner_module = b.createModule(.{
+        .root_source_file = b.path("src/parallel/scanner_parallel.zig"),
+    });
+    parallel_scanner_module.addImport("../scanner_optimized.zig", scanner_module);
+
+    // Add parallel scanner module as import
+    parallel_scanner_bench.root_module.addImport("parallel_scanner", parallel_scanner_module);
+
+    const run_parallel_scanner_bench = b.addRunArtifact(parallel_scanner_bench);
+    const parallel_bench_step = b.step("bench-parallel", "Run parallel scanner benchmarks");
+    parallel_bench_step.dependOn(&run_parallel_scanner_bench.step);
 }
