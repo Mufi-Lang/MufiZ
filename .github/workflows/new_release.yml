@@ -13,9 +13,9 @@ env:
   version: "0.10.0"
 
 jobs:
-  build:
-    name: Create Release
-    runs-on: ubuntu-latest # Switched to Ubuntu environment
+  build-macos:
+    name: Create macOS ARM Release
+    runs-on: macos-14
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -35,11 +35,9 @@ jobs:
         with:
           ruby-version: "3.0"
 
-      - name: Install fpm and unzip
+      - name: Install fpm
         run: |
-          sudo apt-get update
-          sudo apt-get install -y unzip
-          sudo apt-get install rpm
+          brew install gnu-tar
           gem install fpm
           gem install package_cloud
 
@@ -71,6 +69,49 @@ jobs:
           token: ${{secrets.SECRET}}
           tag_name: v${{env.version}}
           name: v${{env.version}} ${{env.codename}} Release
+          body: |
+            🚀 **MufiZ ${{env.version}} "${{env.codename}}" Release**
+
+            🔧 Built with Zig 0.15.2
+            🍎 **Platform: macOS ARM (Apple Silicon M1/M2/M3/M4)**
+
+            ### 📦 Included Artifacts
+
+            - **macOS Packages**: `.zip` archives for macOS ARM
+            - **C Library** (`mufiz-c-library-*.zip`): **macOS ARM dynamic library (`.dylib`) + headers**
+              - ✅ **macOS ARM native** - Built on Apple Silicon, includes `libmufiz.dylib` (ARM64)
+              - Optimized for M1/M2/M3/M4 Macs
+              - ⚠️ Intel Mac/Linux/Windows users: Build from source with `zig build`
+            - **WebAssembly** (`mufiz-wasm-*.zip`): Platform-independent WASM binary (works everywhere)
+            - **Documentation**: `ARTIFACTS.md` with checksums and installation instructions
+
+            ### 🔨 Building C Library for Other Platforms
+
+            **Intel Mac**:
+            ```bash
+            git clone https://github.com/Mustafif/MufiZ
+            cd MufiZ
+            zig build
+            # Output: zig-out/lib/libmufiz.dylib (x86_64)
+            ```
+
+            **Linux**:
+            ```bash
+            git clone https://github.com/Mustafif/MufiZ
+            cd MufiZ
+            zig build
+            # Output: zig-out/lib/libmufiz.so
+            ```
+
+            **Windows**:
+            ```bash
+            git clone https://github.com/Mustafif/MufiZ
+            cd MufiZ
+            zig build
+            # Output: zig-out/lib/libmufiz.dll
+            ```
+
+            See `ARTIFACTS.md` for detailed installation and usage instructions.
           generate_release_notes: true
           draft: true
           prerelease: false

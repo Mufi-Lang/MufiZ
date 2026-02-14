@@ -42,12 +42,12 @@ else
 fi
 
 # Copy shared libraries based on platform
-if [ -f "zig-out/lib/libmufiz.so" ]; then
-    cp "zig-out/lib/libmufiz.so" "${C_LIB_DIR}/"
-    echo "  ✓ Copied libmufiz.so (Linux)"
-elif [ -f "zig-out/lib/libmufiz.dylib" ]; then
+if [ -f "zig-out/lib/libmufiz.dylib" ]; then
     cp "zig-out/lib/libmufiz.dylib" "${C_LIB_DIR}/"
     echo "  ✓ Copied libmufiz.dylib (macOS)"
+elif [ -f "zig-out/lib/libmufiz.so" ]; then
+    cp "zig-out/lib/libmufiz.so" "${C_LIB_DIR}/"
+    echo "  ✓ Copied libmufiz.so (Linux)"
 elif [ -f "zig-out/lib/libmufiz.dll" ]; then
     cp "zig-out/lib/libmufiz.dll" "${C_LIB_DIR}/"
     echo "  ✓ Copied libmufiz.dll (Windows)"
@@ -57,12 +57,49 @@ fi
 cat > "${C_LIB_DIR}/README.md" << 'EOF'
 # MufiZ C Library
 
+🍎 **PLATFORM NOTICE: This package contains macOS ARM binaries (Apple Silicon only)**
+
 This package contains the MufiZ C API for embedding the interpreter in C/C++ applications.
+Built on macOS ARM (Apple Silicon) - M1/M2/M3/M4 chips.
 
 ## Contents
 
-- `mufiz.h` - C header file with API declarations
-- `libmufiz.so/.dylib/.dll` - Shared library binary
+- `mufiz.h` - C header file with API declarations (platform-independent)
+- `libmufiz.dylib` - **macOS ARM dynamic library** (ARM64 architecture for Apple Silicon)
+
+## Platform Compatibility
+
+### ✅ macOS ARM - Apple Silicon (Included)
+This package includes pre-built binaries for Apple Silicon Macs.
+- ✅ M1, M2, M3, M4 Macs
+- ⚠️ **NOT compatible with Intel Macs** - Intel users must build from source
+
+### ⚠️ Intel Mac (Build Required)
+Intel Mac users need to build from source:
+```bash
+git clone https://github.com/Mustafif/MufiZ
+cd MufiZ
+zig build
+# Output: zig-out/lib/libmufiz.dylib (x86_64) + zig-out/include/mufiz.h
+```
+
+### ⚠️ Linux (Build Required)
+Linux users need to build from source:
+```bash
+git clone https://github.com/Mustafif/MufiZ
+cd MufiZ
+zig build
+# Output: zig-out/lib/libmufiz.so + zig-out/include/mufiz.h
+```
+
+### ⚠️ Windows (Build Required)
+Windows users need to build from source:
+```bash
+git clone https://github.com/Mustafif/MufiZ
+cd MufiZ
+zig build
+# Output: zig-out/lib/libmufiz.dll + zig-out/include/mufiz.h
+```
 
 ## Usage
 
@@ -92,19 +129,29 @@ int main() {
 
 ### Linking
 
-#### Linux
-```bash
-gcc -o myapp main.c -L. -lmufiz -Wl,-rpath,'$ORIGIN'
-```
-
-#### macOS
+#### macOS ARM - Apple Silicon (Pre-built Library Included)
 ```bash
 gcc -o myapp main.c -L. -lmufiz
+# Or install system-wide:
+# sudo cp libmufiz.dylib /usr/local/lib/
+# sudo cp mufiz.h /usr/local/include/
+# sudo ldconfig
 ```
 
-#### Windows
+#### macOS Intel (Build from Source First)
 ```bash
-gcc -o myapp.exe main.c -L. -lmufiz
+# After building: zig build
+gcc -o myapp main.c -L/path/to/zig-out/lib -lmufiz
+# Or:
+gcc -o myapp main.c -I/path/to/zig-out/include /path/to/zig-out/lib/libmufiz.dylib
+```
+
+#### Windows (Build from Source First)
+```bash
+# After building: zig build
+gcc -o myapp.exe main.c -L/path/to/zig-out/lib -lmufiz
+# Or:
+cl main.c /I\path\to\zig-out\include \path\to\zig-out\lib\libmufiz.lib
 ```
 
 ## API Reference
@@ -131,9 +178,45 @@ gcc -o myapp.exe main.c -L. -lmufiz
 - `2` - Runtime error
 - Negative values - Initialization errors
 
+## System Requirements
+
+### macOS
+- macOS 11.0 (Big Sur) or later
+- Works on both Apple Silicon and Intel processors
+- No additional dependencies required
+
+### Linux / Windows
+- Build from source with Zig 0.15.2+
+- The header file is platform-independent and can be used as-is
+
+## Building from Source
+
+For the latest version or other platforms:
+
+```bash
+# Clone repository
+git clone https://github.com/Mustafif/MufiZ
+cd MufiZ
+
+# Install Zig 0.15.2+ from https://ziglang.org/download/
+
+# Build
+zig build
+
+# Files will be in:
+# - zig-out/lib/libmufiz.{so,dylib,dll}
+# - zig-out/include/mufiz.h
+```
+
 ## License
 
 See the main MufiZ repository for license information.
+
+## Support
+
+- GitHub Issues: https://github.com/Mustafif/MufiZ/issues
+- For Intel Mac/Linux/Windows builds, see build instructions above
+- Documentation: https://github.com/Mustafif/MufiZ
 EOF
 
 # Create zip archive for C library
@@ -245,12 +328,20 @@ The following standard packages are available for each supported platform:
 
 **File**: \`mufiz-c-library-${VERSION}.zip\`
 
+🍎 **Platform: macOS ARM (Apple Silicon)** - Contains \`libmufiz.dylib\`
+
 For embedding MufiZ in C/C++ applications.
 
 **Contents**:
-- \`mufiz.h\` - C API header
-- \`libmufiz.so/.dylib/.dll\` - Shared library
-- \`README.md\` - Usage documentation
+- \`mufiz.h\` - C API header (platform-independent)
+- \`libmufiz.dylib\` - macOS ARM dynamic library (M1/M2/M3/M4 compatible)
+- \`README.md\` - Usage documentation with build instructions for other platforms
+
+**Platform compatibility**:
+- ✅ macOS ARM (Apple Silicon): Pre-built dynamic library included
+- ⚠️ Intel Mac: Build from source to get \`libmufiz.dylib\` (x86_64)
+- ⚠️ Linux: Build from source to get \`libmufiz.so\`
+- ⚠️ Windows: Build from source to get \`libmufiz.dll\`
 
 **Use cases**:
 - Embedding MufiZ as a scripting engine
@@ -294,13 +385,26 @@ $(cd "${PKG_DIR}" && sha256sum *.zip 2>/dev/null || shasum -a 256 *.zip 2>/dev/n
 
 ## Installation
 
-### C Library (Linux)
+### C Library
+
+#### macOS ARM - Apple Silicon (Pre-built)
 \`\`\`bash
 unzip mufiz-c-library-${VERSION}.zip
 cd c-library
-sudo cp libmufiz.so /usr/local/lib/
+sudo cp libmufiz.dylib /usr/local/lib/
 sudo cp mufiz.h /usr/local/include/
 sudo ldconfig
+\`\`\`
+
+#### Intel Mac / Linux / Windows (Build from Source)
+\`\`\`bash
+git clone https://github.com/Mustafif/MufiZ
+cd MufiZ
+zig build
+# Intel Mac: zig-out/lib/libmufiz.dylib (x86_64)
+# Linux: zig-out/lib/libmufiz.so
+# Windows: zig-out/lib/libmufiz.dll
+# All: zig-out/include/mufiz.h
 \`\`\`
 
 ### WASM

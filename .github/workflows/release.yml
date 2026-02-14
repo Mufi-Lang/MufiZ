@@ -9,9 +9,9 @@ on:
       - next
 
 jobs:
-  build:
-    name: Create Release
-    runs-on: ubuntu-latest # Switched to Ubuntu environment
+  build-macos:
+    name: Create macOS ARM Release
+    runs-on: macos-14
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -45,9 +45,7 @@ jobs:
 
       - name: Install fpm and unzip
         run: |
-          sudo apt-get update
-          sudo apt-get install -y unzip
-          sudo apt-get install rpm
+          brew install gnu-tar
           gem install fpm
 
       - name: Validate test suite setup
@@ -158,8 +156,19 @@ jobs:
             ✅ All test suite tests passed
             🔧 Built with Zig 0.15.2
             📦 Generated from commit: ${{ github.sha }}
+            🍎 **Platform: macOS ARM (Apple Silicon M1/M2/M3/M4)**
 
             **⚠️ This is a pre-release build for testing purposes**
+
+            ### 📦 Included Artifacts
+
+            - **macOS Packages**: `.zip` archives for macOS
+            - **C Library** (`mufiz-c-library-*.zip`): macOS ARM dynamic library (`.dylib`) + headers
+              - ✅ **macOS ARM native** - Built on Apple Silicon, includes `libmufiz.dylib` (ARM64)
+              - Optimized for M1/M2/M3/M4 Macs
+              - ⚠️ Intel Mac/Linux/Windows users: Build from source with `zig build`
+            - **WebAssembly** (`mufiz-wasm-*.zip`): Platform-independent WASM binary
+            - **Documentation**: `ARTIFACTS.md` with checksums and installation instructions
 
             🗑️ Previous experimental releases have been automatically cleaned up
           generate_release_notes: true
@@ -183,15 +192,17 @@ jobs:
           if [ ${{ job.status }} == 'success' ]; then
             echo "✅ **Release created successfully!**" >> $GITHUB_STEP_SUMMARY
             echo "- All tests passed" >> $GITHUB_STEP_SUMMARY
-            echo "- Packages built successfully" >> $GITHUB_STEP_SUMMARY
-            echo "- C library artifacts included" >> $GITHUB_STEP_SUMMARY
+            echo "- Packages built successfully for **macOS ARM (Apple Silicon)**" >> $GITHUB_STEP_SUMMARY
+            echo "- C library artifacts included (macOS ARM .dylib)" >> $GITHUB_STEP_SUMMARY
             echo "- WebAssembly binary included" >> $GITHUB_STEP_SUMMARY
             echo "- Experimental release published" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "### 📦 Artifacts" >> $GITHUB_STEP_SUMMARY
-            echo "- Standard packages (zip, deb, rpm)" >> $GITHUB_STEP_SUMMARY
-            echo "- C library (mufiz-c-library-${{ steps.get_version.outputs.VERSION }}.zip)" >> $GITHUB_STEP_SUMMARY
-            echo "- WASM binary (mufiz-wasm-${{ steps.get_version.outputs.VERSION }}.zip)" >> $GITHUB_STEP_SUMMARY
+            echo "- **macOS packages**: zip archives" >> $GITHUB_STEP_SUMMARY
+            echo "- **C library** (mufiz-c-library-${{ steps.get_version.outputs.VERSION }}.zip): macOS ARM .dylib + headers" >> $GITHUB_STEP_SUMMARY
+            echo "- **WASM binary** (mufiz-wasm-${{ steps.get_version.outputs.VERSION }}.zip): Platform-independent" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ **Note**: C library is built for macOS ARM (Apple Silicon). Intel Mac/Linux/Windows users should build from source." >> $GITHUB_STEP_SUMMARY
           else
             echo "❌ **Release failed**" >> $GITHUB_STEP_SUMMARY
             echo "**Possible causes:**" >> $GITHUB_STEP_SUMMARY

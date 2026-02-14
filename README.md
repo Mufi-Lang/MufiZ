@@ -86,6 +86,72 @@ zig build run-example
 
 See `examples/library_usage.zig` for a complete example of using MufiZ as a library.
 
+## C Library / FFI
+
+MufiZ can also be embedded in C/C++ applications via the C API (`libmufiz`). The shared library and header file are generated during the build process.
+
+### Building the C Library
+
+```bash
+zig build
+# Output: zig-out/lib/libmufiz.{so,dylib,dll}
+#         zig-out/include/mufiz.h
+```
+
+### Platform-Specific Libraries
+
+The build system automatically generates the correct library format for your platform:
+- **macOS**: `libmufiz.dylib` (dynamic library)
+- **Linux**: `libmufiz.so` (shared object)
+- **Windows**: `libmufiz.dll` (dynamic link library)
+
+### C API Example
+
+```c
+#include "mufiz.h"
+#include <stdio.h>
+
+int main() {
+    // Initialize MufiZ
+    if (mufiz_init(false, false, false) != 0) {
+        fprintf(stderr, "Failed to initialize MufiZ\n");
+        return 1;
+    }
+
+    // Run MufiZ code
+    const char* code = "var x = 42; print(x);";
+    uint8_t result = mufiz_interpret(code);
+
+    // Clean up
+    mufiz_deinit();
+
+    return result;
+}
+```
+
+Compile with:
+```bash
+# Linux
+gcc -o myapp main.c -L./zig-out/lib -lmufiz -Wl,-rpath,'$ORIGIN'
+
+# macOS
+gcc -o myapp main.c -L./zig-out/lib -lmufiz
+
+# Windows
+gcc -o myapp.exe main.c -L./zig-out/lib -lmufiz
+```
+
+### Release Artifacts
+
+🍎 **Important**: Pre-built C library releases are **macOS ARM only** (built on Apple Silicon, includes `libmufiz.dylib` for ARM64).
+
+For Intel Mac, Linux, and Windows users, you must build from source to get the platform-specific library:
+- Intel Mac users will get `libmufiz.dylib` (x86_64)
+- Linux users will get `libmufiz.so`
+- Windows users will get `libmufiz.dll`
+
+The header file (`mufiz.h`) is platform-independent and can be used on all platforms.
+
 ## Recent Updates
 
 - **Library/Executable Split**: MufiZ is now structured as a reusable library with a separate executable interface
@@ -199,6 +265,16 @@ For detailed information about the package manager and ZON format migration, see
 | 0.8.0   | [Ruby](https://github.com/Mustafif/MufiZ/releases/tag/v0.8.0)            | Released    |
 | 0.9.0   | [Kova](https://github.com/Mustafif/MufiZ/releases/tag/v0.9.0) | Released |
 | 0.10.0  | [Echo](https://github.com/Mustafif/MufiZ/releases/tag/v0.10.0) | Latest |
+
+### Release Artifacts
+
+Each release includes:
+- **macOS Packages**: `.zip` archives for macOS ARM systems
+- **C Library** (`mufiz-c-library-*.zip`): **macOS ARM only** - Contains `libmufiz.dylib` (ARM64) + `mufiz.h`
+  - 🍎 Optimized for Apple Silicon (M1/M2/M3/M4)
+  - ⚠️ Intel Mac/Linux/Windows users: Build from source with `zig build`
+- **WebAssembly** (`mufiz-wasm-*.zip`): Platform-independent WASM binary
+- **Documentation**: `ARTIFACTS.md` with checksums and installation instructions
 
 ---
 
