@@ -186,6 +186,7 @@ pub const InterpreterError = error{
 
 pub const Runner = struct {
     main: []u8 = &.{},
+    main_path: []const u8 = "script",
     link: ?[]u8 = null,
     allocator: std.mem.Allocator,
 
@@ -216,6 +217,7 @@ pub const Runner = struct {
 
     pub fn setMain(self: *Self, main: []u8) !void {
         self.main = try self.read_file(main);
+        self.main_path = main;
     }
 
     pub fn setLink(self: *Self, link: []u8) !void {
@@ -231,6 +233,9 @@ pub const Runner = struct {
     }
 
     pub fn runFile(self: Self) !void {
+        // Set the source file path for error reporting
+        vm_h.setSourceFile(self.main_path);
+
         if (self.link) |l| {
             var str = try self.allocator.alloc(u8, self.mainSize() + self.linkSize());
             defer self.allocator.free(str);
@@ -340,18 +345,18 @@ fn replSimple() !void {
 
 pub fn format(file_path: []const u8) !void {
     const allocator = mem_utils.getAllocator();
-    
+
     // Read the file
     const file = try std.fs.cwd().openFile(file_path, .{});
     defer file.close();
-    
+
     const source = try file.readToEndAlloc(allocator, std.math.maxInt(u16));
     defer allocator.free(source);
 
     // Initialize formatter
     const fmt = @import("fmt.zig");
     var formatter = fmt.Formatter.init(allocator);
-    
+
     // Format the source
     const formatted = try formatter.format(source);
     defer allocator.free(formatted);
@@ -366,11 +371,11 @@ pub fn format(file_path: []const u8) !void {
 
 pub fn generateTests() !void {
     const allocator = mem_utils.getAllocator();
-    
+
     var prng = std.Random.DefaultPrng.init(@intCast(std.time.timestamp()));
     const test_gen = @import("test_gen.zig");
     var gen = test_gen.TestGenerator.init(allocator, prng.random());
-    
+
     const script = try gen.generateScript();
     defer allocator.free(script);
 

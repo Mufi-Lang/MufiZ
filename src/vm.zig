@@ -102,6 +102,8 @@ pub const VM = struct {
     grayCount: i32 = 0,
     grayCapacity: i32 = 0,
     grayStack: ?[*][*]Obj = null,
+    source_code: []const u8 = "",
+    source_file: []const u8 = "script",
 };
 
 pub fn initVM() void {
@@ -178,6 +180,51 @@ pub fn runtimeError(comptime format: []const u8, args: anytype) void {
     resetStack();
 }
 
+pub fn runtimeErrorEnhanced(var_name: []const u8, line: u32, source: []const u8, file: []const u8) void {
+    const base_allocator = mem_utils.getAllocator();
+
+    // Use arena allocator for all error-related allocations
+    var arena = std.heap.ArenaAllocator.init(base_allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+
+    // Collect available global variables
+    var available_vars: std.ArrayList([]const u8) = .{};
+    defer available_vars.deinit(allocator);
+
+    if (vm.globals.entries) |entries| {
+        var idx: usize = 0;
+        while (idx < vm.globals.capacity) : (idx += 1) {
+            if (entries[idx].key) |key| {
+                const name = key.chars[0..key.length];
+                available_vars.append(allocator, name) catch {};
+            }
+        }
+    }
+
+    // Create enhanced error
+    const error_info = errors.EnhancedTemplates.undefinedVariable(
+        var_name,
+        line,
+        1,
+        @intCast(var_name.len),
+        available_vars.items,
+        source,
+        file,
+        allocator,
+    ) catch {
+        // Fallback to simple error
+        std.debug.print("Undefined variable '{s}'.\n[line {d}] in script\n", .{ var_name, line });
+        return;
+    };
+    // No need to call deinit - arena will free everything
+
+    var printer = errors.EnhancedErrorPrinter.init(allocator);
+    printer.printError(error_info);
+
+    resetStack();
+}
+
 pub fn defineNative(name: [*]const u8, function: NativeFn) void {
     const nameSlice = std.mem.span(@as([*:0]const u8, @ptrCast(name)));
     const nameString = object_h.copyNativeFunctionName(@ptrCast(nameSlice.ptr), @intCast(nameSlice.len));
@@ -221,7 +268,16 @@ pub fn zstr(s: ?*ObjString) []const u8 {
     return ZSTR(s);
 }
 
+pub fn setSourceFile(file_path: []const u8) void {
+    vm.source_file = file_path;
+}
+
 pub fn interpret(source: [*]const u8) InterpretResult {
+    // Store source code for error reporting
+    var i: usize = 0;
+    while (source[i] != 0) : (i += 1) {}
+    vm.source_code = source[0..i];
+
     const function: ?*ObjFunction = compiler_h.compile(source);
     if (function == null) {
         return .INTERPRET_COMPILE_ERROR;
@@ -230,8 +286,6 @@ pub fn interpret(source: [*]const u8) InterpretResult {
     // Only echo source in non-REPL mode when explicitly enabled
     if (echo_enabled and !repl_mode) {
         if (debug_opts.trace_exec) {
-            var i: usize = 0;
-            while (source[i] != 0) : (i += 1) {}
             print("Executing: {s}\n", .{source[0..i]});
         }
     }
@@ -717,7 +771,13 @@ fn opGetGlobal() InterpretResult {
     const name = constant.as_string();
     var value: Value = undefined;
     if (!tableGet(&vm.globals, name, &value)) {
-        runtimeError("Undefined variable '{s}'.", .{name.chars});
+        // Get current source and file info
+        const instruction: usize = @intFromPtr(frame.ip) - @intFromPtr(frame.closure.function.chunk.code) - 1;
+        const line = frame.closure.function.chunk.lines.?[instruction];
+        const var_name = name.chars[0..name.length];
+
+        // Use enhanced error reporting with stored source
+        runtimeErrorEnhanced(var_name, @intCast(line), vm.source_code, vm.source_file);
         return .INTERPRET_RUNTIME_ERROR;
     }
     push(value);
