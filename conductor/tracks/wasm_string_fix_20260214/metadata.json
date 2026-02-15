@@ -1,0 +1,8 @@
+{
+  "track_id": "wasm_string_fix_20260214",
+  "type": "bug",
+  "status": "new",
+  "created_at": "2026-02-14T00:00:00Z",
+  "updated_at": "2026-02-14T00:00:00Z",
+  "description": "Fix issues with wasm strings, corruption issues, and UI escaping in the web demo."
+}
