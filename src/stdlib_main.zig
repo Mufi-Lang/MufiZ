@@ -1,6 +1,8 @@
 const std = @import("std");
 const stdlib_core = @import("stdlib_core.zig");
 const Value = @import("value.zig").Value;
+const vm_h = @import("vm.zig");
+const table_h = @import("table.zig");
 
 // Import all migrated modules
 const math = @import("stdlib/math.zig");
@@ -30,6 +32,85 @@ fn what_is_impl(argc: i32, args: [*]Value) Value {
     return Value.init_obj(@ptrCast(str_obj));
 }
 
+fn whos_impl(argc: i32, args: [*]Value) Value {
+    _ = argc;
+    _ = args;
+
+    std.debug.print("\n{s: <20} {s: <15} {s: <20}\n", .{ "Name", "Type", "Value" });
+    std.debug.print("------------------------------------------------------------\n", .{});
+
+    const globals = &vm_h.vm.globals;
+    if (globals.entries) |entries| {
+        for (0..globals.capacity) |i| {
+            const entry = &entries[i];
+            if (entry.isActive()) {
+                const name = entry.key.?;
+                if (entry.protected) continue;
+                if (table_h.isInternalName(name)) continue;
+
+                const type_name = @import("conv.zig").what_is(entry.value);
+                const val_str = @import("value.zig").valueToString(entry.value);
+
+                std.debug.print("{s: <20} {s: <15} {s: <20}\n", .{
+                    name.chars[0..name.length],
+                    type_name,
+                    val_str,
+                });
+            }
+        }
+    }
+    std.debug.print("------------------------------------------------------------\n", .{});
+
+    return Value.init_nil();
+}
+
+fn clear_impl(argc: i32, args: [*]Value) Value {
+    const globals = &vm_h.vm.globals;
+    const mem_utils = @import("mem_utils.zig");
+    const allocator = mem_utils.getAllocator();
+    const object_h = @import("object.zig");
+
+    if (argc == 0) {
+        // Clear all non-protected, non-internal variables
+        if (globals.entries) |entries| {
+            // First pass: collect keys to delete
+            const ObjString = object_h.ObjString;
+            var keys_to_delete = std.ArrayListUnmanaged(?*ObjString){};
+            defer keys_to_delete.deinit(allocator);
+
+            for (0..globals.capacity) |i| {
+                const entry = &entries[i];
+                if (entry.isActive()) {
+                    if (entry.protected) continue;
+                    if (table_h.isInternalName(entry.key)) continue;
+                    keys_to_delete.append(allocator, entry.key) catch continue;
+                }
+            }
+
+            // Second pass: delete collected keys
+            for (keys_to_delete.items) |key| {
+                _ = table_h.tableDelete(globals, key);
+            }
+        }
+    } else {
+        // Clear specific named variables
+        var i: i32 = 0;
+        while (i < argc) : (i += 1) {
+            const arg = args[@intCast(i)];
+            if (arg.is_string()) {
+                const name = arg.as_string();
+                // Look up the interned string in the VM's string table
+                const interned = table_h.tableFindString(&vm_h.vm.strings, name.chars.ptr, name.length, object_h.hashString(name.chars.ptr, name.length));
+                if (interned) |key| {
+                    _ = table_h.tableDelete(globals, key);
+                }
+            }
+        }
+    }
+
+    return Value.init_nil();
+}
+
 // Core functions wrapper
 pub const what_is = stdlib_core.DefineFunction(
     "what_is",
@@ -43,6 +124,36 @@ pub const what_is = stdlib_core.DefineFunction(
         "what_is(true) -> \"bool\"",
     },
     what_is_impl,
+);
+
+pub const whos = stdlib_core.DefineFunction(
+    "whos",
+    "core",
+    "List all global variables",
+    stdlib_core.NoParams,
+    .nil,
+    &[_][]const u8{
+        "whos()",
+    },
+    whos_impl,
+);
+
+pub const clear = stdlib_core.DefineFunction(
+    "clear",
+    "core",
+    "Clear global variables",
+    &[_]stdlib_core.ParamSpec{
+        .{ .name = "name1", .type = .string, .optional = true },
+        .{ .name = "name2", .type = .string, .optional = true },
+        .{ .name = "name3", .type = .string, .optional = true },
+    },
+    .nil,
+    &[_][]const u8{
+        "clear()",
+        "clear(\"x\")",
+        "clear(\"x\", \"y\")",
+    },
+    clear_impl,
 );
 
 // Manual registration functions since AutoRegisterModule is disabled
@@ -238,9 +349,9 @@ pub fn initializeStdlib() !void {
 
     const registry = stdlib_core.getGlobalRegistry();
 
-    // Register core functions
+    // Register core functions (except clear and whos which need to override collections)
     try registry.register(what_is);
-    
+
     // Register all modules by default for backward compatibility
     // Users can explicitly use imports to load modules on-demand, but all modules
     // are available without imports to maintain backward compatibility
@@ -249,16 +360,21 @@ pub fn initializeStdlib() !void {
     try TypesModule.register();
     try UtilsModule.register();
     try CollectionsModule.register();
-    
+
+    // Register core functions that need to override module functions
+    // These must come after module registration to take precedence
+    try registry.register(whos);
+    try registry.register(clear);
+
     // Conditionally register optional modules
     if (enable_fs) {
         try FsModule.register();
     }
-    
+
     if (enable_net) {
         try NetworkModule.register();
     }
-    
+
     // Always register matrix, json, and serde modules
     try MatrixModule.register();
     try JsonModule.register();
@@ -279,6 +395,8 @@ pub fn registerCoreOnly() !void {
 
     // Register only essential functions
     try registry.register(what_is);
+    try registry.register(whos);
+    try registry.register(clear);
     try IoModule.register();
     try TypesModule.register();
 

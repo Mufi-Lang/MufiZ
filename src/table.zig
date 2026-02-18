@@ -47,12 +47,14 @@ pub const Entry = struct {
     key: ?*ObjString,
     value: Value,
     deleted: bool,
+    protected: bool,
 
     pub fn init() Entry {
         return Entry{
             .key = null,
             .value = .{ .type = .VAL_NIL, .as = .{ .num_int = 0 } },
             .deleted = false,
+            .protected = false,
         };
     }
 
@@ -181,7 +183,7 @@ fn adjustCapacity(table: *Table, new_capacity: i32) void {
         for (0..old_capacity) |i| {
             const entry = &entries[i];
             if (entry.isActive()) {
-                _ = tableSet(table, entry.key, entry.value);
+                _ = tableSetProtected(table, entry.key, entry.value, entry.protected);
             }
         }
         // Free old entries
@@ -190,7 +192,7 @@ fn adjustCapacity(table: *Table, new_capacity: i32) void {
     }
 }
 
-pub fn tableSet(table: *Table, key: ?*ObjString, value: Value) bool {
+pub fn tableSetProtected(table: *Table, key: ?*ObjString, value: Value, protected: bool) bool {
     if (key == null) return false;
 
     // Check if we need to resize
@@ -215,8 +217,13 @@ pub fn tableSet(table: *Table, key: ?*ObjString, value: Value) bool {
     entry.key = key;
     entry.value = value;
     entry.deleted = false;
+    entry.protected = protected;
 
     return is_new_key;
+}
+
+pub fn tableSet(table: *Table, key: ?*ObjString, value: Value) bool {
+    return tableSetProtected(table, key, value, false);
 }
 
 pub fn tableDelete(table: *Table, key: ?*ObjString) bool {
@@ -233,6 +240,7 @@ pub fn tableDelete(table: *Table, key: ?*ObjString) bool {
     // Mark as tombstone
     entry.key = null;
     entry.deleted = true;
+    table.count -= 1;
 
     return true;
 }
@@ -327,4 +335,10 @@ pub fn tableStats(table: *Table) struct { count: usize, capacity: usize, load_fa
 pub fn tableContains(table: *Table, key: ?*ObjString) bool {
     var dummy_value: Value = undefined;
     return tableGet(table, key, &dummy_value);
+}
+
+pub fn isInternalName(name: ?*ObjString) bool {
+    if (name == null) return false;
+    if (name.?.length == 0) return false;
+    return name.?.chars[0] == '_';
 }

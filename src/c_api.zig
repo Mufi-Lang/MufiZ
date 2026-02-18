@@ -18,6 +18,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const mufiz = @import("lib.zig");
+const analysis = @import("analysis.zig");
 
 const allocator = if (builtin.target.cpu.arch == .wasm32)
     std.heap.wasm_allocator
@@ -346,6 +347,163 @@ export fn mufiz_needs_formatting(source: [*:0]const u8) i32 {
         return -1;
     };
     return if (needs) 1 else 0;
+}
+
+// ============================================================================
+// Analysis Context API (LSP Support)
+// ============================================================================
+
+/// Create a context for static analysis (does not execute code).
+/// Returns an opaque pointer to the analysis context, or NULL on failure.
+///
+/// C ABI:
+///   void* mufiz_create_analysis_context(void);
+export fn mufiz_create_analysis_context() ?*anyopaque {
+    const ctx = allocator.create(analysis.AnalysisContext) catch {
+        return null;
+    };
+    ctx.* = analysis.AnalysisContext.init(allocator);
+    return @ptrCast(ctx);
+}
+
+/// Destroy an analysis context and free all associated resources.
+///
+/// C ABI:
+///   void mufiz_destroy_analysis_context(void* context);
+export fn mufiz_destroy_analysis_context(context: ?*anyopaque) void {
+    if (context == null) return;
+    const ctx: *analysis.AnalysisContext = @ptrCast(@alignCast(context));
+    ctx.deinit();
+    allocator.destroy(ctx);
+}
+
+/// Update the source code in the analysis context (triggers re-parsing).
+/// Returns true if parsing was successful (no fatal errors).
+///
+/// C ABI:
+///   bool mufiz_update_source(void* context, const char* filename, const char* source);
+export fn mufiz_update_source(
+    context: ?*anyopaque,
+    filename: [*:0]const u8,
+    source: [*:0]const u8,
+) bool {
+    if (context == null) return false;
+    const ctx: *analysis.AnalysisContext = @ptrCast(@alignCast(context));
+
+    _ = filename; // Currently unused, but kept for API compatibility
+    const source_slice = std.mem.span(@as([*:0]const u8, @ptrCast(source)));
+
+    ctx.updateSource(source_slice) catch {
+        return false;
+    };
+
+    return true;
+}
+
+// ============================================================================
+// Diagnostics (Linting)
+// ============================================================================
+
+/// Get the number of diagnostics (syntax/semantic errors and warnings).
+///
+/// C ABI:
+///   int32_t mufiz_get_diagnostic_count(void* context);
+export fn mufiz_get_diagnostic_count(context: ?*anyopaque) i32 {
+    if (context == null) return 0;
+    const ctx: *analysis.AnalysisContext = @ptrCast(@alignCast(context));
+    return @intCast(ctx.diagnostics.items.len);
+}
+
+/// Get a specific diagnostic by index.
+/// The returned pointer is valid until the next call to mufiz_update_source.
+/// Returns NULL if the index is out of bounds.
+///
+/// C ABI:
+///   const MufizDiagnostic* mufiz_get_diagnostic(void* context, int32_t index);
+export fn mufiz_get_diagnostic(context: ?*anyopaque, index: i32) ?*const analysis.MufizDiagnostic {
+    if (context == null) return null;
+    if (index < 0) return null;
+
+    const ctx: *analysis.AnalysisContext = @ptrCast(@alignCast(context));
+    const idx: usize = @intCast(index);
+
+    if (idx >= ctx.diagnostics.items.len) return null;
+    return &ctx.diagnostics.items[idx];
+}
+
+// ============================================================================
+// Autocompletion & Hover
+// ============================================================================
+
+/// Compute completion items at a specific cursor position.
+/// Returns the number of completion items found.
+///
+/// C ABI:
+///   int32_t mufiz_compute_completions(void* context, uint32_t line, uint32_t column);
+export fn mufiz_compute_completions(
+    context: ?*anyopaque,
+    line: u32,
+    column: u32,
+) i32 {
+    if (context == null) return 0;
+    const ctx: *analysis.AnalysisContext = @ptrCast(@alignCast(context));
+
+    const count = ctx.computeCompletions(line, column) catch {
+        return 0;
+    };
+
+    return @intCast(count);
+}
+
+/// Get a specific completion item by index (after calling mufiz_compute_completions).
+/// The returned pointer is valid until the next call to mufiz_compute_completions.
+/// Returns NULL if the index is out of bounds.
+///
+/// C ABI:
+///   const MufizCompletionItem* mufiz_get_completion_item(void* context, int32_t index);
+export fn mufiz_get_completion_item(context: ?*anyopaque, index: i32) ?*const analysis.MufizCompletionItem {
+    if (context == null) return null;
+    if (index < 0) return null;
+
+    const ctx: *analysis.AnalysisContext = @ptrCast(@alignCast(context));
+    const idx: usize = @intCast(index);
+
+    if (idx >= ctx.completion_results.items.len) return null;
+    return &ctx.completion_results.items[idx];
+}
+
+/// Get hover information (type/documentation) for the symbol at the cursor position.
+/// The returned pointer is valid until the next call to mufiz_get_hover_info.
+/// Returns NULL if no symbol is found at the position.
+///
+/// C ABI:
+///   const MufizCompletionItem* mufiz_get_hover_info(void* context, uint32_t line, uint32_t column);
+export fn mufiz_get_hover_info(
+    context: ?*anyopaque,
+    line: u32,
+    column: u32,
+) ?*const analysis.MufizCompletionItem {
+    if (context == null) return null;
+    const ctx: *analysis.AnalysisContext = @ptrCast(@alignCast(context));
+
+    // Free previous hover info if it exists
+    if (ctx.last_hover) |*item| {
+        allocator.free(std.mem.span(item.name));
+        allocator.free(std.mem.span(item.type_name));
+        allocator.free(std.mem.span(item.doc_string));
+        ctx.last_hover = null;
+    }
+
+    const hover = ctx.getHover(line, column) catch {
+        return null;
+    };
+
+    if (hover) |h| {
+        ctx.last_hover = h;
+        return &ctx.last_hover.?;
+    }
+
+    return null;
 }
 
 pub fn main() void {}

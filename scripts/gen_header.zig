@@ -121,6 +121,38 @@ fn generateHeader(allocator: std.mem.Allocator, version: []const u8) ![]const u8
         \\#define MUFIZ_INTERPRET_RUNTIME_ERROR 70
         \\
         \\// ============================================================================
+        \\// Analysis API Data Structures (LSP Support)
+        \\// ============================================================================
+        \\
+        \\typedef enum {{
+        \\    MUFIZ_DIAGNOSTIC_ERROR = 1,
+        \\    MUFIZ_DIAGNOSTIC_WARNING = 2
+        \\}} MufizDiagnosticSeverity;
+        \\
+        \\typedef struct {{
+        \\    uint32_t line;
+        \\    uint32_t column;
+        \\}} MufizPosition;
+        \\
+        \\typedef struct {{
+        \\    MufizPosition start;
+        \\    MufizPosition end;
+        \\}} MufizRange;
+        \\
+        \\typedef struct {{
+        \\    MufizRange range;
+        \\    MufizDiagnosticSeverity severity;
+        \\    const char* message;
+        \\}} MufizDiagnostic;
+        \\
+        \\typedef struct {{
+        \\    const char* name;
+        \\    const char* type_name;
+        \\    const char* doc_string;
+        \\    uint8_t kind; // 1=Variable, 2=Function, 3=Struct
+        \\}} MufizCompletionItem;
+        \\
+        \\// ============================================================================
         \\// Core Library Functions
         \\// ============================================================================
         \\
@@ -329,6 +361,94 @@ fn generateHeader(allocator: std.mem.Allocator, version: []const u8) ![]const u8
         \\MUFIZ_API int32_t mufiz_needs_formatting(const char *source);
         \\
         \\// ============================================================================
+        \\// Analysis Context API (LSP Support)
+        \\// ============================================================================
+        \\
+        \\/**
+        \\ * Create a context for static analysis (does not execute code).
+        \\ * Returns an opaque pointer to the analysis context, or NULL on failure.
+        \\ *
+        \\ * @return Opaque pointer to analysis context, or NULL on allocation failure
+        \\ */
+        \\MUFIZ_API void* mufiz_create_analysis_context(void);
+        \\
+        \\/**
+        \\ * Destroy an analysis context and free all associated resources.
+        \\ *
+        \\ * @param context Opaque pointer to the analysis context (can be NULL)
+        \\ */
+        \\MUFIZ_API void mufiz_destroy_analysis_context(void* context);
+        \\
+        \\/**
+        \\ * Update the source code in the analysis context (triggers re-parsing).
+        \\ * Returns true if parsing was successful (no fatal errors).
+        \\ *
+        \\ * @param context Opaque pointer to the analysis context
+        \\ * @param filename Source filename (currently unused, for future use)
+        \\ * @param source Null-terminated string containing MufiZ source code
+        \\ * @return true if parsing succeeded, false on error
+        \\ */
+        \\MUFIZ_API bool mufiz_update_source(void* context, const char* filename, const char* source);
+        \\
+        \\// ============================================================================
+        \\// Diagnostics (Linting)
+        \\// ============================================================================
+        \\
+        \\/**
+        \\ * Get the number of diagnostics (syntax/semantic errors and warnings).
+        \\ *
+        \\ * @param context Opaque pointer to the analysis context
+        \\ * @return Number of diagnostics, or 0 if context is NULL
+        \\ */
+        \\MUFIZ_API int32_t mufiz_get_diagnostic_count(void* context);
+        \\
+        \\/**
+        \\ * Get a specific diagnostic by index.
+        \\ * The returned pointer is valid until the next call to mufiz_update_source.
+        \\ *
+        \\ * @param context Opaque pointer to the analysis context
+        \\ * @param index Zero-based index of the diagnostic to retrieve
+        \\ * @return Pointer to the diagnostic, or NULL if index is out of bounds
+        \\ */
+        \\MUFIZ_API const MufizDiagnostic* mufiz_get_diagnostic(void* context, int32_t index);
+        \\
+        \\// ============================================================================
+        \\// Autocompletion & Hover
+        \\// ============================================================================
+        \\
+        \\/**
+        \\ * Compute completion items at a specific cursor position.
+        \\ * Call this function first, then use mufiz_get_completion_item to retrieve results.
+        \\ *
+        \\ * @param context Opaque pointer to the analysis context
+        \\ * @param line Zero-based line number
+        \\ * @param column Zero-based column number
+        \\ * @return Number of completion items found, or 0 on error
+        \\ */
+        \\MUFIZ_API int32_t mufiz_compute_completions(void* context, uint32_t line, uint32_t column);
+        \\
+        \\/**
+        \\ * Get a specific completion item by index (after calling mufiz_compute_completions).
+        \\ * The returned pointer is valid until the next call to mufiz_compute_completions.
+        \\ *
+        \\ * @param context Opaque pointer to the analysis context
+        \\ * @param index Zero-based index of the completion item to retrieve
+        \\ * @return Pointer to the completion item, or NULL if index is out of bounds
+        \\ */
+        \\MUFIZ_API const MufizCompletionItem* mufiz_get_completion_item(void* context, int32_t index);
+        \\
+        \\/**
+        \\ * Get hover information (type/documentation) for the symbol at the cursor position.
+        \\ * The returned pointer is valid until the next call to mufiz_get_hover_info.
+        \\ *
+        \\ * @param context Opaque pointer to the analysis context
+        \\ * @param line Zero-based line number
+        \\ * @param column Zero-based column number
+        \\ * @return Pointer to hover information, or NULL if no symbol found at position
+        \\ */
+        \\MUFIZ_API const MufizCompletionItem* mufiz_get_hover_info(void* context, uint32_t line, uint32_t column);
+        \\
+        \\// ============================================================================
         \\// Usage Examples
         \\// ============================================================================
         \\
@@ -395,6 +515,62 @@ fn generateHeader(allocator: std.mem.Allocator, version: []const u8) ![]const u8
         \\            mufiz_free_cstring(formatted);
         \\        }}
         \\
+        \\        return 0;
+        \\    }}
+        \\
+        \\Example 4: Analysis API (LSP Support)
+        \\
+        \\    #include "mufiz.h"
+        \\    #include <stdio.h>
+        \\
+        \\    int main(void) {{
+        \\        // Create an analysis context
+        \\        void* ctx = mufiz_create_analysis_context();
+        \\        if (!ctx) {{
+        \\            fprintf(stderr, "Failed to create analysis context\n");
+        \\            return 1;
+        \\        }}
+        \\
+        \\        // Update the source code (parse it)
+        \\        const char* source = "var x = 10;\nvar y = x +;"; // Note: syntax error
+        \\        if (!mufiz_update_source(ctx, "test.mufi", source)) {{
+        \\            fprintf(stderr, "Failed to parse source\n");
+        \\        }}
+        \\
+        \\        // Get diagnostics
+        \\        int32_t diag_count = mufiz_get_diagnostic_count(ctx);
+        \\        printf("Found %d diagnostic(s)\n", diag_count);
+        \\
+        \\        for (int32_t i = 0; i < diag_count; i++) {{
+        \\            const MufizDiagnostic* diag = mufiz_get_diagnostic(ctx, i);
+        \\            if (diag) {{
+        \\                printf("  [%d:%d] %s: %s\n",
+        \\                    diag->range.start.line,
+        \\                    diag->range.start.column,
+        \\                    diag->severity == MUFIZ_DIAGNOSTIC_ERROR ? "ERROR" : "WARNING",
+        \\                    diag->message);
+        \\            }}
+        \\        }}
+        \\
+        \\        // Get completions at a position
+        \\        int32_t completion_count = mufiz_compute_completions(ctx, 1, 10);
+        \\        printf("Found %d completion(s)\n", completion_count);
+        \\
+        \\        for (int32_t i = 0; i < completion_count; i++) {{
+        \\            const MufizCompletionItem* item = mufiz_get_completion_item(ctx, i);
+        \\            if (item) {{
+        \\                printf("  - %s (%s)\n", item->name, item->type_name);
+        \\            }}
+        \\        }}
+        \\
+        \\        // Get hover info
+        \\        const MufizCompletionItem* hover = mufiz_get_hover_info(ctx, 0, 5);
+        \\        if (hover) {{
+        \\            printf("Hover: %s: %s\n", hover->name, hover->type_name);
+        \\        }}
+        \\
+        \\        // Clean up
+        \\        mufiz_destroy_analysis_context(ctx);
         \\        return 0;
         \\    }}
         \\*/

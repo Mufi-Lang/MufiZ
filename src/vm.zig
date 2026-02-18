@@ -58,6 +58,7 @@ const utils = @import("stdlib/utils.zig");
 const table_h = @import("table.zig");
 const tableGet = table_h.tableGet;
 const tableSet = table_h.tableSet;
+const tableSetProtected = table_h.tableSetProtected;
 const tableDelete = table_h.tableDelete;
 const Table = table_h.Table;
 const initTable = table_h.initTable;
@@ -237,7 +238,7 @@ pub fn defineNative(name: [*]const u8, function: NativeFn) void {
         .type = .VAL_OBJ,
         .as = .{ .obj = @ptrCast(@alignCast(native)) },
     });
-    _ = tableSet(&vm.globals, @ptrCast(@alignCast(vm.stack[0].as.obj)), vm.stack[1]);
+    _ = tableSetProtected(&vm.globals, @ptrCast(@alignCast(vm.stack[0].as.obj)), vm.stack[1], true);
     _ = pop();
     _ = pop();
 }
@@ -2256,7 +2257,7 @@ fn opImportModule() InterpretResult {
         .type = .VAL_OBJ,
         .as = .{ .obj = @ptrCast(@alignCast(module_obj)) },
     };
-    _ = table_h.tableSet(&vm.globals, name_str, module_value);
+    _ = table_h.tableSetProtected(&vm.globals, name_str, module_value, true);
 
     return .INTERPRET_OK;
 }
@@ -2397,7 +2398,7 @@ fn opImportModuleAs() InterpretResult {
         .type = .VAL_OBJ,
         .as = .{ .obj = @ptrCast(@alignCast(module_obj)) },
     };
-    _ = table_h.tableSet(&vm.globals, alias_str, module_value);
+    _ = table_h.tableSetProtected(&vm.globals, alias_str, module_value, true);
 
     return .INTERPRET_OK;
 }

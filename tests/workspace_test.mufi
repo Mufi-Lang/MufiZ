@@ -1,0 +1,16 @@
+var x = 10;
+var y = "hello";
+var _internal = 42;
+
+// Standard library functions should be protected
+// Modules should be protected
+
+whos();
+
+clear("x");
+// Expect x to be gone
+whos();
+
+clear();
+// Expect y to be gone, but imports to remain
+whos();

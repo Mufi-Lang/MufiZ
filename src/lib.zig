@@ -35,6 +35,7 @@ pub const system = @import("system.zig");
 pub const fmt = @import("fmt.zig");
 pub const test_gen = @import("test_gen.zig");
 pub const stdlib = @import("stdlib_main.zig");
+pub const analysis = @import("analysis.zig");
 const builtin = @import("builtin");
 pub const pm = if (builtin.target.cpu.arch != .wasm32) @import("pm.zig") else struct {};
 pub const cache = if (builtin.target.cpu.arch != .wasm32) @import("cache.zig") else struct {};
