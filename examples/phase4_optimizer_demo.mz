@@ -1,0 +1,169 @@
+// Phase 4: Advanced Bytecode Optimizations Demo
+// This script demonstrates constant folding, dead code elimination,
+// and peephole optimizations in action.
+
+print "=== Phase 4: Advanced Optimizations Demo ===";
+print "";
+
+// ============================================================================
+// 1. CONSTANT FOLDING: Compile-time evaluation of constant expressions
+// ============================================================================
+print "1. Constant Folding Examples:";
+print "------------------------------";
+
+// Arithmetic operations on constants
+// Before: CONSTANT 5, CONSTANT 3, ADD
+// After: CONSTANT 8
+var arithmetic = 5 + 3;
+print "5 + 3 = ";
+print arithmetic;
+
+// Complex constant expressions
+// Multiple operations can be folded in multiple passes
+// Before: CONSTANT 10, CONSTANT 2, SUB, CONSTANT 3, MUL
+// After: CONSTANT 24
+var complex = (10 - 2) * 3;
+print "(10 - 2) * 3 = ";
+print complex;
+
+// Division
+// Before: CONSTANT 20, CONSTANT 4, DIV
+// After: CONSTANT 5
+var division = 20 / 4;
+print "20 / 4 = ";
+print division;
+
+// Comparison folding
+// Before: CONSTANT 5, CONSTANT 5, EQUAL
+// After: CONSTANT true
+var equal = 5 == 5;
+print "5 == 5 is ";
+print equal;
+
+// Before: CONSTANT 10, CONSTANT 5, GREATER
+// After: CONSTANT true
+var greater = 10 > 5;
+print "10 > 5 is ";
+print greater;
+
+print "";
+
+// ============================================================================
+// 2. PEEPHOLE OPTIMIZATIONS: Pattern-based bytecode improvements
+// ============================================================================
+print "2. Peephole Optimization Examples:";
+print "-----------------------------------";
+
+// Pattern: CONSTANT + POP elimination
+// Expression statements that don't use the result
+// Before: CONSTANT 42, POP
+// After: (removed entirely)
+42; // This expression result is immediately discarded
+
+// GET_LOCAL + GET_LOCAL fusion (from Phase 3)
+// Before: GET_LOCAL 0, GET_LOCAL 0
+// After: GET_LOCAL_LOCAL 0, 0
+var x = 10;
+var doubled = x + x; // Uses same local twice
+print "x + x = ";
+print doubled;
+
+print "";
+
+// ============================================================================
+// 3. SUPERINSTRUCTIONS: Fused instruction sequences (Phase 3)
+// ============================================================================
+print "3. Superinstruction Fusion:";
+print "----------------------------";
+
+// GET_GLOBAL + GET_GLOBAL fusion
+// Before: GET_GLOBAL "x", GET_GLOBAL "arithmetic"
+// After: GET_GLOBAL_GLOBAL "x", "arithmetic"
+var global_sum = x + arithmetic;
+print "Global operation result: ";
+print global_sum;
+
+// CONSTANT + CONSTANT fusion
+// Before: CONSTANT 1, CONSTANT 2
+// After: CONSTANT_CONSTANT 1, 2
+var two_constants = 1;
+var another = 2;
+var sum_of_vars = two_constants + another;
+print "Sum of variables: ";
+print sum_of_vars;
+
+print "";
+
+// ============================================================================
+// 4. COMBINED OPTIMIZATIONS: Multiple passes working together
+// ============================================================================
+print "4. Combined Optimization Examples:";
+print "-----------------------------------";
+
+// This expression benefits from multiple optimization passes:
+// Pass 1: Fold (2 + 3) → 5
+// Pass 2: Fold (5 * 4) → 20
+// Pass 3: Fold (20 - 10) → 10
+// Pass 4: Eliminate if folded result + POP pattern exists
+var multi_pass = ((2 + 3) * 4) - 10;
+print "((2 + 3) * 4) - 10 = ";
+print multi_pass;
+
+// Constant propagation opportunities
+var a = 5;
+var b = 3;
+var c = a + b; // Could be optimized if 'a' and 'b' are proven constant
+
+print "a + b = ";
+print c;
+
+print "";
+
+// ============================================================================
+// 5. OPTIMIZATION BENEFITS
+// ============================================================================
+print "5. Optimization Benefits:";
+print "-------------------------";
+print "- Smaller bytecode size (less memory)";
+print "- Faster execution (fewer instructions)";
+print "- Reduced dispatch overhead (fused instructions)";
+print "- Better cache utilization";
+print "";
+
+// ============================================================================
+// 6. REAL-WORLD EXAMPLE: Mathematical computation
+// ============================================================================
+print "6. Real-World Example:";
+print "----------------------";
+
+// Calculate area of a circle: π * r²
+// With optimization, constant π and r² can be folded
+var pi = 3.14159;
+var radius = 5.0;
+var area = pi * (radius * radius);
+print "Area of circle (r=5): ";
+print area;
+
+// Calculate quadratic formula: (-b ± sqrt(b²-4ac)) / 2a
+// Many constant operations can be folded
+var qa = 1.0;
+var qb = -5.0;
+var qc = 6.0;
+var discriminant = (qb * qb) - (4.0 * qa * qc);
+print "Discriminant: ";
+print discriminant;
+
+print "";
+
+// ============================================================================
+// 7. SAFETY: Division by zero NOT folded (runtime check preserved)
+// ============================================================================
+print "7. Safety Example:";
+print "------------------";
+print "Division by zero is NOT folded at compile-time.";
+print "This preserves runtime error checking.";
+// var unsafe = 10 / 0; // Would cause runtime error, not folded
+
+print "";
+print "=== Phase 4 Optimization Demo Complete ===";
+print "Run with --print-code to see optimized bytecode.";

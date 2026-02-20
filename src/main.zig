@@ -31,6 +31,8 @@ const params = clap.parseParamsComptime(
     \\--docs                 Standard Library Documentation
     \\--fmt <str>            Formats a Mufi Script
     \\--test-gen             Generates synthetic Mufi tests
+    \\--analyze-bytecode <str>  Analyze bytecode and show optimization opportunities
+    \\--trace-sequences <str>    Trace instruction sequences for optimization analysis
 );
 
 /// Main entry point for the MufiZ interpreter
@@ -85,6 +87,8 @@ pub fn main() !void {
                 \\--docs                 Standard Library Documentation
                 \\--fmt <str>            Formats a Mufi Script
                 \\--test-gen             Generates synthetic Mufi tests
+                \\--analyze-bytecode <str>  Analyze bytecode and show optimization opportunities
+                \\--trace-sequences <str>    Trace instruction sequences for optimization analysis
                 \\
                 \\PACKAGE MANAGER:
                 \\pm <command>           Package manager commands
@@ -114,6 +118,10 @@ pub fn main() !void {
             try mufiz.system.format(s);
         } else if (res.args.@"test-gen" != 0) {
             try mufiz.system.generateTests();
+        } else if (res.args.@"analyze-bytecode") |s| {
+            try analyzeBytecode(s);
+        } else if (res.args.@"trace-sequences") |s| {
+            try traceSequences(s);
         } else if (res.args.repl != 0) {
             try mufiz.startRepl();
         } else if (res.args.docs != 0) {
@@ -125,6 +133,79 @@ pub fn main() !void {
             return;
         }
     }
+}
+
+/// Trace instruction sequences in a script for optimization analysis
+fn traceSequences(path: []const u8) !void {
+    const vm_trace = @import("vm_trace.zig");
+    const allocator = getGlobalAllocator();
+
+    // Read the file
+    const file = try std.fs.cwd().openFile(path, .{});
+    defer file.close();
+
+    const source = try file.readToEndAlloc(allocator, 10 * 1024 * 1024); // Max 10MB
+    defer allocator.free(source);
+
+    // Initialize tracing
+    try vm_trace.init(allocator);
+    defer vm_trace.deinit();
+
+    // Enable tracing
+    vm_trace.enable();
+
+    std.debug.print("\n🔍 Tracing instruction sequences: {s}\n", .{path});
+    std.debug.print("Running script with instrumentation enabled...\n\n", .{});
+
+    // Run the script (this will populate trace data)
+    const result = mufiz.interpret(source);
+
+    // Disable tracing
+    vm_trace.disable();
+
+    // Print results
+    if (result == OK) {
+        std.debug.print("\n✅ Script completed successfully\n", .{});
+        vm_trace.printReport();
+
+        // Optionally export to file
+        const trace_file = "vm_trace.csv";
+        vm_trace.exportToFile(trace_file) catch |err| {
+            std.debug.print("Warning: Could not export trace to file: {}\n", .{err});
+        };
+        std.debug.print("📁 Trace data exported to: {s}\n", .{trace_file});
+    } else {
+        std.debug.print("\n❌ Script failed with error code: {d}\n", .{result});
+        std.debug.print("Trace data collected before error:\n", .{});
+        vm_trace.printReport();
+    }
+}
+
+/// Analyze bytecode from a script file
+fn analyzeBytecode(path: []const u8) !void {
+    const bytecode_analyzer = @import("bytecode_analyzer.zig");
+    const compiler_h = @import("compiler.zig");
+    const allocator = getGlobalAllocator();
+
+    // Read the file
+    const file = try std.fs.cwd().openFile(path, .{});
+    defer file.close();
+
+    const source = try file.readToEndAlloc(allocator, 10 * 1024 * 1024); // Max 10MB
+    defer allocator.free(source);
+
+    std.debug.print("\n📊 Analyzing bytecode for: {s}\n", .{path});
+    std.debug.print("Source size: {d} bytes\n", .{source.len});
+
+    // Compile the source (compiler expects null-terminated string)
+    const function = compiler_h.compile(source.ptr);
+    if (function == null) {
+        std.debug.print("❌ Compilation failed. Cannot analyze bytecode.\n", .{});
+        return;
+    }
+
+    // Analyze the compiled bytecode
+    try bytecode_analyzer.analyzeAndReport(&function.?.chunk, allocator);
 }
 
 /// Handle package manager commands

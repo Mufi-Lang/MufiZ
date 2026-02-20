@@ -1,0 +1,79 @@
+// Test script to demonstrate short jump optimization (Phase 2.3)
+// This script focuses on loops which should use OP_LOOP_SHORT
+
+print("=== Short Jump Optimization Test ===");
+
+// Test 1: Simple while loop (should use OP_LOOP_SHORT)
+print("\n--- Test 1: Simple While Loop ---");
+var count = 0;
+while (count < 5) {
+    print("Count: " + count);
+    count = count + 1;
+}
+
+// Test 2: For loop (should use OP_LOOP_SHORT)
+print("\n--- Test 2: For Loop ---");
+var sum = 0;
+for (var i = 0; i < 5; i = i + 1) {
+    sum = sum + i;
+}
+print("Sum: " + sum);
+
+// Test 3: Nested loops
+print("\n--- Test 3: Nested Loops ---");
+var outer = 0;
+while (outer < 3) {
+    var inner = 0;
+    while (inner < 3) {
+        print("(" + outer + ", " + inner + ")");
+        inner = inner + 1;
+    }
+    outer = outer + 1;
+}
+
+// Test 4: Loop with conditional
+print("\n--- Test 4: Loop with Conditional ---");
+var n = 0;
+while (n < 10) {
+    if (n == 5) {
+        print("Found 5!");
+    }
+    n = n + 1;
+}
+
+// Test 5: Loop with break (if supported)
+print("\n--- Test 5: Loop with Early Exit ---");
+var searching = 0;
+while (searching < 100) {
+    if (searching == 7) {
+        print("Found 7 at position: " + searching);
+        searching = 100; // Exit loop
+    }
+    searching = searching + 1;
+}
+
+// Test 6: Accumulator pattern
+print("\n--- Test 6: Accumulator ---");
+var product = 1;
+var factor = 1;
+while (factor <= 5) {
+    product = product * factor;
+    factor = factor + 1;
+}
+print("5! = " + product);
+
+// Test 7: Multiple operations in loop
+print("\n--- Test 7: Multiple Operations ---");
+var a = 0;
+var b = 1;
+var c = 0;
+while (c < 5) {
+    var temp = a + b;
+    a = b;
+    b = temp;
+    print("Fibonacci: " + b);
+    c = c + 1;
+}
+
+print("\n=== Short Jump Test Complete ===");
+print("All loops should use OP_LOOP_SHORT (2 bytes instead of 3)!");

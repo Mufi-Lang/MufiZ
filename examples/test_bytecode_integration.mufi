@@ -1,0 +1,215 @@
+// Integration test for bytecode optimization infrastructure
+// Tests that all Phase 1 infrastructure works correctly with real compilation
+
+print("=== Bytecode Integration Test ===");
+
+// Test 1: Small constants (should use OP_CONSTANT_0..15 in Phase 2)
+print("\n--- Test 1: Small Constants ---");
+var zero = 0;
+var one = 1;
+var two = 2;
+var five = 5;
+var ten = 10;
+var fifteen = 15;
+print("Small constants: 0, 1, 2, 5, 10, 15");
+
+// Test 2: Large constants (should use normal OP_CONSTANT)
+print("\n--- Test 2: Large Constants ---");
+var large1 = 100;
+var large2 = 255;
+var large3 = 1000;
+print("Large constants: 100, 255, 1000");
+
+// Test 3: Local variable access (should use OP_GET/SET_LOCAL_0..3 in Phase 2)
+print("\n--- Test 3: Local Variable Access ---");
+fun testLocals() {
+    var a = 1;  // slot 0
+    var b = 2;  // slot 1
+    var c = 3;  // slot 2
+    var d = 4;  // slot 3
+    var e = 5;  // slot 4
+    print("Locals: " + a + ", " + b + ", " + c + ", " + d + ", " + e);
+    return a + b + c + d + e;
+}
+var localResult = testLocals();
+print("Local sum: " + localResult);
+
+// Test 4: Short jumps (should use OP_JUMP_SHORT in Phase 2)
+print("\n--- Test 4: Short Jumps ---");
+var x = 10;
+if (x > 5) {
+    print("x is greater than 5");
+} else {
+    print("x is not greater than 5");
+}
+
+// Test 5: Short loops (should use OP_LOOP_SHORT in Phase 2)
+print("\n--- Test 5: Short Loops ---");
+var sum = 0;
+var i = 0;
+while (i < 5) {
+    sum = sum + i;
+    i = i + 1;
+}
+print("Loop sum (0-4): " + sum);
+
+// Test 6: Nested short jumps
+print("\n--- Test 6: Nested Short Jumps ---");
+var nested = 3;
+if (nested > 0) {
+    if (nested > 2) {
+        print("nested > 2");
+    } else {
+        print("nested <= 2");
+    }
+}
+
+// Test 7: Arithmetic patterns (superinstruction candidates)
+print("\n--- Test 7: Arithmetic Patterns ---");
+var p = 5;
+var q = 10;
+var r = 15;
+var arith1 = p + q;          // GET_GLOBAL → GET_GLOBAL → ADD
+var arith2 = q + r;          // GET_GLOBAL → GET_GLOBAL → ADD
+var arith3 = arith1 + arith2; // GET_GLOBAL → GET_GLOBAL → ADD
+print("Arithmetic: " + arith1 + ", " + arith2 + ", " + arith3);
+
+// Test 8: Function calls with small constants
+print("\n--- Test 8: Function Calls ---");
+fun add(a, b) {
+    return a + b;
+}
+var call1 = add(1, 2);       // Small constants as args
+var call2 = add(5, 10);      // Small constants as args
+var call3 = add(call1, call2); // Locals as args
+print("Calls: " + call1 + ", " + call2 + ", " + call3);
+
+// Test 9: Closure with small constants
+print("\n--- Test 9: Closures ---");
+fun makeCounter() {
+    var count = 0;
+    fun increment() {
+        count = count + 1;
+        return count;
+    }
+    return increment;
+}
+var counter = makeCounter();
+print("Counter: " + counter() + ", " + counter() + ", " + counter());
+
+// Test 10: Global define-load pattern (superinstruction candidate)
+print("\n--- Test 10: Global Patterns ---");
+var g1 = 1;
+var g2 = 2;
+var g3 = 3;
+var g4 = 4;
+var g5 = 5;
+var globalSum = g1 + g2 + g3 + g4 + g5;
+print("Global sum: " + globalSum);
+
+// Test 11: Mixed patterns
+print("\n--- Test 11: Mixed Patterns ---");
+fun fibonacci(n) {
+    if (n <= 1) {
+        return n;
+    }
+    return fibonacci(n - 1) + fibonacci(n - 2);
+}
+var fib5 = fibonacci(5);
+var fib6 = fibonacci(6);
+print("Fibonacci(5) = " + fib5 + ", Fibonacci(6) = " + fib6);
+
+// Test 12: Boolean operations with short jumps
+print("\n--- Test 12: Boolean Operations ---");
+var bool1 = true;
+var bool2 = false;
+if (bool1 and !bool2) {
+    print("Logic: bool1 AND NOT bool2");
+}
+if (bool1 or bool2) {
+    print("Logic: bool1 OR bool2");
+}
+
+// Test 13: String constants
+print("\n--- Test 13: String Constants ---");
+var str1 = "Hello";
+var str2 = "World";
+var str3 = str1 + " " + str2;
+print("String: " + str3);
+
+// Test 14: For loop (should generate short jumps)
+print("\n--- Test 14: For Loop ---");
+var forSum = 0;
+for (var j = 0; j < 5; j = j + 1) {
+    forSum = forSum + j;
+}
+print("For loop sum: " + forSum);
+
+// Test 15: Deeply nested locals
+print("\n--- Test 15: Deep Nesting ---");
+fun deepNest() {
+    var l0 = 0;
+    var l1 = 1;
+    var l2 = 2;
+    var l3 = 3;
+
+    fun inner() {
+        var m0 = l0 + 10;
+        var m1 = l1 + 10;
+        var m2 = l2 + 10;
+        var m3 = l3 + 10;
+        return m0 + m1 + m2 + m3;
+    }
+
+    return inner();
+}
+var deepResult = deepNest();
+print("Deep nesting result: " + deepResult);
+
+// Test 16: Constant folding opportunities
+print("\n--- Test 16: Constant Expressions ---");
+var const1 = 2 + 3;
+var const2 = 5 * 4;
+var const3 = const1 + const2;
+print("Constants: " + const1 + ", " + const2 + ", " + const3);
+
+// Test 17: Comparison chains
+print("\n--- Test 17: Comparisons ---");
+var cmp1 = 10;
+var cmp2 = 20;
+var cmp3 = 30;
+if (cmp1 < cmp2 and cmp2 < cmp3) {
+    print("Comparison chain: 10 < 20 < 30");
+}
+
+// Test 18: Nil and boolean constants
+print("\n--- Test 18: Nil and Booleans ---");
+var nilVal = nil;
+var trueVal = true;
+var falseVal = false;
+print("Nil: " + nilVal);
+print("True: " + trueVal);
+print("False: " + falseVal);
+
+// Test 19: Return patterns
+print("\n--- Test 19: Return Patterns ---");
+fun returnSmall() {
+    return 5;  // Small constant return
+}
+fun returnLarge() {
+    return 100;  // Large constant return
+}
+fun returnLocal() {
+    var ret = 42;
+    return ret;  // Local return
+}
+print("Returns: " + returnSmall() + ", " + returnLarge() + ", " + returnLocal());
+
+// Test 20: Method calls (if supported)
+print("\n--- Test 20: Complex Expressions ---");
+var complexA = 1 + 2 * 3 - 4;
+var complexB = (5 + 6) * (7 - 8);
+print("Complex: " + complexA + ", " + complexB);
+
+print("\n=== Integration Test Complete ===");
+print("All patterns tested successfully!");

@@ -1,4 +1,4 @@
-/// MufiZ Virtual Machine Module
+ /// MufiZ Virtual Machine Module
 /// This module implements the bytecode interpreter for the MufiZ language.
 /// It executes compiled bytecode using a stack-based virtual machine architecture.
 /// Features include:
@@ -725,6 +725,222 @@ fn opConstant() InterpretResult {
     return .INTERPRET_OK;
 }
 
+// Phase 2 Optimization: Small constant opcodes (67-82)
+// These opcodes load constants 0-15 without needing an operand byte
+// Saves 1 byte per constant load (from 2 bytes to 1 byte)
+
+fn opConstant0() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant = getConstant(frame, 0) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    push(constant);
+    return .INTERPRET_OK;
+}
+
+fn opConstant1() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant = getConstant(frame, 1) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    push(constant);
+    return .INTERPRET_OK;
+}
+
+fn opConstant2() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant = getConstant(frame, 2) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    push(constant);
+    return .INTERPRET_OK;
+}
+
+fn opConstant3() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant = getConstant(frame, 3) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    push(constant);
+    return .INTERPRET_OK;
+}
+
+fn opConstant4() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant = getConstant(frame, 4) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    push(constant);
+    return .INTERPRET_OK;
+}
+
+fn opConstant5() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant = getConstant(frame, 5) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    push(constant);
+    return .INTERPRET_OK;
+}
+
+fn opConstant6() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant = getConstant(frame, 6) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    push(constant);
+    return .INTERPRET_OK;
+}
+
+fn opConstant7() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant = getConstant(frame, 7) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    push(constant);
+    return .INTERPRET_OK;
+}
+
+fn opConstant8() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant = getConstant(frame, 8) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    push(constant);
+    return .INTERPRET_OK;
+}
+
+fn opConstant9() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant = getConstant(frame, 9) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    push(constant);
+    return .INTERPRET_OK;
+}
+
+fn opConstant10() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant = getConstant(frame, 10) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    push(constant);
+    return .INTERPRET_OK;
+}
+
+fn opConstant11() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant = getConstant(frame, 11) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    push(constant);
+    return .INTERPRET_OK;
+}
+
+fn opConstant12() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant = getConstant(frame, 12) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    push(constant);
+    return .INTERPRET_OK;
+}
+
+fn opConstant13() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant = getConstant(frame, 13) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    push(constant);
+    return .INTERPRET_OK;
+}
+
+fn opConstant14() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant = getConstant(frame, 14) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    push(constant);
+    return .INTERPRET_OK;
+}
+
+fn opConstant15() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant = getConstant(frame, 15) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    push(constant);
+    return .INTERPRET_OK;
+}
+
+// Phase 2.2 Optimization: Small local opcodes (83-90)
+// These opcodes access local slots 0-3 without needing an operand byte
+// Saves 1 byte per local access (from 2 bytes to 1 byte)
+
+fn opGetLocal0() InterpretResult {
+    const frame = vm.currentFrame.?;
+    push(frame.slots[0]);
+    return .INTERPRET_OK;
+}
+
+fn opGetLocal1() InterpretResult {
+    const frame = vm.currentFrame.?;
+    push(frame.slots[1]);
+    return .INTERPRET_OK;
+}
+
+fn opGetLocal2() InterpretResult {
+    const frame = vm.currentFrame.?;
+    push(frame.slots[2]);
+    return .INTERPRET_OK;
+}
+
+fn opGetLocal3() InterpretResult {
+    const frame = vm.currentFrame.?;
+    push(frame.slots[3]);
+    return .INTERPRET_OK;
+}
+
+fn opSetLocal0() InterpretResult {
+    const frame = vm.currentFrame.?;
+    frame.slots[0] = peek(0);
+    return .INTERPRET_OK;
+}
+
+fn opSetLocal1() InterpretResult {
+    const frame = vm.currentFrame.?;
+    frame.slots[1] = peek(0);
+    return .INTERPRET_OK;
+}
+
+fn opSetLocal2() InterpretResult {
+    const frame = vm.currentFrame.?;
+    frame.slots[2] = peek(0);
+    return .INTERPRET_OK;
+}
+
+fn opSetLocal3() InterpretResult {
+    const frame = vm.currentFrame.?;
+    frame.slots[3] = peek(0);
+    return .INTERPRET_OK;
+}
+
 fn opNil() InterpretResult {
     push(Value.init_nil());
     return .INTERPRET_OK;
@@ -749,6 +965,7 @@ fn opGetLocal() InterpretResult {
     const frame = vm.currentFrame.?;
     const slot = frame.ip[0];
     frame.ip += 1;
+
     push(frame.slots[slot]);
     return .INTERPRET_OK;
 }
@@ -757,7 +974,9 @@ fn opSetLocal() InterpretResult {
     const frame = vm.currentFrame.?;
     const slot = frame.ip[0];
     frame.ip += 1;
+
     frame.slots[slot] = peek(0);
+
     return .INTERPRET_OK;
 }
 
@@ -1513,6 +1732,536 @@ fn opLoop() InterpretResult {
     const frame = vm.currentFrame.?;
     const offset = readOffset(frame);
     frame.ip -= offset;
+    return .INTERPRET_OK;
+}
+
+// Phase 2.3 Optimization: Short jump opcodes (91-93)
+// These opcodes use i8 offset instead of u16, saving 1 byte per jump
+// Suitable for jumps within ±127 bytes
+
+fn opJumpShort() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const offset: i8 = @bitCast(frame.ip[0]);
+    frame.ip += 1;
+    if (offset >= 0) {
+        frame.ip += @as(usize, @intCast(offset));
+    } else {
+        frame.ip -= @as(usize, @intCast(-offset));
+    }
+    return .INTERPRET_OK;
+}
+
+fn opJumpIfFalseShort() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const offset: i8 = @bitCast(frame.ip[0]);
+    frame.ip += 1;
+    if (isFalsey(peek(0))) {
+        if (offset >= 0) {
+            frame.ip += @as(usize, @intCast(offset));
+        } else {
+            frame.ip -= @as(usize, @intCast(-offset));
+        }
+    }
+    return .INTERPRET_OK;
+}
+
+fn opLoopShort() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const offset: i8 = @bitCast(frame.ip[0]);
+    frame.ip += 1;
+    // Loop offsets are always positive (backward jump)
+    frame.ip -= @as(usize, @intCast(offset));
+    return .INTERPRET_OK;
+}
+
+// ============================================================
+// PHASE 3 HANDLERS: Superinstructions (100-191)
+// ============================================================
+
+/// OP_DEFINE_GLOBAL_CONST handler
+/// Fuses: OP_CONSTANT + OP_DEFINE_GLOBAL
+/// Format: [opcode] [global_name_idx:u8] [value_const_idx:u8]
+fn opDefineGlobalConst() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const global_name_idx = frame.ip[0];
+    const value_const_idx = frame.ip[1];
+    frame.ip += 2;
+
+    const name_constant = getConstant(frame, global_name_idx) orelse {
+        runtimeError("Invalid constant index for global name.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    const value_constant = getConstant(frame, value_const_idx) orelse {
+        runtimeError("Invalid constant index for value.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+
+    const name = name_constant.as_string();
+    _ = tableSet(&vm.globals, name, value_constant);
+    return .INTERPRET_OK;
+}
+
+/// OP_SET_GLOBAL_CONST handler
+/// Fuses: OP_CONSTANT + OP_SET_GLOBAL
+fn opSetGlobalConst() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const global_name_idx = frame.ip[0];
+    const value_const_idx = frame.ip[1];
+    frame.ip += 2;
+
+    const name_constant = getConstant(frame, global_name_idx) orelse {
+        runtimeError("Invalid constant index for global name.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    const value_constant = getConstant(frame, value_const_idx) orelse {
+        runtimeError("Invalid constant index for value.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+
+    const name = name_constant.as_string();
+    if (!tableSet(&vm.globals, name, value_constant)) {
+        runtimeError("Undefined variable '{s}'.", .{name.chars[0..@intCast(name.length)]});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    return .INTERPRET_OK;
+}
+
+/// OP_GET_GLOBAL_ADD handler
+/// Fuses: OP_GET_GLOBAL + OP_ADD
+/// Assumes second operand is already on stack
+fn opGetGlobalAdd() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant_index = frame.ip[0];
+    frame.ip += 1;
+
+    const constant = getConstant(frame, constant_index) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    const name = constant.as_string();
+    var value: Value = undefined;
+    if (!tableGet(&vm.globals, name, &value)) {
+        runtimeError("Undefined variable '{s}'.", .{name.chars[0..@intCast(name.length)]});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    // Now perform ADD with value and top of stack
+    const b = pop();
+    const a = value;
+
+    if (a.is_string() or b.is_string()) {
+        const a_str_ptr = stringify(a);
+        if (a_str_ptr == null) {
+            runtimeError("Operands must be two numbers or two strings.", .{});
+            return .INTERPRET_RUNTIME_ERROR;
+        }
+        push(Value.init_obj(@ptrCast(a_str_ptr.?)));
+        const b_str_ptr = stringify(b);
+        if (b_str_ptr == null) {
+            _ = pop();
+            runtimeError("Operands must be two numbers or two strings.", .{});
+            return .INTERPRET_RUNTIME_ERROR;
+        }
+        push(Value.init_obj(@ptrCast(b_str_ptr.?)));
+
+        // Inline string concatenation
+        const b_str = peek(0).as_string();
+        const a_str = peek(1).as_string();
+        const length = a_str.length + b_str.length;
+        const allocator = mem_utils.getAllocator();
+        const chars_slice = mem_utils.alloc(allocator, u8, length + 1) catch {
+            _ = pop();
+            _ = pop();
+            runtimeError("Out of memory.", .{});
+            return .INTERPRET_RUNTIME_ERROR;
+        };
+        const chars_ptr: [*]u8 = chars_slice.ptr;
+        @memcpy(chars_ptr[0..a_str.length], a_str.chars[0..a_str.length]);
+        @memcpy(chars_ptr[a_str.length..length], b_str.chars[0..b_str.length]);
+        chars_ptr[length] = 0;
+        const result = String.takeWithAllocator(chars_slice, length, allocator);
+        _ = pop();
+        _ = pop();
+        _ = pop();
+        _ = pop();
+        push(Value.init_obj(@ptrCast(result)));
+    } else if (a.is_int() and b.is_int()) {
+        push(Value.init_int(a.as_int() + b.as_int()));
+    } else if (a.is_prim_num() and b.is_prim_num()) {
+        push(Value.init_double(a.as_num_double() + b.as_num_double()));
+    } else {
+        runtimeError("Operands must be numbers.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    return .INTERPRET_OK;
+}
+
+/// OP_GET_GLOBAL_SUBTRACT handler
+fn opGetGlobalSubtract() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant_index = frame.ip[0];
+    frame.ip += 1;
+
+    const constant = getConstant(frame, constant_index) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    const name = constant.as_string();
+    var value: Value = undefined;
+    if (!tableGet(&vm.globals, name, &value)) {
+        runtimeError("Undefined variable '{s}'.", .{name.chars[0..@intCast(name.length)]});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    const b = pop();
+    const a = value;
+
+    if (a.is_int() and b.is_int()) {
+        push(Value.init_int(a.as_int() - b.as_int()));
+    } else if (a.is_prim_num() and b.is_prim_num()) {
+        push(Value.init_double(a.as_num_double() - b.as_num_double()));
+    } else {
+        runtimeError("Operands must be numbers.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    return .INTERPRET_OK;
+}
+
+/// OP_GET_GLOBAL_MULTIPLY handler
+fn opGetGlobalMultiply() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant_index = frame.ip[0];
+    frame.ip += 1;
+
+    const constant = getConstant(frame, constant_index) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    const name = constant.as_string();
+    var value: Value = undefined;
+    if (!tableGet(&vm.globals, name, &value)) {
+        runtimeError("Undefined variable '{s}'.", .{name.chars[0..@intCast(name.length)]});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    const b = pop();
+    const a = value;
+
+    if (a.is_int() and b.is_int()) {
+        push(Value.init_int(a.as_int() * b.as_int()));
+    } else if (a.is_prim_num() and b.is_prim_num()) {
+        push(Value.init_double(a.as_num_double() * b.as_num_double()));
+    } else {
+        runtimeError("Operands must be numbers.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    return .INTERPRET_OK;
+}
+
+/// OP_GET_GLOBAL_DIVIDE handler
+fn opGetGlobalDivide() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant_index = frame.ip[0];
+    frame.ip += 1;
+
+    const constant = getConstant(frame, constant_index) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    const name = constant.as_string();
+    var value: Value = undefined;
+    if (!tableGet(&vm.globals, name, &value)) {
+        runtimeError("Undefined variable '{s}'.", .{name.chars[0..@intCast(name.length)]});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    const b = pop();
+    const a = value;
+
+    if (a.is_int() and b.is_int()) {
+        if (b.as_int() == 0) {
+            runtimeError("Division by zero.", .{});
+            return .INTERPRET_RUNTIME_ERROR;
+        }
+        push(Value.init_int(@divTrunc(a.as_int(), b.as_int())));
+    } else if (a.is_prim_num() and b.is_prim_num()) {
+        push(Value.init_double(a.as_num_double() / b.as_num_double()));
+    } else {
+        runtimeError("Operands must be numbers.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    return .INTERPRET_OK;
+}
+
+/// OP_GET_LOCAL_ADD handler
+fn opGetLocalAdd() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const slot = frame.ip[0];
+    frame.ip += 1;
+
+    const value = frame.slots[slot];
+    const b = pop();
+    const a = value;
+
+    if (a.is_string() or b.is_string()) {
+        const a_str_ptr = stringify(a);
+        if (a_str_ptr == null) {
+            runtimeError("Operands must be two numbers or two strings.", .{});
+            return .INTERPRET_RUNTIME_ERROR;
+        }
+        push(Value.init_obj(@ptrCast(a_str_ptr.?)));
+        const b_str_ptr = stringify(b);
+        if (b_str_ptr == null) {
+            _ = pop();
+            runtimeError("Operands must be two numbers or two strings.", .{});
+            return .INTERPRET_RUNTIME_ERROR;
+        }
+        push(Value.init_obj(@ptrCast(b_str_ptr.?)));
+
+        // Inline string concatenation
+        const b_str = peek(0).as_string();
+        const a_str = peek(1).as_string();
+        const length = a_str.length + b_str.length;
+        const allocator = mem_utils.getAllocator();
+        const chars_slice = mem_utils.alloc(allocator, u8, length + 1) catch {
+            _ = pop();
+            _ = pop();
+            runtimeError("Out of memory.", .{});
+            return .INTERPRET_RUNTIME_ERROR;
+        };
+        const chars_ptr: [*]u8 = chars_slice.ptr;
+        @memcpy(chars_ptr[0..a_str.length], a_str.chars[0..a_str.length]);
+        @memcpy(chars_ptr[a_str.length..length], b_str.chars[0..b_str.length]);
+        chars_ptr[length] = 0;
+        const result = String.takeWithAllocator(chars_slice, length, allocator);
+        _ = pop();
+        _ = pop();
+        _ = pop();
+        _ = pop();
+        push(Value.init_obj(@ptrCast(result)));
+    } else if (a.is_int() and b.is_int()) {
+        push(Value.init_int(a.as_int() + b.as_int()));
+    } else if (a.is_prim_num() and b.is_prim_num()) {
+        push(Value.init_double(a.as_num_double() + b.as_num_double()));
+    } else {
+        runtimeError("Operands must be numbers.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    return .INTERPRET_OK;
+}
+
+/// OP_GET_GLOBAL_GLOBAL handler
+/// Fuses: OP_GET_GLOBAL + OP_GET_GLOBAL
+fn opGetGlobalGlobal() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant_index1 = frame.ip[0];
+    const constant_index2 = frame.ip[1];
+    frame.ip += 2;
+
+    // Get first global
+    const constant1 = getConstant(frame, constant_index1) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    const name1 = constant1.as_string();
+    var value1: Value = undefined;
+    if (!tableGet(&vm.globals, name1, &value1)) {
+        runtimeError("Undefined variable '{s}'.", .{name1.chars[0..@intCast(name1.length)]});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    push(value1);
+
+    // Get second global
+    const constant2 = getConstant(frame, constant_index2) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    const name2 = constant2.as_string();
+    var value2: Value = undefined;
+    if (!tableGet(&vm.globals, name2, &value2)) {
+        runtimeError("Undefined variable '{s}'.", .{name2.chars[0..@intCast(name2.length)]});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    push(value2);
+
+    return .INTERPRET_OK;
+}
+
+/// OP_GET_LOCAL_LOCAL handler
+fn opGetLocalLocal() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const slot1 = frame.ip[0];
+    const slot2 = frame.ip[1];
+    frame.ip += 2;
+
+    push(frame.slots[slot1]);
+    push(frame.slots[slot2]);
+    return .INTERPRET_OK;
+}
+
+/// OP_GET_GLOBAL_LOCAL handler
+fn opGetGlobalLocal() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const global_idx = frame.ip[0];
+    const local_idx = frame.ip[1];
+    frame.ip += 2;
+
+    // Get global
+    const constant = getConstant(frame, global_idx) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    const name = constant.as_string();
+    var value: Value = undefined;
+    if (!tableGet(&vm.globals, name, &value)) {
+        runtimeError("Undefined variable '{s}'.", .{name.chars[0..@intCast(name.length)]});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    push(value);
+
+    // Get local
+    push(frame.slots[local_idx]);
+    return .INTERPRET_OK;
+}
+
+/// OP_GET_LOCAL_GLOBAL handler
+fn opGetLocalGlobal() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const local_idx = frame.ip[0];
+    const global_idx = frame.ip[1];
+    frame.ip += 2;
+
+    // Get local
+    push(frame.slots[local_idx]);
+
+    // Get global
+    const constant = getConstant(frame, global_idx) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    const name = constant.as_string();
+    var value: Value = undefined;
+    if (!tableGet(&vm.globals, name, &value)) {
+        runtimeError("Undefined variable '{s}'.", .{name.chars[0..@intCast(name.length)]});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    push(value);
+
+    return .INTERPRET_OK;
+}
+
+/// OP_CONSTANT_CONSTANT handler
+fn opConstantConstant() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant_index1 = frame.ip[0];
+    const constant_index2 = frame.ip[1];
+    frame.ip += 2;
+
+    const constant1 = getConstant(frame, constant_index1) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    push(constant1);
+
+    const constant2 = getConstant(frame, constant_index2) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    push(constant2);
+
+    return .INTERPRET_OK;
+}
+
+/// OP_CONSTANT_ADD handler
+fn opConstantAdd() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant_index = frame.ip[0];
+    frame.ip += 1;
+
+    const constant = getConstant(frame, constant_index) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+
+    const b = pop();
+    const a = constant;
+
+    if (a.is_string() or b.is_string()) {
+        const a_str_ptr = stringify(a);
+        if (a_str_ptr == null) {
+            runtimeError("Operands must be two numbers or two strings.", .{});
+            return .INTERPRET_RUNTIME_ERROR;
+        }
+        push(Value.init_obj(@ptrCast(a_str_ptr.?)));
+        const b_str_ptr = stringify(b);
+        if (b_str_ptr == null) {
+            _ = pop();
+            runtimeError("Operands must be two numbers or two strings.", .{});
+            return .INTERPRET_RUNTIME_ERROR;
+        }
+        push(Value.init_obj(@ptrCast(b_str_ptr.?)));
+
+        // Inline string concatenation
+        const b_str = peek(0).as_string();
+        const a_str = peek(1).as_string();
+        const length = a_str.length + b_str.length;
+        const allocator = mem_utils.getAllocator();
+        const chars_slice = mem_utils.alloc(allocator, u8, length + 1) catch {
+            _ = pop();
+            _ = pop();
+            runtimeError("Out of memory.", .{});
+            return .INTERPRET_RUNTIME_ERROR;
+        };
+        const chars_ptr: [*]u8 = chars_slice.ptr;
+        @memcpy(chars_ptr[0..a_str.length], a_str.chars[0..a_str.length]);
+        @memcpy(chars_ptr[a_str.length..length], b_str.chars[0..b_str.length]);
+        chars_ptr[length] = 0;
+        const result = String.takeWithAllocator(chars_slice, length, allocator);
+        _ = pop();
+        _ = pop();
+        _ = pop();
+        _ = pop();
+        push(Value.init_obj(@ptrCast(result)));
+    } else if (a.is_int() and b.is_int()) {
+        push(Value.init_int(a.as_int() + b.as_int()));
+    } else if (a.is_prim_num() and b.is_prim_num()) {
+        push(Value.init_double(a.as_num_double() + b.as_num_double()));
+    } else {
+        runtimeError("Operands must be numbers.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    return .INTERPRET_OK;
+}
+
+/// OP_CONSTANT_MULTIPLY handler
+fn opConstantMultiply() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant_index = frame.ip[0];
+    frame.ip += 1;
+
+    const constant = getConstant(frame, constant_index) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+
+    const b = pop();
+    const a = constant;
+
+    if (a.is_int() and b.is_int()) {
+        push(Value.init_int(a.as_int() * b.as_int()));
+    } else if (a.is_prim_num() and b.is_prim_num()) {
+        push(Value.init_double(a.as_num_double() * b.as_num_double()));
+    } else {
+        runtimeError("Operands must be numbers.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
     return .INTERPRET_OK;
 }
 
@@ -2476,6 +3225,55 @@ const jumpTable = blk: {
     table[@intFromEnum(OpCode.OP_IMPORT_SPECIFIC)] = opImportSpecific;
     table[@intFromEnum(OpCode.OP_IMPORT_MODULE_AS)] = opImportModuleAs;
     table[@intFromEnum(OpCode.OP_GET_MODULE_MEMBER)] = opGetModuleMember;
+
+    // Phase 2.1: Small constant opcodes (67-82)
+    table[@intFromEnum(OpCode.OP_CONSTANT_0)] = opConstant0;
+    table[@intFromEnum(OpCode.OP_CONSTANT_1)] = opConstant1;
+    table[@intFromEnum(OpCode.OP_CONSTANT_2)] = opConstant2;
+    table[@intFromEnum(OpCode.OP_CONSTANT_3)] = opConstant3;
+    table[@intFromEnum(OpCode.OP_CONSTANT_4)] = opConstant4;
+    table[@intFromEnum(OpCode.OP_CONSTANT_5)] = opConstant5;
+    table[@intFromEnum(OpCode.OP_CONSTANT_6)] = opConstant6;
+    table[@intFromEnum(OpCode.OP_CONSTANT_7)] = opConstant7;
+    table[@intFromEnum(OpCode.OP_CONSTANT_8)] = opConstant8;
+    table[@intFromEnum(OpCode.OP_CONSTANT_9)] = opConstant9;
+    table[@intFromEnum(OpCode.OP_CONSTANT_10)] = opConstant10;
+    table[@intFromEnum(OpCode.OP_CONSTANT_11)] = opConstant11;
+    table[@intFromEnum(OpCode.OP_CONSTANT_12)] = opConstant12;
+    table[@intFromEnum(OpCode.OP_CONSTANT_13)] = opConstant13;
+    table[@intFromEnum(OpCode.OP_CONSTANT_14)] = opConstant14;
+    table[@intFromEnum(OpCode.OP_CONSTANT_15)] = opConstant15;
+
+    // Phase 2.2: Small local opcodes (83-90)
+    table[@intFromEnum(OpCode.OP_GET_LOCAL_0)] = opGetLocal0;
+    table[@intFromEnum(OpCode.OP_GET_LOCAL_1)] = opGetLocal1;
+    table[@intFromEnum(OpCode.OP_GET_LOCAL_2)] = opGetLocal2;
+    table[@intFromEnum(OpCode.OP_GET_LOCAL_3)] = opGetLocal3;
+    table[@intFromEnum(OpCode.OP_SET_LOCAL_0)] = opSetLocal0;
+    table[@intFromEnum(OpCode.OP_SET_LOCAL_1)] = opSetLocal1;
+    table[@intFromEnum(OpCode.OP_SET_LOCAL_2)] = opSetLocal2;
+    table[@intFromEnum(OpCode.OP_SET_LOCAL_3)] = opSetLocal3;
+
+    // Phase 2.3: Short jump opcodes (91-93)
+    table[@intFromEnum(OpCode.OP_JUMP_SHORT)] = opJumpShort;
+    table[@intFromEnum(OpCode.OP_JUMP_IF_FALSE_SHORT)] = opJumpIfFalseShort;
+    table[@intFromEnum(OpCode.OP_LOOP_SHORT)] = opLoopShort;
+
+    // Phase 3: Superinstructions (100-191)
+    table[@intFromEnum(OpCode.OP_DEFINE_GLOBAL_CONST)] = opDefineGlobalConst;
+    table[@intFromEnum(OpCode.OP_SET_GLOBAL_CONST)] = opSetGlobalConst;
+    table[@intFromEnum(OpCode.OP_GET_GLOBAL_ADD)] = opGetGlobalAdd;
+    table[@intFromEnum(OpCode.OP_GET_GLOBAL_SUBTRACT)] = opGetGlobalSubtract;
+    table[@intFromEnum(OpCode.OP_GET_GLOBAL_MULTIPLY)] = opGetGlobalMultiply;
+    table[@intFromEnum(OpCode.OP_GET_GLOBAL_DIVIDE)] = opGetGlobalDivide;
+    table[@intFromEnum(OpCode.OP_GET_LOCAL_ADD)] = opGetLocalAdd;
+    table[@intFromEnum(OpCode.OP_GET_GLOBAL_GLOBAL)] = opGetGlobalGlobal;
+    table[@intFromEnum(OpCode.OP_GET_LOCAL_LOCAL)] = opGetLocalLocal;
+    table[@intFromEnum(OpCode.OP_GET_GLOBAL_LOCAL)] = opGetGlobalLocal;
+    table[@intFromEnum(OpCode.OP_GET_LOCAL_GLOBAL)] = opGetLocalGlobal;
+    table[@intFromEnum(OpCode.OP_CONSTANT_CONSTANT)] = opConstantConstant;
+    table[@intFromEnum(OpCode.OP_CONSTANT_ADD)] = opConstantAdd;
+    table[@intFromEnum(OpCode.OP_CONSTANT_MULTIPLY)] = opConstantMultiply;
 
     break :blk table;
 };

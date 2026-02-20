@@ -338,11 +338,11 @@ pub fn emitJump(instruction: u8) i32 {
 }
 pub fn emitReturn() void {
     if (current.?.type_ == .TYPE_INITIALIZER) {
-        emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), 0);
+        emitBytes(@intFromEnum(OpCode.OP_GET_LOCAL), 0);
     } else {
-        emitByte(@intCast(@intFromEnum(OpCode.OP_NIL)));
+        emitByte(@intFromEnum(OpCode.OP_NIL));
     }
-    emitByte(@intCast(@intFromEnum(OpCode.OP_RETURN)));
+    emitByte(@intFromEnum(OpCode.OP_RETURN));
 }
 pub fn makeConstant(value: Value) u8 {
     const constant: i32 = chunk_h.addConstant(currentChunk(), value);
@@ -459,9 +459,9 @@ pub fn endScope() void {
     current.?.scopeDepth -= 1;
     while ((current.?.localCount > 0) and (current.?.locals[@as(c_uint, @intCast(current.?.localCount - 1))].depth > current.?.scopeDepth)) {
         if (current.?.locals[@as(c_uint, @intCast(current.?.localCount - 1))].isCaptured) {
-            emitByte(@intCast(@intFromEnum(OpCode.OP_CLOSE_UPVALUE)));
+            emitByte(@intFromEnum(OpCode.OP_CLOSE_UPVALUE));
         } else {
-            emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+            emitByte(@intFromEnum(OpCode.OP_POP));
         }
         current.?.localCount -= 1;
     }
@@ -845,7 +845,7 @@ pub fn defineVariable(global: u8) void {
         }
     }
 
-    emitBytes(@intCast(@intFromEnum(OpCode.OP_DEFINE_GLOBAL)), global);
+    emitBytes(@intFromEnum(OpCode.OP_DEFINE_GLOBAL), global);
 }
 
 pub fn defineConstVariable(global: u8) void {
@@ -864,7 +864,7 @@ pub fn defineConstVariable(global: u8) void {
         }
     }
 
-    emitBytes(@intCast(@intFromEnum(OpCode.OP_DEFINE_CONST_GLOBAL)), global);
+    emitBytes(@intFromEnum(OpCode.OP_DEFINE_CONST_GLOBAL), global);
 }
 
 pub fn argumentList() u8 {
@@ -889,9 +889,9 @@ pub fn argumentList() u8 {
 }
 pub fn and_(canAssign: bool) void {
     _ = canAssign;
-    var endJump: i32 = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
+    var endJump: i32 = emitJump(@intFromEnum(OpCode.OP_JUMP_IF_FALSE));
     _ = &endJump;
-    emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+    emitByte(@intFromEnum(OpCode.OP_POP));
     parsePrecedence(PREC_AND);
     patchJump(endJump);
 }
@@ -903,51 +903,51 @@ pub fn binary(canAssign: bool) void {
     while (true) {
         switch (operatorType) {
             .TOKEN_BANG_EQUAL => {
-                emitBytes(@intCast(@intFromEnum(OpCode.OP_EQUAL)), @intCast(@intFromEnum(OpCode.OP_NOT)));
+                emitBytes(@intFromEnum(OpCode.OP_EQUAL), @intFromEnum(OpCode.OP_NOT));
                 break;
             },
             .TOKEN_EQUAL_EQUAL => {
-                emitByte(@intCast(@intFromEnum(OpCode.OP_EQUAL)));
+                emitByte(@intFromEnum(OpCode.OP_EQUAL));
                 break;
             },
             .TOKEN_GREATER => {
-                emitByte(@intCast(@intFromEnum(OpCode.OP_GREATER)));
+                emitByte(@intFromEnum(OpCode.OP_GREATER));
                 break;
             },
             .TOKEN_GREATER_EQUAL => {
-                emitBytes(@intCast(@intFromEnum(OpCode.OP_LESS)), @intCast(@intFromEnum(OpCode.OP_NOT)));
+                emitBytes(@intFromEnum(OpCode.OP_LESS), @intFromEnum(OpCode.OP_NOT));
                 break;
             },
             .TOKEN_LESS => {
-                emitByte(@intCast(@intFromEnum(OpCode.OP_LESS)));
+                emitByte(@intFromEnum(OpCode.OP_LESS));
                 break;
             },
             .TOKEN_LESS_EQUAL => {
-                emitBytes(@intCast(@intFromEnum(OpCode.OP_GREATER)), @intCast(@intFromEnum(OpCode.OP_NOT)));
+                emitBytes(@intFromEnum(OpCode.OP_GREATER), @intFromEnum(OpCode.OP_NOT));
                 break;
             },
             .TOKEN_PLUS => {
-                emitByte(@intCast(@intFromEnum(OpCode.OP_ADD)));
+                emitByte(@intFromEnum(OpCode.OP_ADD));
                 break;
             },
             .TOKEN_MINUS => {
-                emitByte(@intCast(@intFromEnum(OpCode.OP_SUBTRACT)));
+                emitByte(@intFromEnum(OpCode.OP_SUBTRACT));
                 break;
             },
             .TOKEN_STAR => {
-                emitByte(@intCast(@intFromEnum(OpCode.OP_MULTIPLY)));
+                emitByte(@intFromEnum(OpCode.OP_MULTIPLY));
                 break;
             },
             .TOKEN_SLASH => {
-                emitByte(@intCast(@intFromEnum(OpCode.OP_DIVIDE)));
+                emitByte(@intFromEnum(OpCode.OP_DIVIDE));
                 break;
             },
             .TOKEN_PERCENT => {
-                emitByte(@intCast(@intFromEnum(OpCode.OP_MODULO)));
+                emitByte(@intFromEnum(OpCode.OP_MODULO));
                 break;
             },
             .TOKEN_HAT => {
-                emitByte(@intCast(@intFromEnum(OpCode.OP_EXPONENT)));
+                emitByte(@intFromEnum(OpCode.OP_EXPONENT));
                 break;
             },
             else => return,
@@ -959,7 +959,7 @@ pub fn call(canAssign: bool) void {
     _ = &canAssign;
     var argCount: u8 = argumentList();
     _ = &argCount;
-    emitBytes(@intCast(@intFromEnum(OpCode.OP_CALL)), argCount);
+    emitBytes(@intFromEnum(OpCode.OP_CALL), argCount);
 }
 pub fn dot(canAssign: bool) void {
     consume(.TOKEN_IDENTIFIER, "Expect property name after '.'.");
@@ -967,31 +967,31 @@ pub fn dot(canAssign: bool) void {
     _ = &name;
     if ((@as(i32, @intFromBool(canAssign)) != 0) and (@as(i32, @intFromBool(match(.TOKEN_EQUAL))) != 0)) {
         expression();
-        emitBytes(@intCast(@intFromEnum(OpCode.OP_SET_PROPERTY)), name);
+        emitBytes(@intFromEnum(OpCode.OP_SET_PROPERTY), name);
     } else if (match(.TOKEN_LEFT_PAREN)) {
         var argCount: u8 = argumentList();
         _ = &argCount;
-        emitBytes(@intCast(@intFromEnum(OpCode.OP_INVOKE)), name);
+        emitBytes(@intFromEnum(OpCode.OP_INVOKE), name);
         emitByte(argCount);
     } else {
         // Check if we're accessing a module member or instance property
         // At runtime, OP_GET_PROPERTY will check the object type and route accordingly
         // For modules, it will use OP_GET_MODULE_MEMBER behavior
         // For instances, it will use the normal property access
-        emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_PROPERTY)), name);
+        emitBytes(@intFromEnum(OpCode.OP_GET_PROPERTY), name);
     }
 }
 pub fn literal(canAssign: bool) void {
     _ = canAssign;
     switch (parser.previous.type) {
         .TOKEN_FALSE => {
-            emitByte(@intCast(@intFromEnum(OpCode.OP_FALSE)));
+            emitByte(@intFromEnum(OpCode.OP_FALSE));
         },
         .TOKEN_NIL => {
-            emitByte(@intCast(@intFromEnum(OpCode.OP_NIL)));
+            emitByte(@intFromEnum(OpCode.OP_NIL));
         },
         .TOKEN_TRUE => {
-            emitByte(@intCast(@intFromEnum(OpCode.OP_TRUE)));
+            emitByte(@intFromEnum(OpCode.OP_TRUE));
         },
         else => {},
     }
@@ -1119,12 +1119,12 @@ fn isDigitChar(c: u8) bool {
 }
 pub fn or_(canAssign: bool) void {
     _ = canAssign;
-    var elseJump: i32 = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
+    var elseJump: i32 = emitJump(@intFromEnum(OpCode.OP_JUMP_IF_FALSE));
     _ = &elseJump;
-    var endJump: i32 = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+    var endJump: i32 = emitJump(@intFromEnum(OpCode.OP_JUMP));
     _ = &endJump;
     patchJump(elseJump);
-    emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+    emitByte(@intFromEnum(OpCode.OP_POP));
     parsePrecedence(PREC_OR);
     patchJump(endJump);
 }
@@ -1133,18 +1133,18 @@ pub fn ternary(canAssign: bool) void {
     _ = canAssign;
 
     // Jump to else branch if condition is false
-    const elseJump: i32 = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
-    emitByte(@intCast(@intFromEnum(OpCode.OP_POP))); // Pop condition
+    const elseJump: i32 = emitJump(@intFromEnum(OpCode.OP_JUMP_IF_FALSE));
+    emitByte(@intFromEnum(OpCode.OP_POP)); // Pop condition
 
     // Parse the true expression
     parsePrecedence(PREC_TERNARY);
 
     // Jump over the false expression
-    const endJump: i32 = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+    const endJump: i32 = emitJump(@intFromEnum(OpCode.OP_JUMP));
 
     // Patch the else jump to come here
     patchJump(elseJump);
-    emitByte(@intCast(@intFromEnum(OpCode.OP_POP))); // Pop condition (for false branch)
+    emitByte(@intFromEnum(OpCode.OP_POP)); // Pop condition (for false branch)
 
     // Expect ':' separator
     consume(.TOKEN_COLON, "Expect ':' after ternary true expression.");
@@ -1254,7 +1254,7 @@ pub fn fstring(canAssign: bool) void {
     }
 
     // Emit format function call
-    emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_GLOBAL)), makeConstant(Value.init_obj(@ptrCast(object_h.copyStringLiteral("format", 6)))));
+    emitBytes(@intFromEnum(OpCode.OP_GET_GLOBAL), makeConstant(Value.init_obj(@ptrCast(object_h.copyStringLiteral("format", 6)))));
 
     // Emit template string as first argument
     const template_value = Value.init_obj(@ptrCast(object_h.copyStringLiteral(template_buffer[0..template_pos].ptr, template_pos)));
@@ -1271,7 +1271,7 @@ pub fn fstring(canAssign: bool) void {
 
         if (expr_text.len == 0) {
             // Empty expression, emit nil
-            emitByte(@intCast(@intFromEnum(OpCode.OP_NIL)));
+            emitByte(@intFromEnum(OpCode.OP_NIL));
         } else {
             // Set up scanner for this expression
             scanner_h.scanner.start = expr_text.ptr;
@@ -1292,7 +1292,7 @@ pub fn fstring(canAssign: bool) void {
     parser.previous = saved_previous;
 
     // Call format function
-    emitBytes(@intCast(@intFromEnum(OpCode.OP_CALL)), arg_count + 1);
+    emitBytes(@intFromEnum(OpCode.OP_CALL), arg_count + 1);
 }
 // pub fn array(canAssign: bool)  void {
 //     _ = &canAssign;
@@ -1309,7 +1309,7 @@ pub fn fstring(canAssign: bool) void {
 //         }
 //     }
 //     consume(.TOKEN_RIGHT_SQPAREN, "Expect ']' after array elements.");
-//     emitBytes(@intCast(@intFromEnum(OpCode.OP_ARRAY)), argCount);
+//     emitBytes(@intFromEnum(OpCode.OP_ARRAY), argCount);
 // Handle either dictionary or fvector literals
 pub fn rangeExclusive(canAssign: bool) void {
     _ = canAssign;
@@ -1318,7 +1318,7 @@ pub fn rangeExclusive(canAssign: bool) void {
     parsePrecedence(@as(c_uint, @bitCast(PREC_RANGE + 1)));
 
     // Emit the range creation instruction with exclusive flag
-    emitByte(@intCast(@intFromEnum(OpCode.OP_RANGE)));
+    emitByte(@intFromEnum(OpCode.OP_RANGE));
 }
 
 pub fn rangeInclusive(canAssign: bool) void {
@@ -1328,7 +1328,7 @@ pub fn rangeInclusive(canAssign: bool) void {
     parsePrecedence(@as(c_uint, @bitCast(PREC_RANGE + 1)));
 
     // Emit the range creation instruction with inclusive flag
-    emitByte(@intCast(@intFromEnum(OpCode.OP_RANGE_INCLUSIVE)));
+    emitByte(@intFromEnum(OpCode.OP_RANGE_INCLUSIVE));
 }
 
 pub fn pair(canAssign: bool) void {
@@ -1338,7 +1338,7 @@ pub fn pair(canAssign: bool) void {
     parsePrecedence(@as(c_uint, @bitCast(PREC_TERM + 1)));
 
     // Emit the pair creation instruction
-    emitByte(@intCast(@intFromEnum(OpCode.OP_PAIR)));
+    emitByte(@intFromEnum(OpCode.OP_PAIR));
 }
 
 // Helper function to determine if the current token sequence looks like a range pattern
@@ -1399,7 +1399,7 @@ pub fn objectLiteral(canAssign: bool) void {
 
     if (isDict) {
         // It's a dictionary (hash table)
-        emitByte(@intCast(@intFromEnum(OpCode.OP_HASH_TABLE)));
+        emitByte(@intFromEnum(OpCode.OP_HASH_TABLE));
 
         if (!check(.TOKEN_RIGHT_BRACE)) {
             while (true) {
@@ -1424,7 +1424,7 @@ pub fn objectLiteral(canAssign: bool) void {
                 expression();
 
                 // Emit instruction to add entry to hash table
-                emitByte(@intCast(@intFromEnum(OpCode.OP_ADD_ENTRY)));
+                emitByte(@intFromEnum(OpCode.OP_ADD_ENTRY));
 
                 if (!match(.TOKEN_COMMA)) break;
 
@@ -1454,7 +1454,7 @@ pub fn objectLiteral(canAssign: bool) void {
             }
         }
 
-        emitBytes(@intCast(@intFromEnum(OpCode.OP_FVECTOR)), argCount);
+        emitBytes(@intFromEnum(OpCode.OP_FVECTOR), argCount);
     }
 
     consume(.TOKEN_RIGHT_BRACE, "Expect '}' after object literal");
@@ -1525,7 +1525,7 @@ fn matrixLiteral() void {
     consume(.TOKEN_RIGHT_SQPAREN, "Expect ']' after matrix literal");
 
     // Emit matrix creation instruction with dimensions
-    emitBytes(@intCast(@intFromEnum(OpCode.OP_MATRIX)), rowCount);
+    emitBytes(@intFromEnum(OpCode.OP_MATRIX), rowCount);
     emitByte(colCount);
 }
 
@@ -1547,7 +1547,7 @@ fn regularVector() void {
         }
     }
     consume(.TOKEN_RIGHT_SQPAREN, "Expect ']' after vector elements.");
-    emitBytes(@intCast(@intFromEnum(OpCode.OP_FVECTOR)), argCount);
+    emitBytes(@intFromEnum(OpCode.OP_FVECTOR), argCount);
 }
 pub fn namedVariable(name: Token, canAssign: bool) void {
     var getOp: u8 = undefined;
@@ -1556,21 +1556,21 @@ pub fn namedVariable(name: Token, canAssign: bool) void {
     var isLocal: bool = false;
 
     if (arg != -1) {
-        getOp = @intCast(@intFromEnum(OpCode.OP_GET_LOCAL));
-        setOp = @intCast(@intFromEnum(OpCode.OP_SET_LOCAL));
+        getOp = @intFromEnum(OpCode.OP_GET_LOCAL);
+        setOp = @intFromEnum(OpCode.OP_SET_LOCAL);
         isLocal = true;
     } else if ((blk: {
         arg = resolveUpvalue(current.?, @constCast(&name));
         break :blk arg;
     }) != -1) {
-        getOp = @intCast(@intFromEnum(OpCode.OP_GET_UPVALUE));
-        setOp = @intCast(@intFromEnum(OpCode.OP_SET_UPVALUE));
+        getOp = @intFromEnum(OpCode.OP_GET_UPVALUE);
+        setOp = @intFromEnum(OpCode.OP_SET_UPVALUE);
     } else {
         // For now, we'll let undefined globals be caught at runtime
         // since compile-time detection is complex with dynamic scoping
         arg = @intCast(identifierConstant(@constCast(&name)));
-        getOp = @intCast(@intFromEnum(OpCode.OP_GET_GLOBAL));
-        setOp = @intCast(@intFromEnum(OpCode.OP_SET_GLOBAL));
+        getOp = @intFromEnum(OpCode.OP_GET_GLOBAL);
+        setOp = @intFromEnum(OpCode.OP_SET_GLOBAL);
     }
     if ((@as(i32, @intFromBool(canAssign)) != 0) and (@as(i32, @intFromBool(match(.TOKEN_EQUAL))) != 0)) {
         // Check if trying to assign to a const local variable (only for locals)
@@ -1603,19 +1603,19 @@ pub fn namedVariable(name: Token, canAssign: bool) void {
         while (true) {
             switch (parser.previous.type) {
                 .TOKEN_PLUS_EQUAL => {
-                    emitByte(@intCast(@intFromEnum(OpCode.OP_ADD)));
+                    emitByte(@intFromEnum(OpCode.OP_ADD));
                     break;
                 },
                 .TOKEN_MINUS_EQUAL => {
-                    emitByte(@intCast(@intFromEnum(OpCode.OP_SUBTRACT)));
+                    emitByte(@intFromEnum(OpCode.OP_SUBTRACT));
                     break;
                 },
                 .TOKEN_STAR_EQUAL => {
-                    emitByte(@intCast(@intFromEnum(OpCode.OP_MULTIPLY)));
+                    emitByte(@intFromEnum(OpCode.OP_MULTIPLY));
                     break;
                 },
                 .TOKEN_SLASH_EQUAL => {
-                    emitByte(@intCast(@intFromEnum(OpCode.OP_DIVIDE)));
+                    emitByte(@intFromEnum(OpCode.OP_DIVIDE));
                     break;
                 },
                 else => return,
@@ -1636,14 +1636,14 @@ pub fn namedVariable(name: Token, canAssign: bool) void {
             return;
         }
         emitBytes(getOp, @as(u8, @bitCast(@as(i8, @truncate(arg)))));
-        emitByte(@intCast(@intFromEnum(OpCode.OP_CONSTANT)));
+        emitByte(@intFromEnum(OpCode.OP_CONSTANT));
         emitByte(makeConstant(Value{
             .type = .VAL_INT,
             .as = .{
                 .num_int = 1,
             },
         }));
-        emitByte(@intCast(@intFromEnum(OpCode.OP_ADD)));
+        emitByte(@intFromEnum(OpCode.OP_ADD));
         emitBytes(setOp, @as(u8, @bitCast(@as(i8, @truncate(arg)))));
     } else if (match(.TOKEN_MINUS_MINUS)) {
         // Check if trying to decrement a const local variable (only for locals)
@@ -1658,14 +1658,14 @@ pub fn namedVariable(name: Token, canAssign: bool) void {
             return;
         }
         emitBytes(getOp, @as(u8, @bitCast(@as(i8, @truncate(arg)))));
-        emitByte(@intCast(@intFromEnum(OpCode.OP_CONSTANT)));
+        emitByte(@intFromEnum(OpCode.OP_CONSTANT));
         emitByte(makeConstant(Value{
             .type = .VAL_INT,
             .as = .{
                 .num_int = 1,
             },
         }));
-        emitByte(@intCast(@intFromEnum(OpCode.OP_SUBTRACT)));
+        emitByte(@intFromEnum(OpCode.OP_SUBTRACT));
         emitBytes(setOp, @as(u8, @bitCast(@as(i8, @truncate(arg)))));
     } else {
         emitBytes(getOp, @as(u8, @bitCast(@as(i8, @truncate(arg)))));
@@ -1722,13 +1722,13 @@ pub fn super_(canAssign: bool) void {
         // Use the "super" local variable that stores the superclass
         namedVariable(syntheticToken("super"), false);
 
-        emitBytes(@intCast(@intFromEnum(OpCode.OP_SUPER_INVOKE)), name);
+        emitBytes(@intFromEnum(OpCode.OP_SUPER_INVOKE), name);
         emitByte(argCount);
     } else {
         // Use the "super" local variable that stores the superclass
         namedVariable(syntheticToken("super"), false);
 
-        emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_SUPER)), name);
+        emitBytes(@intFromEnum(OpCode.OP_GET_SUPER), name);
     }
 }
 pub fn self_(canAssign: bool) void {
@@ -1762,7 +1762,7 @@ pub fn index_(canAssign: bool) void {
             // Emit -1 first, then parse offset, then subtract
             emitConstant(Value.init_int(-1));
             parsePrecedence(@as(c_uint, @bitCast(PREC_UNARY)));
-            emitByte(@intCast(@intFromEnum(OpCode.OP_SUBTRACT)));
+            emitByte(@intFromEnum(OpCode.OP_SUBTRACT));
         } else {
             // Simple 'end', use -1 as sentinel value
             emitConstant(Value.init_int(-1));
@@ -1785,7 +1785,7 @@ pub fn index_(canAssign: bool) void {
                 // Emit -1 first, then parse offset, then subtract
                 emitConstant(Value.init_int(-1));
                 parsePrecedence(@as(c_uint, @bitCast(PREC_UNARY)));
-                emitByte(@intCast(@intFromEnum(OpCode.OP_SUBTRACT)));
+                emitByte(@intFromEnum(OpCode.OP_SUBTRACT));
             } else {
                 // Simple 'end', use -1 as sentinel value
                 emitConstant(Value.init_int(-1));
@@ -1800,14 +1800,14 @@ pub fn index_(canAssign: bool) void {
 
     if (isSlice) {
         // Handle slice operation
-        emitByte(@intCast(@intFromEnum(OpCode.OP_SLICE)));
+        emitByte(@intFromEnum(OpCode.OP_SLICE));
     } else if (canAssign and match(.TOKEN_EQUAL)) {
         // Handle assignment to index
         expression();
-        emitByte(@intCast(@intFromEnum(OpCode.OP_SET_INDEX)));
+        emitByte(@intFromEnum(OpCode.OP_SET_INDEX));
     } else {
         // Handle regular indexing (VM will detect matrices and return matrix row objects)
-        emitByte(@intCast(@intFromEnum(OpCode.OP_GET_INDEX)));
+        emitByte(@intFromEnum(OpCode.OP_GET_INDEX));
     }
 }
 
@@ -1819,11 +1819,11 @@ pub fn unary(canAssign: bool) void {
     while (true) {
         switch (operatorType) {
             .TOKEN_BANG => {
-                emitByte(@intCast(@intFromEnum(OpCode.OP_NOT)));
+                emitByte(@intFromEnum(OpCode.OP_NOT));
                 break;
             },
             .TOKEN_MINUS => {
-                emitByte(@intCast(@intFromEnum(OpCode.OP_NEGATE)));
+                emitByte(@intFromEnum(OpCode.OP_NEGATE));
                 break;
             },
             else => break,
@@ -1861,7 +1861,7 @@ pub fn function(type_: FunctionType) void {
     block();
     var function_1: *ObjFunction = endCompiler();
     _ = &function_1;
-    emitBytes(@intCast(@intFromEnum(OpCode.OP_CLOSURE)), makeConstant(Value{
+    emitBytes(@intFromEnum(OpCode.OP_CLOSURE), makeConstant(Value{
         .type = .VAL_OBJ,
         .as = .{
             .obj = @ptrCast(function_1),
@@ -1886,7 +1886,7 @@ pub fn method() void {
         type_ = .TYPE_INITIALIZER;
     }
     function(type_);
-    emitBytes(@intCast(@intFromEnum(OpCode.OP_METHOD)), constant);
+    emitBytes(@intFromEnum(OpCode.OP_METHOD), constant);
 }
 
 pub fn classDeclaration() void {
@@ -1896,7 +1896,7 @@ pub fn classDeclaration() void {
     var nameConstant: u8 = identifierConstant(&parser.previous);
     _ = &nameConstant;
     declareVariable();
-    emitBytes(@intCast(@intFromEnum(OpCode.OP_CLASS)), nameConstant);
+    emitBytes(@intFromEnum(OpCode.OP_CLASS), nameConstant);
     defineVariable(nameConstant);
     var classCompiler: ClassCompiler = undefined;
     _ = &classCompiler;
@@ -1927,7 +1927,7 @@ pub fn classDeclaration() void {
         defineVariable(0);
 
         namedVariable(className, false);
-        emitByte(@intCast(@intFromEnum(OpCode.OP_INHERIT)));
+        emitByte(@intFromEnum(OpCode.OP_INHERIT));
         currentClass.?.hasSuperclass = true;
     }
 
@@ -1937,7 +1937,7 @@ pub fn classDeclaration() void {
         method();
     }
     consume(.TOKEN_RIGHT_BRACE, "Expect '}' after class body.");
-    emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+    emitByte(@intFromEnum(OpCode.OP_POP));
 
     // End scope for methods, self, and super
     endScope();
@@ -1990,11 +1990,11 @@ pub fn moduleImportStatement() void {
                 .obj = @ptrCast(object_h.copyString(aliasToken.start, @intCast(aliasToken.length))),
             },
         });
-        emitByte(@intCast(@intFromEnum(OpCode.OP_IMPORT_MODULE_AS)));
+        emitByte(@intFromEnum(OpCode.OP_IMPORT_MODULE_AS));
         emitByte(nameConstant);
         emitByte(aliasConstant);
     } else {
-        emitBytes(@intCast(@intFromEnum(OpCode.OP_IMPORT_MODULE)), nameConstant);
+        emitBytes(@intFromEnum(OpCode.OP_IMPORT_MODULE), nameConstant);
     }
 }
 
@@ -2028,9 +2028,9 @@ pub fn fileImportStatement() void {
             .obj = @ptrCast(object_h.copyString(pathStart, @intCast(pathLength))),
         },
     });
-    emitBytes(@intCast(@intFromEnum(OpCode.OP_IMPORT_FILE)), pathConstant);
+    emitBytes(@intFromEnum(OpCode.OP_IMPORT_FILE), pathConstant);
     // Pop the return value from the imported file (imports don't return values to the caller)
-    emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+    emitByte(@intFromEnum(OpCode.OP_POP));
 }
 
 // from math import sin, cos;
@@ -2060,7 +2060,7 @@ pub fn fromImportStatement() void {
             },
         });
 
-        emitByte(@intCast(@intFromEnum(OpCode.OP_IMPORT_SPECIFIC)));
+        emitByte(@intFromEnum(OpCode.OP_IMPORT_SPECIFIC));
         emitByte(moduleConstant);
         emitByte(funcConstant);
 
@@ -2087,7 +2087,7 @@ pub fn varDeclaration() void {
     if (match(.TOKEN_EQUAL)) {
         expression();
     } else {
-        emitByte(@intCast(@intFromEnum(OpCode.OP_NIL)));
+        emitByte(@intFromEnum(OpCode.OP_NIL));
     }
     consume(.TOKEN_SEMICOLON, "Expect ';' after variable declaration.");
     defineVariable(global);
@@ -2116,7 +2116,7 @@ pub fn constDeclaration() void {
 pub fn expressionStatement() void {
     expression();
     consume(.TOKEN_SEMICOLON, "Expect ';' after expression.");
-    emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+    emitByte(@intFromEnum(OpCode.OP_POP));
 }
 pub fn forStatement() void {
     beginScope();
@@ -2133,8 +2133,8 @@ pub fn forStatement() void {
     if (!match(.TOKEN_SEMICOLON)) {
         expression();
         consume(.TOKEN_SEMICOLON, "Expect ';' after loop condition.");
-        exitJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
-        emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+        exitJump = emitJump(@intFromEnum(OpCode.OP_JUMP_IF_FALSE));
+        emitByte(@intFromEnum(OpCode.OP_POP));
     }
 
     // Set up loop tracking for break/continue
@@ -2143,12 +2143,12 @@ pub fn forStatement() void {
     current.?.innermostLoop = &loop;
 
     if (!match(.TOKEN_RIGHT_PAREN)) {
-        var bodyJump: i32 = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+        var bodyJump: i32 = emitJump(@intFromEnum(OpCode.OP_JUMP));
         _ = &bodyJump;
         var incrementStart: i32 = currentChunk().*.count;
         _ = &incrementStart;
         expression();
-        emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+        emitByte(@intFromEnum(OpCode.OP_POP));
         consume(.TOKEN_RIGHT_PAREN, "Expect ')' after for clauses.");
         emitLoop(loopStart);
         loopStart = incrementStart;
@@ -2159,7 +2159,7 @@ pub fn forStatement() void {
     emitLoop(loopStart);
     if (exitJump != -1) {
         patchJump(exitJump);
-        emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+        emitByte(@intFromEnum(OpCode.OP_POP));
     }
 
     // Patch all break jumps to point here
@@ -2207,27 +2207,27 @@ pub fn foreachStatement() void {
     const itemSlot = current.?.localCount;
     addLocal(itemName);
     markInitialized();
-    emitByte(@intCast(@intFromEnum(OpCode.OP_NIL)));
+    emitByte(@intFromEnum(OpCode.OP_NIL));
 
     // Main loop start
     const loopStart: i32 = @intCast(currentChunk().*.count);
 
     // Condition: index < collection.length
-    emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(indexSlot));
-    emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(collectionSlot));
-    emitByte(@intCast(@intFromEnum(OpCode.OP_LENGTH)));
-    emitByte(@intCast(@intFromEnum(OpCode.OP_LESS)));
+    emitBytes(@intFromEnum(OpCode.OP_GET_LOCAL), @intCast(indexSlot));
+    emitBytes(@intFromEnum(OpCode.OP_GET_LOCAL), @intCast(collectionSlot));
+    emitByte(@intFromEnum(OpCode.OP_LENGTH));
+    emitByte(@intFromEnum(OpCode.OP_LESS));
 
     // Exit if condition is false
-    const exitJump: i32 = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
-    emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+    const exitJump: i32 = emitJump(@intFromEnum(OpCode.OP_JUMP_IF_FALSE));
+    emitByte(@intFromEnum(OpCode.OP_POP));
 
     // Set item = collection[index]
-    emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(collectionSlot));
-    emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(indexSlot));
-    emitByte(@intCast(@intFromEnum(OpCode.OP_GET_INDEX)));
-    emitBytes(@intCast(@intFromEnum(OpCode.OP_SET_LOCAL)), @intCast(itemSlot));
-    emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+    emitBytes(@intFromEnum(OpCode.OP_GET_LOCAL), @intCast(collectionSlot));
+    emitBytes(@intFromEnum(OpCode.OP_GET_LOCAL), @intCast(indexSlot));
+    emitByte(@intFromEnum(OpCode.OP_GET_INDEX));
+    emitBytes(@intFromEnum(OpCode.OP_SET_LOCAL), @intCast(itemSlot));
+    emitByte(@intFromEnum(OpCode.OP_POP));
 
     // Set up loop tracking for break/continue before executing body
     // For foreach, we'll patch continue jumps later to jump to increment
@@ -2248,18 +2248,18 @@ pub fn foreachStatement() void {
     }
 
     // Increment: index = index + 1
-    emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(indexSlot));
+    emitBytes(@intFromEnum(OpCode.OP_GET_LOCAL), @intCast(indexSlot));
     emitConstant(Value.init_int(1));
-    emitByte(@intCast(@intFromEnum(OpCode.OP_ADD)));
-    emitBytes(@intCast(@intFromEnum(OpCode.OP_SET_LOCAL)), @intCast(indexSlot));
-    emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+    emitByte(@intFromEnum(OpCode.OP_ADD));
+    emitBytes(@intFromEnum(OpCode.OP_SET_LOCAL), @intCast(indexSlot));
+    emitByte(@intFromEnum(OpCode.OP_POP));
 
     // Jump back to condition check
     emitLoop(loopStart);
 
     // Patch exit jump
     patchJump(exitJump);
-    emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+    emitByte(@intFromEnum(OpCode.OP_POP));
 
     // Patch all break jumps to point here
     for (loop.breakJumps.items) |breakJump| {
@@ -2276,14 +2276,14 @@ pub fn ifStatement() void {
     consume(.TOKEN_LEFT_PAREN, "Expect '(' after 'if'.");
     expression();
     consume(.TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
-    var thenJump: i32 = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
+    var thenJump: i32 = emitJump(@intFromEnum(OpCode.OP_JUMP_IF_FALSE));
     _ = &thenJump;
-    emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+    emitByte(@intFromEnum(OpCode.OP_POP));
     statement();
-    var elseJump: i32 = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+    var elseJump: i32 = emitJump(@intFromEnum(OpCode.OP_JUMP));
     _ = &elseJump;
     patchJump(thenJump);
-    emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+    emitByte(@intFromEnum(OpCode.OP_POP));
     if (match(.TOKEN_ELSE)) {
         statement();
     }
@@ -2292,7 +2292,7 @@ pub fn ifStatement() void {
 pub fn printStatement() void {
     expression();
     consume(.TOKEN_SEMICOLON, "Expect ';' after value.");
-    emitByte(@intCast(@intFromEnum(OpCode.OP_PRINT)));
+    emitByte(@intFromEnum(OpCode.OP_PRINT));
 }
 pub fn returnStatement() void {
     if (current.?.type_ == .TYPE_SCRIPT) {
@@ -2329,7 +2329,7 @@ pub fn returnStatement() void {
             chunk.code.?[@intCast(chunk.count - 2)] = @intFromEnum(OpCode.OP_TAIL_CALL);
             // Don't emit OP_RETURN for tail calls - the tail call handles it
         } else {
-            emitByte(@intCast(@intFromEnum(OpCode.OP_RETURN)));
+            emitByte(@intFromEnum(OpCode.OP_RETURN));
         }
     }
 }
@@ -2347,13 +2347,13 @@ pub fn whileStatement() void {
     consume(.TOKEN_LEFT_PAREN, "Expect '(' after 'while'.");
     expression();
     consume(.TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
-    var exitJump: i32 = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
+    var exitJump: i32 = emitJump(@intFromEnum(OpCode.OP_JUMP_IF_FALSE));
     _ = &exitJump;
-    emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+    emitByte(@intFromEnum(OpCode.OP_POP));
     statement();
     emitLoop(loopStart);
     patchJump(exitJump);
-    emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+    emitByte(@intFromEnum(OpCode.OP_POP));
 
     // Patch all break jumps to point here
     for (loop.breakJumps.items) |breakJump| {
@@ -2381,7 +2381,7 @@ pub fn breakStatement() void {
     consume(.TOKEN_SEMICOLON, "Expect ';' after 'break'.");
 
     // Emit a jump that will be patched to jump to the end of the loop
-    const jump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+    const jump = emitJump(@intFromEnum(OpCode.OP_JUMP));
     current.?.innermostLoop.?.breakJumps.append(compiler_arena.getCompilerAllocator(), jump) catch unreachable;
 }
 
@@ -2398,7 +2398,7 @@ pub fn continueStatement() void {
     // For other loops, we can emit the loop instruction directly
     if (current.?.innermostLoop.?.loopType == .FOREACH) {
         // Emit a jump that will be patched to jump to the increment section
-        const jump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+        const jump = emitJump(@intFromEnum(OpCode.OP_JUMP));
         current.?.innermostLoop.?.continueJumps.append(compiler_arena.getCompilerAllocator(), jump) catch unreachable;
     } else {
         // Emit a loop instruction to jump back to the start of the loop
@@ -2422,7 +2422,7 @@ pub fn switchStatement() void {
     markInitialized();
 
     // Store the switch value in a local variable
-    emitBytes(@intCast(@intFromEnum(OpCode.OP_SET_LOCAL)), @intCast(switchVarSlot));
+    emitBytes(@intFromEnum(OpCode.OP_SET_LOCAL), @intCast(switchVarSlot));
     // No need to pop here since OP_SET_LOCAL doesn't consume the value
 
     // Keep track of all end jumps - simplified for now
@@ -2470,11 +2470,11 @@ pub fn switchStatement() void {
                 endScope();
             } else {
                 expression();
-                emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+                emitByte(@intFromEnum(OpCode.OP_POP));
             }
 
             // After the default case, jump to the end
-            const endJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+            const endJump = emitJump(@intFromEnum(OpCode.OP_JUMP));
             if (endJumpCount < 256) {
                 endJumps[endJumpCount] = endJump;
                 endJumpCount += 1;
@@ -2505,32 +2505,32 @@ pub fn switchStatement() void {
                     addLocal(syntheticToken("__case_range_end"));
                     markInitialized();
                     const rangeEndSlot = current.?.localCount - 1;
-                    emitBytes(@intCast(@intFromEnum(OpCode.OP_SET_LOCAL)), @intCast(rangeEndSlot));
+                    emitBytes(@intFromEnum(OpCode.OP_SET_LOCAL), @intCast(rangeEndSlot));
 
                     // Check if switch value >= start
                     // Stack before: [start_value]
-                    emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(switchVarSlot));
+                    emitBytes(@intFromEnum(OpCode.OP_GET_LOCAL), @intCast(switchVarSlot));
                     // Stack: [start_value, switch_value]
                     // We need switch_value >= start_value, which is !(switch_value < start_value)
-                    emitByte(@intCast(@intFromEnum(OpCode.OP_LESS)));
-                    emitByte(@intCast(@intFromEnum(OpCode.OP_NOT)));
+                    emitByte(@intFromEnum(OpCode.OP_LESS));
+                    emitByte(@intFromEnum(OpCode.OP_NOT));
 
-                    const skipStartCheck = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
-                    emitByte(@intCast(@intFromEnum(OpCode.OP_POP))); // Pop comparison result
+                    const skipStartCheck = emitJump(@intFromEnum(OpCode.OP_JUMP_IF_FALSE));
+                    emitByte(@intFromEnum(OpCode.OP_POP)); // Pop comparison result
 
                     // Check if switch value <= end (or < for exclusive)
-                    emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(switchVarSlot));
-                    emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(rangeEndSlot));
+                    emitBytes(@intFromEnum(OpCode.OP_GET_LOCAL), @intCast(switchVarSlot));
+                    emitBytes(@intFromEnum(OpCode.OP_GET_LOCAL), @intCast(rangeEndSlot));
 
                     if (isInclusive) {
-                        emitByte(@intCast(@intFromEnum(OpCode.OP_GREATER)));
-                        emitByte(@intCast(@intFromEnum(OpCode.OP_NOT)));
+                        emitByte(@intFromEnum(OpCode.OP_GREATER));
+                        emitByte(@intFromEnum(OpCode.OP_NOT));
                     } else {
-                        emitByte(@intCast(@intFromEnum(OpCode.OP_LESS)));
+                        emitByte(@intFromEnum(OpCode.OP_LESS));
                     }
 
-                    const skipEndCheck = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
-                    emitByte(@intCast(@intFromEnum(OpCode.OP_POP))); // Pop comparison result
+                    const skipEndCheck = emitJump(@intFromEnum(OpCode.OP_JUMP_IF_FALSE));
+                    emitByte(@intFromEnum(OpCode.OP_POP)); // Pop comparison result
 
                     consume(.TOKEN_ARROW, "Expect '=>' after range pattern.");
 
@@ -2541,7 +2541,7 @@ pub fn switchStatement() void {
                         while (!check(.TOKEN_RIGHT_BRACE) and !check(.TOKEN_EOF)) {
                             if (match(.TOKEN_BREAK)) {
                                 consume(.TOKEN_SEMICOLON, "Expect ';' after break.");
-                                const breakJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+                                const breakJump = emitJump(@intFromEnum(OpCode.OP_JUMP));
                                 if (endJumpCount < 256) {
                                     endJumps[endJumpCount] = breakJump;
                                     endJumpCount += 1;
@@ -2556,11 +2556,11 @@ pub fn switchStatement() void {
                         endScope();
                     } else {
                         expression();
-                        emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+                        emitByte(@intFromEnum(OpCode.OP_POP));
 
                         if (match(.TOKEN_BREAK)) {
                             consume(.TOKEN_SEMICOLON, "Expect ';' after break.");
-                            const breakJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+                            const breakJump = emitJump(@intFromEnum(OpCode.OP_JUMP));
                             if (endJumpCount < 256) {
                                 endJumps[endJumpCount] = breakJump;
                                 endJumpCount += 1;
@@ -2569,7 +2569,7 @@ pub fn switchStatement() void {
                     }
 
                     // Jump to end of switch after executing case
-                    const endJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+                    const endJump = emitJump(@intFromEnum(OpCode.OP_JUMP));
                     if (endJumpCount < 256) {
                         endJumps[endJumpCount] = endJump;
                         endJumpCount += 1;
@@ -2578,7 +2578,7 @@ pub fn switchStatement() void {
                     // Patch skip jumps
                     patchJump(skipStartCheck);
                     patchJump(skipEndCheck);
-                    emitByte(@intCast(@intFromEnum(OpCode.OP_POP))); // Pop comparison result
+                    emitByte(@intFromEnum(OpCode.OP_POP)); // Pop comparison result
 
                     endScope(); // End scope for range end variable
                 } else {
@@ -2587,16 +2587,16 @@ pub fn switchStatement() void {
                     consume(.TOKEN_ARROW, "Expect '=>' after case value.");
 
                     // Get the switch value for comparison (gets the value we stored in the local)
-                    emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(switchVarSlot));
+                    emitBytes(@intFromEnum(OpCode.OP_GET_LOCAL), @intCast(switchVarSlot));
 
                     // Compare the case value with the switch value (on stack as: case_value, switch_value)
-                    emitByte(@intCast(@intFromEnum(OpCode.OP_EQUAL)));
+                    emitByte(@intFromEnum(OpCode.OP_EQUAL));
 
                     // If they're not equal, skip this case
-                    const skipCaseJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
+                    const skipCaseJump = emitJump(@intFromEnum(OpCode.OP_JUMP_IF_FALSE));
 
                     // Pop the comparison result only when we execute the case
-                    emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+                    emitByte(@intFromEnum(OpCode.OP_POP));
 
                     // Parse case body
                     if (match(.TOKEN_LEFT_BRACE)) {
@@ -2612,7 +2612,7 @@ pub fn switchStatement() void {
                                 consume(.TOKEN_SEMICOLON, "Expect ';' after break.");
 
                                 // Jump to the end of the switch statement
-                                const breakJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+                                const breakJump = emitJump(@intFromEnum(OpCode.OP_JUMP));
                                 if (endJumpCount < 256) {
                                     endJumps[endJumpCount] = breakJump;
                                     endJumpCount += 1;
@@ -2632,14 +2632,14 @@ pub fn switchStatement() void {
                         endScope();
                     } else {
                         expression();
-                        emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+                        emitByte(@intFromEnum(OpCode.OP_POP));
 
                         // Handle single-statement break
                         if (match(.TOKEN_BREAK)) {
                             consume(.TOKEN_SEMICOLON, "Expect ';' after break.");
 
                             // Jump to the end of the switch statement
-                            const breakJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+                            const breakJump = emitJump(@intFromEnum(OpCode.OP_JUMP));
                             if (endJumpCount < 256) {
                                 endJumps[endJumpCount] = breakJump;
                                 endJumpCount += 1;
@@ -2648,7 +2648,7 @@ pub fn switchStatement() void {
                     }
 
                     // After case body, jump to the end of the switch (if no break was encountered)
-                    const endJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+                    const endJump = emitJump(@intFromEnum(OpCode.OP_JUMP));
                     if (endJumpCount < 256) {
                         endJumps[endJumpCount] = endJump;
                         endJumpCount += 1;
@@ -2665,16 +2665,16 @@ pub fn switchStatement() void {
                 consume(.TOKEN_ARROW, "Expect '=>' after case value.");
 
                 // Get the switch value for comparison (gets the value we stored in the local)
-                emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(switchVarSlot));
+                emitBytes(@intFromEnum(OpCode.OP_GET_LOCAL), @intCast(switchVarSlot));
 
                 // Compare the case value with the switch value (on stack as: case_value, switch_value)
-                emitByte(@intCast(@intFromEnum(OpCode.OP_EQUAL)));
+                emitByte(@intFromEnum(OpCode.OP_EQUAL));
 
                 // If they're not equal, skip this case
-                const skipCaseJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
+                const skipCaseJump = emitJump(@intFromEnum(OpCode.OP_JUMP_IF_FALSE));
 
                 // Pop the comparison result only when we execute the case
-                emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+                emitByte(@intFromEnum(OpCode.OP_POP));
 
                 // Parse case body
                 if (match(.TOKEN_LEFT_BRACE)) {
@@ -2690,7 +2690,7 @@ pub fn switchStatement() void {
                             consume(.TOKEN_SEMICOLON, "Expect ';' after break.");
 
                             // Jump to the end of the switch statement
-                            const breakJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+                            const breakJump = emitJump(@intFromEnum(OpCode.OP_JUMP));
                             if (endJumpCount < 256) {
                                 endJumps[endJumpCount] = breakJump;
                                 endJumpCount += 1;
@@ -2710,14 +2710,14 @@ pub fn switchStatement() void {
                     endScope();
                 } else {
                     expression();
-                    emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+                    emitByte(@intFromEnum(OpCode.OP_POP));
 
                     // Handle single-statement break
                     if (match(.TOKEN_BREAK)) {
                         consume(.TOKEN_SEMICOLON, "Expect ';' after break.");
 
                         // Jump to the end of the switch statement
-                        const breakJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+                        const breakJump = emitJump(@intFromEnum(OpCode.OP_JUMP));
                         if (endJumpCount < 256) {
                             endJumps[endJumpCount] = breakJump;
                             endJumpCount += 1;
@@ -2726,7 +2726,7 @@ pub fn switchStatement() void {
                 }
 
                 // After case body, jump to the end of the switch (if no break was encountered)
-                const endJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+                const endJump = emitJump(@intFromEnum(OpCode.OP_JUMP));
                 if (endJumpCount < 256) {
                     endJumps[endJumpCount] = endJump;
                     endJumpCount += 1;
@@ -2744,21 +2744,21 @@ pub fn switchStatement() void {
             parsePrecedence(@as(c_uint, @bitCast(PREC_TERM + 1)));
 
             // Get the switch value for comparison
-            emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(switchVarSlot));
+            emitBytes(@intFromEnum(OpCode.OP_GET_LOCAL), @intCast(switchVarSlot));
 
             consume(.TOKEN_ARROW, "Expect '=>' after case value.");
 
             // Get the switch value for comparison
-            emitBytes(@intCast(@intFromEnum(OpCode.OP_GET_LOCAL)), @intCast(switchVarSlot));
+            emitBytes(@intFromEnum(OpCode.OP_GET_LOCAL), @intCast(switchVarSlot));
 
             // Compare the values (stack now has: case_value, switch_value)
-            emitByte(@intCast(@intFromEnum(OpCode.OP_EQUAL)));
+            emitByte(@intFromEnum(OpCode.OP_EQUAL));
 
             // If comparison result is false (not equal), skip this case
-            const skipCaseJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP_IF_FALSE)));
+            const skipCaseJump = emitJump(@intFromEnum(OpCode.OP_JUMP_IF_FALSE));
 
             // Pop the comparison result when we're executing the case
-            emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+            emitByte(@intFromEnum(OpCode.OP_POP));
 
             // Parse case body
             if (match(.TOKEN_LEFT_BRACE)) {
@@ -2774,7 +2774,7 @@ pub fn switchStatement() void {
                         consume(.TOKEN_SEMICOLON, "Expect ';' after break.");
 
                         // Jump to the end of the switch statement
-                        const breakJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+                        const breakJump = emitJump(@intFromEnum(OpCode.OP_JUMP));
                         if (endJumpCount < 256) {
                             endJumps[endJumpCount] = breakJump;
                             endJumpCount += 1;
@@ -2794,14 +2794,14 @@ pub fn switchStatement() void {
                 endScope();
             } else {
                 expression();
-                emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+                emitByte(@intFromEnum(OpCode.OP_POP));
 
                 // Handle single-statement break
                 if (match(.TOKEN_BREAK)) {
                     consume(.TOKEN_SEMICOLON, "Expect ';' after break.");
 
                     // Jump to the end of the switch statement
-                    const breakJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+                    const breakJump = emitJump(@intFromEnum(OpCode.OP_JUMP));
                     if (endJumpCount < 256) {
                         endJumps[endJumpCount] = breakJump;
                         endJumpCount += 1;
@@ -2810,7 +2810,7 @@ pub fn switchStatement() void {
             }
 
             // After case body, jump to the end of the switch
-            const endJump = emitJump(@intCast(@intFromEnum(OpCode.OP_JUMP)));
+            const endJump = emitJump(@intFromEnum(OpCode.OP_JUMP));
             if (endJumpCount < 256) {
                 endJumps[endJumpCount] = endJump;
                 endJumpCount += 1;
@@ -2819,7 +2819,7 @@ pub fn switchStatement() void {
             // If comparison was false, skip to here (next case)
             patchJump(skipCaseJump);
             // Pop the comparison result that's still on the stack if we skip this case
-            emitByte(@intCast(@intFromEnum(OpCode.OP_POP)));
+            emitByte(@intFromEnum(OpCode.OP_POP));
 
             // No need to pop the switch value as we're using a local variable
         }
@@ -2856,7 +2856,7 @@ fn parseRangeCase() void {
     consume(.TOKEN_ARROW, "Expect '=>' after range case.");
 
     // Emit OP_SWITCH_CASE with range type (1)
-    emitBytes(@intCast(@intFromEnum(OpCode.OP_SWITCH_CASE)), 1);
+    emitBytes(@intFromEnum(OpCode.OP_SWITCH_CASE), 1);
 
     // Range comparison logic would be handled in VM
 }
@@ -2880,7 +2880,7 @@ fn parseMultipleValueCase() void {
     consume(.TOKEN_ARROW, "Expect '=>' after case values.");
 
     // Emit OP_SWITCH_CASE with multiple value type (2) and count
-    emitBytes(@intCast(@intFromEnum(OpCode.OP_SWITCH_CASE)), 2);
+    emitBytes(@intFromEnum(OpCode.OP_SWITCH_CASE), 2);
     emitByte(valueCount);
 
     // Multiple value comparison logic would be handled in VM
@@ -2900,7 +2900,7 @@ fn parseGuardCase() void {
     consume(.TOKEN_ARROW, "Expect '=>' after guard case.");
 
     // Emit OP_SWITCH_CASE with guard type (3)
-    emitBytes(@intCast(@intFromEnum(OpCode.OP_SWITCH_CASE)), 3);
+    emitBytes(@intFromEnum(OpCode.OP_SWITCH_CASE), 3);
 
     // Guard evaluation logic would be handled in VM
 }

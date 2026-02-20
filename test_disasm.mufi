@@ -1,0 +1,8 @@
+// Simplified version to understand the bytecode
+foreach (i in 1..3) {
+    if (i == 1) {
+        foreach (j in 1..2) {
+            print(j);
+        }
+    }
+}

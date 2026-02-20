@@ -356,33 +356,6 @@ fun test11_memory_stress() {
 
     print("✓ Memory stress testing passed");
 }
-    print("\n[Test 11] Memory stress test");
-
-    // Create and destroy many JSON objects to test memory handling
-    var m = 0;
-    while (m < 25) {
-        var temp_data = hash_table();
-        put(temp_data, "iteration", m);
-        put(temp_data, "data", "test_string_" + str(m));
-        put(temp_data, "timestamp", m * 1000);
-
-        var json_string = json_stringify(temp_data);
-        assert(json_is_valid(json_string), true);
-
-        var reparsed = json_parse(json_string);
-        assert(json_get(reparsed, "iteration"), m);
-
-        // Create nested structure
-        var nested = hash_table();
-        put(nested, "inner", temp_data);
-        var nested_json = json_stringify(nested);
-        assert(json_is_valid(nested_json), true);
-
-        m = m + 1;
-    }
-
-    print("✓ Memory stress test passed");
-}
 
 fun test12_type_consistency() {
     print("\n[Test 12] Type consistency");

@@ -58,8 +58,8 @@ fun test3_arrays_of_objects() {
     var array_of_objects = json_parse(array_of_objects_json);
     assert(len(array_of_objects), 3);
 
-    // Access first object
-    var first_obj = array_of_objects[0];
+    // Access first object (mixed JSON arrays are stored as hash tables with string keys)
+    var first_obj = get(array_of_objects, "0");
     if (what_is(first_obj) == "Hash Table") {
         assert(json_get(first_obj, "id"), 1);
         assert(json_get(first_obj, "name"), "Alice");
@@ -316,18 +316,6 @@ fun test14_malformed_recovery() {
     print("\n[Test 14] Malformed JSON recovery");
 
     // Test that invalid JSON doesn't crash the system
-    var invalid_cases = [
-        "{",
-        "}",
-        "[",
-        "]",
-        "{\"key\": }",
-        "{\"key\" \"value\"}",
-        "[1, 2, 3,]",
-        "{\"unclosed\": \"string}",
-        "{'single': 'quotes'}"
-    ];
-
     // All of these should return false for json_is_valid
     assert(json_is_valid("{"), false);
     assert(json_is_valid("}"), false);

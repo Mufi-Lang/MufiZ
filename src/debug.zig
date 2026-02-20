@@ -85,9 +85,10 @@ pub fn disassembleInstruction(chunk: *chunk_h.Chunk, offset: i32) i32 {
         30 => return jumpInstruction("OP_JUMP_IF_FALSE", 1, chunk, offset),
         31 => return jumpInstruction("OP_LOOP", -1, chunk, offset),
         32 => return byteInstruction("OP_CALL", chunk, offset),
-        33 => return invokeInstruction("OP_INVOKE", chunk, offset),
-        34 => return invokeInstruction("OP_SUPER_INVOKE", chunk, offset),
-        35 => {
+        33 => return byteInstruction("OP_TAIL_CALL", chunk, offset),
+        34 => return invokeInstruction("OP_INVOKE", chunk, offset),
+        35 => return invokeInstruction("OP_SUPER_INVOKE", chunk, offset),
+        36 => {
             var offset_: i32 = offset + 1;
             const constant: u8 = chunk.*.code.?[@as(c_uint, @intCast(offset_))];
             offset_ += 1;
@@ -112,30 +113,29 @@ pub fn disassembleInstruction(chunk: *chunk_h.Chunk, offset: i32) i32 {
 
             return offset_;
         },
-        36 => return byteInstruction("OP_CLOSE_UPVALUE", chunk, offset),
-        37 => return simpleInstruction("OP_RETURN", offset),
-        38 => return constantInstruction("OP_CLASS", chunk, offset),
-        39 => return simpleInstruction("OP_INHERIT", offset),
-        40 => return constantInstruction("OP_METHOD", chunk, offset),
-        41 => return simpleInstruction("OP_LENGTH", offset),
-        42 => return simpleInstruction("OP_GET_INDEX", offset),
-        43 => return simpleInstruction("OP_SLICE", offset),
-        44 => return simpleInstruction("OP_RANGE", offset),
-        45 => return simpleInstruction("OP_RANGE_INCLUSIVE", offset),
-        46 => return simpleInstruction("OP_PAIR", offset),
-        47 => return simpleInstruction("OP_CHECK_RANGE", offset),
-        48 => return simpleInstruction("OP_IS_RANGE", offset),
-        49 => return simpleInstruction("OP_GET_RANGE_LENGTH", offset),
-        50 => return simpleInstruction("OP_SET_INDEX", offset),
-        51 => return simpleInstruction("OP_DUP", offset),
-        52 => return simpleInstruction("OP_INT", offset),
-        53 => return simpleInstruction("OP_HASH_TABLE", offset),
-        54 => return simpleInstruction("OP_ADD_ENTRY", offset),
-        55 => return simpleInstruction("OP_TO_STRING", offset),
-        56 => return simpleInstruction("OP_BREAK", offset),
-        57 => return simpleInstruction("OP_CONTINUE", offset),
-        58 => return byteInstruction("OP_FVECTOR", chunk, offset),
-        59 => return twoByteInstruction("OP_MATRIX", chunk, offset),
+        37 => return byteInstruction("OP_CLOSE_UPVALUE", chunk, offset),
+        38 => return simpleInstruction("OP_RETURN", offset),
+        39 => return constantInstruction("OP_CLASS", chunk, offset),
+        40 => return simpleInstruction("OP_INHERIT", offset),
+        41 => return constantInstruction("OP_METHOD", chunk, offset),
+        42 => return simpleInstruction("OP_LENGTH", offset),
+        43 => return simpleInstruction("OP_GET_INDEX", offset),
+        44 => return simpleInstruction("OP_SLICE", offset),
+        45 => return simpleInstruction("OP_RANGE", offset),
+        46 => return simpleInstruction("OP_RANGE_INCLUSIVE", offset),
+        47 => return simpleInstruction("OP_PAIR", offset),
+        48 => return simpleInstruction("OP_CHECK_RANGE", offset),
+        49 => return simpleInstruction("OP_IS_RANGE", offset),
+        50 => return simpleInstruction("OP_GET_RANGE_LENGTH", offset),
+        51 => return simpleInstruction("OP_SET_INDEX", offset),
+        52 => return simpleInstruction("OP_DUP", offset),
+        53 => return simpleInstruction("OP_INT", offset),
+        54 => return simpleInstruction("OP_HASH_TABLE", offset),
+        55 => return simpleInstruction("OP_ADD_ENTRY", offset),
+        56 => return simpleInstruction("OP_TO_STRING", offset),
+        57 => return simpleInstruction("OP_BREAK", offset),
+        58 => return simpleInstruction("OP_CONTINUE", offset),
+        59 => return byteInstruction("OP_FVECTOR", chunk, offset),
         60 => return twoByteInstruction("OP_MATRIX", chunk, offset),
         61 => return simpleInstruction("OP_GET_MATRIX_FLAT", offset),
         // Import opcodes (62-65 in OpCode enum)
@@ -152,6 +152,55 @@ pub fn disassembleInstruction(chunk: *chunk_h.Chunk, offset: i32) i32 {
         65 => return constantInstruction("OP_IMPORT_MODULE_AS", chunk, offset),
         66 => return constantInstruction("OP_GET_MODULE_MEMBER", chunk, offset),
 
+        // Phase 2: Small constant opcodes (67-82)
+        67 => return smallConstantInstruction("OP_CONSTANT_0", chunk, 0, offset),
+        68 => return smallConstantInstruction("OP_CONSTANT_1", chunk, 1, offset),
+        69 => return smallConstantInstruction("OP_CONSTANT_2", chunk, 2, offset),
+        70 => return smallConstantInstruction("OP_CONSTANT_3", chunk, 3, offset),
+        71 => return smallConstantInstruction("OP_CONSTANT_4", chunk, 4, offset),
+        72 => return smallConstantInstruction("OP_CONSTANT_5", chunk, 5, offset),
+        73 => return smallConstantInstruction("OP_CONSTANT_6", chunk, 6, offset),
+        74 => return smallConstantInstruction("OP_CONSTANT_7", chunk, 7, offset),
+        75 => return smallConstantInstruction("OP_CONSTANT_8", chunk, 8, offset),
+        76 => return smallConstantInstruction("OP_CONSTANT_9", chunk, 9, offset),
+        77 => return smallConstantInstruction("OP_CONSTANT_10", chunk, 10, offset),
+        78 => return smallConstantInstruction("OP_CONSTANT_11", chunk, 11, offset),
+        79 => return smallConstantInstruction("OP_CONSTANT_12", chunk, 12, offset),
+        80 => return smallConstantInstruction("OP_CONSTANT_13", chunk, 13, offset),
+        81 => return smallConstantInstruction("OP_CONSTANT_14", chunk, 14, offset),
+        82 => return smallConstantInstruction("OP_CONSTANT_15", chunk, 15, offset),
+
+        // Phase 2.2: Small local opcodes (83-90)
+        83 => return simpleInstruction("OP_GET_LOCAL_0", offset),
+        84 => return simpleInstruction("OP_GET_LOCAL_1", offset),
+        85 => return simpleInstruction("OP_GET_LOCAL_2", offset),
+        86 => return simpleInstruction("OP_GET_LOCAL_3", offset),
+        87 => return simpleInstruction("OP_SET_LOCAL_0", offset),
+        88 => return simpleInstruction("OP_SET_LOCAL_1", offset),
+        89 => return simpleInstruction("OP_SET_LOCAL_2", offset),
+        90 => return simpleInstruction("OP_SET_LOCAL_3", offset),
+
+        // Phase 2.3: Short jump opcodes (91-93)
+        91 => return shortJumpInstruction("OP_JUMP_SHORT", 1, chunk, offset),
+        92 => return shortJumpInstruction("OP_JUMP_IF_FALSE_SHORT", 1, chunk, offset),
+        93 => return shortJumpInstruction("OP_LOOP_SHORT", -1, chunk, offset),
+
+        // Phase 3: Superinstructions (100-191)
+        100 => return superinstructionTwoOp("OP_DEFINE_GLOBAL_CONST", chunk, offset),
+        101 => return superinstructionTwoOp("OP_SET_GLOBAL_CONST", chunk, offset),
+        110 => return superinstructionOneOp("OP_GET_GLOBAL_ADD", chunk, offset),
+        111 => return superinstructionOneOp("OP_GET_GLOBAL_SUBTRACT", chunk, offset),
+        112 => return superinstructionOneOp("OP_GET_GLOBAL_MULTIPLY", chunk, offset),
+        113 => return superinstructionOneOp("OP_GET_GLOBAL_DIVIDE", chunk, offset),
+        114 => return superinstructionOneOp("OP_GET_LOCAL_ADD", chunk, offset),
+        120 => return superinstructionTwoOp("OP_GET_GLOBAL_GLOBAL", chunk, offset),
+        121 => return superinstructionTwoOp("OP_GET_LOCAL_LOCAL", chunk, offset),
+        122 => return superinstructionTwoOp("OP_GET_GLOBAL_LOCAL", chunk, offset),
+        123 => return superinstructionTwoOp("OP_GET_LOCAL_GLOBAL", chunk, offset),
+        130 => return superinstructionTwoOp("OP_CONSTANT_CONSTANT", chunk, offset),
+        131 => return superinstructionOneOp("OP_CONSTANT_ADD", chunk, offset),
+        132 => return superinstructionOneOp("OP_CONSTANT_MULTIPLY", chunk, offset),
+
         else => {
             std.debug.print("Unknown opcode {d}\n", .{instruction});
             return offset + 1;
@@ -159,13 +208,20 @@ pub fn disassembleInstruction(chunk: *chunk_h.Chunk, offset: i32) i32 {
     }
 }
 
-fn constantInstruction(name: [*]const u8, chunk: *chunk_h.Chunk, offset: i32) i32 {
-    const nameSlice = std.mem.span(@as([*:0]const u8, @ptrCast(name)));
+fn constantInstruction(name: []const u8, chunk: *chunk_h.Chunk, offset: i32) i32 {
     const constant: u8 = getByte(chunk, offset + 1);
-    print("{s: <16} {d:4} '", .{ nameSlice, constant });
-    printValue(chunk.*.constants.values[constant]);
+    print("{s: <16} {d:4} '", .{ name, constant });
+    value_h.printValue(chunk.*.constants.values[constant]);
     print("'\n", .{});
     return offset + 2;
+}
+
+// Phase 2: Small constant instruction (single-byte, no operand)
+fn smallConstantInstruction(name: []const u8, chunk: *chunk_h.Chunk, constant_idx: u8, offset: i32) i32 {
+    print("{s: <16} (idx={d:2}) '", .{ name, constant_idx });
+    value_h.printValue(chunk.*.constants.values[constant_idx]);
+    print("'\n", .{});
+    return offset + 1; // Only 1 byte (no operand)
 }
 
 fn invokeInstruction(name: [*]const u8, chunk: *chunk_h.Chunk, offset: i32) i32 {
@@ -207,5 +263,31 @@ fn twoByteInstruction(name: [*]const u8, chunk: *chunk_h.Chunk, offset: i32) i32
     const byte1: u8 = getByte(chunk, offset + 1);
     const byte2: u8 = getByte(chunk, offset + 2);
     print("{s: <16} {d:4} {d:4}\n", .{ nameSlice, byte1, byte2 });
+    return offset + 3;
+}
+
+// Phase 2.3: Short jump instruction (single-byte i8 offset)
+fn shortJumpInstruction(name: [*]const u8, sign: i32, chunk: *chunk_h.Chunk, offset: i32) i32 {
+    const nameSlice = std.mem.span(@as([*:0]const u8, @ptrCast(name)));
+    const jumpOffset: i8 = @bitCast(getByte(chunk, offset + 1));
+    const jumpTarget = (offset + 2) + (sign * @as(i32, jumpOffset));
+    print("{s: <16} {d:4} -> {d}\n", .{ nameSlice, offset, jumpTarget });
+    return offset + 2; // Only 2 bytes total (opcode + i8 offset)
+}
+
+// Phase 3: Superinstruction with one operand
+fn superinstructionOneOp(name: [*]const u8, chunk: *chunk_h.Chunk, offset: i32) i32 {
+    const nameSlice = std.mem.span(@as([*:0]const u8, @ptrCast(name)));
+    const operand: u8 = getByte(chunk, offset + 1);
+    print("{s: <16} {d:4}\n", .{ nameSlice, operand });
+    return offset + 2;
+}
+
+// Phase 3: Superinstruction with two operands
+fn superinstructionTwoOp(name: [*]const u8, chunk: *chunk_h.Chunk, offset: i32) i32 {
+    const nameSlice = std.mem.span(@as([*:0]const u8, @ptrCast(name)));
+    const operand1: u8 = getByte(chunk, offset + 1);
+    const operand2: u8 = getByte(chunk, offset + 2);
+    print("{s: <16} {d:4} {d:4}\n", .{ nameSlice, operand1, operand2 });
     return offset + 3;
 }

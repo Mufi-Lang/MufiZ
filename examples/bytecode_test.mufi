@@ -1,0 +1,109 @@
+// Bytecode Analysis Test Script
+// This script demonstrates various patterns that can be optimized
+
+// Test 1: Small constants (0-15)
+print("=== Test 1: Small Constants ===");
+var a = 0;
+var b = 1;
+var c = 2;
+var d = 5;
+var e = 10;
+var f = 15;
+var sum1 = a + b + c + d + e + f;
+
+// Test 2: Small local variable access (slots 0-3)
+print("=== Test 2: Local Variable Access ===");
+fun testLocals() {
+    var x = 10;
+    var y = 20;
+    var z = 30;
+    var w = 40;
+    var result = x + y + z + w;
+    return result;
+}
+var locals_result = testLocals();
+
+// Test 3: Arithmetic patterns (GET_LOCAL + operation)
+print("=== Test 3: Arithmetic Patterns ===");
+fun fibonacci(n) {
+    if (n <= 1) {
+        return n;
+    }
+    var a = 0;
+    var b = 1;
+    var i = 2;
+    while (i <= n) {
+        var temp = a + b;
+        a = b;
+        b = temp;
+        i = i + 1;
+    }
+    return b;
+}
+var fib_result = fibonacci(10);
+
+// Test 4: Short jumps (if/else statements)
+print("=== Test 4: Short Jumps ===");
+fun testShortJumps(x) {
+    if (x > 0) {
+        return x * 2;
+    } else {
+        return x * -1;
+    }
+}
+var jump1 = testShortJumps(5);
+var jump2 = testShortJumps(-3);
+
+// Test 5: Constant operations
+print("=== Test 5: Constant Operations ===");
+fun calculateArea(radius) {
+    return 3.14159 * radius * radius;
+}
+var area = calculateArea(5);
+
+// Test 6: Multiple operations in sequence
+print("=== Test 6: Operations ===");
+var x1 = 10;
+var x2 = 20;
+var x3 = 30;
+var add_result = x1 + x2;
+var mul_result = x1 * x2;
+var sub_result = x3 - x1;
+var div_result = x3 / x1;
+
+// Test 7: Loop with counter (heavy local access)
+print("=== Test 7: Loop Counter ===");
+var total = 0;
+var counter = 0;
+while (counter < 50) {
+    total = total + counter;
+    counter = counter + 1;
+}
+
+// Test 8: Nested function calls
+print("=== Test 8: Function Calls ===");
+fun inner(x) {
+    return x + 1;
+}
+fun outer(x) {
+    return inner(inner(x));
+}
+var nested = outer(5);
+
+// Test 9: More arithmetic patterns
+print("=== Test 9: More Patterns ===");
+var m1 = 5;
+var m2 = 10;
+var m3 = 15;
+var result1 = m1 + m2 * m3;
+var result2 = m1 * m2 + m3;
+var result3 = m1 - m2 + m3;
+
+// Test 10: Comparisons
+print("=== Test 10: Comparisons ===");
+var c1 = 10 > 5;
+var c2 = 10 < 5;
+var c3 = 10 == 10;
+var c4 = 5 != 3;
+
+print("=== Bytecode Analysis Complete ===");

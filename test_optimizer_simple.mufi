@@ -1,0 +1,5 @@
+// Minimal test case for optimizer debugging
+// This should trigger CONSTANT + CONSTANT fusion
+var a = 1;
+var b = 2;
+print(a + b);

@@ -1,0 +1,69 @@
+// Test script to demonstrate small constant optimization (Phase 2.1)
+// This script uses constants 0-15 which should be optimized to single-byte opcodes
+
+print("=== Small Constant Optimization Test ===");
+
+// Small constants (0-15) - should use OP_CONSTANT_0 through OP_CONSTANT_15
+var c0 = 0;
+var c1 = 1;
+var c2 = 2;
+var c3 = 3;
+var c4 = 4;
+var c5 = 5;
+var c6 = 6;
+var c7 = 7;
+var c8 = 8;
+var c9 = 9;
+var c10 = 10;
+var c11 = 11;
+var c12 = 12;
+var c13 = 13;
+var c14 = 14;
+var c15 = 15;
+
+print("Small constants (0-15):");
+print(c0);
+print(c1);
+print(c2);
+print(c3);
+print(c4);
+print(c5);
+print(c6);
+print(c7);
+print(c8);
+print(c9);
+print(c10);
+print(c11);
+print(c12);
+print(c13);
+print(c14);
+print(c15);
+
+// Large constants (16+) - should use standard OP_CONSTANT
+var c16 = 16;
+var c20 = 20;
+var c100 = 100;
+var c255 = 255;
+
+print("\nLarge constants (16+):");
+print(c16);
+print(c20);
+print(c100);
+print(c255);
+
+// Arithmetic with small constants
+var sum = c0 + c1 + c2 + c3 + c4 + c5;
+print("\nSum of 0-5: " + sum);
+
+// Function with small constants
+fun addSmall(a, b) {
+    return a + b;
+}
+
+var result1 = addSmall(1, 2);
+var result2 = addSmall(5, 10);
+print("addSmall(1, 2) = " + result1);
+print("addSmall(5, 10) = " + result2);
+
+print("\n=== Optimization Complete ===");
+print("Each small constant (0-15) saves 1 byte!");

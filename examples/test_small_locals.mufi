@@ -1,0 +1,175 @@
+// Test script to demonstrate small local optimization (Phase 2.2)
+// This script uses local slots 0-3 which should be optimized to single-byte opcodes
+
+print("=== Small Local Optimization Test ===");
+
+// Test 1: Function with locals in slots 0-3
+print("\n--- Test 1: Small Locals (Slots 0-3) ---");
+fun testSmallLocals() {
+    var a = 10;   // slot 0
+    var b = 20;   // slot 1
+    var c = 30;   // slot 2
+    var d = 40;   // slot 3
+
+    print("a = " + a);
+    print("b = " + b);
+    print("c = " + c);
+    print("d = " + d);
+
+    return a + b + c + d;
+}
+
+var result1 = testSmallLocals();
+print("Sum of small locals: " + result1);
+
+// Test 2: Function with more locals (slots 4+)
+print("\n--- Test 2: Mixed Locals (Slots 0-5) ---");
+fun testMixedLocals() {
+    var x0 = 1;   // slot 0 - optimized
+    var x1 = 2;   // slot 1 - optimized
+    var x2 = 3;   // slot 2 - optimized
+    var x3 = 4;   // slot 3 - optimized
+    var x4 = 5;   // slot 4 - not optimized
+    var x5 = 6;   // slot 5 - not optimized
+
+    return x0 + x1 + x2 + x3 + x4 + x5;
+}
+
+var result2 = testMixedLocals();
+print("Sum of mixed locals: " + result2);
+
+// Test 3: Local variable assignment
+print("\n--- Test 3: Local Assignment ---");
+fun testAssignment() {
+    var val = 100;   // slot 0
+    print("Initial: " + val);
+
+    val = 200;       // Should use OP_SET_LOCAL_0
+    print("After assignment: " + val);
+
+    return val;
+}
+
+var result3 = testAssignment();
+print("Final value: " + result3);
+
+// Test 4: Increment/decrement operations
+print("\n--- Test 4: Increment/Decrement ---");
+fun testIncDec() {
+    var counter = 0;   // slot 0
+
+    counter = counter + 1;   // Should use OP_GET_LOCAL_0 and OP_SET_LOCAL_0
+    counter = counter + 1;
+    counter = counter + 1;
+
+    print("Counter after +3: " + counter);
+
+    return counter;
+}
+
+var result4 = testIncDec();
+print("Counter result: " + result4);
+
+// Test 5: Compound assignment
+print("\n--- Test 5: Compound Assignment ---");
+fun testCompound() {
+    var num = 10;   // slot 0
+    num = num + 5;
+    num = num * 2;
+    num = num - 3;
+
+    return num;
+}
+
+var result5 = testCompound();
+print("Compound result: " + result5);
+
+// Test 6: Local variables in loops
+print("\n--- Test 6: Locals in Loops ---");
+fun testLoop() {
+    var sum = 0;      // slot 0
+    var i = 0;        // slot 1
+
+    while (i < 5) {
+        sum = sum + i;
+        i = i + 1;
+    }
+
+    return sum;
+}
+
+var result6 = testLoop();
+print("Loop sum: " + result6);
+
+// Test 7: Nested function calls
+print("\n--- Test 7: Nested Functions ---");
+fun outer() {
+    var outerVar = 100;   // slot 0
+
+    fun inner() {
+        var innerVar = 200;   // slot 0 in inner scope
+        return innerVar + 50;
+    }
+
+    return outerVar + inner();
+}
+
+var result7 = outer();
+print("Nested result: " + result7);
+
+// Test 8: Multiple operations on same local
+print("\n--- Test 8: Multiple Operations ---");
+fun testMultiOps() {
+    var x = 5;    // slot 0
+    var y = 10;   // slot 1
+    var z = 15;   // slot 2
+
+    var temp1 = x + y;
+    var temp2 = y + z;
+    var temp3 = x + z;
+
+    return temp1 + temp2 + temp3;
+}
+
+var result8 = testMultiOps();
+print("Multi-ops result: " + result8);
+
+// Test 9: Local variable shadowing
+print("\n--- Test 9: Variable Shadowing ---");
+fun testShadowing() {
+    var val = 10;   // slot 0
+    print("Outer val: " + val);
+
+    if (val > 5) {
+        var val = 20;   // Different slot in nested scope
+        print("Inner val: " + val);
+    }
+
+    print("Outer val again: " + val);
+    return val;
+}
+
+var result9 = testShadowing();
+
+// Test 10: Stress test - many locals
+print("\n--- Test 10: Many Locals ---");
+fun testManyLocals() {
+    var l0 = 0;
+    var l1 = 1;
+    var l2 = 2;
+    var l3 = 3;
+    var l4 = 4;
+    var l5 = 5;
+    var l6 = 6;
+    var l7 = 7;
+
+    // First 4 should be optimized
+    return l0 + l1 + l2 + l3 + l4 + l5 + l6 + l7;
+}
+
+var result10 = testManyLocals();
+print("Many locals sum: " + result10);
+
+print("\n=== Optimization Complete ===");
+print("Locals 0-3 use single-byte opcodes!");
+print("Each optimized local access saves 1 byte!");

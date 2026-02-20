@@ -1,0 +1,24 @@
+// Minimal test that reproduces the bug
+print("Starting test");
+
+foreach (i in 1..3) {
+    print("Outer loop: i = " + i);
+    
+    if (i == 1) {
+        print("  Entering first branch");
+        foreach (j in 1..2) {
+            print("    Inner loop (first): j = " + j);
+        }
+        print("  Exiting first branch");
+    } else if (i == 2) {
+        print("  Entering second branch");
+        foreach (k in 1..3) {
+            print("    Inner loop (second): k = " + k);
+        }
+        print("  Exiting second branch");
+    }
+    
+    print("Outer loop iteration complete");
+}
+
+print("Test complete");

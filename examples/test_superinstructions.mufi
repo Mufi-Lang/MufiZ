@@ -1,0 +1,84 @@
+// Phase 3 Superinstruction Test
+// This script exercises patterns that should be optimized by superinstructions
+
+// Pattern 1: DEFINE_GLOBAL + CONSTANT
+var a = 10;
+var b = 20;
+var c = 30;
+var d = 40;
+var e = 50;
+
+// Pattern 2: GET_GLOBAL + ADD
+var result1 = a + 5;
+var result2 = b + 10;
+var result3 = c + 15;
+
+// Pattern 3: GET_GLOBAL + MULTIPLY
+var result4 = a * 2;
+var result5 = b * 3;
+
+// Pattern 4: GET_GLOBAL + GET_GLOBAL (used in binary operations)
+var sum1 = a + b;
+var sum2 = c + d;
+var product = a * b;
+
+// Pattern 5: Multiple constants
+var x = 100;
+var y = 200;
+var z = x + y;
+
+// Pattern 6: Local variable patterns
+fun testLocals() {
+    var local1 = 1;
+    var local2 = 2;
+    var local3 = 3;
+
+    // GET_LOCAL + GET_LOCAL patterns
+    var localSum = local1 + local2;
+    var localProduct = local2 * local3;
+
+    // GET_LOCAL + ADD patterns
+    var increment = local1 + 10;
+
+    return localSum + localProduct + increment;
+}
+
+var localResult = testLocals();
+
+// Pattern 7: More DEFINE_GLOBAL + CONSTANT
+var value1 = 111;
+var value2 = 222;
+var value3 = 333;
+var value4 = 444;
+var value5 = 555;
+
+// Pattern 8: GET_GLOBAL + arithmetic operations
+var addResult = a + 100;
+var subResult = b - 50;
+var mulResult = c * 4;
+var divResult = d / 2;
+
+// Pattern 9: Nested expressions with globals
+var complex1 = a + b + c;
+var complex2 = a * b + c * d;
+
+// Pattern 10: CONSTANT + CONSTANT patterns
+fun constantTest() {
+    var const1 = 777;
+    var const2 = 888;
+    return const1 + const2;
+}
+
+var constResult = constantTest();
+
+// Final computation using all patterns
+var final = result1 + result2 + result3 + result4 + result5 +
+            sum1 + sum2 + product + localResult +
+            value1 + value2 + value3 + value4 + value5 +
+            addResult + subResult + mulResult + divResult +
+            complex1 + complex2 + constResult;
+
+print "Phase 3 Superinstruction Test Complete";
+print "Final result: ";
+print final;
+print "All patterns exercised successfully!";

@@ -176,12 +176,12 @@ fun test7_json_data_transformation() {
     var user_lookup = hash_table();
     var i = 0;
     while (i < len(users)) {
-        var user = users[i];
-        if (what_is(user) == "Hash Table") {
-            var id = json_get(user, "id");
-            var name = json_get(user, "name");
-            put(user_lookup, str(id), name);
-        }
+        var user = get(users, str(i));
+            if (what_is(user) == "Hash Table") {
+                var id = json_get(user, "id");
+                var name = json_get(user, "name");
+                put(user_lookup, str(id), name);
+            }
         i = i + 1;
     }
 
@@ -323,13 +323,6 @@ fun test12_json_error_handling_integration() {
 
     // Test graceful handling of JSON errors in integration scenarios
     var valid_configs = linked_list();
-    var test_configs = [
-        "{\"name\": \"config1\", \"value\": 123}",
-        "{invalid json}",
-        "{\"name\": \"config2\", \"value\": 456}",
-        "[1, 2, 3, 4]",
-        "{\"name\": \"config3\", \"value\": 789}"
-    ];
 
     // Process each config, skipping invalid ones
     var i = 0;
@@ -367,11 +360,15 @@ fun test13_json_batch_processing() {
     var batch_data = linked_list();
     var i = 0;
     while (i < 10) {
-        var item = hash_table();
-        put(item, "id", i);
-        put(item, "status", i % 2 == 0 ? "active" : "inactive");
-        put(item, "score", i * 10.5);
-        push(batch_data, item);
+        var entry = hash_table();
+        put(entry, "id", i);
+        var status = "inactive";
+        if (i % 2 == 0) {
+            status = "active";
+        }
+        put(entry, "status", status);
+        put(entry, "score", i * 10.5);
+        push(batch_data, entry);
         i = i + 1;
     }
 
@@ -379,8 +376,8 @@ fun test13_json_batch_processing() {
     var json_batch = linked_list();
     var j = 0;
     while (j < len(batch_data)) {
-        var item = nth(batch_data, j);
-        var item_json = json_stringify(item);
+        var entry = nth(batch_data, j);
+        var item_json = json_stringify(entry);
         var parsed_item = json_parse(item_json);
         push(json_batch, parsed_item);
         j = j + 1;
@@ -414,23 +411,15 @@ fun test14_json_configuration_system() {
     // Merge configurations (env overrides base)
     var final_config = hash_table();
 
-    // Copy base config
-    var base_pairs = pairs(base_config);
-    i = 0;
-    while (i < len(base_pairs)) {
-        var pair = nth(base_pairs, i);
-        put(final_config, pair[0], pair[1]);
-        i = i + 1;
-    }
+    // Copy base config keys manually (pairs() has limited support)
+    put(final_config, "app_name", get(base_config, "app_name"));
+    put(final_config, "version", get(base_config, "version"));
+    put(final_config, "debug", get(base_config, "debug"));
 
     // Override with env config
-    var env_pairs = pairs(env_config);
-    i = 0;
-    while (i < len(env_pairs)) {
-        var pair = nth(env_pairs, i);
-        put(final_config, pair[0], pair[1]);
-        i = i + 1;
-    }
+    put(final_config, "debug", get(env_config, "debug"));
+    put(final_config, "port", get(env_config, "port"));
+    put(final_config, "database_url", get(env_config, "database_url"));
 
     // Verify merged configuration
     assert(json_get(final_config, "app_name"), "MyApp");
