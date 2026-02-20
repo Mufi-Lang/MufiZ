@@ -326,12 +326,13 @@ test "resolver basic" {
     var resolver = try Resolver.init(testing.allocator);
     defer resolver.deinit();
 
-    const spec1 = try DependencySpec.init(
+    var spec1 = try DependencySpec.init(
         testing.allocator,
         "pkg1",
         "https://github.com/user/pkg1",
         "1.0.0",
     );
+    defer spec1.deinit();
     try resolver.addDependency(spec1);
 
     try testing.expectEqual(@as(usize, 1), resolver.getDependencyCount());
@@ -342,20 +343,22 @@ test "circular dependency detection" {
     var resolver = try Resolver.init(testing.allocator);
     defer resolver.deinit();
 
-    const spec1 = try DependencySpec.init(
+    var spec1 = try DependencySpec.init(
         testing.allocator,
         "pkg1",
         "https://github.com/user/pkg1",
         "1.0.0",
     );
+    defer spec1.deinit();
     try resolver.addDependency(spec1);
 
-    const spec2 = try DependencySpec.init(
+    var spec2 = try DependencySpec.init(
         testing.allocator,
         "pkg2",
         "https://github.com/user/pkg2",
         "1.0.0",
     );
+    defer spec2.deinit();
     try resolver.addDependency(spec2);
 
     // Create circular dependency: pkg1 -> pkg2 -> pkg1

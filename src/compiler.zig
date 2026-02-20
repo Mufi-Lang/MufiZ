@@ -26,6 +26,16 @@ const Value = value_h.Value;
 const Complex = value_h.Complex;
 const vm_h = @import("vm.zig");
 
+/// Helper to create a Value wrapping a string object (uses copyString — for runtime/dynamic strings).
+fn makeStringValue(start: [*]const u8, length: usize) Value {
+    return Value.init_obj(@ptrCast(object_h.copyString(start, @intCast(length))));
+}
+
+/// Helper to create a Value wrapping a string literal object (uses copyStringLiteral — for compile-time known strings).
+fn makeStringLiteralValue(start: [*]const u8, length: usize) Value {
+    return Value.init_obj(@ptrCast(object_h.copyStringLiteral(start, @intCast(length))));
+}
+
 // Global error manager and variable tracking
 pub var globalErrorManager: errors.ErrorManager = undefined;
 var knownVariables: std.ArrayList([]const u8) = undefined;
@@ -361,11 +371,6 @@ pub fn emitConstant(value: Value) void {
     emitBytes(@intFromEnum(OpCode.OP_CONSTANT), makeConstant(value));
 }
 
-// Emit a single byte opcode
-pub fn emitSingleByte(byte: u8) void {
-    chunk_h.writeChunk(currentChunk(), byte, parser.previous.line);
-}
-
 pub fn patchJump(offset: i32) void {
     const jump: i32 = (currentChunk().*.count - offset) - 2;
     if (jump > 65535) {
@@ -414,29 +419,6 @@ pub fn initCompiler(compiler: *Compiler, type_: FunctionType) void {
         local.*.isCaptured = false;
     }
 }
-// pub fn initCompiler(compiler: [*c]Compiler, type_: FunctionType) void {
-//     compiler.*.enclosing = current;
-//     compiler.*.function = null;
-//     compiler.*.type_ = type_;
-//     compiler.*.localCount = 0;
-//     compiler.*.scopeDepth = 0;
-//     compiler.*.function = object_h.newFunction();
-//     current = compiler;
-//     if (type_ != .TYPE_SCRIPT) {
-//         current.*.function.*.name = object_h.copyString(parser.previous.start, parser.previous.length);
-//     }
-//     current.*.localCount += 1;
-//     const local: [*c]Local = &current.*.locals[@intCast(current.*.localCount)];
-//     local.*.depth = 0;
-//     local.*.isCaptured = false;
-//     if (type_ != .TYPE_FUNCTION) {
-//         local.*.name.start = @ptrCast(@constCast("self"));
-//         local.*.name.length = 4;
-//     } else {
-//         local.*.name.start = @ptrCast(@constCast(""));
-//         local.*.name.length = 0;
-//     }
-// }
 
 pub fn endCompiler() *ObjFunction {
     emitReturn();
@@ -649,12 +631,7 @@ pub fn parsePrecedence(precedence: Precedence) void {
 }
 
 pub fn identifierConstant(name: *Token) u8 {
-    return makeConstant(Value{
-        .type = .VAL_OBJ,
-        .as = .{
-            .obj = @ptrCast(object_h.copyStringLiteral(name.*.start, @intCast(name.*.length))),
-        },
-    });
+    return makeConstant(makeStringLiteralValue(name.*.start, @intCast(name.*.length)));
 }
 pub fn identifiersEqual(a: *Token, b: *Token) bool {
     if (a.*.length != b.*.length) return false;
@@ -758,113 +735,82 @@ fn addLocalWithConst(name: Token, isConst: bool) void {
     const varName = name.start[0..@intCast(name.length)];
     addKnownVariable(varName);
 }
-pub fn declareVariable() void {
+fn declareVariableImpl(isConst: bool) void {
     if (current.?.scopeDepth == 0) return;
     const name: *Token = &parser.previous;
-    {
-        var i: i32 = current.?.localCount - 1;
-        _ = &i;
-        while (i >= 0) : (i -= 1) {
-            var local: *Local = &current.?.locals[@as(c_uint, @intCast(i))];
-            _ = &local;
-            if ((local.*.depth != -1) and (local.*.depth < current.?.scopeDepth)) {
-                break;
-            }
-            if (identifiersEqual(name, &local.*.name)) {
-                const varName = name.start[0..@intCast(name.length)];
-                const suggestions = [_]errors.ErrorSuggestion{
-                    .{ .message = "Use a different variable name" },
-                    .{ .message = "Variables in the same scope must have unique names" },
-                    .{ .message = "Try alternative names", .example = std.fmt.allocPrint(compiler_arena.getCompilerAllocator(), "{s}2, new{s}, {s}Value", .{ varName, varName, varName }) catch "newName, value2" },
-                };
-                errorWithSuggestions(&parser.previous, .REDEFINED_VARIABLE, std.fmt.allocPrint(compiler_arena.getCompilerAllocator(), "Variable '{s}' already declared in this scope", .{varName}) catch "Variable already declared", &suggestions);
-                return;
-            }
+    const kind = if (isConst) "Constant" else "Variable";
+    var i: i32 = current.?.localCount - 1;
+    while (i >= 0) : (i -= 1) {
+        const local: *Local = &current.?.locals[@as(c_uint, @intCast(i))];
+        if ((local.*.depth != -1) and (local.*.depth < current.?.scopeDepth)) {
+            break;
+        }
+        if (identifiersEqual(name, &local.*.name)) {
+            const varName = name.start[0..@intCast(name.length)];
+            const suggestions = [_]errors.ErrorSuggestion{
+                .{ .message = if (isConst) "Use a different constant name" else "Use a different variable name" },
+                .{ .message = if (isConst) "Constants in the same scope must have unique names" else "Variables in the same scope must have unique names" },
+                .{ .message = "Try alternative names", .example = std.fmt.allocPrint(compiler_arena.getCompilerAllocator(), "{s}2, new{s}, {s}Value", .{ varName, varName, varName }) catch "newName, value2" },
+            };
+            errorWithSuggestions(&parser.previous, .REDEFINED_VARIABLE, std.fmt.allocPrint(compiler_arena.getCompilerAllocator(), "{s} '{s}' already declared in this scope", .{ kind, varName }) catch "Already declared in this scope", &suggestions);
+            return;
         }
     }
-    addLocal(name.*);
+    addLocalWithConst(name.*, isConst);
+}
+
+pub fn declareVariable() void {
+    declareVariableImpl(false);
 }
 
 pub fn declareConstVariable() void {
-    if (current.?.scopeDepth == 0) return;
-    const name: *Token = &parser.previous;
-    {
-        var i: i32 = current.?.localCount - 1;
-        _ = &i;
-        while (i >= 0) : (i -= 1) {
-            var local: *Local = &current.?.locals[@as(c_uint, @intCast(i))];
-            _ = &local;
-            if ((local.*.depth != -1) and (local.*.depth < current.?.scopeDepth)) {
-                break;
-            }
-            if (identifiersEqual(name, &local.*.name)) {
-                const varName = name.start[0..@intCast(name.length)];
-                const suggestions = [_]errors.ErrorSuggestion{
-                    .{ .message = "Use a different constant name" },
-                    .{ .message = "Constants in the same scope must have unique names" },
-                    .{ .message = "Try alternative names", .example = std.fmt.allocPrint(compiler_arena.getCompilerAllocator(), "{s}2, new{s}, {s}Value", .{ varName, varName, varName }) catch "newName, value2" },
-                };
-                errorWithSuggestions(&parser.previous, .REDEFINED_VARIABLE, std.fmt.allocPrint(compiler_arena.getCompilerAllocator(), "Constant '{s}' already declared in this scope", .{varName}) catch "Constant already declared", &suggestions);
-                return;
-            }
-        }
-    }
-    addConstLocal(name.*);
+    declareVariableImpl(true);
+}
+
+fn parseVariableImpl(message: [*]const u8, isConst: bool) u8 {
+    consume(.TOKEN_IDENTIFIER, message);
+    declareVariableImpl(isConst);
+    if (current.?.scopeDepth > 0) return 0;
+    return identifierConstant(&parser.previous);
 }
 
 pub fn parseVariable(message: [*]const u8) u8 {
-    consume(.TOKEN_IDENTIFIER, message);
-    declareVariable();
-    if (current.?.scopeDepth > 0) return 0;
-    return identifierConstant(&parser.previous);
+    return parseVariableImpl(message, false);
 }
 
 pub fn parseConstVariable(message: [*]const u8) u8 {
-    consume(.TOKEN_IDENTIFIER, message);
-    declareConstVariable();
-    if (current.?.scopeDepth > 0) return 0;
-    return identifierConstant(&parser.previous);
+    return parseVariableImpl(message, true);
 }
+
 pub fn markInitialized() void {
     if (current.?.scopeDepth == 0) return;
     current.?.locals[@as(c_uint, @intCast(current.?.localCount - 1))].depth = current.?.scopeDepth;
 }
-pub fn defineVariable(global: u8) void {
+
+fn defineVariableImpl(global: u8, opcode: OpCode) void {
     if (current.?.scopeDepth > 0) {
         markInitialized();
         return;
     }
 
-    // Track global variable for suggestion system
+    // Track global variable/constant for suggestion system
     if (errorManagerInitialized and global < currentChunk().*.constants.count) {
         const constant = currentChunk().*.constants.values[@intCast(global)];
         if (constant.type == .VAL_OBJ and object_h.isObjType(constant, .OBJ_STRING)) {
             const objString = @as(*object_h.ObjString, @ptrCast(@alignCast(constant.as.obj)));
-            const varName = objString.chars[0..@intCast(objString.length)];
-            addKnownVariable(varName);
+            addKnownVariable(objString.chars[0..@intCast(objString.length)]);
         }
     }
 
-    emitBytes(@intFromEnum(OpCode.OP_DEFINE_GLOBAL), global);
+    emitBytes(@intFromEnum(opcode), global);
+}
+
+pub fn defineVariable(global: u8) void {
+    defineVariableImpl(global, .OP_DEFINE_GLOBAL);
 }
 
 pub fn defineConstVariable(global: u8) void {
-    if (current.?.scopeDepth > 0) {
-        markInitialized();
-        return;
-    }
-
-    // Track global constant for suggestion system
-    if (errorManagerInitialized and global < currentChunk().*.constants.count) {
-        const constant = currentChunk().*.constants.values[@intCast(global)];
-        if (constant.type == .VAL_OBJ and object_h.isObjType(constant, .OBJ_STRING)) {
-            const objString = @as(*object_h.ObjString, @ptrCast(@alignCast(constant.as.obj)));
-            const varName = objString.chars[0..@intCast(objString.length)];
-            addKnownVariable(varName);
-        }
-    }
-
-    emitBytes(@intFromEnum(OpCode.OP_DEFINE_CONST_GLOBAL), global);
+    defineVariableImpl(global, .OP_DEFINE_CONST_GLOBAL);
 }
 
 pub fn argumentList() u8 {
@@ -889,8 +835,7 @@ pub fn argumentList() u8 {
 }
 pub fn and_(canAssign: bool) void {
     _ = canAssign;
-    var endJump: i32 = emitJump(@intFromEnum(OpCode.OP_JUMP_IF_FALSE));
-    _ = &endJump;
+    const endJump = emitJump(@intFromEnum(OpCode.OP_JUMP_IF_FALSE));
     emitByte(@intFromEnum(OpCode.OP_POP));
     parsePrecedence(PREC_AND);
     patchJump(endJump);
@@ -900,99 +845,47 @@ pub fn binary(canAssign: bool) void {
     const operatorType: TokenType = parser.previous.type;
     const rule: ParseRule = getRule(operatorType);
     parsePrecedence(rule.precedence +% 1);
-    while (true) {
-        switch (operatorType) {
-            .TOKEN_BANG_EQUAL => {
-                emitBytes(@intFromEnum(OpCode.OP_EQUAL), @intFromEnum(OpCode.OP_NOT));
-                break;
-            },
-            .TOKEN_EQUAL_EQUAL => {
-                emitByte(@intFromEnum(OpCode.OP_EQUAL));
-                break;
-            },
-            .TOKEN_GREATER => {
-                emitByte(@intFromEnum(OpCode.OP_GREATER));
-                break;
-            },
-            .TOKEN_GREATER_EQUAL => {
-                emitBytes(@intFromEnum(OpCode.OP_LESS), @intFromEnum(OpCode.OP_NOT));
-                break;
-            },
-            .TOKEN_LESS => {
-                emitByte(@intFromEnum(OpCode.OP_LESS));
-                break;
-            },
-            .TOKEN_LESS_EQUAL => {
-                emitBytes(@intFromEnum(OpCode.OP_GREATER), @intFromEnum(OpCode.OP_NOT));
-                break;
-            },
-            .TOKEN_PLUS => {
-                emitByte(@intFromEnum(OpCode.OP_ADD));
-                break;
-            },
-            .TOKEN_MINUS => {
-                emitByte(@intFromEnum(OpCode.OP_SUBTRACT));
-                break;
-            },
-            .TOKEN_STAR => {
-                emitByte(@intFromEnum(OpCode.OP_MULTIPLY));
-                break;
-            },
-            .TOKEN_SLASH => {
-                emitByte(@intFromEnum(OpCode.OP_DIVIDE));
-                break;
-            },
-            .TOKEN_PERCENT => {
-                emitByte(@intFromEnum(OpCode.OP_MODULO));
-                break;
-            },
-            .TOKEN_HAT => {
-                emitByte(@intFromEnum(OpCode.OP_EXPONENT));
-                break;
-            },
-            else => return,
-        }
-        break;
+    switch (operatorType) {
+        .TOKEN_BANG_EQUAL => emitBytes(@intFromEnum(OpCode.OP_EQUAL), @intFromEnum(OpCode.OP_NOT)),
+        .TOKEN_EQUAL_EQUAL => emitByte(@intFromEnum(OpCode.OP_EQUAL)),
+        .TOKEN_GREATER => emitByte(@intFromEnum(OpCode.OP_GREATER)),
+        .TOKEN_GREATER_EQUAL => emitBytes(@intFromEnum(OpCode.OP_LESS), @intFromEnum(OpCode.OP_NOT)),
+        .TOKEN_LESS => emitByte(@intFromEnum(OpCode.OP_LESS)),
+        .TOKEN_LESS_EQUAL => emitBytes(@intFromEnum(OpCode.OP_GREATER), @intFromEnum(OpCode.OP_NOT)),
+        .TOKEN_PLUS => emitByte(@intFromEnum(OpCode.OP_ADD)),
+        .TOKEN_MINUS => emitByte(@intFromEnum(OpCode.OP_SUBTRACT)),
+        .TOKEN_STAR => emitByte(@intFromEnum(OpCode.OP_MULTIPLY)),
+        .TOKEN_SLASH => emitByte(@intFromEnum(OpCode.OP_DIVIDE)),
+        .TOKEN_PERCENT => emitByte(@intFromEnum(OpCode.OP_MODULO)),
+        .TOKEN_HAT => emitByte(@intFromEnum(OpCode.OP_EXPONENT)),
+        else => {},
     }
 }
 pub fn call(canAssign: bool) void {
-    _ = &canAssign;
-    var argCount: u8 = argumentList();
-    _ = &argCount;
+    _ = canAssign;
+    const argCount = argumentList();
     emitBytes(@intFromEnum(OpCode.OP_CALL), argCount);
 }
 pub fn dot(canAssign: bool) void {
     consume(.TOKEN_IDENTIFIER, "Expect property name after '.'.");
-    var name: u8 = identifierConstant(&parser.previous);
-    _ = &name;
-    if ((@as(i32, @intFromBool(canAssign)) != 0) and (@as(i32, @intFromBool(match(.TOKEN_EQUAL))) != 0)) {
+    const name = identifierConstant(&parser.previous);
+    if (canAssign and match(.TOKEN_EQUAL)) {
         expression();
         emitBytes(@intFromEnum(OpCode.OP_SET_PROPERTY), name);
     } else if (match(.TOKEN_LEFT_PAREN)) {
-        var argCount: u8 = argumentList();
-        _ = &argCount;
+        const argCount = argumentList();
         emitBytes(@intFromEnum(OpCode.OP_INVOKE), name);
         emitByte(argCount);
     } else {
-        // Check if we're accessing a module member or instance property
-        // At runtime, OP_GET_PROPERTY will check the object type and route accordingly
-        // For modules, it will use OP_GET_MODULE_MEMBER behavior
-        // For instances, it will use the normal property access
         emitBytes(@intFromEnum(OpCode.OP_GET_PROPERTY), name);
     }
 }
 pub fn literal(canAssign: bool) void {
     _ = canAssign;
     switch (parser.previous.type) {
-        .TOKEN_FALSE => {
-            emitByte(@intFromEnum(OpCode.OP_FALSE));
-        },
-        .TOKEN_NIL => {
-            emitByte(@intFromEnum(OpCode.OP_NIL));
-        },
-        .TOKEN_TRUE => {
-            emitByte(@intFromEnum(OpCode.OP_TRUE));
-        },
+        .TOKEN_FALSE => emitByte(@intFromEnum(OpCode.OP_FALSE)),
+        .TOKEN_NIL => emitByte(@intFromEnum(OpCode.OP_NIL)),
+        .TOKEN_TRUE => emitByte(@intFromEnum(OpCode.OP_TRUE)),
         else => {},
     }
 }
@@ -1119,10 +1012,8 @@ fn isDigitChar(c: u8) bool {
 }
 pub fn or_(canAssign: bool) void {
     _ = canAssign;
-    var elseJump: i32 = emitJump(@intFromEnum(OpCode.OP_JUMP_IF_FALSE));
-    _ = &elseJump;
-    var endJump: i32 = emitJump(@intFromEnum(OpCode.OP_JUMP));
-    _ = &endJump;
+    const elseJump = emitJump(@intFromEnum(OpCode.OP_JUMP_IF_FALSE));
+    const endJump = emitJump(@intFromEnum(OpCode.OP_JUMP));
     patchJump(elseJump);
     emitByte(@intFromEnum(OpCode.OP_POP));
     parsePrecedence(PREC_OR);
@@ -1156,7 +1047,7 @@ pub fn ternary(canAssign: bool) void {
     patchJump(endJump);
 }
 pub fn string(canAssign: bool) void {
-    _ = &canAssign;
+    _ = canAssign;
 
     var start = parser.previous.start + 1; // Skip opening quote
     var length: i32 = if (parser.previous.length >= 2) parser.previous.length - 2 else 0;
@@ -1294,41 +1185,19 @@ pub fn fstring(canAssign: bool) void {
     // Call format function
     emitBytes(@intFromEnum(OpCode.OP_CALL), arg_count + 1);
 }
-// pub fn array(canAssign: bool)  void {
-//     _ = &canAssign;
-//     var argCount: u8 = 0;
-//     _ = &argCount;
-//     if (!check(.TOKEN_RIGHT_SQPAREN)) {
-//         while (true) {
-//             expression();
-//             argCount +%= 1;
-//             if (@as(i32, @bitCast(@as(c_uint, argCount))) > 255) {
-//                 @"error"("Can't have more than 255 elements in an array.");
-//             }
-//             if (!match(.TOKEN_COMMA)) break;
-//         }
-//     }
-//     consume(.TOKEN_RIGHT_SQPAREN, "Expect ']' after array elements.");
-//     emitBytes(@intFromEnum(OpCode.OP_ARRAY), argCount);
-// Handle either dictionary or fvector literals
+fn emitRange(opcode: OpCode) void {
+    parsePrecedence(@as(c_uint, @bitCast(PREC_RANGE + 1)));
+    emitByte(@intFromEnum(opcode));
+}
+
 pub fn rangeExclusive(canAssign: bool) void {
     _ = canAssign;
-
-    // Parse the end expression (right hand side)
-    parsePrecedence(@as(c_uint, @bitCast(PREC_RANGE + 1)));
-
-    // Emit the range creation instruction with exclusive flag
-    emitByte(@intFromEnum(OpCode.OP_RANGE));
+    emitRange(.OP_RANGE);
 }
 
 pub fn rangeInclusive(canAssign: bool) void {
     _ = canAssign;
-
-    // Parse the end expression (right hand side)
-    parsePrecedence(@as(c_uint, @bitCast(PREC_RANGE + 1)));
-
-    // Emit the range creation instruction with inclusive flag
-    emitByte(@intFromEnum(OpCode.OP_RANGE_INCLUSIVE));
+    emitRange(.OP_RANGE_INCLUSIVE);
 }
 
 pub fn pair(canAssign: bool) void {
@@ -1341,47 +1210,6 @@ pub fn pair(canAssign: bool) void {
     emitByte(@intFromEnum(OpCode.OP_PAIR));
 }
 
-// Helper function to determine if the current token sequence looks like a range pattern
-fn isRangePattern() bool {
-    // Save current position
-    const savedCurrent = parser.current;
-    const savedPrevious = parser.previous;
-
-    // Try to parse a value followed by a range operator
-    if (check(.TOKEN_INT) or check(.TOKEN_DOUBLE) or check(.TOKEN_IDENTIFIER)) {
-        advance(); // Consume the start value
-
-        const hasRange = check(.TOKEN_RANGE_EXCLUSIVE) or check(.TOKEN_RANGE_INCLUSIVE);
-
-        // Restore position regardless of result
-        parser.current = savedCurrent;
-        parser.previous = savedPrevious;
-
-        return hasRange;
-    }
-
-    return false;
-}
-
-// Helper function to check the next token without consuming it
-fn checkNext(type_: TokenType) bool {
-    if (parser.current.type == .TOKEN_EOF) return false;
-
-    // Save current position
-    const saved = parser.current;
-
-    // Advance and check
-    advance();
-    const result = parser.current.type == type_;
-
-    // Restore token position
-    parser.current = saved;
-
-    return result;
-}
-
-// Note: This function appears to be unused but is left for historical reference
-// Float vectors are now handled by objectLiteral when isDict is false
 pub fn objectLiteral(canAssign: bool) void {
     _ = canAssign;
 
@@ -1549,6 +1377,30 @@ fn regularVector() void {
     consume(.TOKEN_RIGHT_SQPAREN, "Expect ']' after vector elements.");
     emitBytes(@intFromEnum(OpCode.OP_FVECTOR), argCount);
 }
+/// Check if a local variable is const and emit an error if so. Returns true if const (caller should return).
+fn checkConstAssignment(name: Token, arg: i32, isLocal: bool) bool {
+    if (isLocal and current.?.locals[@intCast(arg)].isConst) {
+        const varName = name.start[0..@intCast(name.length)];
+        const suggestions = [_]errors.ErrorSuggestion{
+            .{ .message = "Use 'var' instead of 'const' if you need to modify this variable" },
+            .{ .message = "Constants cannot be modified after declaration" },
+            .{ .message = "Declare as mutable", .example = "var myVariable = value;" },
+        };
+        errorWithSuggestions(&parser.previous, .INVALID_ASSIGNMENT, std.fmt.allocPrint(compiler_arena.getCompilerAllocator(), "Cannot assign to constant variable '{s}'", .{varName}) catch "Cannot assign to constant variable", &suggestions);
+        return true;
+    }
+    return false;
+}
+
+/// Emit an increment or decrement operation: get var, add/subtract 1, set var.
+fn emitIncDec(getOp: u8, setOp: u8, arg: i32, opcode: OpCode) void {
+    const argByte = @as(u8, @bitCast(@as(i8, @truncate(arg))));
+    emitBytes(getOp, argByte);
+    emitConstant(Value.init_int(1));
+    emitByte(@intFromEnum(opcode));
+    emitBytes(setOp, argByte);
+}
+
 pub fn namedVariable(name: Token, canAssign: bool) void {
     var getOp: u8 = undefined;
     var setOp: u8 = undefined;
@@ -1566,109 +1418,37 @@ pub fn namedVariable(name: Token, canAssign: bool) void {
         getOp = @intFromEnum(OpCode.OP_GET_UPVALUE);
         setOp = @intFromEnum(OpCode.OP_SET_UPVALUE);
     } else {
-        // For now, we'll let undefined globals be caught at runtime
-        // since compile-time detection is complex with dynamic scoping
         arg = @intCast(identifierConstant(@constCast(&name)));
         getOp = @intFromEnum(OpCode.OP_GET_GLOBAL);
         setOp = @intFromEnum(OpCode.OP_SET_GLOBAL);
     }
-    if ((@as(i32, @intFromBool(canAssign)) != 0) and (@as(i32, @intFromBool(match(.TOKEN_EQUAL))) != 0)) {
-        // Check if trying to assign to a const local variable (only for locals)
-        if (isLocal and current.?.locals[@intCast(arg)].isConst) {
-            const varName = name.start[0..@intCast(name.length)];
-            const suggestions = [_]errors.ErrorSuggestion{
-                .{ .message = "Use 'var' instead of 'const' if you need to modify this variable" },
-                .{ .message = "Constants cannot be modified after declaration" },
-                .{ .message = "Declare as mutable", .example = "var myVariable = value;" },
-            };
-            errorWithSuggestions(&parser.previous, .INVALID_ASSIGNMENT, std.fmt.allocPrint(compiler_arena.getCompilerAllocator(), "Cannot assign to constant variable '{s}'", .{varName}) catch "Cannot assign to constant variable", &suggestions);
-            return;
-        }
+
+    const argByte = @as(u8, @bitCast(@as(i8, @truncate(arg))));
+
+    if (canAssign and match(.TOKEN_EQUAL)) {
+        if (checkConstAssignment(name, arg, isLocal)) return;
         expression();
-        emitBytes(setOp, @as(u8, @bitCast(@as(i8, @truncate(arg)))));
-    } else if ((((@as(i32, @intFromBool(match(.TOKEN_PLUS_EQUAL))) != 0) or (@as(i32, @intFromBool(match(.TOKEN_MINUS_EQUAL))) != 0)) or (@as(i32, @intFromBool(match(.TOKEN_STAR_EQUAL))) != 0)) or (@as(i32, @intFromBool(match(.TOKEN_SLASH_EQUAL))) != 0)) {
-        // Check if trying to assign to a const local variable (only for locals)
-        if (isLocal and current.?.locals[@intCast(arg)].isConst) {
-            const varName = name.start[0..@intCast(name.length)];
-            const suggestions = [_]errors.ErrorSuggestion{
-                .{ .message = "Use 'var' instead of 'const' if you need to modify this variable" },
-                .{ .message = "Constants cannot be modified with assignment operators" },
-                .{ .message = "Declare as mutable", .example = "var myVariable = value;" },
-            };
-            errorWithSuggestions(&parser.previous, .INVALID_ASSIGNMENT, std.fmt.allocPrint(compiler_arena.getCompilerAllocator(), "Cannot assign to constant variable '{s}'", .{varName}) catch "Cannot assign to constant variable", &suggestions);
-            return;
-        }
-        emitBytes(getOp, @as(u8, @bitCast(@as(i8, @truncate(arg)))));
+        emitBytes(setOp, argByte);
+    } else if (match(.TOKEN_PLUS_EQUAL) or match(.TOKEN_MINUS_EQUAL) or match(.TOKEN_STAR_EQUAL) or match(.TOKEN_SLASH_EQUAL)) {
+        if (checkConstAssignment(name, arg, isLocal)) return;
+        emitBytes(getOp, argByte);
         expression();
-        while (true) {
-            switch (parser.previous.type) {
-                .TOKEN_PLUS_EQUAL => {
-                    emitByte(@intFromEnum(OpCode.OP_ADD));
-                    break;
-                },
-                .TOKEN_MINUS_EQUAL => {
-                    emitByte(@intFromEnum(OpCode.OP_SUBTRACT));
-                    break;
-                },
-                .TOKEN_STAR_EQUAL => {
-                    emitByte(@intFromEnum(OpCode.OP_MULTIPLY));
-                    break;
-                },
-                .TOKEN_SLASH_EQUAL => {
-                    emitByte(@intFromEnum(OpCode.OP_DIVIDE));
-                    break;
-                },
-                else => return,
-            }
-            break;
+        switch (parser.previous.type) {
+            .TOKEN_PLUS_EQUAL => emitByte(@intFromEnum(OpCode.OP_ADD)),
+            .TOKEN_MINUS_EQUAL => emitByte(@intFromEnum(OpCode.OP_SUBTRACT)),
+            .TOKEN_STAR_EQUAL => emitByte(@intFromEnum(OpCode.OP_MULTIPLY)),
+            .TOKEN_SLASH_EQUAL => emitByte(@intFromEnum(OpCode.OP_DIVIDE)),
+            else => {},
         }
-        emitBytes(setOp, @as(u8, @bitCast(@as(i8, @truncate(arg)))));
+        emitBytes(setOp, argByte);
     } else if (match(.TOKEN_PLUS_PLUS)) {
-        // Check if trying to increment a const local variable (only for locals)
-        if (isLocal and current.?.locals[@intCast(arg)].isConst) {
-            const varName = name.start[0..@intCast(name.length)];
-            const suggestions = [_]errors.ErrorSuggestion{
-                .{ .message = "Use 'var' instead of 'const' if you need to modify this variable" },
-                .{ .message = "Constants cannot be incremented" },
-                .{ .message = "Declare as mutable", .example = "var myVariable = value;" },
-            };
-            errorWithSuggestions(&parser.previous, .INVALID_ASSIGNMENT, std.fmt.allocPrint(compiler_arena.getCompilerAllocator(), "Cannot assign to constant variable '{s}'", .{varName}) catch "Cannot assign to constant variable", &suggestions);
-            return;
-        }
-        emitBytes(getOp, @as(u8, @bitCast(@as(i8, @truncate(arg)))));
-        emitByte(@intFromEnum(OpCode.OP_CONSTANT));
-        emitByte(makeConstant(Value{
-            .type = .VAL_INT,
-            .as = .{
-                .num_int = 1,
-            },
-        }));
-        emitByte(@intFromEnum(OpCode.OP_ADD));
-        emitBytes(setOp, @as(u8, @bitCast(@as(i8, @truncate(arg)))));
+        if (checkConstAssignment(name, arg, isLocal)) return;
+        emitIncDec(getOp, setOp, arg, .OP_ADD);
     } else if (match(.TOKEN_MINUS_MINUS)) {
-        // Check if trying to decrement a const local variable (only for locals)
-        if (isLocal and current.?.locals[@intCast(arg)].isConst) {
-            const varName = name.start[0..@intCast(name.length)];
-            const suggestions = [_]errors.ErrorSuggestion{
-                .{ .message = "Use 'var' instead of 'const' if you need to modify this variable" },
-                .{ .message = "Constants cannot be decremented" },
-                .{ .message = "Declare as mutable", .example = "var myVariable = value;" },
-            };
-            errorWithSuggestions(&parser.previous, .INVALID_ASSIGNMENT, std.fmt.allocPrint(compiler_arena.getCompilerAllocator(), "Cannot assign to constant variable '{s}'", .{varName}) catch "Cannot assign to constant variable", &suggestions);
-            return;
-        }
-        emitBytes(getOp, @as(u8, @bitCast(@as(i8, @truncate(arg)))));
-        emitByte(@intFromEnum(OpCode.OP_CONSTANT));
-        emitByte(makeConstant(Value{
-            .type = .VAL_INT,
-            .as = .{
-                .num_int = 1,
-            },
-        }));
-        emitByte(@intFromEnum(OpCode.OP_SUBTRACT));
-        emitBytes(setOp, @as(u8, @bitCast(@as(i8, @truncate(arg)))));
+        if (checkConstAssignment(name, arg, isLocal)) return;
+        emitIncDec(getOp, setOp, arg, .OP_SUBTRACT);
     } else {
-        emitBytes(getOp, @as(u8, @bitCast(@as(i8, @truncate(arg)))));
+        emitBytes(getOp, argByte);
     }
 }
 
@@ -1677,17 +1457,15 @@ pub fn variable(canAssign: bool) void {
 }
 
 pub fn syntheticToken(text: [*]const u8) Token {
-    // Calculate the length to create a proper slice
     const length = mem_utils.strlen(text);
-    var token: Token = Token{
+    return Token{
         .type = .TOKEN_IDENTIFIER,
         .start = @ptrCast(@constCast(text)),
         .length = @as(i32, @intCast(length)),
         .line = 0,
     };
-    _ = &token;
-    return token;
 }
+
 pub fn super_(canAssign: bool) void {
     _ = canAssign;
     if (currentClass == null) {
@@ -1709,25 +1487,18 @@ pub fn super_(canAssign: bool) void {
     }
     consume(.TOKEN_DOT, "Expect '.' after 'super'.");
     consume(.TOKEN_IDENTIFIER, "Expect superclass method name.");
-    var name: u8 = identifierConstant(&parser.previous);
-    _ = &name;
+    const name = identifierConstant(&parser.previous);
 
     // Push 'self' as the receiver (this)
     namedVariable(syntheticToken("self"), false);
 
     if (match(.TOKEN_LEFT_PAREN)) {
-        var argCount: u8 = argumentList();
-        _ = &argCount;
-
-        // Use the "super" local variable that stores the superclass
+        const argCount = argumentList();
         namedVariable(syntheticToken("super"), false);
-
         emitBytes(@intFromEnum(OpCode.OP_SUPER_INVOKE), name);
         emitByte(argCount);
     } else {
-        // Use the "super" local variable that stores the superclass
         namedVariable(syntheticToken("super"), false);
-
         emitBytes(@intFromEnum(OpCode.OP_GET_SUPER), name);
     }
 }
@@ -1749,86 +1520,53 @@ pub fn item_(canAssign: bool) void {
     _ = &canAssign;
     variable(false);
 }
+
+/// Parse an index expression that may be `end`, `end - offset`, or a regular expression.
+fn parseIndexExpression() void {
+    if (check(.TOKEN_END)) {
+        advance();
+        emitConstant(Value.init_int(-1));
+        if (match(.TOKEN_MINUS)) {
+            parsePrecedence(@as(c_uint, @bitCast(PREC_UNARY)));
+            emitByte(@intFromEnum(OpCode.OP_SUBTRACT));
+        }
+    } else {
+        expression();
+    }
+}
+
 pub fn index_(canAssign: bool) void {
-    // Check if we're doing a slice operation or regular index
     var isSlice = false;
 
     // Parse the first index
-    if (check(.TOKEN_END)) {
-        advance(); // consume 'end'
-
-        if (match(.TOKEN_MINUS)) {
-            // Parse the offset value for 'end - offset'
-            // Emit -1 first, then parse offset, then subtract
-            emitConstant(Value.init_int(-1));
-            parsePrecedence(@as(c_uint, @bitCast(PREC_UNARY)));
-            emitByte(@intFromEnum(OpCode.OP_SUBTRACT));
-        } else {
-            // Simple 'end', use -1 as sentinel value
-            emitConstant(Value.init_int(-1));
-        }
-    } else {
-        // Regular index expression
-        expression();
-    }
+    parseIndexExpression();
 
     // Check if we have a colon for slice operation
     if (match(.TOKEN_COLON)) {
         isSlice = true;
-
-        // Parse the end index
-        if (check(.TOKEN_END)) {
-            advance(); // consume 'end'
-
-            if (match(.TOKEN_MINUS)) {
-                // Parse the offset value for 'end - offset'
-                // Emit -1 first, then parse offset, then subtract
-                emitConstant(Value.init_int(-1));
-                parsePrecedence(@as(c_uint, @bitCast(PREC_UNARY)));
-                emitByte(@intFromEnum(OpCode.OP_SUBTRACT));
-            } else {
-                // Simple 'end', use -1 as sentinel value
-                emitConstant(Value.init_int(-1));
-            }
-        } else {
-            // Regular end index
-            expression();
-        }
+        parseIndexExpression();
     }
 
     consume(.TOKEN_RIGHT_SQPAREN, "Expect ']' after index expression.");
 
     if (isSlice) {
-        // Handle slice operation
         emitByte(@intFromEnum(OpCode.OP_SLICE));
     } else if (canAssign and match(.TOKEN_EQUAL)) {
-        // Handle assignment to index
         expression();
         emitByte(@intFromEnum(OpCode.OP_SET_INDEX));
     } else {
-        // Handle regular indexing (VM will detect matrices and return matrix row objects)
         emitByte(@intFromEnum(OpCode.OP_GET_INDEX));
     }
 }
 
 pub fn unary(canAssign: bool) void {
-    _ = &canAssign;
-    var operatorType: TokenType = parser.previous.type;
-    _ = &operatorType;
+    _ = canAssign;
+    const operatorType = parser.previous.type;
     parsePrecedence(@as(c_uint, @bitCast(PREC_UNARY)));
-    while (true) {
-        switch (operatorType) {
-            .TOKEN_BANG => {
-                emitByte(@intFromEnum(OpCode.OP_NOT));
-                break;
-            },
-            .TOKEN_MINUS => {
-                emitByte(@intFromEnum(OpCode.OP_NEGATE));
-                break;
-            },
-            else => break,
-        }
-        break;
+    switch (operatorType) {
+        .TOKEN_BANG => emitByte(@intFromEnum(OpCode.OP_NOT)),
+        .TOKEN_MINUS => emitByte(@intFromEnum(OpCode.OP_NEGATE)),
+        else => {},
     }
 }
 
@@ -1840,7 +1578,6 @@ pub fn block() void {
 }
 pub fn function(type_: FunctionType) void {
     var compiler: Compiler = undefined;
-    _ = &compiler;
     initCompiler(&compiler, type_);
     beginScope();
     consume(.TOKEN_LEFT_PAREN, "Expect '(' after function name.");
@@ -1850,8 +1587,7 @@ pub fn function(type_: FunctionType) void {
             if (current.?.function.*.arity > 255) {
                 errorAtCurrent("Can't have more than 255 parameters.");
             }
-            var constant: u8 = parseVariable("Expect parameter name.");
-            _ = &constant;
+            const constant = parseVariable("Expect parameter name.");
             defineVariable(constant);
             if (!match(.TOKEN_COMMA)) break;
         }
@@ -1859,29 +1595,18 @@ pub fn function(type_: FunctionType) void {
     consume(.TOKEN_RIGHT_PAREN, "Expect ')' after parameters.");
     consume(.TOKEN_LEFT_BRACE, "Expect '{' before function body.");
     block();
-    var function_1: *ObjFunction = endCompiler();
-    _ = &function_1;
-    emitBytes(@intFromEnum(OpCode.OP_CLOSURE), makeConstant(Value{
-        .type = .VAL_OBJ,
-        .as = .{
-            .obj = @ptrCast(function_1),
-        },
-    }));
-    {
-        var i: i32 = 0;
-        _ = &i;
-        while (i < function_1.*.upvalueCount) : (i += 1) {
-            emitByte(if (compiler.upvalues[@as(c_uint, @intCast(i))].isLocal) 1 else 0);
-            emitByte(compiler.upvalues[@as(c_uint, @intCast(i))].index);
-        }
+    const function_1 = endCompiler();
+    emitBytes(@intFromEnum(OpCode.OP_CLOSURE), makeConstant(Value.init_obj(@ptrCast(function_1))));
+    var i: i32 = 0;
+    while (i < function_1.*.upvalueCount) : (i += 1) {
+        emitByte(if (compiler.upvalues[@as(c_uint, @intCast(i))].isLocal) 1 else 0);
+        emitByte(compiler.upvalues[@as(c_uint, @intCast(i))].index);
     }
 }
 pub fn method() void {
     consume(.TOKEN_IDENTIFIER, "Expect method name.");
-    var constant: u8 = identifierConstant(&parser.previous);
-    _ = &constant;
+    const constant = identifierConstant(&parser.previous);
     var type_: FunctionType = .TYPE_METHOD;
-    _ = &type_;
     if ((parser.previous.length == @as(i32, 4)) and (mem_utils.memcmp(@ptrCast(parser.previous.start), @ptrCast("init"), 4) == 0)) {
         type_ = .TYPE_INITIALIZER;
     }
@@ -1891,15 +1616,12 @@ pub fn method() void {
 
 pub fn classDeclaration() void {
     consume(.TOKEN_IDENTIFIER, "Expect class name.");
-    var className: Token = parser.previous;
-    _ = &className;
-    var nameConstant: u8 = identifierConstant(&parser.previous);
-    _ = &nameConstant;
+    const className = parser.previous;
+    const nameConstant = identifierConstant(&parser.previous);
     declareVariable();
     emitBytes(@intFromEnum(OpCode.OP_CLASS), nameConstant);
     defineVariable(nameConstant);
     var classCompiler: ClassCompiler = undefined;
-    _ = &classCompiler;
     classCompiler.enclosing = currentClass;
     classCompiler.hasSuperclass = false;
     currentClass = &classCompiler;
@@ -1911,7 +1633,7 @@ pub fn classDeclaration() void {
     if (match(.TOKEN_LESS)) {
         consume(.TOKEN_IDENTIFIER, "Expect superclass name.");
         variable(false);
-        if (identifiersEqual(&className, &parser.previous)) {
+        if (identifiersEqual(@constCast(&className), &parser.previous)) {
             const className_str = className.start[0..@intCast(className.length)];
             const suggestions = [_]errors.ErrorSuggestion{
                 .{ .message = "Inherit from a different class" },
@@ -1975,21 +1697,11 @@ pub fn moduleImportStatement() void {
     consume(.TOKEN_SEMICOLON, "Expect ';' after import statement.");
 
     // Emit the module name as a constant
-    const nameConstant = makeConstant(Value{
-        .type = .VAL_OBJ,
-        .as = .{
-            .obj = @ptrCast(object_h.copyString(moduleName.start, @intCast(moduleName.length))),
-        },
-    });
+    const nameConstant = makeConstant(makeStringValue(moduleName.start, @intCast(moduleName.length)));
 
     // If there's an alias, emit it too
     if (alias) |aliasToken| {
-        const aliasConstant = makeConstant(Value{
-            .type = .VAL_OBJ,
-            .as = .{
-                .obj = @ptrCast(object_h.copyString(aliasToken.start, @intCast(aliasToken.length))),
-            },
-        });
+        const aliasConstant = makeConstant(makeStringValue(aliasToken.start, @intCast(aliasToken.length)));
         emitByte(@intFromEnum(OpCode.OP_IMPORT_MODULE_AS));
         emitByte(nameConstant);
         emitByte(aliasConstant);
@@ -2022,12 +1734,7 @@ pub fn fileImportStatement() void {
     const pathStart = filePath.start + 1; // Skip opening quote
     const pathLength = filePath.length - 2; // Remove both quotes
 
-    const pathConstant = makeConstant(Value{
-        .type = .VAL_OBJ,
-        .as = .{
-            .obj = @ptrCast(object_h.copyString(pathStart, @intCast(pathLength))),
-        },
-    });
+    const pathConstant = makeConstant(makeStringValue(pathStart, @intCast(pathLength)));
     emitBytes(@intFromEnum(OpCode.OP_IMPORT_FILE), pathConstant);
     // Pop the return value from the imported file (imports don't return values to the caller)
     emitByte(@intFromEnum(OpCode.OP_POP));
@@ -2047,18 +1754,8 @@ pub fn fromImportStatement() void {
         const funcName = parser.previous;
 
         // Emit module name and function name as constants
-        const moduleConstant = makeConstant(Value{
-            .type = .VAL_OBJ,
-            .as = .{
-                .obj = @ptrCast(object_h.copyString(moduleName.start, @intCast(moduleName.length))),
-            },
-        });
-        const funcConstant = makeConstant(Value{
-            .type = .VAL_OBJ,
-            .as = .{
-                .obj = @ptrCast(object_h.copyString(funcName.start, @intCast(funcName.length))),
-            },
-        });
+        const moduleConstant = makeConstant(makeStringValue(moduleName.start, @intCast(moduleName.length)));
+        const funcConstant = makeConstant(makeStringValue(funcName.start, @intCast(funcName.length)));
 
         emitByte(@intFromEnum(OpCode.OP_IMPORT_SPECIFIC));
         emitByte(moduleConstant);
@@ -2075,15 +1772,13 @@ pub fn fromImportStatement() void {
 }
 
 pub fn funDeclaration() void {
-    var global: u8 = parseVariable("Expect function name.");
-    _ = &global;
+    const global = parseVariable("Expect function name.");
     markInitialized();
     function(.TYPE_FUNCTION);
     defineVariable(global);
 }
 pub fn varDeclaration() void {
-    var global: u8 = parseVariable("Expect variable name.");
-    _ = &global;
+    const global = parseVariable("Expect variable name.");
     if (match(.TOKEN_EQUAL)) {
         expression();
     } else {
@@ -2094,8 +1789,7 @@ pub fn varDeclaration() void {
 }
 
 pub fn constDeclaration() void {
-    var global: u8 = parseConstVariable("Expect constant name.");
-    _ = &global;
+    const global = parseConstVariable("Expect constant name.");
 
     // Constants MUST be initialized
     if (!match(.TOKEN_EQUAL)) {
@@ -2127,9 +1821,7 @@ pub fn forStatement() void {
         expressionStatement();
     }
     var loopStart: i32 = currentChunk().*.count;
-    _ = &loopStart;
     var exitJump: i32 = -1;
-    _ = &exitJump;
     if (!match(.TOKEN_SEMICOLON)) {
         expression();
         consume(.TOKEN_SEMICOLON, "Expect ';' after loop condition.");
@@ -2143,10 +1835,8 @@ pub fn forStatement() void {
     current.?.innermostLoop = &loop;
 
     if (!match(.TOKEN_RIGHT_PAREN)) {
-        var bodyJump: i32 = emitJump(@intFromEnum(OpCode.OP_JUMP));
-        _ = &bodyJump;
-        var incrementStart: i32 = currentChunk().*.count;
-        _ = &incrementStart;
+        const bodyJump = emitJump(@intFromEnum(OpCode.OP_JUMP));
+        const incrementStart: i32 = currentChunk().*.count;
         expression();
         emitByte(@intFromEnum(OpCode.OP_POP));
         consume(.TOKEN_RIGHT_PAREN, "Expect ')' after for clauses.");
@@ -2276,12 +1966,10 @@ pub fn ifStatement() void {
     consume(.TOKEN_LEFT_PAREN, "Expect '(' after 'if'.");
     expression();
     consume(.TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
-    var thenJump: i32 = emitJump(@intFromEnum(OpCode.OP_JUMP_IF_FALSE));
-    _ = &thenJump;
+    const thenJump = emitJump(@intFromEnum(OpCode.OP_JUMP_IF_FALSE));
     emitByte(@intFromEnum(OpCode.OP_POP));
     statement();
-    var elseJump: i32 = emitJump(@intFromEnum(OpCode.OP_JUMP));
-    _ = &elseJump;
+    const elseJump = emitJump(@intFromEnum(OpCode.OP_JUMP));
     patchJump(thenJump);
     emitByte(@intFromEnum(OpCode.OP_POP));
     if (match(.TOKEN_ELSE)) {
@@ -2336,8 +2024,7 @@ pub fn returnStatement() void {
 pub fn whileStatement() void {
     beginScope();
 
-    var loopStart: i32 = @intCast(currentChunk().*.count);
-    _ = &loopStart;
+    const loopStart: i32 = @intCast(currentChunk().*.count);
 
     // Set up loop tracking for break/continue
     var loop = Loop.init(current.?.innermostLoop, loopStart, current.?.scopeDepth, .WHILE);
@@ -2347,8 +2034,7 @@ pub fn whileStatement() void {
     consume(.TOKEN_LEFT_PAREN, "Expect '(' after 'while'.");
     expression();
     consume(.TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
-    var exitJump: i32 = emitJump(@intFromEnum(OpCode.OP_JUMP_IF_FALSE));
-    _ = &exitJump;
+    const exitJump = emitJump(@intFromEnum(OpCode.OP_JUMP_IF_FALSE));
     emitByte(@intFromEnum(OpCode.OP_POP));
     statement();
     emitLoop(loopStart);
@@ -2406,98 +2092,106 @@ pub fn continueStatement() void {
     }
 }
 
+/// Record a jump-to-end in the switch statement's end jump table.
+fn recordEndJump(endJumps: *[256]i32, endJumpCount: *usize) void {
+    const jump = emitJump(@intFromEnum(OpCode.OP_JUMP));
+    if (endJumpCount.* < 256) {
+        endJumps.*[endJumpCount.*] = jump;
+        endJumpCount.* += 1;
+    }
+}
+
+/// Parse a switch case body (block `{ ... }` or single expression) with break handling.
+/// After the body, emits a jump to the end of the switch.
+fn parseSwitchCaseBody(endJumps: *[256]i32, endJumpCount: *usize) void {
+    if (match(.TOKEN_LEFT_BRACE)) {
+        beginScope();
+        while (!check(.TOKEN_RIGHT_BRACE) and !check(.TOKEN_EOF)) {
+            if (match(.TOKEN_BREAK)) {
+                consume(.TOKEN_SEMICOLON, "Expect ';' after break.");
+                recordEndJump(endJumps, endJumpCount);
+                break;
+            } else {
+                statement();
+            }
+        }
+        consume(.TOKEN_RIGHT_BRACE, "Expect '}' after case body.");
+        endScope();
+    } else {
+        expression();
+        emitByte(@intFromEnum(OpCode.OP_POP));
+        if (match(.TOKEN_BREAK)) {
+            consume(.TOKEN_SEMICOLON, "Expect ';' after break.");
+            recordEndJump(endJumps, endJumpCount);
+        }
+    }
+    // Jump to end of switch after executing case
+    recordEndJump(endJumps, endJumpCount);
+}
+
+/// Emit a standard equality comparison against the switch variable.
+/// Emits: GET_LOCAL(switchVarSlot), OP_EQUAL, JUMP_IF_FALSE, OP_POP.
+/// Returns the skip jump offset to patch later.
+fn emitCaseComparison(switchVarSlot: i32) i32 {
+    emitBytes(@intFromEnum(OpCode.OP_GET_LOCAL), @intCast(switchVarSlot));
+    emitByte(@intFromEnum(OpCode.OP_EQUAL));
+    const skipJump = emitJump(@intFromEnum(OpCode.OP_JUMP_IF_FALSE));
+    emitByte(@intFromEnum(OpCode.OP_POP));
+    return skipJump;
+}
+
 pub fn switchStatement() void {
     consume(.TOKEN_LEFT_PAREN, "Expect '(' after 'switch'.");
-    expression(); // Parse the switch expression
+    expression();
     consume(.TOKEN_RIGHT_PAREN, "Expect ')' after switch condition.");
-
-    // Store the switch value for later comparisons
     consume(.TOKEN_LEFT_BRACE, "Expect '{' before switch cases.");
 
-    // Store the switch expression value in a local variable for later use
-    // This will let us compare it against case values, including ranges
+    // Store the switch expression value in a local variable for reuse
     beginScope();
     const switchVarSlot = current.?.localCount;
     addLocal(syntheticToken("__switch_value"));
     markInitialized();
-
-    // Store the switch value in a local variable
     emitBytes(@intFromEnum(OpCode.OP_SET_LOCAL), @intCast(switchVarSlot));
-    // No need to pop here since OP_SET_LOCAL doesn't consume the value
 
-    // Keep track of all end jumps - simplified for now
     var endJumps: [256]i32 = undefined;
     var endJumpCount: usize = 0;
-
-    // Track default case location and whether we've seen one
     var hasDefault: bool = false;
     var defaultJump: i32 = -1;
 
-    // Track if we're in a case block for break statement handling
-    var inCaseBlock: bool = false;
-    var breakJumpPos: i32 = -1;
-
-    // Process each case until we reach the end of the switch block
     while (!check(.TOKEN_RIGHT_BRACE) and !check(.TOKEN_EOF)) {
         if (check(.TOKEN_IDENTIFIER) and parser.current.length == 1 and parser.current.start[0] == '_') {
-            // Handle default case: _ => ...
-            advance(); // consume '_'
+            // Default case: _ => ...
+            advance();
             consume(.TOKEN_ARROW, "Expect '=>' after default case.");
 
             if (hasDefault) {
                 @"error"("Cannot have more than one default case in a switch statement.");
             }
             hasDefault = true;
-
-            // Remember where the default case starts
             defaultJump = @intCast(currentChunk().*.count);
 
-            // Parse the default case body
+            // Parse default body
             if (match(.TOKEN_LEFT_BRACE)) {
-                inCaseBlock = true;
                 beginScope();
-
-                // Capture current position for break statements
-                breakJumpPos = @intCast(currentChunk().*.count);
-
                 block();
-
-                // Check for unconsumed break statements and handle them
-                if (inCaseBlock) {
-                    inCaseBlock = false;
-                }
-
                 endScope();
             } else {
                 expression();
                 emitByte(@intFromEnum(OpCode.OP_POP));
             }
-
-            // After the default case, jump to the end
-            const endJump = emitJump(@intFromEnum(OpCode.OP_JUMP));
-            if (endJumpCount < 256) {
-                endJumps[endJumpCount] = endJump;
-                endJumpCount += 1;
-            }
+            recordEndJump(&endJumps, &endJumpCount);
         } else if (check(.TOKEN_CASE)) {
-            // Handle case statement: case expr => ...
             advance(); // consume 'case'
 
-            // Parse the first part of the case value
-            // For range patterns, we need to handle them specially
             if (check(.TOKEN_INT) or check(.TOKEN_DOUBLE) or check(.TOKEN_IDENTIFIER)) {
-                // Parse the first value
                 parsePrecedence(@as(c_uint, @bitCast(PREC_RANGE + 1)));
 
-                // Check if this is a range pattern
                 if (check(.TOKEN_RANGE_EXCLUSIVE) or check(.TOKEN_RANGE_INCLUSIVE)) {
-                    // This is a range pattern
+                    // Range pattern: case 1..5 => or case 1..=5 =>
                     const isInclusive = match(.TOKEN_RANGE_INCLUSIVE);
                     if (!isInclusive) {
                         consume(.TOKEN_RANGE_EXCLUSIVE, "Expect range operator '..' or '..='");
                     }
-
-                    // Parse the end value
                     parsePrecedence(@as(c_uint, @bitCast(PREC_RANGE + 1)));
 
                     // Store end value in a temporary local
@@ -2507,413 +2201,81 @@ pub fn switchStatement() void {
                     const rangeEndSlot = current.?.localCount - 1;
                     emitBytes(@intFromEnum(OpCode.OP_SET_LOCAL), @intCast(rangeEndSlot));
 
-                    // Check if switch value >= start
-                    // Stack before: [start_value]
+                    // Check: switch_value >= start (i.e. !(start < switch_value is false) => !(switch < start))
                     emitBytes(@intFromEnum(OpCode.OP_GET_LOCAL), @intCast(switchVarSlot));
-                    // Stack: [start_value, switch_value]
-                    // We need switch_value >= start_value, which is !(switch_value < start_value)
                     emitByte(@intFromEnum(OpCode.OP_LESS));
                     emitByte(@intFromEnum(OpCode.OP_NOT));
-
                     const skipStartCheck = emitJump(@intFromEnum(OpCode.OP_JUMP_IF_FALSE));
-                    emitByte(@intFromEnum(OpCode.OP_POP)); // Pop comparison result
+                    emitByte(@intFromEnum(OpCode.OP_POP));
 
-                    // Check if switch value <= end (or < for exclusive)
+                    // Check: switch_value <= end (inclusive) or switch_value < end (exclusive)
                     emitBytes(@intFromEnum(OpCode.OP_GET_LOCAL), @intCast(switchVarSlot));
                     emitBytes(@intFromEnum(OpCode.OP_GET_LOCAL), @intCast(rangeEndSlot));
-
                     if (isInclusive) {
                         emitByte(@intFromEnum(OpCode.OP_GREATER));
                         emitByte(@intFromEnum(OpCode.OP_NOT));
                     } else {
                         emitByte(@intFromEnum(OpCode.OP_LESS));
                     }
-
                     const skipEndCheck = emitJump(@intFromEnum(OpCode.OP_JUMP_IF_FALSE));
-                    emitByte(@intFromEnum(OpCode.OP_POP)); // Pop comparison result
+                    emitByte(@intFromEnum(OpCode.OP_POP));
 
                     consume(.TOKEN_ARROW, "Expect '=>' after range pattern.");
+                    parseSwitchCaseBody(&endJumps, &endJumpCount);
 
-                    // Parse case body
-                    if (match(.TOKEN_LEFT_BRACE)) {
-                        beginScope();
-
-                        while (!check(.TOKEN_RIGHT_BRACE) and !check(.TOKEN_EOF)) {
-                            if (match(.TOKEN_BREAK)) {
-                                consume(.TOKEN_SEMICOLON, "Expect ';' after break.");
-                                const breakJump = emitJump(@intFromEnum(OpCode.OP_JUMP));
-                                if (endJumpCount < 256) {
-                                    endJumps[endJumpCount] = breakJump;
-                                    endJumpCount += 1;
-                                }
-                                break;
-                            } else {
-                                statement();
-                            }
-                        }
-
-                        consume(.TOKEN_RIGHT_BRACE, "Expect '}' after case body.");
-                        endScope();
-                    } else {
-                        expression();
-                        emitByte(@intFromEnum(OpCode.OP_POP));
-
-                        if (match(.TOKEN_BREAK)) {
-                            consume(.TOKEN_SEMICOLON, "Expect ';' after break.");
-                            const breakJump = emitJump(@intFromEnum(OpCode.OP_JUMP));
-                            if (endJumpCount < 256) {
-                                endJumps[endJumpCount] = breakJump;
-                                endJumpCount += 1;
-                            }
-                        }
-                    }
-
-                    // Jump to end of switch after executing case
-                    const endJump = emitJump(@intFromEnum(OpCode.OP_JUMP));
-                    if (endJumpCount < 256) {
-                        endJumps[endJumpCount] = endJump;
-                        endJumpCount += 1;
-                    }
-
-                    // Patch skip jumps
+                    // Patch skip jumps for failed range checks
                     patchJump(skipStartCheck);
                     patchJump(skipEndCheck);
-                    emitByte(@intFromEnum(OpCode.OP_POP)); // Pop comparison result
-
-                    endScope(); // End scope for range end variable
-                } else {
-                    // Not a range, just a regular case value
-                    // We already parsed the value, now consume the arrow
-                    consume(.TOKEN_ARROW, "Expect '=>' after case value.");
-
-                    // Get the switch value for comparison (gets the value we stored in the local)
-                    emitBytes(@intFromEnum(OpCode.OP_GET_LOCAL), @intCast(switchVarSlot));
-
-                    // Compare the case value with the switch value (on stack as: case_value, switch_value)
-                    emitByte(@intFromEnum(OpCode.OP_EQUAL));
-
-                    // If they're not equal, skip this case
-                    const skipCaseJump = emitJump(@intFromEnum(OpCode.OP_JUMP_IF_FALSE));
-
-                    // Pop the comparison result only when we execute the case
                     emitByte(@intFromEnum(OpCode.OP_POP));
-
-                    // Parse case body
-                    if (match(.TOKEN_LEFT_BRACE)) {
-                        inCaseBlock = true;
-                        beginScope();
-
-                        // Capture current position for break statements
-                        breakJumpPos = @intCast(currentChunk().*.count);
-
-                        // Parse statements until we hit a break or the end of the block
-                        while (!check(.TOKEN_RIGHT_BRACE) and !check(.TOKEN_EOF)) {
-                            if (match(.TOKEN_BREAK)) {
-                                consume(.TOKEN_SEMICOLON, "Expect ';' after break.");
-
-                                // Jump to the end of the switch statement
-                                const breakJump = emitJump(@intFromEnum(OpCode.OP_JUMP));
-                                if (endJumpCount < 256) {
-                                    endJumps[endJumpCount] = breakJump;
-                                    endJumpCount += 1;
-                                }
-
-                                // No need to continue parsing this block
-                                break;
-                            } else {
-                                statement();
-                            }
-                        }
-
-                        // Reset case block tracking
-                        inCaseBlock = false;
-
-                        consume(.TOKEN_RIGHT_BRACE, "Expect '}' after case body.");
-                        endScope();
-                    } else {
-                        expression();
-                        emitByte(@intFromEnum(OpCode.OP_POP));
-
-                        // Handle single-statement break
-                        if (match(.TOKEN_BREAK)) {
-                            consume(.TOKEN_SEMICOLON, "Expect ';' after break.");
-
-                            // Jump to the end of the switch statement
-                            const breakJump = emitJump(@intFromEnum(OpCode.OP_JUMP));
-                            if (endJumpCount < 256) {
-                                endJumps[endJumpCount] = breakJump;
-                                endJumpCount += 1;
-                            }
-                        }
-                    }
-
-                    // After case body, jump to the end of the switch (if no break was encountered)
-                    const endJump = emitJump(@intFromEnum(OpCode.OP_JUMP));
-                    if (endJumpCount < 256) {
-                        endJumps[endJumpCount] = endJump;
-                        endJumpCount += 1;
-                    }
-
-                    // If comparison was false, skip to here (next case)
-                    patchJump(skipCaseJump);
-
-                    // No need to pop the switch value as we're using a local variable
-                }
-            } else {
-                // Parse other types of expressions
-                parsePrecedence(@as(c_uint, @bitCast(PREC_TERM + 1)));
-                consume(.TOKEN_ARROW, "Expect '=>' after case value.");
-
-                // Get the switch value for comparison (gets the value we stored in the local)
-                emitBytes(@intFromEnum(OpCode.OP_GET_LOCAL), @intCast(switchVarSlot));
-
-                // Compare the case value with the switch value (on stack as: case_value, switch_value)
-                emitByte(@intFromEnum(OpCode.OP_EQUAL));
-
-                // If they're not equal, skip this case
-                const skipCaseJump = emitJump(@intFromEnum(OpCode.OP_JUMP_IF_FALSE));
-
-                // Pop the comparison result only when we execute the case
-                emitByte(@intFromEnum(OpCode.OP_POP));
-
-                // Parse case body
-                if (match(.TOKEN_LEFT_BRACE)) {
-                    inCaseBlock = true;
-                    beginScope();
-
-                    // Capture current position for break statements
-                    breakJumpPos = @intCast(currentChunk().*.count);
-
-                    // Parse statements until we hit a break or the end of the block
-                    while (!check(.TOKEN_RIGHT_BRACE) and !check(.TOKEN_EOF)) {
-                        if (match(.TOKEN_BREAK)) {
-                            consume(.TOKEN_SEMICOLON, "Expect ';' after break.");
-
-                            // Jump to the end of the switch statement
-                            const breakJump = emitJump(@intFromEnum(OpCode.OP_JUMP));
-                            if (endJumpCount < 256) {
-                                endJumps[endJumpCount] = breakJump;
-                                endJumpCount += 1;
-                            }
-
-                            // No need to continue parsing this block
-                            break;
-                        } else {
-                            statement();
-                        }
-                    }
-
-                    // Reset case block tracking
-                    inCaseBlock = false;
-
-                    consume(.TOKEN_RIGHT_BRACE, "Expect '}' after case body.");
                     endScope();
                 } else {
-                    expression();
-                    emitByte(@intFromEnum(OpCode.OP_POP));
-
-                    // Handle single-statement break
-                    if (match(.TOKEN_BREAK)) {
-                        consume(.TOKEN_SEMICOLON, "Expect ';' after break.");
-
-                        // Jump to the end of the switch statement
-                        const breakJump = emitJump(@intFromEnum(OpCode.OP_JUMP));
-                        if (endJumpCount < 256) {
-                            endJumps[endJumpCount] = breakJump;
-                            endJumpCount += 1;
-                        }
-                    }
+                    // Regular case value (already parsed)
+                    consume(.TOKEN_ARROW, "Expect '=>' after case value.");
+                    const skipCaseJump = emitCaseComparison(switchVarSlot);
+                    parseSwitchCaseBody(&endJumps, &endJumpCount);
+                    patchJump(skipCaseJump);
                 }
-
-                // After case body, jump to the end of the switch (if no break was encountered)
-                const endJump = emitJump(@intFromEnum(OpCode.OP_JUMP));
-                if (endJumpCount < 256) {
-                    endJumps[endJumpCount] = endJump;
-                    endJumpCount += 1;
-                }
-
-                // If comparison was false, skip to here (next case)
+            } else {
+                // Other expression types
+                parsePrecedence(@as(c_uint, @bitCast(PREC_TERM + 1)));
+                consume(.TOKEN_ARROW, "Expect '=>' after case value.");
+                const skipCaseJump = emitCaseComparison(switchVarSlot);
+                parseSwitchCaseBody(&endJumps, &endJumpCount);
                 patchJump(skipCaseJump);
-
-                // No need to pop the switch value as we're using a local variable
             }
         } else {
             // Original syntax: expr => ...
-
-            // Parse with precedence that stops before => operator
             parsePrecedence(@as(c_uint, @bitCast(PREC_TERM + 1)));
-
-            // Get the switch value for comparison
             emitBytes(@intFromEnum(OpCode.OP_GET_LOCAL), @intCast(switchVarSlot));
-
             consume(.TOKEN_ARROW, "Expect '=>' after case value.");
-
-            // Get the switch value for comparison
             emitBytes(@intFromEnum(OpCode.OP_GET_LOCAL), @intCast(switchVarSlot));
-
-            // Compare the values (stack now has: case_value, switch_value)
             emitByte(@intFromEnum(OpCode.OP_EQUAL));
-
-            // If comparison result is false (not equal), skip this case
             const skipCaseJump = emitJump(@intFromEnum(OpCode.OP_JUMP_IF_FALSE));
-
-            // Pop the comparison result when we're executing the case
             emitByte(@intFromEnum(OpCode.OP_POP));
-
-            // Parse case body
-            if (match(.TOKEN_LEFT_BRACE)) {
-                inCaseBlock = true;
-                beginScope();
-
-                // Capture current position for break statements
-                breakJumpPos = @intCast(currentChunk().*.count);
-
-                // Parse statements until we hit a break or the end of the block
-                while (!check(.TOKEN_RIGHT_BRACE) and !check(.TOKEN_EOF)) {
-                    if (match(.TOKEN_BREAK)) {
-                        consume(.TOKEN_SEMICOLON, "Expect ';' after break.");
-
-                        // Jump to the end of the switch statement
-                        const breakJump = emitJump(@intFromEnum(OpCode.OP_JUMP));
-                        if (endJumpCount < 256) {
-                            endJumps[endJumpCount] = breakJump;
-                            endJumpCount += 1;
-                        }
-
-                        // No need to continue parsing this block
-                        break;
-                    } else {
-                        statement();
-                    }
-                }
-
-                // Reset case block tracking
-                inCaseBlock = false;
-
-                consume(.TOKEN_RIGHT_BRACE, "Expect '}' after case body.");
-                endScope();
-            } else {
-                expression();
-                emitByte(@intFromEnum(OpCode.OP_POP));
-
-                // Handle single-statement break
-                if (match(.TOKEN_BREAK)) {
-                    consume(.TOKEN_SEMICOLON, "Expect ';' after break.");
-
-                    // Jump to the end of the switch statement
-                    const breakJump = emitJump(@intFromEnum(OpCode.OP_JUMP));
-                    if (endJumpCount < 256) {
-                        endJumps[endJumpCount] = breakJump;
-                        endJumpCount += 1;
-                    }
-                }
-            }
-
-            // After case body, jump to the end of the switch
-            const endJump = emitJump(@intFromEnum(OpCode.OP_JUMP));
-            if (endJumpCount < 256) {
-                endJumps[endJumpCount] = endJump;
-                endJumpCount += 1;
-            }
-
-            // If comparison was false, skip to here (next case)
+            parseSwitchCaseBody(&endJumps, &endJumpCount);
             patchJump(skipCaseJump);
-            // Pop the comparison result that's still on the stack if we skip this case
             emitByte(@intFromEnum(OpCode.OP_POP));
-
-            // No need to pop the switch value as we're using a local variable
         }
 
-        // Optional comma between cases
         _ = match(.TOKEN_COMMA);
     }
 
-    // If no case matched and we have a default case, jump to it
     if (hasDefault) emitLoop(defaultJump);
 
-    // Patch all the end jumps to point to here
     for (0..endJumpCount) |i| {
         patchJump(endJumps[i]);
     }
 
-    // End the scope we created for the switch value
     endScope();
-
     consume(.TOKEN_RIGHT_BRACE, "Expect '}' after switch cases.");
-}
-
-// Future enhancement: Parse range cases like 1..5 =>
-fn parseRangeCase() void {
-    // Parse start expression
-    expression();
-
-    // Expect .. token (would need to add TOKEN_DOT_DOT to scanner)
-    // consume(.TOKEN_DOT_DOT, "Expect '..' in range case.");
-
-    // Parse end expression
-    expression();
-
-    consume(.TOKEN_ARROW, "Expect '=>' after range case.");
-
-    // Emit OP_SWITCH_CASE with range type (1)
-    emitBytes(@intFromEnum(OpCode.OP_SWITCH_CASE), 1);
-
-    // Range comparison logic would be handled in VM
-}
-
-// Future enhancement: Parse multiple value cases like 1 | 2 | 3 =>
-fn parseMultipleValueCase() void {
-    var valueCount: u8 = 1;
-
-    // Parse first value
-    expression();
-
-    // Parse additional values separated by |
-    while (match(.TOKEN_OR)) { // TOKEN_OR is |
-        if (valueCount >= 255) {
-            @"error"("Too many values in case (max 255).");
-        }
-        expression();
-        valueCount += 1;
-    }
-
-    consume(.TOKEN_ARROW, "Expect '=>' after case values.");
-
-    // Emit OP_SWITCH_CASE with multiple value type (2) and count
-    emitBytes(@intFromEnum(OpCode.OP_SWITCH_CASE), 2);
-    emitByte(valueCount);
-
-    // Multiple value comparison logic would be handled in VM
-}
-
-// Future enhancement: Parse guard clauses like value when condition =>
-fn parseGuardCase() void {
-    // Parse case value
-    expression();
-
-    // Expect 'when' keyword (would need to add TOKEN_WHEN)
-    // consume(.TOKEN_WHEN, "Expect 'when' in guard case.");
-
-    // Parse guard condition
-    expression();
-
-    consume(.TOKEN_ARROW, "Expect '=>' after guard case.");
-
-    // Emit OP_SWITCH_CASE with guard type (3)
-    emitBytes(@intFromEnum(OpCode.OP_SWITCH_CASE), 3);
-
-    // Guard evaluation logic would be handled in VM
 }
 
 pub fn synchronize() void {
     parser.panicMode = false;
     while (parser.current.type != .TOKEN_EOF) {
         if (parser.previous.type == .TOKEN_SEMICOLON) return;
-        while (true) {
-            switch (parser.current.type) {
-                else => return,
-            }
-            break;
+        switch (parser.current.type) {
+            else => return,
         }
         advance();
     }
@@ -2942,7 +2304,6 @@ pub fn compile(source: [*]const u8) ?*ObjFunction {
 
     scanner_h.init_scanner(@constCast(source));
     var compiler: Compiler = undefined;
-    _ = &compiler;
     initCompiler(&compiler, .TYPE_SCRIPT);
     parser.hadError = false;
     parser.panicMode = false;
@@ -2951,8 +2312,6 @@ pub fn compile(source: [*]const u8) ?*ObjFunction {
     while (!match(.TOKEN_EOF)) {
         declaration();
     }
-    var function_1: *ObjFunction = endCompiler();
-    _ = &function_1;
-
-    return if (@as(i32, @intFromBool(parser.hadError)) != 0) null else function_1;
+    const function_1 = endCompiler();
+    return if (parser.hadError) null else function_1;
 }
