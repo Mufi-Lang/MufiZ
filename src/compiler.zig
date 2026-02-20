@@ -499,7 +499,9 @@ pub fn statement() void {
     }
 }
 pub fn declaration() void {
-    if (match(.TOKEN_CLASS)) {
+    if (match(.TOKEN_PUB)) {
+        pubDeclaration();
+    } else if (match(.TOKEN_CLASS)) {
         classDeclaration();
     } else if (match(.TOKEN_FUN)) {
         funDeclaration();
@@ -596,6 +598,8 @@ pub fn getRule(type_: TokenType) ParseRule {
         .TOKEN_IMPORT => ParseRule{ .precedence = PREC_NONE },
         .TOKEN_FROM => ParseRule{ .precedence = PREC_NONE },
         .TOKEN_AS => ParseRule{ .precedence = PREC_NONE },
+        // Visibility tokens
+        .TOKEN_PUB => ParseRule{ .precedence = PREC_NONE },
         else => ParseRule{ .precedence = PREC_NONE },
     };
 }
@@ -811,6 +815,14 @@ pub fn defineVariable(global: u8) void {
 
 pub fn defineConstVariable(global: u8) void {
     defineVariableImpl(global, .OP_DEFINE_CONST_GLOBAL);
+}
+
+pub fn definePublicVariable(global: u8) void {
+    defineVariableImpl(global, .OP_DEFINE_PUBLIC_GLOBAL);
+}
+
+pub fn definePublicConstVariable(global: u8) void {
+    defineVariableImpl(global, .OP_DEFINE_PUBLIC_CONST_GLOBAL);
 }
 
 pub fn argumentList() u8 {
@@ -1718,14 +1730,6 @@ pub fn fileImportStatement() void {
     if (match(.TOKEN_AS)) {
         consume(.TOKEN_IDENTIFIER, "Expect identifier after 'as'.");
         alias = parser.previous;
-
-        // Alias support is not yet implemented
-        const suggestions = [_]errors.ErrorSuggestion{
-            .{ .message = "File import aliasing is not yet supported" },
-            .{ .message = "Use import without 'as' for now: import \"file.mufi\";" },
-        };
-        errorWithSuggestions(&parser.previous, .EXPECTED_EXPRESSION, "File import aliasing with 'as' is not yet implemented", &suggestions);
-        return;
     }
 
     consume(.TOKEN_SEMICOLON, "Expect ';' after import statement.");
@@ -1735,13 +1739,31 @@ pub fn fileImportStatement() void {
     const pathLength = filePath.length - 2; // Remove both quotes
 
     const pathConstant = makeConstant(makeStringValue(pathStart, @intCast(pathLength)));
+
+    // Always execute the file first so its globals (pub and private) are defined
     emitBytes(@intFromEnum(OpCode.OP_IMPORT_FILE), pathConstant);
-    // Pop the return value from the imported file (imports don't return values to the caller)
+    // Pop the return value from the imported file
     emitByte(@intFromEnum(OpCode.OP_POP));
+
+    if (alias) |aliasToken| {
+        // import "file.mufi" as helpers;
+        // Now create a module object with only pub members from the already-executed file
+        const aliasConstant = makeConstant(makeStringValue(aliasToken.start, @intCast(aliasToken.length)));
+        emitByte(@intFromEnum(OpCode.OP_IMPORT_FILE_AS));
+        emitByte(pathConstant);
+        emitByte(aliasConstant);
+    }
 }
 
 // from math import sin, cos;
+// from "file.mufi" import func1, func2;
 pub fn fromImportStatement() void {
+    // Check if it's a file import (string) or module import (identifier)
+    if (check(.TOKEN_STRING)) {
+        fromFileImportStatement();
+        return;
+    }
+
     consume(.TOKEN_IDENTIFIER, "Expect module name after 'from'.");
     const moduleName = parser.previous;
 
@@ -1769,6 +1791,164 @@ pub fn fromImportStatement() void {
     }
 
     consume(.TOKEN_SEMICOLON, "Expect ';' after import statement.");
+}
+
+// from "file.mufi" import func1, func2;
+// Validates that each imported name is pub in the file
+pub fn fromFileImportStatement() void {
+    consume(.TOKEN_STRING, "Expect file path string after 'from'.");
+    const filePath = parser.previous;
+
+    consume(.TOKEN_IMPORT, "Expect 'import' after file path.");
+
+    // The file path token includes quotes, so we need to remove them
+    const pathStart = filePath.start + 1; // Skip opening quote
+    const pathLength = filePath.length - 2; // Remove both quotes
+
+    // First, import the file so its globals are available
+    const pathConstant = makeConstant(makeStringValue(pathStart, @intCast(pathLength)));
+    emitBytes(@intFromEnum(OpCode.OP_IMPORT_FILE), pathConstant);
+    emitByte(@intFromEnum(OpCode.OP_POP));
+
+    // Then validate each imported name is public
+    var count: u8 = 0;
+    while (true) {
+        consume(.TOKEN_IDENTIFIER, "Expect function name.");
+        const funcName = parser.previous;
+
+        const pathConst = makeConstant(makeStringValue(pathStart, @intCast(pathLength)));
+        const funcConst = makeConstant(makeStringValue(funcName.start, @intCast(funcName.length)));
+
+        emitByte(@intFromEnum(OpCode.OP_FROM_IMPORT_FILE));
+        emitByte(pathConst);
+        emitByte(funcConst);
+
+        count += 1;
+
+        if (!match(.TOKEN_COMMA)) {
+            break;
+        }
+    }
+
+    consume(.TOKEN_SEMICOLON, "Expect ';' after import statement.");
+}
+
+pub fn pubDeclaration() void {
+    // pub can only be used at the top level (global scope)
+    if (current.?.scopeDepth > 0) {
+        const suggestions = [_]errors.ErrorSuggestion{
+            .{ .message = "'pub' can only be used for top-level declarations" },
+            .{ .message = "Move the declaration to the top level, or remove 'pub'" },
+        };
+        errorWithSuggestions(&parser.previous, .EXPECTED_EXPRESSION, "'pub' can only be used at the top level.", &suggestions);
+        return;
+    }
+
+    if (match(.TOKEN_FUN)) {
+        pubFunDeclaration();
+    } else if (match(.TOKEN_VAR)) {
+        pubVarDeclaration();
+    } else if (match(.TOKEN_CONST)) {
+        pubConstDeclaration();
+    } else if (match(.TOKEN_CLASS)) {
+        pubClassDeclaration();
+    } else {
+        const suggestions = [_]errors.ErrorSuggestion{
+            .{ .message = "'pub' must be followed by 'fun', 'var', 'const', or 'class'" },
+            .{ .message = "Example: pub fun myFunc() { ... }", .example = "pub var x = 5;" },
+        };
+        errorWithSuggestions(&parser.current, .EXPECTED_EXPRESSION, "Expect declaration after 'pub'.", &suggestions);
+    }
+}
+
+pub fn pubFunDeclaration() void {
+    const global = parseVariable("Expect function name.");
+    markInitialized();
+    function(.TYPE_FUNCTION);
+    definePublicVariable(global);
+}
+
+pub fn pubVarDeclaration() void {
+    const global = parseVariable("Expect variable name.");
+    if (match(.TOKEN_EQUAL)) {
+        expression();
+    } else {
+        emitByte(@intFromEnum(OpCode.OP_NIL));
+    }
+    consume(.TOKEN_SEMICOLON, "Expect ';' after variable declaration.");
+    definePublicVariable(global);
+}
+
+pub fn pubConstDeclaration() void {
+    const global = parseConstVariable("Expect constant name.");
+
+    if (!match(.TOKEN_EQUAL)) {
+        const suggestions = [_]errors.ErrorSuggestion{
+            .{ .message = "Add an initialization value after '='" },
+            .{ .message = "Constants must be given a value when declared" },
+            .{ .message = "Initialize the constant", .example = "pub const PI = 3.14159;" },
+        };
+        errorWithSuggestions(&parser.current, .EXPECTED_EXPRESSION, "Constants must be initialized.", &suggestions);
+        return;
+    }
+
+    expression();
+    consume(.TOKEN_SEMICOLON, "Expect ';' after constant declaration.");
+    definePublicConstVariable(global);
+}
+
+pub fn pubClassDeclaration() void {
+    consume(.TOKEN_IDENTIFIER, "Expect class name.");
+    const className = parser.previous;
+    const nameConstant = identifierConstant(&parser.previous);
+    declareVariable();
+    emitBytes(@intFromEnum(OpCode.OP_CLASS), nameConstant);
+    // Use pub define for the class
+    definePublicVariable(nameConstant);
+    var classCompiler: ClassCompiler = undefined;
+    classCompiler.enclosing = currentClass;
+    classCompiler.hasSuperclass = false;
+    currentClass = &classCompiler;
+
+    // Begin scope for methods and self
+    beginScope();
+    addLocal(syntheticToken("self"));
+
+    if (match(.TOKEN_LESS)) {
+        consume(.TOKEN_IDENTIFIER, "Expect superclass name.");
+        variable(false);
+        if (identifiersEqual(@constCast(&className), &parser.previous)) {
+            const className_str = className.start[0..@intCast(className.length)];
+            const suggestions = [_]errors.ErrorSuggestion{
+                .{ .message = "Inherit from a different class" },
+                .{ .message = "Remove the inheritance if not needed" },
+                .{ .message = "Classes cannot inherit from themselves" },
+            };
+            errorWithSuggestions(&parser.previous, .CLASS_INHERITANCE_ERROR, std.fmt.allocPrint(compiler_arena.getCompilerAllocator(), "Class '{s}' cannot inherit from itself", .{className_str}) catch "Class cannot inherit from itself", &suggestions);
+        }
+
+        // Store the superclass in a local variable named "super"
+        addLocal(syntheticToken("super"));
+        namedVariable(parser.previous, false);
+        defineVariable(0);
+
+        namedVariable(className, false);
+        emitByte(@intFromEnum(OpCode.OP_INHERIT));
+        currentClass.?.hasSuperclass = true;
+    }
+
+    namedVariable(className, false);
+    consume(.TOKEN_LEFT_BRACE, "Expect '{' before class body.");
+    while (!check(.TOKEN_RIGHT_BRACE) and !check(.TOKEN_EOF)) {
+        method();
+    }
+    consume(.TOKEN_RIGHT_BRACE, "Expect '}' after class body.");
+    emitByte(@intFromEnum(OpCode.OP_POP));
+
+    // End scope for methods, self, and super
+    endScope();
+
+    currentClass = currentClass.?.enclosing;
 }
 
 pub fn funDeclaration() void {

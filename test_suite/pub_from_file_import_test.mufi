@@ -1,0 +1,24 @@
+// Test: from "file.mufi" import func1, func2;
+// Validates that pub functions can be selectively imported from files
+
+from "test_suite/pub_helper.mufi" import add, multiply, greet;
+
+// Test that the imported pub functions work
+var sum = add(10, 20);
+assert(sum, 30);
+
+var product = multiply(6, 7);
+assert(product, 42);
+
+var msg = greet("World");
+assert(msg, "Hello, World!");
+
+// The imported functions should also be usable in expressions
+assert(add(multiply(2, 3), 4), 10);
+assert(add(1, add(2, 3)), 6);
+
+// Test that the greet function (which internally uses private _make_greeting) works
+var greeting = greet("MufiZ");
+assert(greeting, "Hello, MufiZ!");
+
+print "All from-file import tests passed!";

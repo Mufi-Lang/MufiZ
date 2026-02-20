@@ -177,7 +177,27 @@ pub const OpCode = enum(u8) {
     OP_LOOP_SHORT = 93,
 
     // ============================================================
-    // RESERVED OPCODES (94-99)
+    // VISIBILITY OPCODES (94-95)
+    // ============================================================
+    // Public global definitions for pub/private scoping with imports
+    // Same as OP_DEFINE_GLOBAL/OP_DEFINE_CONST_GLOBAL but also marks
+    // the global as public (exported) in vm.publicGlobals
+    OP_DEFINE_PUBLIC_GLOBAL = 94,
+    OP_DEFINE_PUBLIC_CONST_GLOBAL = 95,
+
+    // FILE IMPORT VISIBILITY OPCODES (96-97)
+    // ============================================================
+    // File import with alias: import "file.mufi" as helpers;
+    // Creates a module object with only pub members from the file
+    // Format: [opcode] [path_const:u8] [alias_const:u8]
+    OP_IMPORT_FILE_AS = 96,
+    // From-file import: from "file.mufi" import func1;
+    // Validates that the imported name is pub in the file
+    // Format: [opcode] [path_const:u8] [func_const:u8]
+    OP_FROM_IMPORT_FILE = 97,
+
+    // ============================================================
+    // RESERVED OPCODES (98-99)
     // ============================================================
     // Reserved for future quick wins
     // ============================================================

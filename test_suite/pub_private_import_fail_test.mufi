@@ -1,0 +1,8 @@
+// Test: Importing a private (non-pub) name from a file should fail
+// The _make_greeting function is NOT pub in pub_helper.mufi
+// This should produce a runtime error since pub globals exist in that file
+
+from "test_suite/pub_helper.mufi" import _make_greeting;
+
+// This line should never be reached
+print "ERROR: Should have failed to import private function!";

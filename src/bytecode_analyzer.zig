@@ -171,12 +171,19 @@ pub fn getInstructionLength(chunk: *chunk_h.Chunk, offset: usize) usize {
         63,
         65,
         66, // Class/Import operations
+        94,
+        95, // OP_DEFINE_PUBLIC_GLOBAL, OP_DEFINE_PUBLIC_CONST_GLOBAL
         => 2,
 
         // Jump instructions (3 bytes: opcode + 2-byte offset)
         29,
         30,
         31, // OP_JUMP, OP_JUMP_IF_FALSE, OP_LOOP
+        => 3,
+
+        // File import visibility opcodes (3 bytes: opcode + 2 constant indices)
+        96, // OP_IMPORT_FILE_AS
+        97, // OP_FROM_IMPORT_FILE
         => 3,
 
         // Short jump instructions (2 bytes: opcode + i8 offset) - Phase 2.3

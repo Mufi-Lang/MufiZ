@@ -1,0 +1,55 @@
+// Helper module demonstrating pub/private scoping
+// Only pub declarations are exported when imported with `as`
+
+// Public API - accessible to importers
+pub fun add(a, b) {
+    return a + b;
+}
+
+pub fun multiply(a, b) {
+    return a * b;
+}
+
+pub fun greet(name) {
+    return _make_greeting(name);
+}
+
+pub const VERSION = "1.0.0";
+pub const MAX_VALUE = 1000;
+
+pub var counter = 0;
+
+pub fun increment() {
+    counter = counter + 1;
+    return counter;
+}
+
+pub class Point {
+    init(x, y) {
+        self.x = x;
+        self.y = y;
+    }
+
+    toString() {
+        return "(" + str(self.x) + ", " + str(self.y) + ")";
+    }
+
+    distanceTo(other) {
+        var dx = self.x - other.x;
+        var dy = self.y - other.y;
+        return sqrt(dx * dx + dy * dy);
+    }
+}
+
+// Private internals - NOT accessible via aliased import
+var _internal_state = "initialized";
+
+fun _make_greeting(name) {
+    return "Hello, " + name + "!";
+}
+
+fun _reset_state() {
+    _internal_state = "reset";
+}
+
+const _PRIVATE_SECRET = 42;

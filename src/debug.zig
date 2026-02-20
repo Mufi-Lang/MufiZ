@@ -185,6 +185,24 @@ pub fn disassembleInstruction(chunk: *chunk_h.Chunk, offset: i32) i32 {
         92 => return shortJumpInstruction("OP_JUMP_IF_FALSE_SHORT", 1, chunk, offset),
         93 => return shortJumpInstruction("OP_LOOP_SHORT", -1, chunk, offset),
 
+        // Visibility opcodes (94-97)
+        94 => return constantInstruction("OP_DEFINE_PUBLIC_GLOBAL", chunk, offset),
+        95 => return constantInstruction("OP_DEFINE_PUBLIC_CONST_GLOBAL", chunk, offset),
+        96 => {
+            // OP_IMPORT_FILE_AS has 2 constant indices (path + alias)
+            const pathConst: u8 = getByte(chunk, offset + 1);
+            const aliasConst: u8 = getByte(chunk, offset + 2);
+            print("{s: <16} {d:4} {d:4}\n", .{ "OP_IMPORT_FILE_AS", pathConst, aliasConst });
+            return offset + 3;
+        },
+        97 => {
+            // OP_FROM_IMPORT_FILE has 2 constant indices (path + func name)
+            const pathConst: u8 = getByte(chunk, offset + 1);
+            const funcConst: u8 = getByte(chunk, offset + 2);
+            print("{s: <16} {d:4} {d:4}\n", .{ "OP_FROM_IMPORT_FILE", pathConst, funcConst });
+            return offset + 3;
+        },
+
         // Phase 3: Superinstructions (100-191)
         100 => return superinstructionTwoOp("OP_DEFINE_GLOBAL_CONST", chunk, offset),
         101 => return superinstructionTwoOp("OP_SET_GLOBAL_CONST", chunk, offset),

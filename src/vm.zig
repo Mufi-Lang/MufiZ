@@ -1,4 +1,4 @@
- /// MufiZ Virtual Machine Module
+/// MufiZ Virtual Machine Module
 /// This module implements the bytecode interpreter for the MufiZ language.
 /// It executes compiled bytecode using a stack-based virtual machine architecture.
 /// Features include:
@@ -94,6 +94,7 @@ pub const VM = struct {
     stackTop: usize = 0,
     globals: Table,
     globalConstants: Table,
+    publicGlobals: Table,
     strings: Table,
     initString: ?*ObjString = null,
     openUpvalues: ?*ObjUpvalue = null,
@@ -129,6 +130,7 @@ pub fn initVM() void {
 
     initTable(&vm.globals);
     initTable(&vm.globalConstants);
+    initTable(&vm.publicGlobals);
     initTable(&vm.strings);
 
     vm.initString = copyString(@ptrCast("init"), 4);
@@ -246,6 +248,7 @@ pub fn defineNative(name: [*]const u8, function: NativeFn) void {
 pub fn freeVM() void {
     freeTable(&vm.globals);
     freeTable(&vm.globalConstants);
+    freeTable(&vm.publicGlobals);
     freeTable(&vm.strings);
     vm.initString = null;
     freeObjects();
@@ -482,6 +485,21 @@ fn bindMethod(klass: *ObjClass, name: *ObjString) bool {
 
 fn invoke(name: *ObjString, argCount: i32) bool {
     const receiver: Value = peek(@intCast(argCount));
+
+    // Handle module method invocation: module.func(args)
+    if (isObjType(receiver, .OBJ_MODULE)) {
+        const module = @as(*object_h.ObjModule, @ptrCast(@alignCast(receiver.as.obj)));
+        const member_name = name.chars[0..@intCast(name.length)];
+
+        if (module.getMember(member_name)) |member_value| {
+            // Replace the module on the stack with the callable value
+            vm.stack[vm.stackTop - @as(usize, @intCast(argCount + 1))] = member_value;
+            return callValue(member_value, argCount);
+        }
+
+        runtimeError("Module '{s}' has no member '{s}'.", .{ module.name.chars[0..@intCast(module.name.length)], member_name });
+        return false;
+    }
 
     if (!isObjType(receiver, .OBJ_INSTANCE)) {
         runtimeError("Only instances have methods.", .{});
@@ -1031,6 +1049,43 @@ fn opDefineConstGlobal() InterpretResult {
     _ = tableSet(&vm.globalConstants, name, Value.init_bool(true));
     _ = pop();
     return .INTERPRET_OK;
+}
+
+fn opDefinePublicGlobal() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant_index = frame.ip[0];
+    frame.ip += 1;
+    const constant = getConstant(frame, constant_index) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    const name = constant.as_string();
+    _ = tableSet(&vm.globals, name, peek(0));
+    _ = tableSet(&vm.publicGlobals, name, Value.init_bool(true));
+    _ = pop();
+    return .INTERPRET_OK;
+}
+
+fn opDefinePublicConstGlobal() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant_index = frame.ip[0];
+    frame.ip += 1;
+    const constant = getConstant(frame, constant_index) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    const name = constant.as_string();
+    _ = tableSet(&vm.globals, name, peek(0));
+    _ = tableSet(&vm.globalConstants, name, Value.init_bool(true));
+    _ = tableSet(&vm.publicGlobals, name, Value.init_bool(true));
+    _ = pop();
+    return .INTERPRET_OK;
+}
+
+/// Check if a global variable is marked as public
+pub fn isPublicGlobal(name: *ObjString) bool {
+    var value: Value = undefined;
+    return tableGet(&vm.publicGlobals, name, &value);
 }
 
 fn opSetGlobal() InterpretResult {
@@ -3048,6 +3103,121 @@ fn opImportFile() InterpretResult {
     return .INTERPRET_OK;
 }
 
+fn opImportFileAs() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const path_constant = frame.ip[0];
+    const alias_constant = frame.ip[1];
+    frame.ip += 2;
+
+    // Validate constant indices
+    if (path_constant >= frame.closure.function.chunk.constants.count or
+        alias_constant >= frame.closure.function.chunk.constants.count)
+    {
+        runtimeError("Invalid constant index for file import", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    const path_value = frame.closure.function.chunk.constants.values[@intCast(path_constant)];
+    const alias_value = frame.closure.function.chunk.constants.values[@intCast(alias_constant)];
+
+    // Validate path is a string
+    if (path_value.type != .VAL_OBJ or !isObjType(path_value, .OBJ_STRING)) {
+        runtimeError("File path must be a string", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    // Validate alias is a string
+    if (alias_value.type != .VAL_OBJ or !isObjType(alias_value, .OBJ_STRING)) {
+        runtimeError("Module alias must be a string", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    const path_str = @as(*ObjString, @ptrCast(@alignCast(path_value.as.obj)));
+    const alias_str = @as(*ObjString, @ptrCast(@alignCast(alias_value.as.obj)));
+
+    // NOTE: The file has already been loaded and executed by a preceding
+    // OP_IMPORT_FILE instruction. All pub globals are now in vm.publicGlobals.
+
+    // Create a module object and populate it with only public globals
+    const module_obj = object_h.newModule(path_str);
+
+    // Iterate globals and add only public ones to the module
+    if (vm.publicGlobals.entries) |pub_entries| {
+        var i: usize = 0;
+        while (i < vm.publicGlobals.capacity) : (i += 1) {
+            if (pub_entries[i].key) |key| {
+                if (!pub_entries[i].deleted) {
+                    var global_value: Value = undefined;
+                    if (tableGet(&vm.globals, key, &global_value)) {
+                        const member_name = key.chars[0..@intCast(key.length)];
+                        module_obj.setMember(member_name, global_value) catch {
+                            runtimeError("Failed to populate module member '{s}'", .{member_name});
+                            return .INTERPRET_RUNTIME_ERROR;
+                        };
+                    }
+                }
+            }
+        }
+    }
+
+    // Register the module under the alias name
+    const module_value = Value{
+        .type = .VAL_OBJ,
+        .as = .{ .obj = @ptrCast(@alignCast(module_obj)) },
+    };
+    _ = table_h.tableSetProtected(&vm.globals, alias_str, module_value, true);
+
+    return .INTERPRET_OK;
+}
+
+fn opFromImportFile() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const path_constant = frame.ip[0];
+    const func_constant = frame.ip[1];
+    frame.ip += 2;
+
+    // Validate constant indices
+    if (path_constant >= frame.closure.function.chunk.constants.count or
+        func_constant >= frame.closure.function.chunk.constants.count)
+    {
+        runtimeError("Invalid constant index for import", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    const path_value = frame.closure.function.chunk.constants.values[@intCast(path_constant)];
+    if (path_value.type != .VAL_OBJ or !isObjType(path_value, .OBJ_STRING)) {
+        runtimeError("File path must be a string", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    const func_value = frame.closure.function.chunk.constants.values[@intCast(func_constant)];
+    if (func_value.type != .VAL_OBJ or !isObjType(func_value, .OBJ_STRING)) {
+        runtimeError("Function name must be a string", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    const func_str = @as(*ObjString, @ptrCast(@alignCast(func_value.as.obj)));
+    const func_name = func_str.chars[0..@intCast(func_str.length)];
+
+    // NOTE: The file has already been loaded and executed by a preceding
+    // OP_IMPORT_FILE instruction. All pub globals are now in vm.publicGlobals.
+
+    // Check if the requested name is public
+    var pub_check: Value = undefined;
+    if (!tableGet(&vm.publicGlobals, func_str, &pub_check)) {
+        // If the file has ANY public globals, enforce visibility
+        if (vm.publicGlobals.count > 0) {
+            const path_str = @as(*ObjString, @ptrCast(@alignCast(path_value.as.obj)));
+            const file_path = path_str.chars[0..@intCast(path_str.length)];
+            runtimeError("'{s}' is not a public export of '{s}'", .{ func_name, file_path });
+            return .INTERPRET_RUNTIME_ERROR;
+        }
+        // Otherwise backward compat: no pub declarations means everything is accessible
+    }
+
+    return .INTERPRET_OK;
+}
+
 fn opImportSpecific() InterpretResult {
     const frame = vm.currentFrame.?;
     const module_constant = frame.ip[0];
@@ -3157,6 +3327,12 @@ const jumpTable = blk: {
     for (0..256) |i| {
         table[i] = opUnknown;
     }
+    // Visibility opcodes (94-97)
+    table[@intFromEnum(OpCode.OP_DEFINE_PUBLIC_GLOBAL)] = opDefinePublicGlobal;
+    table[@intFromEnum(OpCode.OP_DEFINE_PUBLIC_CONST_GLOBAL)] = opDefinePublicConstGlobal;
+    table[@intFromEnum(OpCode.OP_IMPORT_FILE_AS)] = opImportFileAs;
+    table[@intFromEnum(OpCode.OP_FROM_IMPORT_FILE)] = opFromImportFile;
+
     table[@intFromEnum(OpCode.OP_CONSTANT)] = opConstant;
     table[@intFromEnum(OpCode.OP_NIL)] = opNil;
     table[@intFromEnum(OpCode.OP_TRUE)] = opTrue;

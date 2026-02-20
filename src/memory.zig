@@ -333,6 +333,7 @@ pub fn markRootsForGeneration(gen: __obj.Generation) void {
 
     // Mark global roots
     markTableForGeneration(&vm_h.vm.globals, gen);
+    markTableForGeneration(&vm_h.vm.publicGlobals, gen);
     markObjectForGeneration(@ptrCast(@alignCast(vm_h.vm.initString)), gen);
 }
 
@@ -916,6 +917,7 @@ pub fn incrementalGC() void {
                         markObject(@ptrCast(@alignCast(vm_h.vm.frames[i].closure)));
                     }
                     markTable(&vm_h.vm.globals);
+                    markTable(&vm_h.vm.publicGlobals);
                     markTable(&vm_h.vm.strings);
                     markObject(@ptrCast(@alignCast(vm_h.vm.initString)));
 

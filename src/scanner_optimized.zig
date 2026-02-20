@@ -66,11 +66,11 @@ inline fn perfectHash(str: []const u8) u8 {
 fn findPerfectHashMultipliers() void {
     comptime {
         const keywords = [_][]const u8{
-            "and",  "as",    "break",  "case",  "class", "const",   "continue",
-            "each", "else",  "end",    "false", "for",   "foreach", "from",
-            "fun",  "if",    "import", "in",    "item",  "let",     "nil",
-            "or",   "print", "return", "self",  "super", "switch",  "true",
-            "var",  "while",
+            "and",  "as",    "break",  "case",   "class", "const",   "continue",
+            "each", "else",  "end",    "false",  "for",   "foreach", "from",
+            "fun",  "if",    "import", "in",     "item",  "let",     "nil",
+            "or",   "print", "pub",    "return", "self",  "super",   "switch",
+            "true", "var",   "while",
         };
 
         // Test with our chosen multipliers
@@ -119,6 +119,7 @@ const PERFECT_HASH_TABLE = blk: {
         .{ .str = "nil", .tok = .TOKEN_NIL },
         .{ .str = "or", .tok = .TOKEN_OR },
         .{ .str = "print", .tok = .TOKEN_PRINT },
+        .{ .str = "pub", .tok = .TOKEN_PUB },
         .{ .str = "return", .tok = .TOKEN_RETURN },
         .{ .str = "self", .tok = .TOKEN_SELF },
         .{ .str = "super", .tok = .TOKEN_SUPER },
@@ -225,6 +226,8 @@ pub const TokenType = enum(c_int) {
     TOKEN_RANGE_EXCLUSIVE = 72,
     TOKEN_RANGE_INCLUSIVE = 73,
     TOKEN_QUESTION = 74,
+    // Visibility tokens
+    TOKEN_PUB = 75,
 };
 
 pub const Token = struct {

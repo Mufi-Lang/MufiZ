@@ -1,0 +1,60 @@
+// Test: Basic pub/private scoping
+// Verifies that pub declarations work correctly at the top level
+
+// Public declarations
+pub var x = 10;
+pub const PI = 3.14159;
+
+pub fun add(a, b) {
+    return a + b;
+}
+
+pub fun square(n) {
+    return n * n;
+}
+
+pub class Animal {
+    init(name, sound) {
+        self.name = name;
+        self.sound = sound;
+    }
+
+    speak() {
+        return self.name + " says " + self.sound;
+    }
+}
+
+// Private declarations (no pub prefix)
+var _counter = 0;
+const _SECRET = 42;
+
+fun _helper(a) {
+    return a * 2;
+}
+
+// Verify public declarations work
+assert(x, 10);
+assert(PI, 3.14159);
+assert(add(3, 4), 7);
+assert(square(5), 25);
+
+var dog = Animal("Dog", "Woof");
+assert(dog.speak(), "Dog says Woof");
+
+// Verify private declarations also work within the same file
+assert(_counter, 0);
+assert(_SECRET, 42);
+assert(_helper(5), 10);
+
+// Pub functions can use private helpers internally
+pub fun double_add(a, b) {
+    return _helper(add(a, b));
+}
+
+assert(double_add(3, 4), 14);
+
+// Pub const with expressions
+pub const TAU = PI * 2;
+assert(TAU, 6.28318);
+
+print "All basic pub/private scoping tests passed!";
