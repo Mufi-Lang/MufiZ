@@ -1,8 +1,0 @@
-// Simple loop test for debugging jump patching
-var sum = 0;
-var i = 0;
-while (i < 5) {
-    sum = sum + i;
-    i = i + 1;
-}
-print(sum);

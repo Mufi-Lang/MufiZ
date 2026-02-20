@@ -1,8 +1,0 @@
-foreach (i in 1..3) {
-    print("i: " + i);
-    if (i == 1) {
-        foreach (j in 1..2) {
-            print("j: " + j);
-        }
-    }
-}
