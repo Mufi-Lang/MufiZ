@@ -1334,7 +1334,6 @@ fn opAdd() InterpretResult {
         switch (err) {
             error.DimensionMismatch => runtimeError("Matrix dimension mismatch for addition.", .{}),
             error.TypeMismatch => runtimeError("Operands must be two numbers, two strings, or involve a vector/matrix.", .{}),
-            else => runtimeError("Runtime error during addition.", .{}),
         }
         return .INTERPRET_RUNTIME_ERROR;
     };
@@ -1350,7 +1349,6 @@ fn opSubtract() InterpretResult {
         switch (err) {
             error.DimensionMismatch => runtimeError("Matrix dimension mismatch for subtraction.", .{}),
             error.TypeMismatch => runtimeError("Operands must be numbers or vectors/matrices.", .{}),
-            else => runtimeError("Runtime error during subtraction.", .{}),
         }
         return .INTERPRET_RUNTIME_ERROR;
     };
@@ -1366,7 +1364,6 @@ fn opMultiply() InterpretResult {
         switch (err) {
             error.DimensionMismatch => runtimeError("Matrix dimension mismatch for multiplication.", .{}),
             error.TypeMismatch => runtimeError("Operands must be numbers or vectors/matrices.", .{}),
-            else => runtimeError("Runtime error during multiplication.", .{}),
         }
         return .INTERPRET_RUNTIME_ERROR;
     };
@@ -1382,7 +1379,6 @@ fn opDivide() InterpretResult {
         switch (err) {
             error.DivisionByZero => runtimeError("Division by zero.", .{}),
             error.TypeMismatch => runtimeError("Operands must be numbers or vectors.", .{}),
-            else => runtimeError("Runtime error during division.", .{}),
         }
         return .INTERPRET_RUNTIME_ERROR;
     };
@@ -1597,7 +1593,6 @@ fn opGetGlobalAdd() InterpretResult {
         switch (err) {
             error.DimensionMismatch => runtimeError("Matrix dimension mismatch for addition.", .{}),
             error.TypeMismatch => runtimeError("Operands must be two numbers, two strings, or involve a vector/matrix.", .{}),
-            else => runtimeError("Runtime error during addition.", .{}),
         }
         return .INTERPRET_RUNTIME_ERROR;
     };
@@ -1629,7 +1624,6 @@ fn opGetGlobalSubtract() InterpretResult {
         switch (err) {
             error.DimensionMismatch => runtimeError("Matrix dimension mismatch for subtraction.", .{}),
             error.TypeMismatch => runtimeError("Operands must be numbers or vectors/matrices.", .{}),
-            else => runtimeError("Runtime error during subtraction.", .{}),
         }
         return .INTERPRET_RUNTIME_ERROR;
     };
@@ -1661,7 +1655,6 @@ fn opGetGlobalMultiply() InterpretResult {
         switch (err) {
             error.DimensionMismatch => runtimeError("Matrix dimension mismatch for multiplication.", .{}),
             error.TypeMismatch => runtimeError("Operands must be numbers or vectors/matrices.", .{}),
-            else => runtimeError("Runtime error during multiplication.", .{}),
         }
         return .INTERPRET_RUNTIME_ERROR;
     };
@@ -1693,7 +1686,6 @@ fn opGetGlobalDivide() InterpretResult {
         switch (err) {
             error.DivisionByZero => runtimeError("Division by zero.", .{}),
             error.TypeMismatch => runtimeError("Operands must be numbers or vectors.", .{}),
-            else => runtimeError("Runtime error during division.", .{}),
         }
         return .INTERPRET_RUNTIME_ERROR;
     };
@@ -1727,7 +1719,6 @@ fn opGetLocalAdd() InterpretResult {
         switch (err) {
             error.DimensionMismatch => runtimeError("Matrix dimension mismatch for addition.", .{}),
             error.TypeMismatch => runtimeError("Operands must be two numbers, two strings, or involve a vector/matrix.", .{}),
-            else => runtimeError("Runtime error during addition.", .{}),
         }
         return .INTERPRET_RUNTIME_ERROR;
     };
@@ -1887,7 +1878,6 @@ fn opConstantAdd() InterpretResult {
         switch (err) {
             error.DimensionMismatch => runtimeError("Matrix dimension mismatch for addition.", .{}),
             error.TypeMismatch => runtimeError("Operands must be two numbers, two strings, or involve a vector/matrix.", .{}),
-            else => runtimeError("Runtime error during addition.", .{}),
         }
         return .INTERPRET_RUNTIME_ERROR;
     };
@@ -1913,7 +1903,6 @@ fn opConstantMultiply() InterpretResult {
         switch (err) {
             error.DimensionMismatch => runtimeError("Matrix dimension mismatch for multiplication.", .{}),
             error.TypeMismatch => runtimeError("Operands must be numbers or vectors/matrices.", .{}),
-            else => runtimeError("Runtime error during multiplication.", .{}),
         }
         return .INTERPRET_RUNTIME_ERROR;
     };
@@ -3004,12 +2993,12 @@ const jumpTable = blk: {
     table[@intFromEnum(OpCode.OP_GET_MODULE_MEMBER)] = opGetModuleMember;
 
     // Phase 2.1: Small constant opcodes (67-82)
-    inline for (0..16) |i| {
+    for (0..16) |i| {
         table[@intFromEnum(OpCode.OP_CONSTANT_0) + i] = makeOpConstant(i);
     }
 
     // Phase 2.2: Small local opcodes (83-90)
-    inline for (0..4) |i| {
+    for (0..4) |i| {
         table[@intFromEnum(OpCode.OP_GET_LOCAL_0) + i] = makeOpGetLocal(i);
         table[@intFromEnum(OpCode.OP_SET_LOCAL_0) + i] = makeOpSetLocal(i);
     }
