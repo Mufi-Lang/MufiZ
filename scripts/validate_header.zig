@@ -116,22 +116,18 @@ fn extractHeaderDeclarations(
                 continue;
             }
 
-            // Extract function name from declaration
-            // Format: MUFIZ_API return_type function_name(params);
-            const after_api = if (std.mem.indexOf(u8, trimmed, "MUFIZ_API ")) |pos|
-                trimmed[pos + 10 ..]
-            else
-                continue;
+            // Extract function name by finding the last token before the '('
+            if (std.mem.indexOf(u8, trimmed, "(")) |paren_pos| {
+                const before_paren = trimmed[0..paren_pos];
+                var token_iter = std.mem.tokenizeAny(u8, before_paren, " \t*");
+                var last_token: []const u8 = "";
 
-            // Skip return type to get function name
-            var token_iter = std.mem.tokenizeAny(u8, after_api, " \t*");
-            _ = token_iter.next(); // Skip return type (might be int32_t, void, etc.)
+                while (token_iter.next()) |token| {
+                    last_token = token;
+                }
 
-            if (token_iter.next()) |func_part| {
-                // Extract just the function name (before parenthesis)
-                if (std.mem.indexOf(u8, func_part, "(")) |paren_pos| {
-                    const func_name = func_part[0..paren_pos];
-                    const name_copy = try allocator.dupe(u8, func_name);
+                if (last_token.len > 0) {
+                    const name_copy = try allocator.dupe(u8, last_token);
                     try declarations.append(allocator, name_copy);
                 }
             }
