@@ -95,10 +95,11 @@ pub fn init(options: InitOptions) !void {
     const module_registry = @import("module_registry.zig");
     module_registry.init(mem_utils.getAllocator());
 
-    // Initialize and register ONLY core/essential functions
-    // Standard library modules are now loaded on demand via import statements
-    try stdlib.initializeStdlib();
-    stdlib.registerWithVM();
+    // Initialize and register ONLY core/essential functions (core-only).
+    // Standard library modules will be loaded on-demand via import statements.
+    // Tests and caller code should explicitly load additional stdlib modules when needed
+    // using helpers such as `stdlib.prelude()`, `stdlib.addMath()`, `stdlib.addCollections()`, etc.
+    try stdlib.registerCoreOnly();
 
     is_initialized = true;
 }

@@ -54,6 +54,23 @@ zig build -Doptimize=ReleaseSafe -Dstress_gc=false
 python3 test_suite.py
 ```
 
+Note about stdlib compatibility
+The `test_suite.py` runner invokes the MufiZ interpreter in compatibility mode so tests see the full standard library. Concretely, the runner calls the interpreter like:
+
+```bash
+./zig-out/bin/mufiz --full-stdlib -r <test-file>
+```
+
+This ensures tests that expect the full stdlib (many existing tests) run consistently. If you want to run tests without registering the entire stdlib (for faster startup or to exercise the core-only/lazy-loading behavior), either:
+
+- Modify `test_suite.py` to remove the `--full-stdlib` flag, or
+- Run individual tests directly, for example:
+  ```bash
+  ./zig-out/bin/mufiz -r test_suite/my_test.mufi
+  ```
+
+Use the compatibility flag in CI or when running the full suite locally to preserve legacy behavior; remove it when you intentionally want to test the core-only/stdlib-lazy path.
+
 ## Test Structure
 
 Your test suite covers:

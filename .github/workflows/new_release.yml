@@ -13,12 +13,12 @@ env:
   version: "0.10.0"
 
 jobs:
-  build-macos:
-    name: Create macOS ARM Release
-    runs-on: macos-14
+  build-ubuntu:
+    name: Build Main Artifacts (Ubuntu)
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Setup Zig
         uses: goto-bus-stop/setup-zig@v2
@@ -26,9 +26,26 @@ jobs:
           version: 0.15.2
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: "3.x"
+
+      - name: Generate Metadata (Keywords & Stdlib)
+        run: |
+          python3 tools/generate_metadata.py || true
+          ls -l mufiz_keywords.json mufiz_stdlib.json || true
+
+      - name: Cache Zig build artifacts
+        uses: actions/cache@v3
+        with:
+          path: |
+            zig-cache
+            .zig-cache
+            ~/.cache/zig
+          key: ${{ runner.os }}-zig-release-${{ hashFiles('build.zig', 'build.zig.zon') }}
+          restore-keys: |
+            ${{ runner.os }}-zig-release-
+            ${{ runner.os }}-zig-
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
@@ -37,9 +54,44 @@ jobs:
 
       - name: Install fpm
         run: |
-          brew install gnu-tar
           gem install fpm
           gem install package_cloud
+
+      - name: Validate test suite setup
+        run: |
+          echo "🔍 Validating test suite configuration..."
+          if [ ! -f "test_suite.py" ]; then
+            echo "❌ test_suite.py not found"
+            exit 1
+          fi
+          if [ ! -d "test_suite" ]; then
+            echo "❌ test_suite directory not found"
+            exit 1
+          fi
+          test_count=$(find test_suite -name "*.mufi" | wc -l)
+          if [ "$test_count" -eq 0 ]; then
+            echo "❌ No .mufi test files found in test_suite directory"
+            exit 1
+          fi
+          echo "✅ Found $test_count test files"
+          echo "✅ Test suite setup validated"
+
+      - name: Run test suite (REQUIRED FOR RELEASE)
+        run: |
+          echo "🧪 Running test suite - Release will be blocked if tests fail"
+          python3 test_suite.py
+          echo "✅ All tests passed! Proceeding with release..."
+
+      - name: Upload test artifacts on test failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-failure-blocking-release
+          path: |
+            *.mufi
+            zig-out/
+            test_suite/
+          retention-days: 7
 
       - name: Run Build Multi
         run: zig build --build-file build_multi.zig
@@ -62,7 +114,10 @@ jobs:
           chmod +x scripts/prepare_release_artifacts.sh
           ./scripts/prepare_release_artifacts.sh ${{ steps.get_version.outputs.VERSION }}
 
-      - name: Create release
+          # Remove C-library zip generated on Ubuntu (macOS job will provide the authoritative C-library)
+          rm -f pkg/artifacts/mufiz-c-library-*.zip
+
+      - name: Create release (only if tests passed)
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
@@ -72,46 +127,17 @@ jobs:
           body: |
             🚀 **MufiZ ${{env.version}} "${{env.codename}}" Release**
 
+            ✅ All test suite tests passed
             🔧 Built with Zig 0.15.2
-            🍎 **Platform: macOS ARM (Apple Silicon M1/M2/M3/M4)**
+            📦 Generated from commit: ${{ github.sha }}
 
             ### 📦 Included Artifacts
 
-            - **macOS Packages**: `.zip` archives for macOS ARM
-            - **C Library** (`mufiz-c-library-*.zip`): **macOS ARM dynamic library (`.dylib`) + headers**
-              - ✅ **macOS ARM native** - Built on Apple Silicon, includes `libmufiz.dylib` (ARM64)
-              - Optimized for M1/M2/M3/M4 Macs
-              - ⚠️ Intel Mac/Linux/Windows users: Build from source with `zig build`
-            - **WebAssembly** (`mufiz-wasm-*.zip`): Platform-independent WASM binary (works everywhere)
-            - **Documentation**: `ARTIFACTS.md` with checksums and installation instructions
+            - **Multi-platform Packages**: `.zip`, `.deb`, `.rpm`
+            - **Metadata**: `mufiz_keywords.json`, `mufiz_stdlib.json`
+            - **WebAssembly** (`mufiz-wasm-*.zip`): Platform-independent WASM binary
+            - **C Library** (`mufiz-c-library-*.zip`): **Attached separately from macOS build** (contains macOS ARM dylib)
 
-            ### 🔨 Building C Library for Other Platforms
-
-            **Intel Mac**:
-            ```bash
-            git clone https://github.com/Mustafif/MufiZ
-            cd MufiZ
-            zig build
-            # Output: zig-out/lib/libmufiz.dylib (x86_64)
-            ```
-
-            **Linux**:
-            ```bash
-            git clone https://github.com/Mustafif/MufiZ
-            cd MufiZ
-            zig build
-            # Output: zig-out/lib/libmufiz.so
-            ```
-
-            **Windows**:
-            ```bash
-            git clone https://github.com/Mustafif/MufiZ
-            cd MufiZ
-            zig build
-            # Output: zig-out/lib/libmufiz.dll
-            ```
-
-            See `ARTIFACTS.md` for detailed installation and usage instructions.
           generate_release_notes: true
           draft: true
           prerelease: false
@@ -120,5 +146,50 @@ jobs:
             pkg/*.deb
             pkg/*.rpm
             pkg/ARTIFACTS.md
+            pkg/artifacts/mufiz-wasm-*.zip
+            mufiz_keywords.json
+            mufiz_stdlib.json
+
       - name: Upload deb and rpm to packagecloud
         run: ./upload.sh -u ${{env.version}}
+
+  build-c-library-macos:
+    name: Build C Library (macOS)
+    needs: build-ubuntu
+    runs-on: macos-14
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Zig
+        uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: 0.15.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
+
+      - name: Build C Library
+        run: zig build -Doptimize=ReleaseFast
+
+      - name: Get version
+        id: get_version
+        run: |
+          VERSION=$(python3 -c "import re; data = open('build.zig.zon').read(); match = re.search(r'\.version\s*=\s*\"([\d.]+)\"', data); print(match.group(1) if match else 'unknown')")
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Prepare C Library Artifact
+        run: |
+          chmod +x scripts/prepare_release_artifacts.sh
+          # This will generate the C-lib zip (and other artifacts; we only care about the C-lib here)
+          ./scripts/prepare_release_artifacts.sh ${{ steps.get_version.outputs.VERSION }}
+
+      - name: Upload C Library to Release
+        uses: softprops/action-gh-release@v1
+        with:
+          token: ${{secrets.SECRET}}
+          tag_name: v${{env.version}}
+          files: |
+            pkg/artifacts/mufiz-c-library-*.zip

@@ -380,7 +380,7 @@ pub fn initializeStdlib() !void {
     try JsonModule.register();
     try SerdeModule.register();
 
-    std.log.info("Standard library initialized with all modules", .{});
+    // std.log.info("Standard library initialized with all modules", .{});
 }
 
 // Register all functions with the VM

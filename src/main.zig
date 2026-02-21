@@ -33,6 +33,7 @@ const params = clap.parseParamsComptime(
     \\--test-gen             Generates synthetic Mufi tests
     \\--analyze-bytecode <str>  Analyze bytecode and show optimization opportunities
     \\--trace-sequences <str>    Trace instruction sequences for optimization analysis
+    \\--full-stdlib          Initialize and register all standard library modules (compat mode)
 );
 
 /// Main entry point for the MufiZ interpreter
@@ -106,6 +107,13 @@ pub fn main() !void {
             return;
         } else if (res.args.version != 0) {
             mufiz.printVersion();
+        } else if (res.args.@"full-stdlib" != 0) {
+            // Compatibility helper: initialize and register all stdlib modules on demand.
+            // By default the library init registers a core-only stdlib (for faster startup
+            // and lazy-loading). This flag restores legacy behavior for test runs and
+            // consumers that expect all stdlib modules to be present immediately.
+            try mufiz.stdlib.initializeStdlib();
+            mufiz.stdlib.registerWithVM();
         } else if (res.args.run) |s| {
             var runner = mufiz.Runner.init(getGlobalAllocator());
             defer runner.deinit();
