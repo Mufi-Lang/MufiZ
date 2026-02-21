@@ -747,216 +747,38 @@ fn opConstant() InterpretResult {
 // These opcodes load constants 0-15 without needing an operand byte
 // Saves 1 byte per constant load (from 2 bytes to 1 byte)
 
-fn opConstant0() InterpretResult {
-    const frame = vm.currentFrame.?;
-    const constant = getConstant(frame, 0) orelse {
-        runtimeError("Invalid constant index.", .{});
-        return .INTERPRET_RUNTIME_ERROR;
-    };
-    push(constant);
-    return .INTERPRET_OK;
+fn makeOpConstant(comptime n: u8) OpHandler {
+    return struct {
+        fn handler() InterpretResult {
+            const frame = vm.currentFrame.?;
+            const constant = getConstant(frame, n) orelse {
+                runtimeError("Invalid constant index.", .{});
+                return .INTERPRET_RUNTIME_ERROR;
+            };
+            push(constant);
+            return .INTERPRET_OK;
+        }
+    }.handler;
 }
 
-fn opConstant1() InterpretResult {
-    const frame = vm.currentFrame.?;
-    const constant = getConstant(frame, 1) orelse {
-        runtimeError("Invalid constant index.", .{});
-        return .INTERPRET_RUNTIME_ERROR;
-    };
-    push(constant);
-    return .INTERPRET_OK;
+fn makeOpGetLocal(comptime n: u8) OpHandler {
+    return struct {
+        fn handler() InterpretResult {
+            const frame = vm.currentFrame.?;
+            push(frame.slots[n]);
+            return .INTERPRET_OK;
+        }
+    }.handler;
 }
 
-fn opConstant2() InterpretResult {
-    const frame = vm.currentFrame.?;
-    const constant = getConstant(frame, 2) orelse {
-        runtimeError("Invalid constant index.", .{});
-        return .INTERPRET_RUNTIME_ERROR;
-    };
-    push(constant);
-    return .INTERPRET_OK;
-}
-
-fn opConstant3() InterpretResult {
-    const frame = vm.currentFrame.?;
-    const constant = getConstant(frame, 3) orelse {
-        runtimeError("Invalid constant index.", .{});
-        return .INTERPRET_RUNTIME_ERROR;
-    };
-    push(constant);
-    return .INTERPRET_OK;
-}
-
-fn opConstant4() InterpretResult {
-    const frame = vm.currentFrame.?;
-    const constant = getConstant(frame, 4) orelse {
-        runtimeError("Invalid constant index.", .{});
-        return .INTERPRET_RUNTIME_ERROR;
-    };
-    push(constant);
-    return .INTERPRET_OK;
-}
-
-fn opConstant5() InterpretResult {
-    const frame = vm.currentFrame.?;
-    const constant = getConstant(frame, 5) orelse {
-        runtimeError("Invalid constant index.", .{});
-        return .INTERPRET_RUNTIME_ERROR;
-    };
-    push(constant);
-    return .INTERPRET_OK;
-}
-
-fn opConstant6() InterpretResult {
-    const frame = vm.currentFrame.?;
-    const constant = getConstant(frame, 6) orelse {
-        runtimeError("Invalid constant index.", .{});
-        return .INTERPRET_RUNTIME_ERROR;
-    };
-    push(constant);
-    return .INTERPRET_OK;
-}
-
-fn opConstant7() InterpretResult {
-    const frame = vm.currentFrame.?;
-    const constant = getConstant(frame, 7) orelse {
-        runtimeError("Invalid constant index.", .{});
-        return .INTERPRET_RUNTIME_ERROR;
-    };
-    push(constant);
-    return .INTERPRET_OK;
-}
-
-fn opConstant8() InterpretResult {
-    const frame = vm.currentFrame.?;
-    const constant = getConstant(frame, 8) orelse {
-        runtimeError("Invalid constant index.", .{});
-        return .INTERPRET_RUNTIME_ERROR;
-    };
-    push(constant);
-    return .INTERPRET_OK;
-}
-
-fn opConstant9() InterpretResult {
-    const frame = vm.currentFrame.?;
-    const constant = getConstant(frame, 9) orelse {
-        runtimeError("Invalid constant index.", .{});
-        return .INTERPRET_RUNTIME_ERROR;
-    };
-    push(constant);
-    return .INTERPRET_OK;
-}
-
-fn opConstant10() InterpretResult {
-    const frame = vm.currentFrame.?;
-    const constant = getConstant(frame, 10) orelse {
-        runtimeError("Invalid constant index.", .{});
-        return .INTERPRET_RUNTIME_ERROR;
-    };
-    push(constant);
-    return .INTERPRET_OK;
-}
-
-fn opConstant11() InterpretResult {
-    const frame = vm.currentFrame.?;
-    const constant = getConstant(frame, 11) orelse {
-        runtimeError("Invalid constant index.", .{});
-        return .INTERPRET_RUNTIME_ERROR;
-    };
-    push(constant);
-    return .INTERPRET_OK;
-}
-
-fn opConstant12() InterpretResult {
-    const frame = vm.currentFrame.?;
-    const constant = getConstant(frame, 12) orelse {
-        runtimeError("Invalid constant index.", .{});
-        return .INTERPRET_RUNTIME_ERROR;
-    };
-    push(constant);
-    return .INTERPRET_OK;
-}
-
-fn opConstant13() InterpretResult {
-    const frame = vm.currentFrame.?;
-    const constant = getConstant(frame, 13) orelse {
-        runtimeError("Invalid constant index.", .{});
-        return .INTERPRET_RUNTIME_ERROR;
-    };
-    push(constant);
-    return .INTERPRET_OK;
-}
-
-fn opConstant14() InterpretResult {
-    const frame = vm.currentFrame.?;
-    const constant = getConstant(frame, 14) orelse {
-        runtimeError("Invalid constant index.", .{});
-        return .INTERPRET_RUNTIME_ERROR;
-    };
-    push(constant);
-    return .INTERPRET_OK;
-}
-
-fn opConstant15() InterpretResult {
-    const frame = vm.currentFrame.?;
-    const constant = getConstant(frame, 15) orelse {
-        runtimeError("Invalid constant index.", .{});
-        return .INTERPRET_RUNTIME_ERROR;
-    };
-    push(constant);
-    return .INTERPRET_OK;
-}
-
-// Phase 2.2 Optimization: Small local opcodes (83-90)
-// These opcodes access local slots 0-3 without needing an operand byte
-// Saves 1 byte per local access (from 2 bytes to 1 byte)
-
-fn opGetLocal0() InterpretResult {
-    const frame = vm.currentFrame.?;
-    push(frame.slots[0]);
-    return .INTERPRET_OK;
-}
-
-fn opGetLocal1() InterpretResult {
-    const frame = vm.currentFrame.?;
-    push(frame.slots[1]);
-    return .INTERPRET_OK;
-}
-
-fn opGetLocal2() InterpretResult {
-    const frame = vm.currentFrame.?;
-    push(frame.slots[2]);
-    return .INTERPRET_OK;
-}
-
-fn opGetLocal3() InterpretResult {
-    const frame = vm.currentFrame.?;
-    push(frame.slots[3]);
-    return .INTERPRET_OK;
-}
-
-fn opSetLocal0() InterpretResult {
-    const frame = vm.currentFrame.?;
-    frame.slots[0] = peek(0);
-    return .INTERPRET_OK;
-}
-
-fn opSetLocal1() InterpretResult {
-    const frame = vm.currentFrame.?;
-    frame.slots[1] = peek(0);
-    return .INTERPRET_OK;
-}
-
-fn opSetLocal2() InterpretResult {
-    const frame = vm.currentFrame.?;
-    frame.slots[2] = peek(0);
-    return .INTERPRET_OK;
-}
-
-fn opSetLocal3() InterpretResult {
-    const frame = vm.currentFrame.?;
-    frame.slots[3] = peek(0);
-    return .INTERPRET_OK;
+fn makeOpSetLocal(comptime n: u8) OpHandler {
+    return struct {
+        fn handler() InterpretResult {
+            const frame = vm.currentFrame.?;
+            frame.slots[n] = peek(0);
+            return .INTERPRET_OK;
+        }
+    }.handler;
 }
 
 fn opNil() InterpretResult {
@@ -1321,395 +1143,250 @@ fn stringify(value: Value) ?*ObjString {
     return object_h.copyString(str.ptr, str.len);
 }
 
-fn opAdd() InterpretResult {
-    if (peek(0).is_string() or peek(1).is_string()) {
-        const b_val = peek(0);
-        const a_val = peek(1);
+const ArithmeticOp = enum { Add, Sub, Mul, Div };
 
-        const a_str_ptr = stringify(a_val);
-        if (a_str_ptr == null) {
-            runtimeError("Operands must be two numbers or two strings.", .{});
-            return .INTERPRET_RUNTIME_ERROR;
-        }
-        push(Value.init_obj(@ptrCast(a_str_ptr.?)));
+fn performAddString(a: Value, b: Value) !Value {
+    const a_str_ptr = stringify(a);
+    if (a_str_ptr == null) return error.TypeMismatch;
+    push(Value.init_obj(@ptrCast(a_str_ptr.?)));
 
-        const b_str_ptr = stringify(b_val);
-        if (b_str_ptr == null) {
-            _ = pop();
-            runtimeError("Operands must be two numbers or two strings.", .{});
-            return .INTERPRET_RUNTIME_ERROR;
-        }
-        push(Value.init_obj(@ptrCast(b_str_ptr.?)));
+    const b_str_ptr = stringify(b);
+    if (b_str_ptr == null) {
+        _ = pop();
+        return error.TypeMismatch;
+    }
+    push(Value.init_obj(@ptrCast(b_str_ptr.?)));
 
-        const b_str = peek(0).as_string();
-        const a_str = peek(1).as_string();
+    const b_str = peek(0).as_string();
+    const a_str = peek(1).as_string();
 
-        const length = a_str.length + b_str.length;
-        const allocator = mem_utils.getAllocator();
-        const chars_slice = mem_utils.alloc(allocator, u8, length + 1) catch {
-            _ = pop();
-            _ = pop();
-            runtimeError("Out of memory.", .{});
-            return .INTERPRET_RUNTIME_ERROR;
-        };
-        const chars_ptr: [*]u8 = chars_slice.ptr;
-        @memcpy(chars_ptr[0..a_str.length], a_str.chars[0..a_str.length]);
-        @memcpy(chars_ptr[a_str.length..length], b_str.chars[0..b_str.length]);
-        chars_ptr[length] = 0;
-
-        const result = String.takeWithAllocator(chars_slice, length, allocator);
+    const length = a_str.length + b_str.length;
+    const allocator = mem_utils.getAllocator();
+    const chars_slice = mem_utils.alloc(allocator, u8, length + 1) catch {
         _ = pop();
         _ = pop();
-        _ = pop();
-        _ = pop();
-        push(Value.init_obj(@ptrCast(result)));
-    } else if (peek(0).is_complex() or peek(1).is_complex()) {
-        const b = pop();
-        const a = pop();
+        return error.OutOfMemory;
+    };
+    const chars_ptr: [*]u8 = chars_slice.ptr;
+    @memcpy(chars_ptr[0..a_str.length], a_str.chars[0..a_str.length]);
+    @memcpy(chars_ptr[a_str.length..length], b_str.chars[0..b_str.length]);
+    chars_ptr[length] = 0;
 
+    const result = String.takeWithAllocator(chars_slice, length, allocator);
+    _ = pop();
+    _ = pop();
+    return Value.init_obj(@ptrCast(result));
+}
+
+fn performArithmetic(comptime op: ArithmeticOp, a: Value, b: Value) !Value {
+    if (a.is_complex() or b.is_complex()) {
         const ca = if (a.is_complex()) a.as_complex() else Complex{ .r = if (a.is_int()) @floatFromInt(a.as_int()) else a.as_num_double(), .i = 0 };
         const cb = if (b.is_complex()) b.as_complex() else Complex{ .r = if (b.is_int()) @floatFromInt(b.as_int()) else b.as_num_double(), .i = 0 };
 
-        push(Value.init_complex(Complex{ .r = ca.r + cb.r, .i = ca.i + cb.i }));
-    } else if (peek(0).is_matrix() or peek(1).is_matrix()) {
-        const b = pop();
-        const a = pop();
+        const res = switch (op) {
+            .Add => Complex{ .r = ca.r + cb.r, .i = ca.i + cb.i },
+            .Sub => Complex{ .r = ca.r - cb.r, .i = ca.i - cb.i },
+            .Mul => Complex{ .r = ca.r * cb.r - ca.i * cb.i, .i = ca.r * cb.i + ca.i * cb.r },
+            .Div => blk: {
+                const denom = cb.r * cb.r + cb.i * cb.i;
+                if (denom == 0) return error.DivisionByZero;
+                break :blk Complex{
+                    .r = (ca.r * cb.r + ca.i * cb.i) / denom,
+                    .i = (ca.i * cb.r - ca.r * cb.i) / denom,
+                };
+            },
+        };
+        return Value.init_complex(res);
+    }
 
+    if (op != .Div and (a.is_matrix() or b.is_matrix())) {
         if (a.is_matrix() and b.is_matrix()) {
             const mat_a: *Matrix = @ptrCast(@alignCast(a.as.obj));
             const mat_b: *Matrix = @ptrCast(@alignCast(b.as.obj));
-            const res = mat_a.add(mat_b);
-            if (res == null) {
-                runtimeError("Matrix dimension mismatch for addition.", .{});
-                return .INTERPRET_RUNTIME_ERROR;
-            }
-            push(Value.init_obj(@ptrCast(res.?)));
+            const res = switch (op) {
+                .Add => mat_a.add(mat_b),
+                .Sub => mat_a.sub(mat_b),
+                .Mul => mat_a.mul(mat_b),
+                else => unreachable,
+            };
+            if (res == null) return error.DimensionMismatch;
+            return Value.init_obj(@ptrCast(res.?));
         } else if (a.is_matrix() and b.is_prim_num()) {
             const mat_a: *Matrix = @ptrCast(@alignCast(a.as.obj));
             const val_b = if (b.is_int()) @as(f64, @floatFromInt(b.as_int())) else b.as_num_double();
-            const res = mat_a.scalarMul(1.0); // Clone first
+            const res = mat_a.scalarMul(1.0); // Clone
             const size = mat_a.rows * mat_a.cols;
             for (0..size) |i| {
-                res.data[i] = mat_a.data[i] + val_b;
+                res.data[i] = switch (op) {
+                    .Add => mat_a.data[i] + val_b,
+                    .Sub => mat_a.data[i] - val_b,
+                    .Mul => mat_a.data[i] * val_b,
+                    else => unreachable,
+                };
             }
-            push(Value.init_obj(@ptrCast(res)));
+            return Value.init_obj(@ptrCast(res));
         } else if (a.is_prim_num() and b.is_matrix()) {
             const val_a = if (a.is_int()) @as(f64, @floatFromInt(a.as_int())) else a.as_num_double();
             const mat_b: *Matrix = @ptrCast(@alignCast(b.as.obj));
-            const res = mat_b.scalarMul(1.0); // Clone first
+            const res = mat_b.scalarMul(1.0); // Clone
             const size = mat_b.rows * mat_b.cols;
             for (0..size) |i| {
-                res.data[i] = mat_b.data[i] + val_a;
+                res.data[i] = switch (op) {
+                    .Add => mat_b.data[i] + val_a,
+                    .Sub => val_a - mat_b.data[i],
+                    .Mul => mat_b.data[i] * val_a, // Commutative
+                    else => unreachable,
+                };
             }
-            push(Value.init_obj(@ptrCast(res)));
-        } else {
-            runtimeError("Operands must be two numbers, two strings, or involve a vector/matrix.", .{});
-            return .INTERPRET_RUNTIME_ERROR;
+            return Value.init_obj(@ptrCast(res));
         }
-    } else if (peek(0).is_fvec() or peek(1).is_fvec()) {
-        const b = pop();
-        const a = pop();
+        return error.TypeMismatch;
+    }
 
+    if (a.is_fvec() or b.is_fvec()) {
         if (a.is_fvec() and b.is_fvec()) {
             const vec_a: *FloatVector = @ptrCast(@alignCast(a.as.obj));
             const vec_b: *FloatVector = @ptrCast(@alignCast(b.as.obj));
-            const res = vec_a.add(vec_b);
-            push(Value.init_obj(@ptrCast(res)));
+            const res = switch (op) {
+                .Add => vec_a.add(vec_b),
+                .Sub => vec_a.sub(vec_b),
+                .Mul => vec_a.mul(vec_b),
+                .Div => vec_a.div(vec_b),
+            };
+            return Value.init_obj(@ptrCast(res));
         } else if (a.is_fvec() and b.is_prim_num()) {
             const vec_a: *FloatVector = @ptrCast(@alignCast(a.as.obj));
             const val_b = if (b.is_int()) @as(f64, @floatFromInt(b.as_int())) else b.as_num_double();
-            const res = vec_a.single_add(val_b);
-            push(Value.init_obj(@ptrCast(res)));
+            const res = switch (op) {
+                .Add => vec_a.single_add(val_b),
+                .Sub => vec_a.single_sub(val_b),
+                .Mul => vec_a.scale(val_b),
+                .Div => vec_a.single_div(val_b),
+            };
+            return Value.init_obj(@ptrCast(res));
         } else if (a.is_prim_num() and b.is_fvec()) {
             const val_a = if (a.is_int()) @as(f64, @floatFromInt(a.as_int())) else a.as_num_double();
             const vec_b: *FloatVector = @ptrCast(@alignCast(b.as.obj));
-            const res = vec_b.single_add(val_a);
-            push(Value.init_obj(@ptrCast(res)));
-        } else {
-            runtimeError("Operands must be two numbers, two strings, or involve a vector/matrix.", .{});
-            return .INTERPRET_RUNTIME_ERROR;
+            const res = switch (op) {
+                .Add => vec_b.single_add(val_a),
+                .Sub => blk: {
+                    const neg_b = vec_b.scale(-1.0);
+                    break :blk neg_b.single_add(val_a);
+                },
+                .Mul => vec_b.scale(val_a),
+                .Div => blk: {
+                    const res = FloatVector.init(vec_b.count);
+                    res.count = vec_b.count;
+                    var i: usize = 0;
+                    while (i < vec_b.count) : (i += 1) {
+                        res.data[i] = val_a / vec_b.data[i];
+                    }
+                    break :blk res;
+                },
+            };
+            return Value.init_obj(@ptrCast(res));
         }
-    } else if (peek(0).is_prim_num() and peek(1).is_prim_num()) {
-        if (peek(0).is_double() or peek(1).is_double()) {
-            const b = pop().as_num_double();
-            const a = pop().as_num_double();
-            push(Value.init_double(a + b));
-        } else {
-            const b = pop().as_int();
-            const a = pop().as_int();
-            push(Value.init_int(a + b));
-        }
-    } else {
-        runtimeError("Operands must be two numbers or two strings.", .{});
-        return .INTERPRET_RUNTIME_ERROR;
+        return error.TypeMismatch;
     }
+
+    if (a.is_prim_num() and b.is_prim_num()) {
+        if (op == .Div or a.is_double() or b.is_double()) {
+            const va = a.as_num_double();
+            const vb = b.as_num_double();
+            return Value.init_double(switch (op) {
+                .Add => va + vb,
+                .Sub => va - vb,
+                .Mul => va * vb,
+                .Div => va / vb,
+            });
+        } else {
+            const ia = a.as_int();
+            const ib = b.as_int();
+            return Value.init_int(switch (op) {
+                .Add => ia + ib,
+                .Sub => ia - ib,
+                .Mul => ia * ib,
+                else => unreachable,
+            });
+        }
+    }
+
+    return error.TypeMismatch;
+}
+
+fn opAdd() InterpretResult {
+    const b = pop();
+    const a = pop();
+
+    if (a.is_string() or b.is_string()) {
+        const res = performAddString(a, b) catch |err| {
+            switch (err) {
+                error.OutOfMemory => runtimeError("Out of memory.", .{}),
+                error.TypeMismatch => runtimeError("Operands must be two numbers or two strings.", .{}),
+            }
+            return .INTERPRET_RUNTIME_ERROR;
+        };
+        push(res);
+        return .INTERPRET_OK;
+    }
+
+    const res = performArithmetic(.Add, a, b) catch |err| {
+        switch (err) {
+            error.DimensionMismatch => runtimeError("Matrix dimension mismatch for addition.", .{}),
+            error.TypeMismatch => runtimeError("Operands must be two numbers, two strings, or involve a vector/matrix.", .{}),
+            else => runtimeError("Runtime error during addition.", .{}),
+        }
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    push(res);
     return .INTERPRET_OK;
 }
 
 fn opSubtract() InterpretResult {
-    if (peek(0).is_complex() or peek(1).is_complex()) {
-        const b = pop();
-        const a = pop();
+    const b = pop();
+    const a = pop();
 
-        const ca = if (a.is_complex()) a.as_complex() else Complex{ .r = if (a.is_int()) @floatFromInt(a.as_int()) else a.as_num_double(), .i = 0 };
-        const cb = if (b.is_complex()) b.as_complex() else Complex{ .r = if (b.is_int()) @floatFromInt(b.as_int()) else b.as_num_double(), .i = 0 };
-
-        push(Value.init_complex(Complex{ .r = ca.r - cb.r, .i = ca.i - cb.i }));
-        return .INTERPRET_OK;
-    }
-
-    if (peek(0).is_matrix() or peek(1).is_matrix()) {
-        const b = pop();
-        const a = pop();
-
-        if (a.is_matrix() and b.is_matrix()) {
-            const mat_a: *Matrix = @ptrCast(@alignCast(a.as.obj));
-            const mat_b: *Matrix = @ptrCast(@alignCast(b.as.obj));
-            const res = mat_a.sub(mat_b);
-            if (res == null) {
-                runtimeError("Matrix dimension mismatch for subtraction.", .{});
-                return .INTERPRET_RUNTIME_ERROR;
-            }
-            push(Value.init_obj(@ptrCast(res.?)));
-        } else if (a.is_matrix() and b.is_prim_num()) {
-            const mat_a: *Matrix = @ptrCast(@alignCast(a.as.obj));
-            const val_b = if (b.is_int()) @as(f64, @floatFromInt(b.as_int())) else b.as_num_double();
-            const res = mat_a.scalarMul(1.0); // Clone first
-            const size = mat_a.rows * mat_a.cols;
-            for (0..size) |i| {
-                res.data[i] = mat_a.data[i] - val_b;
-            }
-            push(Value.init_obj(@ptrCast(res)));
-        } else if (a.is_prim_num() and b.is_matrix()) {
-            const val_a = if (a.is_int()) @as(f64, @floatFromInt(a.as_int())) else a.as_num_double();
-            const mat_b: *Matrix = @ptrCast(@alignCast(b.as.obj));
-            const res = mat_b.scalarMul(1.0); // Clone first
-            const size = mat_b.rows * mat_b.cols;
-            for (0..size) |i| {
-                res.data[i] = val_a - mat_b.data[i];
-            }
-            push(Value.init_obj(@ptrCast(res)));
-        } else {
-            runtimeError("Operands must be numbers or vectors/matrices.", .{});
-            return .INTERPRET_RUNTIME_ERROR;
+    const res = performArithmetic(.Sub, a, b) catch |err| {
+        switch (err) {
+            error.DimensionMismatch => runtimeError("Matrix dimension mismatch for subtraction.", .{}),
+            error.TypeMismatch => runtimeError("Operands must be numbers or vectors/matrices.", .{}),
+            else => runtimeError("Runtime error during subtraction.", .{}),
         }
-        return .INTERPRET_OK;
-    }
-
-    if (peek(0).is_fvec() or peek(1).is_fvec()) {
-        const b = pop();
-        const a = pop();
-
-        if (a.is_fvec() and b.is_fvec()) {
-            const vec_a: *FloatVector = @ptrCast(@alignCast(a.as.obj));
-            const vec_b: *FloatVector = @ptrCast(@alignCast(b.as.obj));
-            const res = vec_a.sub(vec_b);
-            push(Value.init_obj(@ptrCast(res)));
-        } else if (a.is_fvec() and b.is_prim_num()) {
-            const vec_a: *FloatVector = @ptrCast(@alignCast(a.as.obj));
-            const val_b = if (b.is_int()) @as(f64, @floatFromInt(b.as_int())) else b.as_num_double();
-            const res = vec_a.single_sub(val_b);
-            push(Value.init_obj(@ptrCast(res)));
-        } else if (a.is_prim_num() and b.is_fvec()) {
-            // Scalar - Vector -> Vector (element-wise: scalar - element)
-            // Note: single_sub usually does vector - scalar.
-            // We need to check if FloatVector supports scalar - vector or if we need to implement it.
-            // Assuming single_sub is vector - scalar.
-            // For scalar - vector, we might need to create a new vector where each element is scalar - vec[i].
-            // Let's check if we can use scale(-1) then add scalar?
-            // scalar - vec = scalar + (-vec)
-            const val_a = if (a.is_int()) @as(f64, @floatFromInt(a.as_int())) else a.as_num_double();
-            const vec_b: *FloatVector = @ptrCast(@alignCast(b.as.obj));
-            // Create a new vector with val_a
-            // This is inefficient but correct without modifying FloatVector
-            // Better: implement scalar_sub in FloatVector, but I can't modify it right now easily without seeing it.
-            // Let's try to use existing methods.
-            // vec_b.scale(-1) -> -vec_b
-            // then add val_a -> -vec_b + val_a = val_a - vec_b
-            const neg_b = vec_b.scale(-1.0);
-            const res = neg_b.single_add(val_a);
-            // neg_b is a new object, res is a new object. We should free neg_b if it's not used.
-            // But GC handles it.
-            push(Value.init_obj(@ptrCast(res)));
-        } else {
-            runtimeError("Operands must be numbers or vectors/matrices.", .{});
-            return .INTERPRET_RUNTIME_ERROR;
-        }
-        return .INTERPRET_OK;
-    }
-
-    if (!peek(0).is_prim_num() or !peek(1).is_prim_num()) {
-        runtimeError("Operands must be numbers.", .{});
         return .INTERPRET_RUNTIME_ERROR;
-    }
-    if (peek(0).is_double() or peek(1).is_double()) {
-        const b = pop().as_num_double();
-        const a = pop().as_num_double();
-        push(Value.init_double(a - b));
-    } else {
-        const b = pop().as_int();
-        const a = pop().as_int();
-        push(Value.init_int(a - b));
-    }
+    };
+    push(res);
     return .INTERPRET_OK;
 }
 
 fn opMultiply() InterpretResult {
-    if (peek(0).is_complex() or peek(1).is_complex()) {
-        const b = pop();
-        const a = pop();
+    const b = pop();
+    const a = pop();
 
-        const ca = if (a.is_complex()) a.as_complex() else Complex{ .r = if (a.is_int()) @floatFromInt(a.as_int()) else a.as_num_double(), .i = 0 };
-        const cb = if (b.is_complex()) b.as_complex() else Complex{ .r = if (b.is_int()) @floatFromInt(b.as_int()) else b.as_num_double(), .i = 0 };
-
-        // (a + bi) * (c + di) = (ac - bd) + (ad + bc)i
-        push(Value.init_complex(Complex{
-            .r = ca.r * cb.r - ca.i * cb.i,
-            .i = ca.r * cb.i + ca.i * cb.r,
-        }));
-        return .INTERPRET_OK;
-    }
-
-    if (peek(0).is_matrix() or peek(1).is_matrix()) {
-        const b = pop();
-        const a = pop();
-
-        if (a.is_matrix() and b.is_matrix()) {
-            const mat_a: *Matrix = @ptrCast(@alignCast(a.as.obj));
-            const mat_b: *Matrix = @ptrCast(@alignCast(b.as.obj));
-            const res = mat_a.mul(mat_b);
-            if (res == null) {
-                runtimeError("Matrix dimension mismatch for multiplication.", .{});
-                return .INTERPRET_RUNTIME_ERROR;
-            }
-            push(Value.init_obj(@ptrCast(res.?)));
-        } else if (a.is_matrix() and b.is_prim_num()) {
-            const mat_a: *Matrix = @ptrCast(@alignCast(a.as.obj));
-            const val_b = if (b.is_int()) @as(f64, @floatFromInt(b.as_int())) else b.as_num_double();
-            const res = mat_a.scalarMul(val_b);
-            push(Value.init_obj(@ptrCast(res)));
-        } else if (a.is_prim_num() and b.is_matrix()) {
-            const val_a = if (a.is_int()) @as(f64, @floatFromInt(a.as_int())) else a.as_num_double();
-            const mat_b: *Matrix = @ptrCast(@alignCast(b.as.obj));
-            const res = mat_b.scalarMul(val_a);
-            push(Value.init_obj(@ptrCast(res)));
-        } else {
-            runtimeError("Operands must be numbers or vectors/matrices.", .{});
-            return .INTERPRET_RUNTIME_ERROR;
+    const res = performArithmetic(.Mul, a, b) catch |err| {
+        switch (err) {
+            error.DimensionMismatch => runtimeError("Matrix dimension mismatch for multiplication.", .{}),
+            error.TypeMismatch => runtimeError("Operands must be numbers or vectors/matrices.", .{}),
+            else => runtimeError("Runtime error during multiplication.", .{}),
         }
-        return .INTERPRET_OK;
-    }
-
-    if (peek(0).is_fvec() or peek(1).is_fvec()) {
-        const b = pop();
-        const a = pop();
-
-        if (a.is_fvec() and b.is_fvec()) {
-            const vec_a: *FloatVector = @ptrCast(@alignCast(a.as.obj));
-            const vec_b: *FloatVector = @ptrCast(@alignCast(b.as.obj));
-            const res = vec_a.mul(vec_b);
-            push(Value.init_obj(@ptrCast(res)));
-        } else if (a.is_fvec() and b.is_prim_num()) {
-            const vec_a: *FloatVector = @ptrCast(@alignCast(a.as.obj));
-            const val_b = if (b.is_int()) @as(f64, @floatFromInt(b.as_int())) else b.as_num_double();
-            const res = vec_a.scale(val_b);
-            push(Value.init_obj(@ptrCast(res)));
-        } else if (a.is_prim_num() and b.is_fvec()) {
-            const val_a = if (a.is_int()) @as(f64, @floatFromInt(a.as_int())) else a.as_num_double();
-            const vec_b: *FloatVector = @ptrCast(@alignCast(b.as.obj));
-            const res = vec_b.scale(val_a);
-            push(Value.init_obj(@ptrCast(res)));
-        } else {
-            runtimeError("Operands must be numbers or vectors/matrices.", .{});
-            return .INTERPRET_RUNTIME_ERROR;
-        }
-        return .INTERPRET_OK;
-    }
-
-    if (!peek(0).is_prim_num() or !peek(1).is_prim_num()) {
-        runtimeError("Operands must be numbers.", .{});
         return .INTERPRET_RUNTIME_ERROR;
-    }
-    if (peek(0).is_double() or peek(1).is_double()) {
-        const b = pop().as_num_double();
-        const a = pop().as_num_double();
-        push(Value.init_double(a * b));
-    } else {
-        const b = pop().as_int();
-        const a = pop().as_int();
-        push(Value.init_int(a * b));
-    }
+    };
+    push(res);
     return .INTERPRET_OK;
 }
 
 fn opDivide() InterpretResult {
-    if (peek(0).is_complex() or peek(1).is_complex()) {
-        const b = pop();
-        const a = pop();
+    const b = pop();
+    const a = pop();
 
-        const ca = if (a.is_complex()) a.as_complex() else Complex{ .r = if (a.is_int()) @floatFromInt(a.as_int()) else a.as_num_double(), .i = 0 };
-        const cb = if (b.is_complex()) b.as_complex() else Complex{ .r = if (b.is_int()) @floatFromInt(b.as_int()) else b.as_num_double(), .i = 0 };
-
-        // (a + bi) / (c + di) = ((ac + bd) / (c^2 + d^2)) + ((bc - ad) / (c^2 + d^2))i
-        const denom = cb.r * cb.r + cb.i * cb.i;
-        if (denom == 0) {
-            runtimeError("Division by zero.", .{});
-            return .INTERPRET_RUNTIME_ERROR;
+    const res = performArithmetic(.Div, a, b) catch |err| {
+        switch (err) {
+            error.DivisionByZero => runtimeError("Division by zero.", .{}),
+            error.TypeMismatch => runtimeError("Operands must be numbers or vectors.", .{}),
+            else => runtimeError("Runtime error during division.", .{}),
         }
-
-        push(Value.init_complex(Complex{
-            .r = (ca.r * cb.r + ca.i * cb.i) / denom,
-            .i = (ca.i * cb.r - ca.r * cb.i) / denom,
-        }));
-        return .INTERPRET_OK;
-    }
-
-    if (peek(0).is_fvec() or peek(1).is_fvec()) {
-        const b = pop();
-        const a = pop();
-
-        if (a.is_fvec() and b.is_fvec()) {
-            const vec_a: *FloatVector = @ptrCast(@alignCast(a.as.obj));
-            const vec_b: *FloatVector = @ptrCast(@alignCast(b.as.obj));
-            const res = vec_a.div(vec_b);
-            push(Value.init_obj(@ptrCast(res)));
-        } else if (a.is_fvec() and b.is_prim_num()) {
-            const vec_a: *FloatVector = @ptrCast(@alignCast(a.as.obj));
-            const val_b = if (b.is_int()) @as(f64, @floatFromInt(b.as_int())) else b.as_num_double();
-            const res = vec_a.single_div(val_b);
-            push(Value.init_obj(@ptrCast(res)));
-        } else if (a.is_prim_num() and b.is_fvec()) {
-            // Scalar / Vector -> Vector (element-wise: scalar / element)
-            // We need to implement this.
-            // Let's create a new vector where each element is scalar / vec[i]
-            // Since we don't have a direct method, we can iterate.
-            // But we can't easily iterate here without exposing internals or adding a method.
-            // However, we can use map-like behavior if available, or just loop manually.
-            // FloatVector has `data` field which is a slice.
-            const val_a = if (a.is_int()) @as(f64, @floatFromInt(a.as_int())) else a.as_num_double();
-            const vec_b: *FloatVector = @ptrCast(@alignCast(b.as.obj));
-
-            const res = FloatVector.init(vec_b.count);
-            res.count = vec_b.count;
-            var i: usize = 0;
-            while (i < vec_b.count) : (i += 1) {
-                res.data[i] = val_a / vec_b.data[i];
-            }
-            push(Value.init_obj(@ptrCast(res)));
-        } else {
-            runtimeError("Operands must be numbers or vectors.", .{});
-            return .INTERPRET_RUNTIME_ERROR;
-        }
-        return .INTERPRET_OK;
-    }
-
-    if (!peek(0).is_prim_num() or !peek(1).is_prim_num()) {
-        runtimeError("Operands must be numbers.", .{});
         return .INTERPRET_RUNTIME_ERROR;
-    }
-    const b = pop().as_num_double();
-    const a = pop().as_num_double();
-    push(Value.init_double(a / b));
+    };
+    push(res);
     return .INTERPRET_OK;
 }
 
@@ -1905,50 +1582,26 @@ fn opGetGlobalAdd() InterpretResult {
     const a = value;
 
     if (a.is_string() or b.is_string()) {
-        const a_str_ptr = stringify(a);
-        if (a_str_ptr == null) {
-            runtimeError("Operands must be two numbers or two strings.", .{});
-            return .INTERPRET_RUNTIME_ERROR;
-        }
-        push(Value.init_obj(@ptrCast(a_str_ptr.?)));
-        const b_str_ptr = stringify(b);
-        if (b_str_ptr == null) {
-            _ = pop();
-            runtimeError("Operands must be two numbers or two strings.", .{});
-            return .INTERPRET_RUNTIME_ERROR;
-        }
-        push(Value.init_obj(@ptrCast(b_str_ptr.?)));
-
-        // Inline string concatenation
-        const b_str = peek(0).as_string();
-        const a_str = peek(1).as_string();
-        const length = a_str.length + b_str.length;
-        const allocator = mem_utils.getAllocator();
-        const chars_slice = mem_utils.alloc(allocator, u8, length + 1) catch {
-            _ = pop();
-            _ = pop();
-            runtimeError("Out of memory.", .{});
+        const res = performAddString(a, b) catch |err| {
+            switch (err) {
+                error.OutOfMemory => runtimeError("Out of memory.", .{}),
+                error.TypeMismatch => runtimeError("Operands must be two numbers or two strings.", .{}),
+            }
             return .INTERPRET_RUNTIME_ERROR;
         };
-        const chars_ptr: [*]u8 = chars_slice.ptr;
-        @memcpy(chars_ptr[0..a_str.length], a_str.chars[0..a_str.length]);
-        @memcpy(chars_ptr[a_str.length..length], b_str.chars[0..b_str.length]);
-        chars_ptr[length] = 0;
-        const result = String.takeWithAllocator(chars_slice, length, allocator);
-        _ = pop();
-        _ = pop();
-        _ = pop();
-        _ = pop();
-        push(Value.init_obj(@ptrCast(result)));
-    } else if (a.is_int() and b.is_int()) {
-        push(Value.init_int(a.as_int() + b.as_int()));
-    } else if (a.is_prim_num() and b.is_prim_num()) {
-        push(Value.init_double(a.as_num_double() + b.as_num_double()));
-    } else {
-        runtimeError("Operands must be numbers.", .{});
-        return .INTERPRET_RUNTIME_ERROR;
+        push(res);
+        return .INTERPRET_OK;
     }
 
+    const res = performArithmetic(.Add, a, b) catch |err| {
+        switch (err) {
+            error.DimensionMismatch => runtimeError("Matrix dimension mismatch for addition.", .{}),
+            error.TypeMismatch => runtimeError("Operands must be two numbers, two strings, or involve a vector/matrix.", .{}),
+            else => runtimeError("Runtime error during addition.", .{}),
+        }
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    push(res);
     return .INTERPRET_OK;
 }
 
@@ -1972,15 +1625,15 @@ fn opGetGlobalSubtract() InterpretResult {
     const b = pop();
     const a = value;
 
-    if (a.is_int() and b.is_int()) {
-        push(Value.init_int(a.as_int() - b.as_int()));
-    } else if (a.is_prim_num() and b.is_prim_num()) {
-        push(Value.init_double(a.as_num_double() - b.as_num_double()));
-    } else {
-        runtimeError("Operands must be numbers.", .{});
+    const res = performArithmetic(.Sub, a, b) catch |err| {
+        switch (err) {
+            error.DimensionMismatch => runtimeError("Matrix dimension mismatch for subtraction.", .{}),
+            error.TypeMismatch => runtimeError("Operands must be numbers or vectors/matrices.", .{}),
+            else => runtimeError("Runtime error during subtraction.", .{}),
+        }
         return .INTERPRET_RUNTIME_ERROR;
-    }
-
+    };
+    push(res);
     return .INTERPRET_OK;
 }
 
@@ -2004,15 +1657,15 @@ fn opGetGlobalMultiply() InterpretResult {
     const b = pop();
     const a = value;
 
-    if (a.is_int() and b.is_int()) {
-        push(Value.init_int(a.as_int() * b.as_int()));
-    } else if (a.is_prim_num() and b.is_prim_num()) {
-        push(Value.init_double(a.as_num_double() * b.as_num_double()));
-    } else {
-        runtimeError("Operands must be numbers.", .{});
+    const res = performArithmetic(.Mul, a, b) catch |err| {
+        switch (err) {
+            error.DimensionMismatch => runtimeError("Matrix dimension mismatch for multiplication.", .{}),
+            error.TypeMismatch => runtimeError("Operands must be numbers or vectors/matrices.", .{}),
+            else => runtimeError("Runtime error during multiplication.", .{}),
+        }
         return .INTERPRET_RUNTIME_ERROR;
-    }
-
+    };
+    push(res);
     return .INTERPRET_OK;
 }
 
@@ -2036,19 +1689,15 @@ fn opGetGlobalDivide() InterpretResult {
     const b = pop();
     const a = value;
 
-    if (a.is_int() and b.is_int()) {
-        if (b.as_int() == 0) {
-            runtimeError("Division by zero.", .{});
-            return .INTERPRET_RUNTIME_ERROR;
+    const res = performArithmetic(.Div, a, b) catch |err| {
+        switch (err) {
+            error.DivisionByZero => runtimeError("Division by zero.", .{}),
+            error.TypeMismatch => runtimeError("Operands must be numbers or vectors.", .{}),
+            else => runtimeError("Runtime error during division.", .{}),
         }
-        push(Value.init_int(@divTrunc(a.as_int(), b.as_int())));
-    } else if (a.is_prim_num() and b.is_prim_num()) {
-        push(Value.init_double(a.as_num_double() / b.as_num_double()));
-    } else {
-        runtimeError("Operands must be numbers.", .{});
         return .INTERPRET_RUNTIME_ERROR;
-    }
-
+    };
+    push(res);
     return .INTERPRET_OK;
 }
 
@@ -2063,50 +1712,26 @@ fn opGetLocalAdd() InterpretResult {
     const a = value;
 
     if (a.is_string() or b.is_string()) {
-        const a_str_ptr = stringify(a);
-        if (a_str_ptr == null) {
-            runtimeError("Operands must be two numbers or two strings.", .{});
-            return .INTERPRET_RUNTIME_ERROR;
-        }
-        push(Value.init_obj(@ptrCast(a_str_ptr.?)));
-        const b_str_ptr = stringify(b);
-        if (b_str_ptr == null) {
-            _ = pop();
-            runtimeError("Operands must be two numbers or two strings.", .{});
-            return .INTERPRET_RUNTIME_ERROR;
-        }
-        push(Value.init_obj(@ptrCast(b_str_ptr.?)));
-
-        // Inline string concatenation
-        const b_str = peek(0).as_string();
-        const a_str = peek(1).as_string();
-        const length = a_str.length + b_str.length;
-        const allocator = mem_utils.getAllocator();
-        const chars_slice = mem_utils.alloc(allocator, u8, length + 1) catch {
-            _ = pop();
-            _ = pop();
-            runtimeError("Out of memory.", .{});
+        const res = performAddString(a, b) catch |err| {
+            switch (err) {
+                error.OutOfMemory => runtimeError("Out of memory.", .{}),
+                error.TypeMismatch => runtimeError("Operands must be two numbers or two strings.", .{}),
+            }
             return .INTERPRET_RUNTIME_ERROR;
         };
-        const chars_ptr: [*]u8 = chars_slice.ptr;
-        @memcpy(chars_ptr[0..a_str.length], a_str.chars[0..a_str.length]);
-        @memcpy(chars_ptr[a_str.length..length], b_str.chars[0..b_str.length]);
-        chars_ptr[length] = 0;
-        const result = String.takeWithAllocator(chars_slice, length, allocator);
-        _ = pop();
-        _ = pop();
-        _ = pop();
-        _ = pop();
-        push(Value.init_obj(@ptrCast(result)));
-    } else if (a.is_int() and b.is_int()) {
-        push(Value.init_int(a.as_int() + b.as_int()));
-    } else if (a.is_prim_num() and b.is_prim_num()) {
-        push(Value.init_double(a.as_num_double() + b.as_num_double()));
-    } else {
-        runtimeError("Operands must be numbers.", .{});
-        return .INTERPRET_RUNTIME_ERROR;
+        push(res);
+        return .INTERPRET_OK;
     }
 
+    const res = performArithmetic(.Add, a, b) catch |err| {
+        switch (err) {
+            error.DimensionMismatch => runtimeError("Matrix dimension mismatch for addition.", .{}),
+            error.TypeMismatch => runtimeError("Operands must be two numbers, two strings, or involve a vector/matrix.", .{}),
+            else => runtimeError("Runtime error during addition.", .{}),
+        }
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    push(res);
     return .INTERPRET_OK;
 }
 
@@ -2247,50 +1872,26 @@ fn opConstantAdd() InterpretResult {
     const a = constant;
 
     if (a.is_string() or b.is_string()) {
-        const a_str_ptr = stringify(a);
-        if (a_str_ptr == null) {
-            runtimeError("Operands must be two numbers or two strings.", .{});
-            return .INTERPRET_RUNTIME_ERROR;
-        }
-        push(Value.init_obj(@ptrCast(a_str_ptr.?)));
-        const b_str_ptr = stringify(b);
-        if (b_str_ptr == null) {
-            _ = pop();
-            runtimeError("Operands must be two numbers or two strings.", .{});
-            return .INTERPRET_RUNTIME_ERROR;
-        }
-        push(Value.init_obj(@ptrCast(b_str_ptr.?)));
-
-        // Inline string concatenation
-        const b_str = peek(0).as_string();
-        const a_str = peek(1).as_string();
-        const length = a_str.length + b_str.length;
-        const allocator = mem_utils.getAllocator();
-        const chars_slice = mem_utils.alloc(allocator, u8, length + 1) catch {
-            _ = pop();
-            _ = pop();
-            runtimeError("Out of memory.", .{});
+        const res = performAddString(a, b) catch |err| {
+            switch (err) {
+                error.OutOfMemory => runtimeError("Out of memory.", .{}),
+                error.TypeMismatch => runtimeError("Operands must be two numbers or two strings.", .{}),
+            }
             return .INTERPRET_RUNTIME_ERROR;
         };
-        const chars_ptr: [*]u8 = chars_slice.ptr;
-        @memcpy(chars_ptr[0..a_str.length], a_str.chars[0..a_str.length]);
-        @memcpy(chars_ptr[a_str.length..length], b_str.chars[0..b_str.length]);
-        chars_ptr[length] = 0;
-        const result = String.takeWithAllocator(chars_slice, length, allocator);
-        _ = pop();
-        _ = pop();
-        _ = pop();
-        _ = pop();
-        push(Value.init_obj(@ptrCast(result)));
-    } else if (a.is_int() and b.is_int()) {
-        push(Value.init_int(a.as_int() + b.as_int()));
-    } else if (a.is_prim_num() and b.is_prim_num()) {
-        push(Value.init_double(a.as_num_double() + b.as_num_double()));
-    } else {
-        runtimeError("Operands must be numbers.", .{});
-        return .INTERPRET_RUNTIME_ERROR;
+        push(res);
+        return .INTERPRET_OK;
     }
 
+    const res = performArithmetic(.Add, a, b) catch |err| {
+        switch (err) {
+            error.DimensionMismatch => runtimeError("Matrix dimension mismatch for addition.", .{}),
+            error.TypeMismatch => runtimeError("Operands must be two numbers, two strings, or involve a vector/matrix.", .{}),
+            else => runtimeError("Runtime error during addition.", .{}),
+        }
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    push(res);
     return .INTERPRET_OK;
 }
 
@@ -2308,15 +1909,15 @@ fn opConstantMultiply() InterpretResult {
     const b = pop();
     const a = constant;
 
-    if (a.is_int() and b.is_int()) {
-        push(Value.init_int(a.as_int() * b.as_int()));
-    } else if (a.is_prim_num() and b.is_prim_num()) {
-        push(Value.init_double(a.as_num_double() * b.as_num_double()));
-    } else {
-        runtimeError("Operands must be numbers.", .{});
+    const res = performArithmetic(.Mul, a, b) catch |err| {
+        switch (err) {
+            error.DimensionMismatch => runtimeError("Matrix dimension mismatch for multiplication.", .{}),
+            error.TypeMismatch => runtimeError("Operands must be numbers or vectors/matrices.", .{}),
+            else => runtimeError("Runtime error during multiplication.", .{}),
+        }
         return .INTERPRET_RUNTIME_ERROR;
-    }
-
+    };
+    push(res);
     return .INTERPRET_OK;
 }
 
@@ -3403,32 +3004,15 @@ const jumpTable = blk: {
     table[@intFromEnum(OpCode.OP_GET_MODULE_MEMBER)] = opGetModuleMember;
 
     // Phase 2.1: Small constant opcodes (67-82)
-    table[@intFromEnum(OpCode.OP_CONSTANT_0)] = opConstant0;
-    table[@intFromEnum(OpCode.OP_CONSTANT_1)] = opConstant1;
-    table[@intFromEnum(OpCode.OP_CONSTANT_2)] = opConstant2;
-    table[@intFromEnum(OpCode.OP_CONSTANT_3)] = opConstant3;
-    table[@intFromEnum(OpCode.OP_CONSTANT_4)] = opConstant4;
-    table[@intFromEnum(OpCode.OP_CONSTANT_5)] = opConstant5;
-    table[@intFromEnum(OpCode.OP_CONSTANT_6)] = opConstant6;
-    table[@intFromEnum(OpCode.OP_CONSTANT_7)] = opConstant7;
-    table[@intFromEnum(OpCode.OP_CONSTANT_8)] = opConstant8;
-    table[@intFromEnum(OpCode.OP_CONSTANT_9)] = opConstant9;
-    table[@intFromEnum(OpCode.OP_CONSTANT_10)] = opConstant10;
-    table[@intFromEnum(OpCode.OP_CONSTANT_11)] = opConstant11;
-    table[@intFromEnum(OpCode.OP_CONSTANT_12)] = opConstant12;
-    table[@intFromEnum(OpCode.OP_CONSTANT_13)] = opConstant13;
-    table[@intFromEnum(OpCode.OP_CONSTANT_14)] = opConstant14;
-    table[@intFromEnum(OpCode.OP_CONSTANT_15)] = opConstant15;
+    inline for (0..16) |i| {
+        table[@intFromEnum(OpCode.OP_CONSTANT_0) + i] = makeOpConstant(i);
+    }
 
     // Phase 2.2: Small local opcodes (83-90)
-    table[@intFromEnum(OpCode.OP_GET_LOCAL_0)] = opGetLocal0;
-    table[@intFromEnum(OpCode.OP_GET_LOCAL_1)] = opGetLocal1;
-    table[@intFromEnum(OpCode.OP_GET_LOCAL_2)] = opGetLocal2;
-    table[@intFromEnum(OpCode.OP_GET_LOCAL_3)] = opGetLocal3;
-    table[@intFromEnum(OpCode.OP_SET_LOCAL_0)] = opSetLocal0;
-    table[@intFromEnum(OpCode.OP_SET_LOCAL_1)] = opSetLocal1;
-    table[@intFromEnum(OpCode.OP_SET_LOCAL_2)] = opSetLocal2;
-    table[@intFromEnum(OpCode.OP_SET_LOCAL_3)] = opSetLocal3;
+    inline for (0..4) |i| {
+        table[@intFromEnum(OpCode.OP_GET_LOCAL_0) + i] = makeOpGetLocal(i);
+        table[@intFromEnum(OpCode.OP_SET_LOCAL_0) + i] = makeOpSetLocal(i);
+    }
 
     // Phase 2.3: Short jump opcodes (91-93)
     table[@intFromEnum(OpCode.OP_JUMP_SHORT)] = opJumpShort;
