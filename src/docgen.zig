@@ -27,6 +27,7 @@ pub const FunctionDoc = struct {
     return_type: ?[]const u8,
     doc_comment: ?[]const u8,
     line: usize,
+    is_pub: bool,
     allocator: std.mem.Allocator,
 
     pub fn deinit(self: *FunctionDoc) void {
@@ -49,6 +50,7 @@ pub const ClassDoc = struct {
     doc_comment: ?[]const u8,
     methods: []FunctionDoc,
     line: usize,
+    is_pub: bool,
     allocator: std.mem.Allocator,
 
     pub fn deinit(self: *ClassDoc) void {
@@ -173,17 +175,27 @@ pub const DocGenerator = struct {
                 continue;
             }
 
+            // Check for optional "pub" visibility modifier
+            var is_pub = false;
+            var decl_start = trimmed;
+            if (std.mem.startsWith(u8, trimmed, "pub ")) {
+                is_pub = true;
+                decl_start = std.mem.trimLeft(u8, trimmed[3..], " \t");
+            }
+
             // Check for function definitions
-            if (std.mem.startsWith(u8, trimmed, "fun ") or std.mem.startsWith(u8, trimmed, "fn ")) {
-                const func_doc = try self.parseFunction(trimmed, line_num, pending_doc_comment);
+            if (std.mem.startsWith(u8, decl_start, "fun ") or std.mem.startsWith(u8, decl_start, "fn ")) {
+                var func_doc = try self.parseFunction(decl_start, line_num, pending_doc_comment);
+                func_doc.is_pub = is_pub;
                 try functions.append(self.allocator, func_doc);
                 pending_doc_comment = null;
                 continue;
             }
 
             // Check for class definitions
-            if (std.mem.startsWith(u8, trimmed, "class ")) {
-                const class_doc = try self.parseClass(trimmed, line_num, pending_doc_comment);
+            if (std.mem.startsWith(u8, decl_start, "class ")) {
+                var class_doc = try self.parseClass(decl_start, line_num, pending_doc_comment);
+                class_doc.is_pub = is_pub;
                 try classes.append(self.allocator, class_doc);
                 pending_doc_comment = null;
                 continue;
@@ -249,6 +261,7 @@ pub const DocGenerator = struct {
             .return_type = null,
             .doc_comment = if (doc_comment) |dc| try self.allocator.dupe(u8, dc) else null,
             .line = line_num,
+            .is_pub = false,
             .allocator = self.allocator,
         };
     }
@@ -271,6 +284,7 @@ pub const DocGenerator = struct {
             .doc_comment = if (doc_comment) |dc| try self.allocator.dupe(u8, dc) else null,
             .methods = &[_]FunctionDoc{},
             .line = line_num,
+            .is_pub = false,
             .allocator = self.allocator,
         };
     }
@@ -560,6 +574,13 @@ pub const DocGenerator = struct {
                 try file.writeAll(func_id);
                 try file.writeAll("                        <div class=\"item-header\">\n");
 
+                // Add visibility tag
+                if (func.is_pub) {
+                    try file.writeAll("                            <span class=\"visibility public\">pub</span>\n");
+                } else {
+                    try file.writeAll("                            <span class=\"visibility private\">priv</span>\n");
+                }
+
                 // Build function signature
                 var signature = std.ArrayList(u8).initCapacity(self.allocator, 0) catch unreachable;
                 defer signature.deinit(self.allocator);
@@ -607,6 +628,14 @@ pub const DocGenerator = struct {
                 defer self.allocator.free(class_id);
                 try file.writeAll(class_id);
                 try file.writeAll("                        <div class=\"item-header\">\n");
+
+                // Add visibility tag
+                if (class.is_pub) {
+                    try file.writeAll("                            <span class=\"visibility public\">pub</span>\n");
+                } else {
+                    try file.writeAll("                            <span class=\"visibility private\">priv</span>\n");
+                }
+
                 const class_sig = try std.fmt.allocPrint(self.allocator, "                            <code class=\"signature\">class {s}</code>\n", .{class.name});
                 defer self.allocator.free(class_sig);
                 try file.writeAll(class_sig);
@@ -943,6 +972,28 @@ pub const DocGenerator = struct {
             \\    font-size: 1rem;
             \\    color: var(--accent);
             \\    font-weight: 500;
+            \\}
+            \\
+            \\.visibility {
+            \\    display: inline-block;
+            \\    padding: 0.2rem 0.5rem;
+            \\    border-radius: 4px;
+            \\    font-size: 0.8rem;
+            \\    font-weight: 600;
+            \\    text-transform: uppercase;
+            \\    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            \\}
+            \\
+            \\.visibility.public {
+            \\    background: rgba(46, 160, 67, 0.15);
+            \\    color: #3fb950;
+            \\    border: 1px solid rgba(46, 160, 67, 0.4);
+            \\}
+            \\
+            \\.visibility.private {
+            \\    background: rgba(248, 81, 73, 0.15);
+            \\    color: #f85149;
+            \\    border: 1px solid rgba(248, 81, 73, 0.4);
             \\}
             \\
             \\.item-desc {
