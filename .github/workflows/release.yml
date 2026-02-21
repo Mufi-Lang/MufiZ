@@ -9,9 +9,9 @@ on:
       - next
 
 jobs:
-  build-macos:
-    name: Create macOS ARM Release
-    runs-on: macos-14
+  build-ubuntu:
+    name: Build Main Artifacts (Ubuntu)
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -25,6 +25,11 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: "3.x"
+
+      - name: Generate Metadata (Keywords & Stdlib)
+        run: |
+          python3 tools/generate_metadata.py
+          ls -l mufiz_keywords.json mufiz_stdlib.json
 
       - name: Cache Zig build artifacts
         uses: actions/cache@v3
@@ -43,9 +48,8 @@ jobs:
         with:
           ruby-version: "3.0"
 
-      - name: Install fpm and unzip
+      - name: Install fpm
         run: |
-          brew install gnu-tar
           gem install fpm
 
       - name: Validate test suite setup
@@ -105,6 +109,10 @@ jobs:
           chmod +x scripts/prepare_release_artifacts.sh
           ./scripts/prepare_release_artifacts.sh ${{ steps.get_version.outputs.VERSION }}
 
+          # Remove C-library zip generated on Ubuntu (it might be incomplete or Linux-only)
+          # We want the macOS job to provide the authoritative C-library bundle
+          rm -f pkg/artifacts/mufiz-c-library-*.zip
+
       - name: Delete previous experimental releases
         run: |
           echo "🗑️ Cleaning up previous experimental releases..."
@@ -156,19 +164,15 @@ jobs:
             ✅ All test suite tests passed
             🔧 Built with Zig 0.15.2
             📦 Generated from commit: ${{ github.sha }}
-            🍎 **Platform: macOS ARM (Apple Silicon M1/M2/M3/M4)**
 
             **⚠️ This is a pre-release build for testing purposes**
 
             ### 📦 Included Artifacts
 
-            - **macOS Packages**: `.zip` archives for macOS
-            - **C Library** (`mufiz-c-library-*.zip`): macOS ARM dynamic library (`.dylib`) + headers
-              - ✅ **macOS ARM native** - Built on Apple Silicon, includes `libmufiz.dylib` (ARM64)
-              - Optimized for M1/M2/M3/M4 Macs
-              - ⚠️ Intel Mac/Linux/Windows users: Build from source with `zig build`
+            - **Multi-platform Packages**: `.zip`, `.deb`, `.rpm`
+            - **Metadata**: `mufiz_keywords.json`, `mufiz_stdlib.json`
             - **WebAssembly** (`mufiz-wasm-*.zip`): Platform-independent WASM binary
-            - **Documentation**: `ARTIFACTS.md` with checksums and installation instructions
+            - **C Library** (`mufiz-c-library-*.zip`): **Attached separately from macOS build** (contains macOS ARM dylib)
 
             🗑️ Previous experimental releases have been automatically cleaned up
           generate_release_notes: true
@@ -179,34 +183,47 @@ jobs:
             pkg/*.deb
             pkg/*.rpm
             pkg/ARTIFACTS.md
+            pkg/artifacts/mufiz-wasm-*.zip
+            mufiz_keywords.json
+            mufiz_stdlib.json
 
-      - name: Release summary
-        if: always()
+  build-c-library-macos:
+    name: Build C Library (macOS)
+    needs: build-ubuntu
+    runs-on: macos-14
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Zig
+        uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: 0.15.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
+
+      - name: Build C Library
+        run: zig build -Doptimize=ReleaseFast
+
+      - name: Get version
+        id: get_version
         run: |
-          echo "## 🚀 Release Workflow Results" >> $GITHUB_STEP_SUMMARY
-          echo "**Branch:** next" >> $GITHUB_STEP_SUMMARY
-          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Version:** ${{ steps.get_version.outputs.VERSION }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          VERSION=$(python3 -c "import re; data = open('build.zig.zon').read(); match = re.search(r'\.version\s*=\s*\"([\d.]+)\"', data); print(match.group(1) if match else 'unknown')")
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
-          if [ ${{ job.status }} == 'success' ]; then
-            echo "✅ **Release created successfully!**" >> $GITHUB_STEP_SUMMARY
-            echo "- All tests passed" >> $GITHUB_STEP_SUMMARY
-            echo "- Packages built successfully for **macOS ARM (Apple Silicon)**" >> $GITHUB_STEP_SUMMARY
-            echo "- C library artifacts included (macOS ARM .dylib)" >> $GITHUB_STEP_SUMMARY
-            echo "- WebAssembly binary included" >> $GITHUB_STEP_SUMMARY
-            echo "- Experimental release published" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "### 📦 Artifacts" >> $GITHUB_STEP_SUMMARY
-            echo "- **macOS packages**: zip archives" >> $GITHUB_STEP_SUMMARY
-            echo "- **C library** (mufiz-c-library-${{ steps.get_version.outputs.VERSION }}.zip): macOS ARM .dylib + headers" >> $GITHUB_STEP_SUMMARY
-            echo "- **WASM binary** (mufiz-wasm-${{ steps.get_version.outputs.VERSION }}.zip): Platform-independent" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "⚠️ **Note**: C library is built for macOS ARM (Apple Silicon). Intel Mac/Linux/Windows users should build from source." >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ **Release failed**" >> $GITHUB_STEP_SUMMARY
-            echo "**Possible causes:**" >> $GITHUB_STEP_SUMMARY
-            echo "- Test suite failures (check test artifacts)" >> $GITHUB_STEP_SUMMARY
-            echo "- Build failures" >> $GITHUB_STEP_SUMMARY
-            echo "- Package creation issues" >> $GITHUB_STEP_SUMMARY
-          fi
+      - name: Prepare C Library Artifact
+        run: |
+          chmod +x scripts/prepare_release_artifacts.sh
+          # This will generate the C-lib zip (and WASM/Artifacts.md again, but we only care about C-lib)
+          ./scripts/prepare_release_artifacts.sh ${{ steps.get_version.outputs.VERSION }}
+
+      - name: Upload C Library to Release
+        uses: softprops/action-gh-release@v1
+        with:
+          token: ${{secrets.SECRET}}
+          tag_name: next-experimental-${{ github.run_number }}
+          files: |
+            pkg/artifacts/mufiz-c-library-*.zip
