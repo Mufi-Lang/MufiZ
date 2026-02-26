@@ -462,14 +462,6 @@ pub fn install(allocator: std.mem.Allocator) !void {
     std.debug.print("\n✅ All dependencies installed successfully!\n", .{});
 }
 
-    // (Optional) Print final install order
-    for (resolved.items) |dep| {
-        std.debug.print("  - {s} @ {s}\n", .{ dep.name, dep.version });
-    }
-
-    std.debug.print("\n✅ All dependencies installed successfully!\n", .{});
-}
-
 /// Write the resolved dependencies to mufi.lock
 fn writeLockfile(allocator: std.mem.Allocator, root_dir: fs.Dir, resolved: std.ArrayList(resolver.DependencySpec)) !void {
     var content = try std.ArrayList(u8).initCapacity(allocator, 0);

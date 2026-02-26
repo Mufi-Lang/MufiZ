@@ -222,7 +222,7 @@ pub const Resolver = struct {
         const node = try self.allocator.create(Node);
         node.* = try Node.init(self.allocator, spec);
 
-        const key = try allocator.dupe(u8, spec.name);
+        const key = try self.allocator.dupe(u8, spec.name);
         try self.graph.put(key, node);
     }
 

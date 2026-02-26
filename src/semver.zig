@@ -14,7 +14,7 @@ pub const Version = struct {
         var input = text;
         if (input.len > 0 and input[0] == 'v') input = input[1..];
 
-        var it = std.mem.split(u8, input, ".");
+        var it = std.mem.splitScalar(u8, input, '.');
         const major_str = it.next() orelse return error.InvalidVersion;
         const minor_str = it.next() orelse "0";
         const patch_str = it.next() orelse "0";
@@ -46,15 +46,15 @@ pub const Version = struct {
 
     pub fn deinit(self: *Version) void {
         if (self.allocator) |alloc| {
-            if (self.pre) |p| alloc.free(pre);
-            if (self.build) |b| alloc.free(build);
+            if (self.pre) |p| alloc.free(p);
+            if (self.build) |b| alloc.free(b);
         }
     }
 
     pub fn compare(self: Version, other: Version) std.math.Order {
-        if (self.major != other.major) return std.math.compare(self.major, other.major);
-        if (self.minor != other.minor) return std.math.compare(self.minor, other.minor);
-        if (self.patch != other.patch) return std.math.compare(self.patch, other.patch);
+        if (self.major != other.major) return std.math.order(self.major, other.major);
+        if (self.minor != other.minor) return std.math.order(self.minor, other.minor);
+        if (self.patch != other.patch) return std.math.order(self.patch, other.patch);
         return .eq;
     }
 
