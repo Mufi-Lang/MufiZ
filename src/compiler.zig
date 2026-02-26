@@ -25,6 +25,7 @@ const value_h = @import("value.zig");
 const Value = value_h.Value;
 const Complex = value_h.Complex;
 const vm_h = @import("vm.zig");
+const bytecode_optimizer = @import("bytecode_optimizer.zig");
 
 /// Helper to create a Value wrapping a string object (uses copyString — for runtime/dynamic strings).
 fn makeStringValue(start: [*]const u8, length: usize) Value {
@@ -81,6 +82,41 @@ pub fn setScannerErrorManager() void {
     scanner_h.globalErrorManager = &globalErrorManager;
     scanner_h.errorManagerInitialized = errorManagerInitialized;
 }
+
+/// Tracks global variable assignment counts for optimization
+const GlobalAnalyzer = struct {
+    counts: std.AutoHashMap(u64, u32),
+    allocator: std.mem.Allocator,
+
+    pub fn init(allocator: std.mem.Allocator) GlobalAnalyzer {
+        return .{
+            .counts = std.AutoHashMap(u64, u32).init(allocator),
+            .allocator = allocator,
+        };
+    }
+
+    pub fn deinit(self: *GlobalAnalyzer) void {
+        self.counts.deinit();
+    }
+
+    pub fn recordAssignment(self: *GlobalAnalyzer, name: []const u8) void {
+        const h = object_h.hashString(name.ptr, name.len);
+        const entry = self.counts.getOrPut(h) catch return;
+        if (!entry.found_existing) {
+            entry.value_ptr.* = 1;
+        } else {
+            entry.value_ptr.* += 1;
+        }
+    }
+
+    pub fn isConstant(self: *GlobalAnalyzer, name: []const u8) bool {
+        const h = object_h.hashString(name.ptr, name.len);
+        const count = self.counts.get(h) orelse 0;
+        return count <= 1; // Assigned once (definition) or never
+    }
+};
+
+var global_analyzer: ?GlobalAnalyzer = null;
 
 pub const Parser = struct {
     current: Token,
@@ -804,12 +840,25 @@ fn defineVariableImpl(global: u8, opcode: OpCode) void {
     }
 
     // Track global variable/constant for suggestion system
-    if (errorManagerInitialized and global < currentChunk().*.constants.count) {
-        const constant = currentChunk().*.constants.values[@intCast(global)];
-        if (constant.type == .VAL_OBJ and object_h.isObjType(constant, .OBJ_STRING)) {
-            const objString = @as(*object_h.ObjString, @ptrCast(@alignCast(constant.as.obj)));
-            addKnownVariable(objString.chars[0..@intCast(objString.length)]);
-        }
+    const constant = currentChunk().*.constants.values[@intCast(global)];
+    const name_obj = @as(*object_h.ObjString, @ptrCast(@alignCast(constant.as.obj)));
+    const name_slice = name_obj.chars[0..@intCast(name_obj.length)];
+
+    if (errorManagerInitialized) {
+        addKnownVariable(name_slice);
+    }
+
+    // OPTIMIZATION: Use slot-based globals for user code
+    const module_registry = @import("module_registry.zig");
+    if (!module_registry.isBuiltInModule(name_slice)) {
+        const slot = vm_h.getGlobalSlot(name_obj);
+        emitBytes(@intFromEnum(OpCode.OP_SET_GLOBAL_SLOT), slot);
+        
+        // We still need to record metadata for PUBLIC or CONST for snapshots
+        // but we use a non-popping/meta-only way if possible.
+        // For now, let's keep it simple: slot-based globals are implicitly public
+        // and constants are handled by the GlobalAnalyzer.
+        return;
     }
 
     emitBytes(@intFromEnum(opcode), global);
@@ -851,6 +900,130 @@ pub fn argumentList() u8 {
     consume(.TOKEN_RIGHT_PAREN, "Expect ')' after arguments.");
     return argCount;
 }
+fn getLastConstant(chunk: *Chunk) ?Value {
+    if (chunk.count < 2) return null;
+    if (chunk.code.?[@intCast(chunk.count - 2)] != @intFromEnum(OpCode.OP_CONSTANT)) return null;
+    const constant_idx = chunk.code.?[@intCast(chunk.count - 1)];
+    return chunk.constants.values[constant_idx];
+}
+
+fn foldUnary(operatorType: TokenType) bool {
+    const chunk = currentChunk();
+    if (chunk.count < 3) return false;
+
+    // Check if it is OP_CONSTANT <idx> <operator>
+    if (chunk.code.?[@intCast(chunk.count - 3)] != @intFromEnum(OpCode.OP_CONSTANT)) return false;
+    const value = chunk.constants.values[chunk.code.?[@intCast(chunk.count - 2)]];
+
+    var result: ?Value = null;
+    switch (operatorType) {
+        .TOKEN_BANG => {
+            if (value.type == .VAL_BOOL) {
+                result = Value.init_bool(!value.as.boolean);
+            } else if (value.type == .VAL_NIL) {
+                result = Value.init_bool(true);
+            }
+        },
+        .TOKEN_MINUS => {
+            if (value.type == .VAL_INT) {
+                result = Value.init_int(-value.as.num_int);
+            } else if (value.type == .VAL_DOUBLE) {
+                result = Value.init_double(-value.as.num_double);
+            }
+        },
+        else => {},
+    }
+
+    if (result) |res| {
+        chunk.count -= 3; // Remove OP_CONSTANT, index, and operator
+        emitConstant(res);
+        return true;
+    }
+    return false;
+}
+
+fn foldBinary(operatorType: TokenType) bool {
+    const chunk = currentChunk();
+    
+    // Determine how many bytes the operator emitted
+    const op_size: u8 = switch (operatorType) {
+        .TOKEN_BANG_EQUAL, .TOKEN_GREATER_EQUAL, .TOKEN_LESS_EQUAL => 2,
+        else => 1,
+    };
+
+    if (chunk.count < 4 + op_size) return false;
+
+    const b_idx_pos: usize = @intCast(@as(i32, @intCast(chunk.count)) - op_size - 1);
+    const b_op_pos: usize = @intCast(@as(i32, @intCast(chunk.count)) - op_size - 2);
+    const a_idx_pos: usize = @intCast(@as(i32, @intCast(chunk.count)) - op_size - 3);
+    const a_op_pos: usize = @intCast(@as(i32, @intCast(chunk.count)) - op_size - 4);
+
+    if (chunk.code.?[b_op_pos] != @intFromEnum(OpCode.OP_CONSTANT)) return false;
+    if (chunk.code.?[a_op_pos] != @intFromEnum(OpCode.OP_CONSTANT)) return false;
+
+    const b = chunk.constants.values[chunk.code.?[b_idx_pos]];
+    const a = chunk.constants.values[chunk.code.?[a_idx_pos]];
+
+    var result: ?Value = null;
+
+    if (a.is_prim_num() and b.is_prim_num()) {
+        const da = a.as_num_double();
+        const db = b.as_num_double();
+        const is_int = a.is_int() and b.is_int();
+
+        switch (operatorType) {
+            .TOKEN_PLUS => {
+                if (is_int) result = Value.init_int(a.as_int() + b.as_int()) else result = Value.init_double(da + db);
+            },
+            .TOKEN_MINUS => {
+                if (is_int) result = Value.init_int(a.as_int() - b.as_int()) else result = Value.init_double(da - db);
+            },
+            .TOKEN_STAR => {
+                if (is_int) result = Value.init_int(a.as_int() * b.as_int()) else result = Value.init_double(da * db);
+            },
+            .TOKEN_SLASH => {
+                if (db != 0) result = Value.init_double(da / db);
+            },
+            .TOKEN_PERCENT => {
+                if (is_int and b.as_int() != 0) result = Value.init_int(@mod(a.as_int(), b.as_int())) 
+                else if (db != 0) result = Value.init_double(@mod(da, db));
+            },
+            .TOKEN_HAT => result = Value.init_double(std.math.pow(f64, da, db)),
+            .TOKEN_EQUAL_EQUAL => result = Value.init_bool(value_h.valuesEqual(a, b)),
+            .TOKEN_BANG_EQUAL => result = Value.init_bool(!value_h.valuesEqual(a, b)),
+            .TOKEN_GREATER => result = Value.init_bool(da > db),
+            .TOKEN_GREATER_EQUAL => result = Value.init_bool(da >= db),
+            .TOKEN_LESS => result = Value.init_bool(da < db),
+            .TOKEN_LESS_EQUAL => result = Value.init_bool(da <= db),
+            else => {},
+        }
+    } else if (a.is_string() and b.is_string() and operatorType == .TOKEN_PLUS) {
+        // String concatenation
+        const sa = a.as_string();
+        const sb = b.as_string();
+        const len = sa.length + sb.length;
+        const allocator = compiler_arena.getCompilerAllocator();
+        const buf = allocator.alloc(u8, len) catch return false;
+        @memcpy(buf[0..sa.length], sa.chars[0..sa.length]);
+        @memcpy(buf[sa.length..len], sb.chars[0..sb.length]);
+        result = Value.init_obj(@ptrCast(object_h.copyStringLiteral(buf.ptr, len)));
+    } else if (a.type == .VAL_BOOL and b.type == .VAL_BOOL) {
+        switch (operatorType) {
+            .TOKEN_EQUAL_EQUAL => result = Value.init_bool(a.as.boolean == b.as.boolean),
+            .TOKEN_BANG_EQUAL => result = Value.init_bool(a.as.boolean != b.as.boolean),
+            else => {},
+        }
+    }
+
+    if (result) |res| {
+        chunk.count -= (4 + op_size); // Remove constants and the operator
+        emitConstant(res);
+        return true;
+    }
+
+    return false;
+}
+
 pub fn and_(canAssign: bool) void {
     _ = canAssign;
     const endJump = emitJump(@intFromEnum(OpCode.OP_JUMP_IF_FALSE));
@@ -863,6 +1036,7 @@ pub fn binary(canAssign: bool) void {
     const operatorType: TokenType = parser.previous.type;
     const rule: ParseRule = getRule(operatorType);
     parsePrecedence(rule.precedence +% 1);
+
     switch (operatorType) {
         .TOKEN_BANG_EQUAL => emitBytes(@intFromEnum(OpCode.OP_EQUAL), @intFromEnum(OpCode.OP_NOT)),
         .TOKEN_EQUAL_EQUAL => emitByte(@intFromEnum(OpCode.OP_EQUAL)),
@@ -878,6 +1052,8 @@ pub fn binary(canAssign: bool) void {
         .TOKEN_HAT => emitByte(@intFromEnum(OpCode.OP_EXPONENT)),
         else => {},
     }
+
+    _ = foldBinary(operatorType);
 }
 pub fn call(canAssign: bool) void {
     _ = canAssign;
@@ -1425,6 +1601,8 @@ pub fn namedVariable(name: Token, canAssign: bool) void {
     var arg: i32 = resolveLocal(current.?, @constCast(&name));
     var isLocal: bool = false;
 
+    const name_slice = name.start[0..@intCast(name.length)];
+
     if (arg != -1) {
         getOp = @intFromEnum(OpCode.OP_GET_LOCAL);
         setOp = @intFromEnum(OpCode.OP_SET_LOCAL);
@@ -1436,9 +1614,38 @@ pub fn namedVariable(name: Token, canAssign: bool) void {
         getOp = @intFromEnum(OpCode.OP_GET_UPVALUE);
         setOp = @intFromEnum(OpCode.OP_SET_UPVALUE);
     } else {
-        arg = @intCast(identifierConstant(@constCast(&name)));
-        getOp = @intFromEnum(OpCode.OP_GET_GLOBAL);
-        setOp = @intFromEnum(OpCode.OP_SET_GLOBAL);
+        const name_idx = identifierConstant(@constCast(&name));
+        const name_str_val = currentChunk().constants.values[name_idx];
+        const name_obj = @as(*object_h.ObjString, @ptrCast(@alignCast(name_str_val.as.obj)));
+
+        // Use name-based lookup for builtins (always available)
+        const module_registry = @import("module_registry.zig");
+        const is_builtin = module_registry.isBuiltInModule(name_slice);
+
+        if (is_builtin) {
+            getOp = @intFromEnum(OpCode.OP_GET_GLOBAL);
+            setOp = @intFromEnum(OpCode.OP_SET_GLOBAL);
+            arg = @intCast(name_idx);
+        } else {
+            // Project globals use slot-based access
+            getOp = @intFromEnum(OpCode.OP_GET_GLOBAL_SLOT);
+            setOp = @intFromEnum(OpCode.OP_SET_GLOBAL_SLOT_KEEP);
+            arg = @intCast(vm_h.getGlobalSlot(name_obj));
+        }
+
+        // OPTIMIZATION: Check if this global is an "effective constant"
+        if (!is_builtin and global_analyzer != null) {
+            if (global_analyzer.?.isConstant(name_slice)) {
+                var value: Value = undefined;
+                const table_h = @import("table.zig");
+                if (table_h.tableGet(&vm_h.vm.globals, name_obj, &value)) {
+                    if (value.type != .VAL_OBJ or object_h.isObjType(value, .OBJ_STRING)) {
+                        emitConstant(value);
+                        return;
+                    }
+                }
+            }
+        }
     }
 
     const argByte = @as(u8, @bitCast(@as(i8, @truncate(arg))));
@@ -1581,11 +1788,14 @@ pub fn unary(canAssign: bool) void {
     _ = canAssign;
     const operatorType = parser.previous.type;
     parsePrecedence(@as(c_uint, @bitCast(PREC_UNARY)));
+
     switch (operatorType) {
         .TOKEN_BANG => emitByte(@intFromEnum(OpCode.OP_NOT)),
         .TOKEN_MINUS => emitByte(@intFromEnum(OpCode.OP_NEGATE)),
         else => {},
     }
+
+    _ = foldUnary(operatorType);
 }
 
 pub fn block() void {
@@ -2472,6 +2682,36 @@ pub fn compile(source: [*]const u8, file_path: ?[]const u8) ?*ObjFunction {
     compiler_arena.initCompilerArena();
     defer compiler_arena.deinitCompilerArena();
 
+    // Reset VM globals for this compilation
+    vm_h.resetGlobals();
+
+    // Initialize Global Analyzer for this script
+    const analyzer_allocator = compiler_arena.getCompilerAllocator();
+    var analyzer = GlobalAnalyzer.init(analyzer_allocator);
+    defer analyzer.deinit();
+    
+    // Pre-pass: Scan for assignments to globals
+    scanner_h.init_scanner(@constCast(source));
+    var nesting: i32 = 0;
+    while (true) {
+        const token = scanner_h.scanToken();
+        if (token.type == .TOKEN_EOF) break;
+        if (token.type == .TOKEN_LEFT_BRACE) nesting += 1;
+        if (token.type == .TOKEN_RIGHT_BRACE) nesting -= 1;
+        
+        // We only care about global assignments (nesting == 0)
+        if (nesting == 0 and (token.type == .TOKEN_VAR or token.type == .TOKEN_CONST or token.type == .TOKEN_PUB)) {
+            // Found a declaration, record it
+            const next = scanner_h.scanToken();
+            if (next.type == .TOKEN_IDENTIFIER) {
+                const name = next.start[0..@intCast(next.length)];
+                analyzer.recordAssignment(name);
+            }
+        }
+    }
+    global_analyzer = analyzer;
+    defer global_analyzer = null;
+
     // Initialize error manager if not already done
     if (!errorManagerInitialized) {
         globalErrorManager = errors.ErrorManager.init(mem_utils.getAllocator());
@@ -2507,5 +2747,11 @@ pub fn compile(source: [*]const u8, file_path: ?[]const u8) ?*ObjFunction {
         declaration();
     }
     const function_1 = endCompiler();
+
+    // Optimize the compiled bytecode
+    if (!parser.hadError) {
+        _ = bytecode_optimizer.optimizeDefault(&function_1.chunk);
+    }
+
     return if (parser.hadError) null else function_1;
 }

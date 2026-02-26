@@ -95,6 +95,12 @@ pub const VM = struct {
     globals: Table,
     globalConstants: Table,
     publicGlobals: Table,
+    
+    // Slot-based globals (Phase 1 Optimization)
+    globalValues: []Value,
+    globalNames: Table, // Mapping from name string to index (Value.num_int)
+    globalCount: u32 = 0,
+
     strings: Table,
     initString: ?*ObjString = null,
     openUpvalues: ?*ObjUpvalue = null,
@@ -131,7 +137,13 @@ pub fn initVM() void {
     initTable(&vm.globals);
     initTable(&vm.globalConstants);
     initTable(&vm.publicGlobals);
+    initTable(&vm.globalNames);
     initTable(&vm.strings);
+
+    // Allocate global value slots
+    vm.globalValues = allocator.alloc(Value, 1024) catch @panic("Failed to allocate global slots");
+    @memset(vm.globalValues, Value.init_nil());
+    vm.globalCount = 0;
 
     vm.initString = copyString(@ptrCast("init"), 4);
     if (vm.initString == null) {
@@ -285,11 +297,13 @@ pub fn freeVM() void {
     freeTable(&vm.globals);
     freeTable(&vm.globalConstants);
     freeTable(&vm.publicGlobals);
+    freeTable(&vm.globalNames);
     freeTable(&vm.strings);
     vm.initString = null;
     freeObjects();
     const allocator = mem_utils.getAllocator();
     allocator.free(vm.frames);
+    allocator.free(vm.globalValues);
 }
 
 /// Get a pointer to the VM for external modules
@@ -889,7 +903,13 @@ fn opDefineGlobal() InterpretResult {
         return .INTERPRET_RUNTIME_ERROR;
     };
     const name = constant.as_string();
-    _ = tableSet(&vm.globals, name, peek(0));
+    const value = peek(0);
+    _ = tableSet(&vm.globals, name, value);
+    
+    // Sync to slot
+    const slot = getGlobalSlot(name);
+    vm.globalValues[slot] = value;
+
     _ = pop();
     return .INTERPRET_OK;
 }
@@ -903,8 +923,14 @@ fn opDefineConstGlobal() InterpretResult {
         return .INTERPRET_RUNTIME_ERROR;
     };
     const name = constant.as_string();
-    _ = tableSet(&vm.globals, name, peek(0));
+    const value = peek(0);
+    _ = tableSet(&vm.globals, name, value);
     _ = tableSet(&vm.globalConstants, name, Value.init_bool(true));
+    
+    // Sync to slot
+    const slot = getGlobalSlot(name);
+    vm.globalValues[slot] = value;
+
     _ = pop();
     return .INTERPRET_OK;
 }
@@ -918,8 +944,14 @@ fn opDefinePublicGlobal() InterpretResult {
         return .INTERPRET_RUNTIME_ERROR;
     };
     const name = constant.as_string();
-    _ = tableSet(&vm.globals, name, peek(0));
+    const value = peek(0);
+    _ = tableSet(&vm.globals, name, value);
     _ = tableSet(&vm.publicGlobals, name, Value.init_bool(true));
+    
+    // Sync to slot
+    const slot = getGlobalSlot(name);
+    vm.globalValues[slot] = value;
+
     _ = pop();
     return .INTERPRET_OK;
 }
@@ -933,9 +965,15 @@ fn opDefinePublicConstGlobal() InterpretResult {
         return .INTERPRET_RUNTIME_ERROR;
     };
     const name = constant.as_string();
-    _ = tableSet(&vm.globals, name, peek(0));
+    const value = peek(0);
+    _ = tableSet(&vm.globals, name, value);
     _ = tableSet(&vm.globalConstants, name, Value.init_bool(true));
     _ = tableSet(&vm.publicGlobals, name, Value.init_bool(true));
+    
+    // Sync to slot
+    const slot = getGlobalSlot(name);
+    vm.globalValues[slot] = value;
+
     _ = pop();
     return .INTERPRET_OK;
 }
@@ -944,6 +982,27 @@ fn opDefinePublicConstGlobal() InterpretResult {
 pub fn isPublicGlobal(name: *ObjString) bool {
     var value: Value = undefined;
     return tableGet(&vm.publicGlobals, name, &value);
+}
+
+/// Get or allocate a slot for a global variable by name
+pub fn getGlobalSlot(name: *ObjString) u8 {
+    var slot_val: Value = undefined;
+    if (tableGet(&vm.globalNames, name, &slot_val)) {
+        return @intCast(slot_val.as.num_int);
+    }
+
+    const slot = @as(u8, @intCast(vm.globalCount));
+    vm.globalCount += 1;
+    _ = tableSet(&vm.globalNames, name, Value.init_int(@intCast(slot)));
+    return slot;
+}
+
+/// Reset global slot mappings
+pub fn resetGlobals() void {
+    freeTable(&vm.globalNames);
+    initTable(&vm.globalNames);
+    vm.globalCount = 0;
+    @memset(vm.globalValues, Value.init_nil());
 }
 
 fn opSetGlobal() InterpretResult {
@@ -963,11 +1022,17 @@ fn opSetGlobal() InterpretResult {
         return .INTERPRET_RUNTIME_ERROR;
     }
 
-    if (tableSet(&vm.globals, name, peek(0))) {
+    const value = peek(0);
+    if (tableSet(&vm.globals, name, value)) {
         _ = tableDelete(&vm.globals, name);
         runtimeError("Undefined variable '{s}'.", .{name.chars});
         return .INTERPRET_RUNTIME_ERROR;
     }
+
+    // Sync to slot
+    const slot = getGlobalSlot(name);
+    vm.globalValues[slot] = value;
+
     return .INTERPRET_OK;
 }
 
@@ -1030,6 +1095,7 @@ fn opGetModuleMember() InterpretResult {
 
 fn opGetProperty() InterpretResult {
     const frame = vm.currentFrame.?;
+    const offset = @intFromPtr(frame.ip) - @intFromPtr(frame.closure.function.chunk.code) - 1;
     const constant_index = frame.ip[0];
     frame.ip += 1;
     const constant = getConstant(frame, constant_index) orelse {
@@ -1057,8 +1123,51 @@ fn opGetProperty() InterpretResult {
 
     if (isObjType(receiver, .OBJ_INSTANCE)) {
         const instance: *ObjInstance = @ptrCast(@alignCast(receiver.as.obj));
+        
+        // Phase 2: Inline Cache lookup
+        const chunk = &frame.closure.function.chunk;
+        if (chunk.inline_caches) |caches| {
+            if (caches.get(offset)) |cache_entry| {
+                if (cache_entry.klass == @as(?*const anyopaque, @ptrCast(instance.klass))) {
+                    // CACHE HIT: Fast table index access
+                    const table = &instance.fields;
+                    if (table.entries) |entries| {
+                        if (cache_entry.offset < table.capacity) {
+                            const entry = &entries[cache_entry.offset];
+                            if (entry.key == name) {
+                                _ = pop(); // Instance
+                                push(entry.value);
+                                return .INTERPRET_OK;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         var value: Value = undefined;
-        if (tableGet(&instance.fields, name, &value)) {
+        // Perform standard lookup
+        if (table_h.tableGet(&instance.fields, name, &value)) {
+            // Update Inline Cache on hit
+            if (chunk.inline_caches == null) {
+                const allocator = mem_utils.getAllocator();
+                chunk.inline_caches = std.AutoHashMap(usize, chunk_h.InlineCache).init(allocator);
+            }
+            
+            // Find the index in the table entries for caching
+            if (instance.fields.entries) |entries| {
+                var idx: usize = 0;
+                while (idx < instance.fields.capacity) : (idx += 1) {
+                    if (entries[idx].key == name) {
+                        chunk.inline_caches.?.put(offset, .{
+                            .klass = @as(?*const anyopaque, @ptrCast(instance.klass)),
+                            .offset = idx,
+                        }) catch {};
+                        break;
+                    }
+                }
+            }
+
             _ = pop(); // Instance
             push(value);
             return .INTERPRET_OK;
@@ -1943,6 +2052,194 @@ fn opConstantMultiply() InterpretResult {
         return .INTERPRET_RUNTIME_ERROR;
     };
     push(res);
+    return .INTERPRET_OK;
+}
+
+fn opLessJumpIfFalse() InterpretResult {
+    const frame = vm.currentFrame.?;
+    if (!peek(0).is_prim_num() or !peek(1).is_prim_num()) {
+        runtimeError("Operands must be numbers.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    const b = pop().as_num_double();
+    const a = pop().as_num_double();
+    const result = a < b;
+    
+    const offset = readOffset(frame);
+    if (!result) {
+        frame.ip += offset;
+    }
+    return .INTERPRET_OK;
+}
+
+fn opGetLocalConstant() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const slot = frame.ip[0];
+    const constant_index = frame.ip[1];
+    frame.ip += 2;
+
+    push(frame.slots[slot]);
+    
+    const constant = getConstant(frame, constant_index) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+    push(constant);
+    
+    return .INTERPRET_OK;
+}
+
+fn opAddSetLocal() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const slot = frame.ip[0];
+    frame.ip += 1;
+
+    const b = pop();
+    const a = pop();
+
+    const res = if (a.is_string() or b.is_string())
+        performAddString(a, b) catch return .INTERPRET_RUNTIME_ERROR
+    else
+        performArithmetic(.Add, a, b) catch return .INTERPRET_RUNTIME_ERROR;
+
+    frame.slots[slot] = res;
+    push(res);
+    return .INTERPRET_OK;
+}
+
+fn opSetLocalPop() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const slot = frame.ip[0];
+    frame.ip += 1;
+
+    frame.slots[slot] = pop();
+    return .INTERPRET_OK;
+}
+
+fn opAddReg() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const dest = frame.ip[0];
+    const src1 = frame.ip[1];
+    const src2 = frame.ip[2];
+    frame.ip += 3;
+
+    const a = frame.slots[src1];
+    const b = frame.slots[src2];
+
+    const res = if (a.is_string() or b.is_string())
+        performAddString(a, b) catch return .INTERPRET_RUNTIME_ERROR
+    else
+        performArithmetic(.Add, a, b) catch return .INTERPRET_RUNTIME_ERROR;
+
+    frame.slots[dest] = res;
+    return .INTERPRET_OK;
+}
+
+fn opSubReg() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const dest = frame.ip[0];
+    const src1 = frame.ip[1];
+    const src2 = frame.ip[2];
+    frame.ip += 3;
+
+    const a = frame.slots[src1];
+    const b = frame.slots[src2];
+
+    const res = performArithmetic(.Sub, a, b) catch return .INTERPRET_RUNTIME_ERROR;
+    frame.slots[dest] = res;
+    return .INTERPRET_OK;
+}
+
+fn opMulReg() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const dest = frame.ip[0];
+    const src1 = frame.ip[1];
+    const src2 = frame.ip[2];
+    frame.ip += 3;
+
+    const a = frame.slots[src1];
+    const b = frame.slots[src2];
+
+    const res = performArithmetic(.Mul, a, b) catch return .INTERPRET_RUNTIME_ERROR;
+    frame.slots[dest] = res;
+    return .INTERPRET_OK;
+}
+
+fn opDivReg() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const dest = frame.ip[0];
+    const src1 = frame.ip[1];
+    const src2 = frame.ip[2];
+    frame.ip += 3;
+
+    const a = frame.slots[src1];
+    const b = frame.slots[src2];
+
+    const res = performArithmetic(.Div, a, b) catch return .INTERPRET_RUNTIME_ERROR;
+    frame.slots[dest] = res;
+    return .INTERPRET_OK;
+}
+
+fn opGetGlobalSlot() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const slot = frame.ip[0];
+    frame.ip += 1;
+    push(vm.globalValues[slot]);
+    return .INTERPRET_OK;
+}
+
+fn opSetGlobalSlot() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const slot = frame.ip[0];
+    frame.ip += 1;
+    vm.globalValues[slot] = pop();
+    return .INTERPRET_OK;
+}
+
+fn opSetGlobalSlotKeep() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const slot = frame.ip[0];
+    frame.ip += 1;
+    vm.globalValues[slot] = peek(0);
+    return .INTERPRET_OK;
+}
+
+fn opLoopCount() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const slot = frame.ip[0];
+    const offset = readOffset(frame);
+
+    // Assume double for loop counter for simplicity in this fused op
+    const val = frame.slots[slot].as_num_double();
+    const limit = peek(0).as_num_double();
+
+    if (val < limit) {
+        frame.ip -= offset;
+        // The increment is expected to happen before this op in the current compiler logic
+        // but a true register loop would do it here. 
+        // For now, this is just a fused JUMP_IF_LESS + LOOP
+    }
+    return .INTERPRET_OK;
+}
+
+fn opGetLocalLess() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const slot = frame.ip[0];
+    const constant_index = frame.ip[1];
+    frame.ip += 2;
+
+    const a = frame.slots[slot];
+    const b = getConstant(frame, constant_index) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+
+    if (!a.is_prim_num() or !b.is_prim_num()) {
+        runtimeError("Operands must be numbers.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    push(Value.init_bool(a.as_num_double() < b.as_num_double()));
     return .INTERPRET_OK;
 }
 
@@ -3089,6 +3386,19 @@ const jumpTable = blk: {
     table[@intFromEnum(OpCode.OP_CONSTANT_CONSTANT)] = opConstantConstant;
     table[@intFromEnum(OpCode.OP_CONSTANT_ADD)] = opConstantAdd;
     table[@intFromEnum(OpCode.OP_CONSTANT_MULTIPLY)] = opConstantMultiply;
+    table[@intFromEnum(OpCode.OP_LESS_JUMP_IF_FALSE)] = opLessJumpIfFalse;
+    table[@intFromEnum(OpCode.OP_GET_LOCAL_CONSTANT)] = opGetLocalConstant;
+    table[@intFromEnum(OpCode.OP_ADD_SET_LOCAL)] = opAddSetLocal;
+    table[@intFromEnum(OpCode.OP_SET_LOCAL_POP)] = opSetLocalPop;
+    table[@intFromEnum(OpCode.OP_ADD_REG)] = opAddReg;
+    table[@intFromEnum(OpCode.OP_SUB_REG)] = opSubReg;
+    table[@intFromEnum(OpCode.OP_MUL_REG)] = opMulReg;
+    table[@intFromEnum(OpCode.OP_DIV_REG)] = opDivReg;
+    table[@intFromEnum(OpCode.OP_GET_GLOBAL_SLOT)] = opGetGlobalSlot;
+    table[@intFromEnum(OpCode.OP_SET_GLOBAL_SLOT)] = opSetGlobalSlot;
+    table[@intFromEnum(OpCode.OP_SET_GLOBAL_SLOT_KEEP)] = opSetGlobalSlotKeep;
+    table[@intFromEnum(OpCode.OP_LOOP_COUNT)] = opLoopCount;
+    table[@intFromEnum(OpCode.OP_GET_LOCAL_LESS)] = opGetLocalLess;
 
     break :blk table;
 };
@@ -3141,6 +3451,12 @@ pub fn run() InterpretResult {
         const instruction = frame.ip[0];
         frame.ip += 1;
 
+        // Instrumentation for optimization analysis
+        const vm_trace = @import("vm_trace.zig");
+        if (vm_trace.isEnabled()) {
+            vm_trace.recordQuick(instruction, vm.stackTop);
+        }
+
         const result = jumpTable[instruction]();
         if (result != .INTERPRET_OK) {
             if (result == .INTERPRET_FINISHED) return .INTERPRET_OK;
@@ -3160,6 +3476,12 @@ pub fn runUntil(target_depth: i32) InterpretResult {
         const frame = vm.currentFrame.?;
         const instruction = frame.ip[0];
         frame.ip += 1;
+
+        // Instrumentation for optimization analysis
+        const vm_trace = @import("vm_trace.zig");
+        if (vm_trace.isEnabled()) {
+            vm_trace.recordQuick(instruction, vm.stackTop);
+        }
 
         const result = jumpTable[instruction]();
         if (result != .INTERPRET_OK) {

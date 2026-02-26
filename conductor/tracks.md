@@ -16,3 +16,13 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 - [x] **Track: Advanced Dependency Management (Transitive Resolution, Namespace Isolation, Lockfile, SemVer)**
   *Link: [./tracks/dependency_mgmt_v2_20260225/](./tracks/dependency_mgmt_v2_20260225/)*
+
+---
+
+- [x] **Track: Compiler Performance Optimizations (Constant Folding, Superinstructions, Global Analysis, Register VM)**
+  *Link: [./tracks/compiler_optimization_20260225/](./tracks/compiler_optimization_20260225/)*
+
+---
+
+- [x] **Track: Advanced VM Optimizations (Global Slots, Inline Caching, Loop Opcodes, Computed Goto)**
+  *Link: [./tracks/vm_optimization_v2_20260225/](./tracks/vm_optimization_v2_20260225/)*

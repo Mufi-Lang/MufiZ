@@ -31,6 +31,7 @@ const Pattern = struct {
     opcode: u8, // Replacement superinstruction opcode
     operand1: u8 = 0, // First operand (if any)
     operand2: u8 = 0, // Second operand (if any)
+    operand3: u8 = 0, // Third operand (if any)
     replacement_length: usize, // Number of bytes in replacement
     name: []const u8, // Pattern name for reporting
 };
@@ -42,11 +43,17 @@ pub const OptimizationStats = struct {
     get_global_global: usize = 0,
     get_local_local: usize = 0,
     constant_constant: usize = 0,
+    get_local_constant: usize = 0,
+    less_jump_if_false: usize = 0,
+    add_set_local: usize = 0,
+    set_local_pop: usize = 0,
+    add_reg: usize = 0,
+    get_local_less: usize = 0,
 
     pub fn print(self: *const OptimizationStats) void {
         if (self.patterns_found == 0) return;
 
-        std.debug.print("\n=== Peephole Optimization Results (Safe Patterns Only) ===\n", .{});
+        std.debug.print("\n=== Peephole Optimization Results ===\n", .{});
         std.debug.print("Total patterns fused: {d}\n", .{self.patterns_found});
         std.debug.print("Bytes saved: {d}\n", .{self.bytes_saved});
         std.debug.print("\nPattern breakdown:\n", .{});
@@ -57,6 +64,18 @@ pub const OptimizationStats = struct {
             std.debug.print("  GET_LOCAL + GET_LOCAL: {d}\n", .{self.get_local_local});
         if (self.constant_constant > 0)
             std.debug.print("  CONSTANT + CONSTANT: {d}\n", .{self.constant_constant});
+        if (self.get_local_constant > 0)
+            std.debug.print("  GET_LOCAL + CONSTANT: {d}\n", .{self.get_local_constant});
+        if (self.less_jump_if_false > 0)
+            std.debug.print("  LESS + JUMP_IF_FALSE: {d}\n", .{self.less_jump_if_false});
+        if (self.add_set_local > 0)
+            std.debug.print("  ADD + SET_LOCAL: {d}\n", .{self.add_set_local});
+        if (self.set_local_pop > 0)
+            std.debug.print("  SET_LOCAL + POP: {d}\n", .{self.set_local_pop});
+        if (self.add_reg > 0)
+            std.debug.print("  ADD_REG (4-fused): {d}\n", .{self.add_reg});
+        if (self.get_local_less > 0)
+            std.debug.print("  GET_LOCAL + LESS: {d}\n", .{self.get_local_less});
 
         std.debug.print("==========================================================\n\n", .{});
     }
@@ -187,19 +206,204 @@ fn matchConstantConstant(chunk: *Chunk, offset: usize) ?Pattern {
     };
 }
 
+fn matchGetLocalConstant(chunk: *Chunk, offset: usize) ?Pattern {
+    if (!hasBytes(chunk, offset, 4)) return null;
+    const op1 = readByteAt(chunk, offset);
+    const op2 = readByteAt(chunk, offset + 2);
+
+    if (op1 != @intFromEnum(OpCode.OP_GET_LOCAL)) return null;
+    if (op2 != @intFromEnum(OpCode.OP_CONSTANT)) return null;
+
+    const local_idx = readByteAt(chunk, offset + 1);
+    const const_idx = readByteAt(chunk, offset + 3);
+
+    if (!isValidConstantIndex(chunk, const_idx)) return null;
+
+    return Pattern{
+        .offset = offset,
+        .length = 4,
+        .opcode = @intFromEnum(OpCode.OP_GET_LOCAL_CONSTANT),
+        .operand1 = local_idx,
+        .operand2 = const_idx,
+        .replacement_length = 3,
+        .name = "GET_LOCAL + CONSTANT",
+    };
+}
+
+fn matchLessJumpIfFalse(chunk: *Chunk, offset: usize) ?Pattern {
+    if (!hasBytes(chunk, offset, 4)) return null;
+    const op1 = readByteAt(chunk, offset);
+    const op2 = readByteAt(chunk, offset + 1);
+
+    if (op1 != @intFromEnum(OpCode.OP_LESS)) return null;
+    if (op2 != @intFromEnum(OpCode.OP_JUMP_IF_FALSE)) return null;
+
+    // Relative jump offset is at offset + 2 (2 bytes)
+    // We'll reuse it in our new instruction.
+    // Length: OP_LESS(1) + OP_JUMP_IF_FALSE(1) + offset(2) = 4
+    // Replacement: OP_LESS_JUMP_IF_FALSE(1) + offset(2) = 3
+    // Note: operand1 will store high byte, operand2 will store low byte of offset
+
+    return Pattern{
+        .offset = offset,
+        .length = 4,
+        .opcode = @intFromEnum(OpCode.OP_LESS_JUMP_IF_FALSE),
+        .operand1 = readByteAt(chunk, offset + 2), // High byte
+        .operand2 = readByteAt(chunk, offset + 3), // Low byte
+        .replacement_length = 3,
+        .name = "LESS + JUMP_IF_FALSE",
+    };
+}
+
+fn matchAddSetLocal(chunk: *Chunk, offset: usize) ?Pattern {
+    if (!hasBytes(chunk, offset, 3)) return null;
+    const op1 = readByteAt(chunk, offset);
+    const op2 = readByteAt(chunk, offset + 1);
+
+    if (op1 != @intFromEnum(OpCode.OP_ADD)) return null;
+    if (op2 != @intFromEnum(OpCode.OP_SET_LOCAL)) return null;
+
+    const local_idx = readByteAt(chunk, offset + 2);
+
+    return Pattern{
+        .offset = offset,
+        .length = 3,
+        .opcode = @intFromEnum(OpCode.OP_ADD_SET_LOCAL),
+        .operand1 = local_idx,
+        .replacement_length = 2,
+        .name = "ADD + SET_LOCAL",
+    };
+}
+
+fn matchSetLocalPop(chunk: *Chunk, offset: usize) ?Pattern {
+    if (!hasBytes(chunk, offset, 3)) return null;
+    const op1 = readByteAt(chunk, offset);
+    const op2 = readByteAt(chunk, offset + 2);
+
+    if (op1 != @intFromEnum(OpCode.OP_SET_LOCAL)) return null;
+    if (op2 != @intFromEnum(OpCode.OP_POP)) return null;
+
+    const local_idx = readByteAt(chunk, offset + 1);
+
+    return Pattern{
+        .offset = offset,
+        .length = 3,
+        .opcode = @intFromEnum(OpCode.OP_SET_LOCAL_POP),
+        .operand1 = local_idx,
+        .replacement_length = 2,
+        .name = "SET_LOCAL + POP",
+    };
+}
+
+fn matchGetLocalLess(chunk: *Chunk, offset: usize) ?Pattern {
+    // Pattern: GET_LOCAL(slot), CONSTANT(idx), LESS
+    // Length: 2 + 2 + 1 = 5 bytes
+    // Replacement: OP_GET_LOCAL_LESS(slot, idx) = 3 bytes
+    if (!hasBytes(chunk, offset, 5)) return null;
+
+    if (readByteAt(chunk, offset) != @intFromEnum(OpCode.OP_GET_LOCAL)) return null;
+    if (readByteAt(chunk, offset + 2) != @intFromEnum(OpCode.OP_CONSTANT)) return null;
+    if (readByteAt(chunk, offset + 4) != @intFromEnum(OpCode.OP_LESS)) return null;
+
+    const slot = readByteAt(chunk, offset + 1);
+    const const_idx = readByteAt(chunk, offset + 3);
+
+    if (!isValidConstantIndex(chunk, const_idx)) return null;
+
+    return Pattern{
+        .offset = offset,
+        .length = 5,
+        .opcode = @intFromEnum(OpCode.OP_GET_LOCAL_LESS),
+        .operand1 = slot,
+        .operand2 = const_idx,
+        .replacement_length = 3,
+        .name = "GET_LOCAL + LESS",
+    };
+}
+
+fn matchAddReg(chunk: *Chunk, offset: usize) ?Pattern {
+    // Pattern: GET_LOCAL r1, GET_LOCAL r2, ADD, SET_LOCAL dest
+    // Length: 2 + 2 + 1 + 2 = 7 bytes
+    // Replacement: OP_ADD_REG dest, r1, r2 = 4 bytes
+    if (!hasBytes(chunk, offset, 7)) return null;
+    
+    if (readByteAt(chunk, offset) != @intFromEnum(OpCode.OP_GET_LOCAL)) return null;
+    if (readByteAt(chunk, offset + 2) != @intFromEnum(OpCode.OP_GET_LOCAL)) return null;
+    if (readByteAt(chunk, offset + 4) != @intFromEnum(OpCode.OP_ADD)) return null;
+    if (readByteAt(chunk, offset + 5) != @intFromEnum(OpCode.OP_SET_LOCAL)) return null;
+
+    const r1 = readByteAt(chunk, offset + 1);
+    const r2 = readByteAt(chunk, offset + 3);
+    const dest = readByteAt(chunk, offset + 6);
+
+    return Pattern{
+        .offset = offset,
+        .length = 7,
+        .opcode = @intFromEnum(OpCode.OP_ADD_REG),
+        .operand1 = dest,
+        .operand2 = r1,
+        .operand3 = r2,
+        .replacement_length = 4,
+        .name = "ADD_REG (4-fused)",
+    };
+}
+
+fn matchLoopCount(chunk: *Chunk, offset: usize) ?Pattern {
+    // Pattern: GET_LOCAL(slot), CONSTANT(limit), LESS, JUMP_IF_FALSE(end), POP
+    // This is the start of most for/while loops.
+    // Total length: 2 + 2 + 1 + 3 + 1 = 9 bytes
+    if (!hasBytes(chunk, offset, 9)) return null;
+
+    if (readByteAt(chunk, offset) != @intFromEnum(OpCode.OP_GET_LOCAL)) return null;
+    if (readByteAt(chunk, offset + 2) != @intFromEnum(OpCode.OP_CONSTANT)) return null;
+    if (readByteAt(chunk, offset + 4) != @intFromEnum(OpCode.OP_LESS)) return null;
+    if (readByteAt(chunk, offset + 5) != @intFromEnum(OpCode.OP_JUMP_IF_FALSE)) return null;
+    if (readByteAt(chunk, offset + 8) != @intFromEnum(OpCode.OP_POP)) return null;
+
+    const slot = readByteAt(chunk, offset + 1);
+    const limit_idx = readByteAt(chunk, offset + 3);
+
+    // We can't easily fuse this yet because we need to know where the LOOP at the end is
+    // to calculate the backward offset. 
+    // For now, let's skip this complex fusion and focus on simpler ones.
+    _ = slot;
+    _ = limit_idx;
+
+    return null;
+}
+
 /// Try to match any safe pattern at the given offset
 /// Returns the first matching pattern, or null if no match
 fn matchPattern(chunk: *Chunk, offset: usize) ?Pattern {
-    // Try patterns in order of expected frequency (based on static analysis)
+    const code = chunk.code.?;
+    const op = code[offset];
 
-    // 1. GET_GLOBAL + GET_GLOBAL (most common in binary operations)
-    if (matchGetGlobalGlobal(chunk, offset)) |pattern| return pattern;
-
-    // 2. GET_LOCAL + GET_LOCAL (common in local computations)
-    if (matchGetLocalLocal(chunk, offset)) |pattern| return pattern;
-
-    // 3. CONSTANT + CONSTANT (less common, but still worth optimizing)
-    if (matchConstantConstant(chunk, offset)) |pattern| return pattern;
+    // Efficient dispatch based on the first opcode
+    switch (op) {
+        @intFromEnum(OpCode.OP_GET_GLOBAL) => {
+            return matchGetGlobalGlobal(chunk, offset);
+        },
+        @intFromEnum(OpCode.OP_GET_LOCAL) => {
+            // Prioritize longest patterns (ADD_REG is 7 bytes)
+            if (matchAddReg(chunk, offset)) |p| return p;
+            if (matchGetLocalLess(chunk, offset)) |p| return p;
+            if (matchGetLocalLocal(chunk, offset)) |p| return p;
+            if (matchGetLocalConstant(chunk, offset)) |p| return p;
+        },
+        @intFromEnum(OpCode.OP_CONSTANT) => {
+            if (matchConstantConstant(chunk, offset)) |p| return p;
+        },
+        @intFromEnum(OpCode.OP_LESS) => {
+            return matchLessJumpIfFalse(chunk, offset);
+        },
+        @intFromEnum(OpCode.OP_ADD) => {
+            return matchAddSetLocal(chunk, offset);
+        },
+        @intFromEnum(OpCode.OP_SET_LOCAL) => {
+            return matchSetLocalPop(chunk, offset);
+        },
+        else => {},
+    }
 
     return null;
 }
@@ -213,6 +417,12 @@ fn updateStats(stats: *OptimizationStats, pattern: *const Pattern) void {
         @intFromEnum(OpCode.OP_GET_GLOBAL_GLOBAL) => stats.get_global_global += 1,
         @intFromEnum(OpCode.OP_GET_LOCAL_LOCAL) => stats.get_local_local += 1,
         @intFromEnum(OpCode.OP_CONSTANT_CONSTANT) => stats.constant_constant += 1,
+        @intFromEnum(OpCode.OP_GET_LOCAL_CONSTANT) => stats.get_local_constant += 1,
+        @intFromEnum(OpCode.OP_LESS_JUMP_IF_FALSE) => stats.less_jump_if_false += 1,
+        @intFromEnum(OpCode.OP_ADD_SET_LOCAL) => stats.add_set_local += 1,
+        @intFromEnum(OpCode.OP_SET_LOCAL_POP) => stats.set_local_pop += 1,
+        @intFromEnum(OpCode.OP_ADD_REG) => stats.add_reg += 1,
+        @intFromEnum(OpCode.OP_GET_LOCAL_LESS) => stats.get_local_less += 1,
         else => {}, // Should never happen with safe patterns
     }
 }
@@ -228,6 +438,11 @@ fn applyPattern(chunk: *Chunk, pattern: *const Pattern, modifications: ?*[32]jum
     code[pattern.offset] = pattern.opcode;
     code[pattern.offset + 1] = pattern.operand1;
     code[pattern.offset + 2] = pattern.operand2;
+    
+    // Write operand3 if replacement is long enough
+    if (pattern.replacement_length >= 4) {
+        code[pattern.offset + 3] = pattern.operand3;
+    }
 
     // Calculate how many bytes to remove
     const bytes_removed = pattern.length - pattern.replacement_length;
@@ -297,6 +512,20 @@ fn validatePattern(chunk: *Chunk, pattern: *const Pattern) ValidationResult {
         },
         @intFromEnum(OpCode.OP_GET_LOCAL_LOCAL) => {
             // Local indices are validated at runtime, not compile time
+        },
+        @intFromEnum(OpCode.OP_GET_LOCAL_CONSTANT) => {
+            if (!isValidConstantIndex(chunk, pattern.operand2)) return .InvalidOperand;
+        },
+        @intFromEnum(OpCode.OP_GET_LOCAL_LESS) => {
+            if (!isValidConstantIndex(chunk, pattern.operand2)) return .InvalidOperand;
+        },
+        @intFromEnum(OpCode.OP_LESS_JUMP_IF_FALSE) => {
+            // Jump offset bytes are just copied, always valid bytes
+        },
+        @intFromEnum(OpCode.OP_ADD_SET_LOCAL),
+        @intFromEnum(OpCode.OP_SET_LOCAL_POP),
+        @intFromEnum(OpCode.OP_ADD_REG) => {
+            // Local indices are safe
         },
         else => return .InvalidOpcode,
     }

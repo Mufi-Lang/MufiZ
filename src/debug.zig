@@ -218,6 +218,19 @@ pub fn disassembleInstruction(chunk: *chunk_h.Chunk, offset: i32) i32 {
         130 => return superinstructionTwoOp("OP_CONSTANT_CONSTANT", chunk, offset),
         131 => return superinstructionOneOp("OP_CONSTANT_ADD", chunk, offset),
         132 => return superinstructionOneOp("OP_CONSTANT_MULTIPLY", chunk, offset),
+        140 => return jumpInstruction("OP_LESS_JUMP_IF_FALSE", 1, chunk, offset),
+        150 => return superinstructionTwoOp("OP_GET_LOCAL_CONSTANT", chunk, offset),
+        151 => return superinstructionOneOp("OP_ADD_SET_LOCAL", chunk, offset),
+        152 => return superinstructionOneOp("OP_SET_LOCAL_POP", chunk, offset),
+        192 => return superinstructionThreeOp("OP_ADD_REG", chunk, offset),
+        193 => return superinstructionThreeOp("OP_SUB_REG", chunk, offset),
+        194 => return superinstructionThreeOp("OP_MUL_REG", chunk, offset),
+        195 => return superinstructionThreeOp("OP_DIV_REG", chunk, offset),
+        196 => return byteInstruction("OP_GET_GLOBAL_SLOT", chunk, offset),
+        197 => return byteInstruction("OP_SET_GLOBAL_SLOT", chunk, offset),
+        198 => return byteInstruction("OP_SET_GLOBAL_SLOT_KEEP", chunk, offset),
+        199 => return jumpInstruction("OP_LOOP_COUNT", -1, chunk, offset),
+        200 => return superinstructionTwoOp("OP_GET_LOCAL_LESS", chunk, offset),
 
         else => {
             std.debug.print("Unknown opcode {d}\n", .{instruction});
@@ -308,4 +321,14 @@ fn superinstructionTwoOp(name: [*]const u8, chunk: *chunk_h.Chunk, offset: i32) 
     const operand2: u8 = getByte(chunk, offset + 2);
     print("{s: <16} {d:4} {d:4}\n", .{ nameSlice, operand1, operand2 });
     return offset + 3;
+}
+
+// Phase 4: Superinstruction with three operands
+fn superinstructionThreeOp(name: [*]const u8, chunk: *chunk_h.Chunk, offset: i32) i32 {
+    const nameSlice = std.mem.span(@as([*:0]const u8, @ptrCast(name)));
+    const operand1: u8 = getByte(chunk, offset + 1);
+    const operand2: u8 = getByte(chunk, offset + 2);
+    const operand3: u8 = getByte(chunk, offset + 3);
+    print("{s: <16} {d:4} {d:4} {d:4}\n", .{ nameSlice, operand1, operand2, operand3 });
+    return offset + 4;
 }

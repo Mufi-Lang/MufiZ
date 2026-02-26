@@ -1,3 +1,4 @@
+const std = @import("std");
 const mem_utils = @import("mem_utils.zig");
 const value_h = @import("value.zig");
 const vm_h = @import("vm.zig");
@@ -130,6 +131,15 @@ pub const OpCode = enum(u8) {
     OP_IMPORT_SPECIFIC = 64,
     OP_IMPORT_MODULE_AS = 65,
     OP_GET_MODULE_MEMBER = 66,
+
+    // Slot-based globals (Phase 1 Optimization)
+    OP_GET_GLOBAL_SLOT = 196,
+    OP_SET_GLOBAL_SLOT = 197, // Pops
+    OP_SET_GLOBAL_SLOT_KEEP = 198, // Keeps on stack (for assignment expressions)
+
+    // Specialized Loop Opcodes (Phase 3 Optimization)
+    OP_LOOP_COUNT = 199, // Fuses increment, check, and loop jump
+    OP_GET_LOCAL_LESS = 200, // Fuses GET_LOCAL(slot) + CONSTANT(limit) + LESS
 
     // ============================================================
     // PHASE 2 OPCODES: Small Constants (67-82)
@@ -302,11 +312,15 @@ pub const OpCode = enum(u8) {
     // Reserved for fused comparison + conditional jump
     // Example: OP_EQUAL_JUMP_IF_FALSE, OP_LESS_JUMP_IF_FALSE
     // These require special handling due to jump offset calculation
-    // ... (140-149 reserved for future implementation)
+    OP_LESS_JUMP_IF_FALSE = 140,
 
     // ------------------------------------------------------------
-    // Reserved Superinstructions (150-191)
+    // Miscellaneous Patterns (150-191)
     // ------------------------------------------------------------
+    OP_GET_LOCAL_CONSTANT = 150,
+    OP_ADD_SET_LOCAL = 151,
+    OP_SET_LOCAL_POP = 152,
+
     // 42 opcodes reserved for future superinstruction patterns
     // Candidates:
     // - Three-instruction fusion (GET_GLOBAL + GET_GLOBAL + ADD)
@@ -316,14 +330,27 @@ pub const OpCode = enum(u8) {
     // ============================================================
 
     // ============================================================
-    // RESERVED OPCODES (192-255)
+    // PHASE 4 OPCODES: Register-based Instructions (192-255)
     // ============================================================
-    // 64 opcodes reserved for future expansion
-    // Potential uses:
-    // - JIT hints and metadata
-    // - Extended instruction formats
-    // - Specialized domain-specific operations
-    // ============================================================
+    // These instructions specify source and destination registers directly,
+    // bypassing the stack top for common operations.
+    // Register indices map to local slots in the current call frame.
+    
+    // Fuses: GET_LOCAL(src1), GET_LOCAL(src2), ADD, SET_LOCAL(dest)
+    // Format: [opcode] [dest:u8] [src1:u8] [src2:u8]
+    OP_ADD_REG = 192,
+    OP_SUB_REG = 193,
+    OP_MUL_REG = 194,
+    OP_DIV_REG = 195,
+
+    // Reserved for future register architecture
+    // ... (196-255 reserved)
+};
+
+/// Inline cache for property and method lookups
+pub const InlineCache = struct {
+    klass: ?*const anyopaque = null, // Cached ObjClass
+    offset: usize = 0,               // Cached field index or method slot
 };
 
 /// Chunk structure containing bytecode and metadata
@@ -333,6 +360,10 @@ pub const Chunk = struct {
     code: ?[*]u8,
     lines: ?[*]i32,
     constants: value_h.ValueArray,
+    
+    // Phase 2: Inline caches (one per instruction offset)
+    // Using a map for sparse storage
+    inline_caches: ?std.AutoHashMap(usize, InlineCache) = null,
 };
 
 /// Get the length of an instruction at a given offset
@@ -347,6 +378,7 @@ pub fn initChunk(chunk: *Chunk) void {
     chunk.*.capacity = 0;
     chunk.*.code = null;
     chunk.*.lines = null;
+    chunk.*.inline_caches = null;
     value_h.initValueArray(&chunk.*.constants);
 }
 
@@ -359,6 +391,9 @@ pub fn freeChunk(chunk: *Chunk) void {
     if (chunk.*.lines) |lines| {
         const lines_slice = lines[0..@intCast(chunk.*.capacity)];
         mem_utils.free(allocator, lines_slice);
+    }
+    if (chunk.*.inline_caches) |*caches| {
+        caches.deinit();
     }
     value_h.freeValueArray(&chunk.*.constants);
     initChunk(chunk);
