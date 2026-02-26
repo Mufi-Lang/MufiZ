@@ -245,14 +245,16 @@ export fn mufiz_pm_install() i32 {
 ///   int32_t mufiz_pm_add_dependency(const char *name, const char *url, const char *version);
 export fn mufiz_pm_add_dependency(
     name: [*:0]const u8,
-    url: [*:0]const u8,
+    src: [*:0]const u8,
+    dep_type: [*:0]const u8,
     version: [*:0]const u8,
 ) i32 {
     const name_slice = std.mem.span(@as([*:0]const u8, @ptrCast(name)));
-    const url_slice = std.mem.span(@as([*:0]const u8, @ptrCast(url)));
+    const src_slice = std.mem.span(@as([*:0]const u8, @ptrCast(src)));
+    const type_slice = std.mem.span(@as([*:0]const u8, @ptrCast(dep_type)));
     const version_slice = std.mem.span(@as([*:0]const u8, @ptrCast(version)));
 
-    mufiz.pmAddDependency(allocator, name_slice, url_slice, version_slice) catch {
+    mufiz.pmAddDependency(allocator, name_slice, src_slice, type_slice, version_slice) catch {
         return MUFIZ_ERR_GENERIC;
     };
     return MUFIZ_OK;

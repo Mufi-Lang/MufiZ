@@ -211,6 +211,7 @@ pub fn newFunction() *ObjFunction {
     function.*.arity = 0;
     function.*.upvalueCount = 0;
     function.*.name = null;
+    function.*.source_file = null;
     chunk_h.initChunk(&function.*.chunk);
     return function;
 }

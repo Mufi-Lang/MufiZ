@@ -394,6 +394,12 @@ pub fn initCompiler(compiler: *Compiler, type_: FunctionType) void {
     compiler.*.scopeDepth = 0;
     compiler.*.function = object_h.newFunction();
     compiler.*.innermostLoop = null;
+
+    // Inherit source file from enclosing function
+    if (current) |enclosing| {
+        compiler.*.function.*.source_file = enclosing.function.*.source_file;
+    }
+
     current = compiler;
 
     // Set function name if not a script
@@ -2461,7 +2467,7 @@ pub fn synchronize() void {
     }
 }
 
-pub fn compile(source: [*]const u8) ?*ObjFunction {
+pub fn compile(source: [*]const u8, file_path: ?[]const u8) ?*ObjFunction {
     // Initialize compiler arena for temporary allocations
     compiler_arena.initCompilerArena();
     defer compiler_arena.deinitCompilerArena();
@@ -2485,9 +2491,17 @@ pub fn compile(source: [*]const u8) ?*ObjFunction {
     scanner_h.init_scanner(@constCast(source));
     var compiler: Compiler = undefined;
     initCompiler(&compiler, .TYPE_SCRIPT);
+    
+    // Set source file on the top-level script function
+    if (file_path) |path| {
+        compiler.function.*.source_file = object_h.copyStringLiteral(path.ptr, path.len);
+        parser.currentFile = path;
+    } else {
+        parser.currentFile = "<script>";
+    }
+
     parser.hadError = false;
     parser.panicMode = false;
-    parser.currentFile = "<script>";
     advance();
     while (!match(.TOKEN_EOF)) {
         declaration();

@@ -4,6 +4,7 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
 const StringHashMap = std.StringHashMap;
+const cache = @import("cache.zig");
 
 pub const ResolverError = error{
     CircularDependency,
@@ -18,13 +19,16 @@ pub const DependencySpec = struct {
     name: []const u8,
     url: []const u8,
     version: []const u8,
+    // Explicit type of the source (enum)
+    dep_type: cache.SourceType,
     allocator: Allocator,
 
-    pub fn init(allocator: Allocator, name: []const u8, url: []const u8, version: []const u8) !DependencySpec {
+    pub fn init(allocator: Allocator, name: []const u8, url: []const u8, version: []const u8, dep_type: cache.SourceType) !DependencySpec {
         return DependencySpec{
             .name = try allocator.dupe(u8, name),
             .url = try allocator.dupe(u8, url),
             .version = try allocator.dupe(u8, version),
+            .dep_type = dep_type,
             .allocator = allocator,
         };
     }
@@ -33,10 +37,11 @@ pub const DependencySpec = struct {
         self.allocator.free(self.name);
         self.allocator.free(self.url);
         self.allocator.free(self.version);
+        // dep_type is an enum value (no heap allocation) so nothing to free
     }
 
     pub fn clone(self: DependencySpec, allocator: Allocator) !DependencySpec {
-        return DependencySpec.init(allocator, self.name, self.url, self.version);
+        return DependencySpec.init(allocator, self.name, self.url, self.version, self.dep_type);
     }
 };
 
@@ -102,6 +107,50 @@ pub const Resolver = struct {
     graph: StringHashMap(*Node),
     resolution_order: ArrayList([]const u8),
 
+    /// Try to find a node by name. This tries three forms:
+    ///  1) exact name as provided
+    ///  2) sanitized form ( '-' -> '_' )
+    ///  3) reverse-sanitized form ( '_' -> '-' )
+    /// Returns null if not found. This function may allocate temporary buffers so it returns an error on allocation failure.
+    fn getNodeByName(self: *Resolver, name: []const u8) !?*Node {
+        // Try exact match first
+        if (self.graph.get(name)) |n| {
+            return n;
+        }
+
+        // Try sanitized form: '-' -> '_'
+        var buf = try self.allocator.alloc(u8, name.len);
+        var i: usize = 0;
+        while (i < name.len) : (i += 1) {
+            const c = name[i];
+            if (c == '-') {
+                buf[i] = '_';
+            } else {
+                buf[i] = c;
+            }
+        }
+        const n1 = self.graph.get(buf);
+        self.allocator.free(buf);
+        if (n1) |nn1| return nn1;
+
+        // Try reverse sanitized: '_' -> '-'
+        var buf2 = try self.allocator.alloc(u8, name.len);
+        i = 0;
+        while (i < name.len) : (i += 1) {
+            const c = name[i];
+            if (c == '_') {
+                buf2[i] = '-';
+            } else {
+                buf2[i] = c;
+            }
+        }
+        const n2 = self.graph.get(buf2);
+        self.allocator.free(buf2);
+        if (n2) |nn2| return nn2;
+
+        return null;
+    }
+
     pub fn init(allocator: Allocator) !Resolver {
         return Resolver{
             .allocator = allocator,
@@ -127,12 +176,8 @@ pub const Resolver = struct {
 
     /// Add a dependency to the graph
     pub fn addDependency(self: *Resolver, spec: DependencySpec) !void {
-        const name_copy = try self.allocator.dupe(u8, spec.name);
-        errdefer self.allocator.free(name_copy);
-
-        // Check if already exists
-        if (self.graph.get(name_copy)) |existing| {
-            // Version conflict check (simple: must be exact match)
+        // If the dependency already exists (in any normalized form), ensure versions match
+        if (try self.getNodeByName(spec.name)) |existing| {
             if (!std.mem.eql(u8, existing.spec.version, spec.version)) {
                 std.debug.print(
                     "⚠️  Version conflict: {s} requires both {s} and {s}\n",
@@ -140,20 +185,25 @@ pub const Resolver = struct {
                 );
                 return ResolverError.VersionConflict;
             }
-            self.allocator.free(name_copy);
             return; // Already added with same version
         }
 
+        // Create node and insert using the canonical name (spec.name) as the graph key
         const node = try self.allocator.create(Node);
         node.* = try Node.init(self.allocator, spec);
 
-        try self.graph.put(name_copy, node);
+        const key = try self.allocator.dupe(u8, spec.name);
+        try self.graph.put(key, node);
     }
 
     /// Add a dependency edge (A depends on B)
     pub fn addEdge(self: *Resolver, from: []const u8, to: []const u8) !void {
-        const node = self.graph.get(from) orelse return ResolverError.DependencyNotFound;
-        try node.addDependency(to);
+        // Resolve both endpoints using normalization-aware lookup
+        const from_node_ptr = try self.getNodeByName(from) orelse return ResolverError.DependencyNotFound;
+        const to_node_ptr = try self.getNodeByName(to) orelse return ResolverError.DependencyNotFound;
+
+        // Use the canonical name from the target node when creating the edge
+        try from_node_ptr.addDependency(to_node_ptr.spec.name);
     }
 
     /// Resolve dependencies using topological sort
@@ -202,29 +252,31 @@ pub const Resolver = struct {
 
     /// Topological sort using DFS
     fn topologicalSort(self: *Resolver, name: []const u8) !void {
-        const node = self.graph.get(name) orelse return ResolverError.DependencyNotFound;
+        // Resolve the node by name using normalization-aware lookup
+        const node_ptr = try self.getNodeByName(name) orelse return ResolverError.DependencyNotFound;
 
-        if (node.in_stack) {
-            std.debug.print("❌ Circular dependency detected involving: {s}\n", .{name});
+        if (node_ptr.in_stack) {
+            std.debug.print("❌ Circular dependency detected involving: {s}\n", .{node_ptr.spec.name});
             return ResolverError.CircularDependency;
         }
 
-        if (node.visited) {
+        if (node_ptr.visited) {
             return;
         }
 
-        node.in_stack = true;
+        // Mark in stack
+        node_ptr.in_stack = true;
 
         // Visit all dependencies first
-        for (node.dependencies.items) |dep_name| {
+        for (node_ptr.dependencies.items) |dep_name| {
             try self.topologicalSort(dep_name);
         }
 
-        node.visited = true;
-        node.in_stack = false;
+        node_ptr.visited = true;
+        node_ptr.in_stack = false;
 
-        // Add to resolution order
-        try self.resolution_order.append(self.allocator, try self.allocator.dupe(u8, name));
+        // Append canonical name to resolution order (dependencies first)
+        try self.resolution_order.append(self.allocator, try self.allocator.dupe(u8, node_ptr.spec.name));
     }
 
     /// Validate that all dependencies in the graph exist
@@ -233,10 +285,11 @@ pub const Resolver = struct {
         while (iter.next()) |entry| {
             const node = entry.value_ptr.*;
             for (node.dependencies.items) |dep_name| {
-                if (!self.graph.contains(dep_name)) {
+                // Use normalization-aware lookup when checking existence
+                if (try self.getNodeByName(dep_name) == null) {
                     std.debug.print(
                         "❌ Missing dependency: {s} requires {s}\n",
-                        .{ entry.key_ptr.*, dep_name },
+                        .{ node.spec.name, dep_name },
                     );
                     return ResolverError.DependencyNotFound;
                 }
@@ -255,7 +308,13 @@ pub const Resolver = struct {
             std.debug.print("  {s}@{s}\n", .{ node.spec.name, node.spec.version });
             if (node.dependencies.items.len > 0) {
                 for (node.dependencies.items) |dep| {
-                    std.debug.print("    ├─ {s}\n", .{dep});
+                    // Try to resolve dependency to canonical name if possible
+                    const resolved = self.getNodeByName(dep) catch null;
+                    if (resolved) |r| {
+                        std.debug.print("    ├─ {s}\n", .{r.spec.name});
+                    } else {
+                        std.debug.print("    ├─ {s}\n", .{dep});
+                    }
                 }
             }
         }
@@ -331,6 +390,7 @@ test "resolver basic" {
         "pkg1",
         "https://github.com/user/pkg1",
         "1.0.0",
+        .Git,
     );
     defer spec1.deinit();
     try resolver.addDependency(spec1);
@@ -348,6 +408,7 @@ test "circular dependency detection" {
         "pkg1",
         "https://github.com/user/pkg1",
         "1.0.0",
+        .Git,
     );
     defer spec1.deinit();
     try resolver.addDependency(spec1);
@@ -357,6 +418,7 @@ test "circular dependency detection" {
         "pkg2",
         "https://github.com/user/pkg2",
         "1.0.0",
+        .Git,
     );
     defer spec2.deinit();
     try resolver.addDependency(spec2);

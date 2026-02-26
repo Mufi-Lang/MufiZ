@@ -206,7 +206,7 @@ fn analyzeBytecode(path: []const u8) !void {
     std.debug.print("Source size: {d} bytes\n", .{source.len});
 
     // Compile the source (compiler expects null-terminated string)
-    const function = compiler_h.compile(source.ptr);
+    const function = compiler_h.compile(source.ptr, path);
     if (function == null) {
         std.debug.print("❌ Compilation failed. Cannot analyze bytecode.\n", .{});
         return;
@@ -245,26 +245,20 @@ fn handlePmCommand(args: [][:0]u8) !void {
     } else if (std.mem.eql(u8, subcommand, "info")) {
         try pm.info(allocator);
     } else if (std.mem.eql(u8, subcommand, "run")) {
-        // Initialize mufiz for running
-        try mufiz.init(.{
-            .enable_leak_detection = true,
-            .enable_tracking = true,
-            .enable_safety = true,
-        });
-        defer mufiz.deinit();
         try pm.run(allocator);
     } else if (std.mem.eql(u8, subcommand, "install")) {
         try pm.install(allocator);
     } else if (std.mem.eql(u8, subcommand, "add")) {
-        if (args.len < 6) {
-            std.debug.print("Error: 'pm add' requires name, url, and version\n", .{});
-            std.debug.print("Usage: mufiz pm add <name> <url> <version>\n", .{});
+        if (args.len < 7) {
+            std.debug.print("Error: 'pm add' requires name, src, type, and version\n", .{});
+            std.debug.print("Usage: mufiz pm add <name> <src> <type> <version>\n", .{});
             return;
         }
         const name = args[3];
-        const url = args[4];
-        const version = args[5];
-        try pm.addDependency(allocator, name, url, version);
+        const src = args[4];
+        const dep_type = args[5];
+        const version = args[6];
+        try pm.addDependency(allocator, name, src, dep_type, version);
     } else if (std.mem.eql(u8, subcommand, "cache")) {
         if (args.len < 4) {
             std.debug.print("Error: 'pm cache' requires a subcommand (info|clear)\n", .{});

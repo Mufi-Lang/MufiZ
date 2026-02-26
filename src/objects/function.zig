@@ -13,4 +13,5 @@ pub const ObjFunction = struct {
     upvalueCount: i32,
     chunk: Chunk,
     name: ?*ObjString,
+    source_file: ?*ObjString,
 };

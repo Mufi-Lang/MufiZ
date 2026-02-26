@@ -233,11 +233,12 @@ pub fn pmInstall(allocator: std.mem.Allocator) !void {
 pub fn pmAddDependency(
     allocator: std.mem.Allocator,
     name: []const u8,
-    url: []const u8,
+    src: []const u8,
+    dep_type: []const u8,
     version: []const u8,
 ) !void {
     if (builtin.target.cpu.arch == .wasm32) return error.NotSupportedInWasm;
-    try pm.addDependency(allocator, name, url, version);
+    try pm.addDependency(allocator, name, src, dep_type, version);
 }
 
 /// Get package cache statistics

@@ -227,11 +227,15 @@ pub fn run(allocator: std.mem.Allocator) !void {
         return;
     }
 
-    // Check if src/main.mufi exists
-    if (cwd.access("src/main.mufi", .{})) |_| {
-        // src/main.mufi exists, proceed
+    // Read project metadata to get entry point
+    const entry_point = try readEntryPoint(allocator, cwd);
+    defer allocator.free(entry_point);
+
+    // Check if entry point exists
+    if (cwd.access(entry_point, .{})) |_| {
+        // Entry point exists, proceed
     } else |_| {
-        std.debug.print("Error: Entry point not found (src/main.mufi)\n", .{});
+        std.debug.print("Error: Entry point not found ({s})\n", .{entry_point});
         return;
     }
 
@@ -239,14 +243,69 @@ pub fn run(allocator: std.mem.Allocator) !void {
 
     // Import the runner from lib.zig
     const mufiz = @import("lib.zig");
+    const module_registry = @import("module_registry.zig");
+
+    // Initialize mufiz (initializes module_registry)
+    try mufiz.init(.{
+        .enable_leak_detection = true,
+        .enable_tracking = true,
+        .enable_safety = true,
+    });
+    defer mufiz.deinit();
+
+    // Load and register dependencies
+    var pkg_cache = try cache.Cache.init(allocator);
+    defer pkg_cache.deinit();
+
+    var deps = try readDependencies(allocator, cwd);
+    defer {
+        for (deps.items) |*dep| dep.deinit();
+        deps.deinit(allocator);
+    }
+
+    for (deps.items) |dep| {
+        if (try pkg_cache.getCachedPath(dep.url, dep.version)) |cached_path| {
+            var dep_dir = try fs.cwd().openDir(cached_path, .{});
+            defer dep_dir.close();
+            
+            const dep_entry_point = try readEntryPoint(allocator, dep_dir);
+            defer allocator.free(dep_entry_point);
+            
+            const full_dep_entry_path = try std.fs.path.join(allocator, &[_][]const u8{ cached_path, dep_entry_point });
+            defer allocator.free(full_dep_entry_path);
+            
+            try module_registry.registerDependency(dep.name, full_dep_entry_path);
+            allocator.free(cached_path);
+        } else {
+            std.debug.print("Warning: Dependency '{s}' not found in cache. Run 'mufiz pm install' first.\n", .{dep.name});
+        }
+    }
+
     var runner = mufiz.Runner.init(allocator);
     defer runner.deinit();
 
-    try runner.setMain(@constCast("src/main.mufi"));
+    try runner.setMain(@constCast(entry_point));
     try runner.runFile();
 }
 
-/// Install project dependencies
+/// Read the entry point from mufi.zon
+fn readEntryPoint(allocator: std.mem.Allocator, dir: fs.Dir) ![]const u8 {
+    const zon_bytes = dir.readFileAlloc(allocator, "mufi.zon", 1024 * 1024) catch |err| {
+        if (err == error.FileNotFound) {
+            return try allocator.dupe(u8, "src/main.mufi"); // Default
+        }
+        return err;
+    };
+    defer allocator.free(zon_bytes);
+
+    if (extractQuotedField(zon_bytes, ".entry_point")) |entry| {
+        return try allocator.dupe(u8, entry);
+    }
+
+    return try allocator.dupe(u8, "src/main.mufi"); // Default
+}
+
+/// Install project dependencies recursively
 pub fn install(allocator: std.mem.Allocator) !void {
     const cwd = fs.cwd();
 
@@ -258,36 +317,116 @@ pub fn install(allocator: std.mem.Allocator) !void {
         return;
     }
 
-    std.debug.print("📦 Installing dependencies...\n\n", .{});
+    std.debug.print("📦 Installing dependencies (Recursive)...\n\n", .{});
 
     // Initialize cache
     var pkg_cache = try cache.Cache.init(allocator);
     defer pkg_cache.deinit();
 
-    // Read and parse mufi.zon
-    var deps = try readDependencies(allocator);
-    defer {
-        for (deps.items) |*dep| {
-            dep.deinit();
-        }
-        deps.deinit(allocator);
-    }
-
-    if (deps.items.len == 0) {
-        std.debug.print("✅ No dependencies to install\n", .{});
-        return;
-    }
-
     // Initialize resolver
     var dep_resolver = try resolver.Resolver.init(allocator);
     defer dep_resolver.deinit();
 
-    // Add all dependencies to resolver
-    for (deps.items) |dep| {
-        try dep_resolver.addDependency(dep);
+    // Queue for dependencies to process
+    var queue = try std.ArrayList(resolver.DependencySpec).initCapacity(allocator, 0);
+    defer {
+        for (queue.items) |*item| {
+            item.deinit();
+        }
+        queue.deinit(allocator);
     }
 
-    // Validate and resolve
+    // Visited set: key = "url@version"
+    var visited = std.StringHashMap(void).init(allocator);
+    defer {
+        var iter = visited.keyIterator();
+        while (iter.next()) |key| {
+            allocator.free(key.*);
+        }
+        visited.deinit();
+    }
+
+    // 1. Read root dependencies
+    {
+        var root_deps = try readDependencies(allocator, cwd);
+        defer root_deps.deinit(allocator); // shallow deinit of list, items moved to queue
+
+        for (root_deps.items) |dep| {
+            // Deep copy for the queue
+            const clone = try dep.clone(allocator);
+            try queue.append(allocator, clone);
+
+            // Also add to resolver for final topological sort
+            try dep_resolver.addDependency(try dep.clone(allocator));
+        }
+        // Original items in root_deps must be freed since we cloned them
+        for (root_deps.items) |*dep| {
+            dep.deinit();
+        }
+    }
+
+    if (queue.items.len == 0) {
+        std.debug.print("✅ No dependencies to install\n", .{});
+        return;
+    }
+
+    // 2. Process Queue
+    var i: usize = 0;
+    while (i < queue.items.len) : (i += 1) {
+        const current_dep = queue.items[i];
+
+        // Generate key for visited check
+        const visit_key = try std.fmt.allocPrint(allocator, "{s}@{s}", .{ current_dep.url, current_dep.version });
+        if (visited.contains(visit_key)) {
+            allocator.free(visit_key);
+            continue;
+        }
+        try visited.put(visit_key, {});
+
+        std.debug.print("pm: processing {s} ({s})\n", .{ current_dep.name, current_dep.version });
+
+        // Install/Cache the package
+        const cached_pkg = try pkg_cache.cachePackage(current_dep.name, current_dep.url, current_dep.dep_type, current_dep.version);
+        // We need to keep cached_pkg around to read its directory?
+        // Actually cachePackage returns a struct with a path we can use.
+        defer {
+            var mut_pkg = cached_pkg; // make mutable for deinit
+            mut_pkg.deinit();
+        }
+
+        // 3. Read dependencies of the installed package
+        var pkg_dir = fs.cwd().openDir(cached_pkg.path, .{}) catch |err| {
+            std.debug.print("Warning: could not open package dir {s}: {any}\n", .{ cached_pkg.path, err });
+            continue;
+        };
+        defer pkg_dir.close();
+
+        // Check for mufi.zon in the package
+        if (pkg_dir.access("mufi.zon", .{})) |_| {
+            // Found manifest, read it
+            var sub_deps = try readDependencies(allocator, pkg_dir);
+            defer {
+                for (sub_deps.items) |*d| d.deinit();
+                sub_deps.deinit(allocator);
+            }
+
+            for (sub_deps.items) |sub_dep| {
+                // Add to queue (if not visited check happens at start of loop)
+                try queue.append(allocator, try sub_dep.clone(allocator));
+
+                // Add to resolver for graph
+                try dep_resolver.addDependency(try sub_dep.clone(allocator));
+
+                // Add edge to resolver
+                try dep_resolver.addEdge(current_dep.name, sub_dep.name);
+            }
+        } else |_| {
+            // No mufi.zon, leaf package
+        }
+    }
+
+    // 4. Final Resolve (Topological Sort)
+    // The resolver has built the full graph. Now we resolve order.
     try dep_resolver.validate();
     var resolved = try dep_resolver.resolve();
     defer {
@@ -297,25 +436,38 @@ pub fn install(allocator: std.mem.Allocator) !void {
         resolved.deinit(allocator);
     }
 
-    std.debug.print("📊 Resolved {d} dependencies\n\n", .{resolved.items.len});
+    std.debug.print("📊 Resolved {d} total dependencies (including transitive)\n\n", .{resolved.items.len});
 
-    // Install each dependency
+    // (Optional) Print final install order
     for (resolved.items) |dep| {
-        const cached_pkg = try pkg_cache.cachePackage(dep.name, dep.url, dep.version);
-        defer {
-            var mut_pkg = cached_pkg;
-            mut_pkg.deinit();
-        }
+        std.debug.print("  - {s} @ {s}\n", .{ dep.name, dep.version });
     }
 
     std.debug.print("\n✅ All dependencies installed successfully!\n", .{});
+}
+
+/// Sanitize a dependency name for use as a ZON key:
+/// Replace '-' with '_' to ensure valid Zig identifier-like keys
+fn sanitizeDepName(allocator: std.mem.Allocator, name: []const u8) ![]const u8 {
+    const buf = try allocator.alloc(u8, name.len);
+    var i: usize = 0;
+    while (i < name.len) : (i += 1) {
+        const c = name[i];
+        if (c == '-') {
+            buf[i] = '_';
+        } else {
+            buf[i] = c;
+        }
+    }
+    return buf;
 }
 
 /// Add a dependency to mufi.zon
 pub fn addDependency(
     allocator: std.mem.Allocator,
     name: []const u8,
-    url: []const u8,
+    src: []const u8,
+    dep_type: []const u8,
     version: []const u8,
 ) !void {
     std.debug.print("➕ Adding dependency: {s}@{s}\n", .{ name, version });
@@ -325,6 +477,10 @@ pub fn addDependency(
         std.debug.print("Error: Invalid version format: {s}\n", .{version});
         return PMError.InvalidDependencySpec;
     }
+
+    // Sanitize dependency name (replace '-' with '_') for use as ZON key
+    const sanitized_name = try sanitizeDepName(allocator, name);
+    defer allocator.free(sanitized_name);
 
     // Read current mufi.zon
     const cwd = fs.cwd();
@@ -340,11 +496,13 @@ pub fn addDependency(
     // Check if dependencies section exists
     const has_deps = std.mem.indexOf(u8, content, ".dependencies") != null;
 
-    // Generate new content
-    const new_content = if (has_deps)
-        try addToExistingDeps(allocator, content, name, url, version)
-    else
-        try addNewDepsSection(allocator, content, name, url, version);
+    // Generate new content using sanitized name as the ZON key and store the canonical name
+    var new_content: []const u8 = undefined;
+    if (has_deps) {
+        new_content = try addToExistingDeps(allocator, content, sanitized_name, name, src, dep_type, version);
+    } else {
+        new_content = try addNewDepsSection(allocator, content, sanitized_name, name, src, dep_type, version);
+    }
     defer allocator.free(new_content);
 
     // Write back
@@ -360,8 +518,10 @@ pub fn addDependency(
 fn addToExistingDeps(
     allocator: std.mem.Allocator,
     content: []const u8,
-    name: []const u8,
-    url: []const u8,
+    key_name: []const u8,
+    canonical_name: []const u8,
+    src: []const u8,
+    dep_type: []const u8,
     version: []const u8,
 ) ![]const u8 {
     // Find the dependencies section and add new entry
@@ -378,11 +538,14 @@ fn addToExistingDeps(
     }
     const deps_end = pos - 1;
 
-    // Build new dependency entry
+    // Build new dependency entry:
+    // We store both the canonical name and the src/type/version. The key in the ZON object
+    // uses the sanitized identifier (key_name) but we also store `.name = "canonical"` to
+    // preserve the original package name (with hyphens).
     const dep_entry = try std.fmt.allocPrint(
         allocator,
-        "\n        .{s} = .{{\n            .url = \"{s}\",\n            .version = \"{s}\",\n        }},",
-        .{ name, url, version },
+        "\n        .{s} = .{{\n            .name = \"{s}\",\n            .src = \"{s}\",\n            .type = .{s},\n            .version = \"{s}\",\n        }},",
+        .{ key_name, canonical_name, src, dep_type, version },
     );
     defer allocator.free(dep_entry);
 
@@ -398,8 +561,10 @@ fn addToExistingDeps(
 fn addNewDepsSection(
     allocator: std.mem.Allocator,
     content: []const u8,
-    name: []const u8,
-    url: []const u8,
+    key_name: []const u8,
+    canonical_name: []const u8,
+    src: []const u8,
+    dep_type: []const u8,
     version: []const u8,
 ) ![]const u8 {
     // Find the closing brace of the root struct
@@ -407,8 +572,8 @@ fn addNewDepsSection(
 
     const deps_section = try std.fmt.allocPrint(
         allocator,
-        "    .dependencies = .{{\n        .{s} = .{{\n            .url = \"{s}\",\n            .version = \"{s}\",\n        }},\n    }},\n",
-        .{ name, url, version },
+        "    .dependencies = .{{\n        .{s} = .{{\n            .name = \"{s}\",\n            .src = \"{s}\",\n            .type = .{s},\n            .version = \"{s}\",\n        }},\n    }},\n",
+        .{ key_name, canonical_name, src, dep_type, version },
     );
     defer allocator.free(deps_section);
 
@@ -419,8 +584,79 @@ fn addNewDepsSection(
     );
 }
 
-/// Read dependencies from mufi.zon
-fn readDependencies(allocator: std.mem.Allocator) !std.ArrayList(resolver.DependencySpec) {
+fn extractQuotedField(block: []const u8, field: []const u8) ?[]const u8 {
+    // find field name
+    const field_pos = std.mem.indexOf(u8, block, field) orelse return null;
+
+    // slice after field
+    var i: usize = field_pos + field.len;
+    if (i >= block.len) return null;
+
+    // skip whitespace
+    while (i < block.len and std.ascii.isWhitespace(block[i])) : (i += 1) {}
+
+    // expect '='
+    if (i >= block.len or block[i] != '=') return null;
+    i += 1;
+
+    // skip whitespace
+    while (i < block.len and std.ascii.isWhitespace(block[i])) : (i += 1) {}
+
+    // expect opening quote
+    if (i >= block.len or block[i] != '"') return null;
+    i += 1;
+
+    const start = i;
+
+    // find closing quote
+    while (i < block.len and block[i] != '"') : (i += 1) {}
+    if (i >= block.len) return null;
+
+    return block[start..i];
+}
+
+/// Extract an enum literal token for a field (expects `.Token` form)
+/// Example supported forms inside the block:
+///    .type = .Local,
+///    .type = .Git
+/// Returns the token (without the leading dot), e.g. "Local" or "Git".
+fn extractEnumField(block: []const u8, field: []const u8) ?[]const u8 {
+    // find field name
+    const field_pos = std.mem.indexOf(u8, block, field) orelse return null;
+
+    // slice after field
+    var i: usize = field_pos + field.len;
+    if (i >= block.len) return null;
+
+    // skip whitespace
+    while (i < block.len and std.ascii.isWhitespace(block[i])) : (i += 1) {}
+
+    // expect '='
+    if (i >= block.len or block[i] != '=') return null;
+    i += 1;
+
+    // skip whitespace
+    while (i < block.len and std.ascii.isWhitespace(block[i])) : (i += 1) {}
+
+    // expect leading dot for enum literal
+    if (i >= block.len or block[i] != '.') return null;
+    i += 1;
+
+    const start = i;
+
+    // identifier chars: alnum or underscore
+    while (i < block.len and (std.ascii.isAlphanumeric(block[i]) or block[i] == '_')) : (i += 1) {}
+
+    if (start == i) return null;
+
+    return block[start..i];
+}
+
+/// Read dependencies from mufi.zon in a specific directory
+fn readDependencies(allocator: std.mem.Allocator, dir: fs.Dir) !std.ArrayList(resolver.DependencySpec) {
+    // Lightweight ad-hoc parser for the .dependencies block in mufi.zon.
+    // We intentionally avoid relying on std.zon.parse here to keep parsing simple
+    // and to avoid version-specific stdlib API constraints.
     var deps = try std.ArrayList(resolver.DependencySpec).initCapacity(allocator, 0);
     errdefer {
         for (deps.items) |*dep| {
@@ -429,8 +665,111 @@ fn readDependencies(allocator: std.mem.Allocator) !std.ArrayList(resolver.Depend
         deps.deinit(allocator);
     }
 
-    // For now, return empty list - full ZON parsing would use std.zon.parse
-    // TODO: Implement full ZON parsing for dependencies
+    const zon_bytes = dir.readFileAlloc(allocator, "mufi.zon", 1024 * 1024) catch |err| {
+        if (err == error.FileNotFound) {
+            return deps; // Return empty list if no manifest
+        }
+        return err;
+    };
+    defer allocator.free(zon_bytes);
+
+    // Debug: show top-level bytes length and a short preview
+    // std.debug.print("pm: readDependencies — zon size: {d} bytes\\n", .{zon_bytes.len});
+
+    const dep_marker = ".dependencies = .{";
+    if (std.mem.indexOf(u8, zon_bytes, dep_marker) == null) {
+        // std.debug.print("pm: no dependencies marker '{s}' found in mufi.zon\\n", .{dep_marker});
+        return deps;
+    }
+    const deps_start = std.mem.indexOf(u8, zon_bytes, dep_marker) orelse return deps;
+    const deps_block_start = deps_start + dep_marker.len;
+
+    // Find matching closing brace for the dependencies block
+    var brace_count: i32 = 1;
+    var pos: usize = deps_block_start;
+    while (pos < zon_bytes.len and brace_count > 0) : (pos += 1) {
+        if (zon_bytes[pos] == '{') {
+            brace_count += 1;
+        } else if (zon_bytes[pos] == '}') {
+            brace_count -= 1;
+        }
+    }
+    const deps_block_end = if (pos > 0) pos - 1 else deps_block_start;
+    const block = zon_bytes[deps_block_start..deps_block_end];
+
+    // Each dependency entry is written like:
+    //     .some_key = .{
+    //         .name = "mufi-foo",
+    //         .url = "https://...",
+    //         .version = "v1.0.0",
+    //     },
+    //
+    // We'll scan for the '= .{' sequence which marks an entry start, then find the
+    // corresponding closing brace for that entry and extract quoted fields inside it.
+    const open_seq = "= .{";
+    var scan_pos: usize = 0;
+    while (scan_pos < block.len) {
+        const rel_idx = std.mem.indexOf(u8, block[scan_pos..], open_seq) orelse break;
+        const entry_open = scan_pos + rel_idx + open_seq.len;
+
+        // Find matching brace for this entry
+        var bcount: i32 = 1;
+        var p: usize = entry_open;
+        while (p < block.len and bcount > 0) : (p += 1) {
+            if (block[p] == '{') {
+                bcount += 1;
+            } else if (block[p] == '}') {
+                bcount -= 1;
+            }
+        }
+        const entry_close = p;
+        if (entry_close <= entry_open) {
+            scan_pos = entry_open;
+            continue;
+        }
+
+        const entry_slice = block[entry_open..entry_close];
+
+        // Extract fields using the helper already present in this file.
+        // The helper returns a slice that references the original buffer, which
+        // is fine because we duplicate strings into DependencySpec.
+        if (extractQuotedField(entry_slice, ".name")) |name_val| {
+            // Accept either `.src` (new) or `.url` (legacy) as the source field.
+            var src_val_opt: ?[]const u8 = null;
+            if (extractQuotedField(entry_slice, ".src")) |s| {
+                src_val_opt = s;
+            } else if (extractQuotedField(entry_slice, ".url")) |u| {
+                src_val_opt = u;
+            }
+
+            if (src_val_opt) |src_val| {
+                if (extractQuotedField(entry_slice, ".version")) |ver_val| {
+                    // optional type field (enum literal only; default to .Git when absent)
+                    var type_enum: cache.SourceType = cache.SourceType.Git;
+                    if (extractEnumField(entry_slice, ".type")) |enum_tok| {
+                        // Accept enum literal tokens .Local, .Git, .Http
+                        if (std.mem.eql(u8, enum_tok, "Local")) {
+                            type_enum = cache.SourceType.Local;
+                        } else if (std.mem.eql(u8, enum_tok, "Git")) {
+                            type_enum = cache.SourceType.Git;
+                        } else if (std.mem.eql(u8, enum_tok, "Http")) {
+                            type_enum = cache.SourceType.Http;
+                        } else {
+                            // Unknown enum literal: default to .Git but log for visibility
+                            // std.debug.print("pm: unknown .type enum literal '{s}', defaulting to .Git\n", .{enum_tok});
+                        }
+                    }
+                    const spec = try resolver.DependencySpec.init(allocator, name_val, src_val, ver_val, type_enum);
+                    try deps.append(allocator, spec);
+                    // std.debug.print("pm: appended dependency {s} src={s} version={s} type={any}\n", .{ name_val, src_val, ver_val, type_enum });
+                }
+            }
+        }
+
+        // Continue scanning after this entry
+        scan_pos = entry_close;
+    }
+
     return deps;
 }
 

@@ -282,7 +282,7 @@ pub fn interpret(source: [*]const u8) InterpretResult {
     while (source[i] != 0) : (i += 1) {}
     vm.source_code = source[0..i];
 
-    const function: ?*ObjFunction = compiler_h.compile(source);
+    const function: ?*ObjFunction = compiler_h.compile(source, vm.source_file);
     if (function == null) {
         return .INTERPRET_COMPILE_ERROR;
     }
@@ -2684,8 +2684,12 @@ fn opImportFile() InterpretResult {
     const path_str = @as(*ObjString, @ptrCast(@alignCast(path_obj)));
     const file_path = path_str.chars[0..@intCast(path_str.length)];
 
+    // Get current function's source file to use as base for relative imports
+    const current_file_obj = frame.closure.function.source_file;
+    const base_path = if (current_file_obj) |obj| obj.chars[0..obj.length] else null;
+
     const registry = @import("module_registry.zig");
-    registry.loadFile(file_path) catch {
+    registry.loadFileWithBase(file_path, base_path) catch {
         runtimeError("Failed to load file '{s}'", .{file_path});
         return .INTERPRET_RUNTIME_ERROR;
     };
@@ -3081,6 +3085,30 @@ pub fn run() InterpretResult {
             return result;
         }
     }
+}
+
+/// Execute bytecode until the frame count returns to target_depth
+pub fn runUntil(target_depth: i32) InterpretResult {
+    // Ensure currentFrame is up to date
+    if (vm.frameCount > 0) {
+        vm.currentFrame = &vm.frames[@intCast(vm.frameCount - 1)];
+    }
+
+    while (vm.frameCount > target_depth) {
+        const frame = vm.currentFrame.?;
+        const instruction = frame.ip[0];
+        frame.ip += 1;
+
+        const result = jumpTable[instruction]();
+        if (result != .INTERPRET_OK) {
+            if (result == .INTERPRET_FINISHED) {
+                if (vm.frameCount <= target_depth) return .INTERPRET_OK;
+                continue; // Should not happen if target_depth >= 0
+            }
+            return result;
+        }
+    }
+    return .INTERPRET_OK;
 }
 
 inline fn peek(distance: u32) Value {
