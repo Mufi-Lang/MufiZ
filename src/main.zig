@@ -248,6 +248,8 @@ fn handlePmCommand(args: [][:0]u8) !void {
         try pm.run(allocator);
     } else if (std.mem.eql(u8, subcommand, "install")) {
         try pm.install(allocator);
+    } else if (std.mem.eql(u8, subcommand, "update")) {
+        try pm.update(allocator);
     } else if (std.mem.eql(u8, subcommand, "add")) {
         if (args.len < 7) {
             std.debug.print("Error: 'pm add' requires name, src, type, and version\n", .{});

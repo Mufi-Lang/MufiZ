@@ -48,6 +48,8 @@ pub const MODULE_REGISTRY = [_]ModuleInfo{
 
 var loaded_modules: std.StringHashMap(bool) = undefined;
 var dependency_map: std.StringHashMap([]const u8) = undefined;
+/// Stores globals defined during the most recent file/module import
+pub var last_import_globals: ?std.StringHashMap(@import("value.zig").Value) = null;
 var allocator: std.mem.Allocator = undefined;
 var initialized: bool = false;
 
@@ -70,6 +72,11 @@ pub fn deinit() void {
         allocator.free(entry.value_ptr.*);
     }
     dependency_map.deinit();
+
+    if (last_import_globals) |*map| {
+        map.deinit();
+        last_import_globals = null;
+    }
     
     initialized = false;
 }
@@ -240,6 +247,13 @@ pub fn loadFileWithBase(path: []const u8, base_file: ?[]const u8) !void {
     const vm_ptr = vm_module.getVM();
     const prev_depth = vm_ptr.frameCount;
 
+    // Snapshot before execution
+    const snapshot = try vm_module.snapshotGlobals(allocator);
+    defer {
+        var mut_s = snapshot;
+        mut_s.deinit();
+    }
+
     // Call the closure with 0 arguments (pushes a new frame)
     if (!vm_module.call(closure, 0)) {
         std.debug.print("Error: Failed to execute file '{s}'\n", .{resolved_path});
@@ -252,6 +266,22 @@ pub fn loadFileWithBase(path: []const u8, base_file: ?[]const u8) !void {
         std.debug.print("Error: Failed to execute file '{s}': {any}\n", .{resolved_path, result});
         return error.InterpretError;
     }
+
+    // Capture what was added
+    if (last_import_globals) |*old| {
+        old.deinit();
+    }
+    last_import_globals = try vm_module.getGlobalsSince(allocator, snapshot);
+}
+
+/// Check if a module name is a built-in module
+pub fn isBuiltInModule(name: []const u8) bool {
+    for (MODULE_REGISTRY) |module| {
+        if (std.mem.eql(u8, module.name, name)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 /// Check if a module is loaded
@@ -261,63 +291,139 @@ pub fn isModuleLoaded(name: []const u8) bool {
 }
 
 /// Populate a module object with its members (constants and functions)
-pub fn populateModuleMembers(module: *@import("object.zig").ObjModule, module_name: []const u8) !void {
+
+pub fn populateModuleMembers(
+
+    module: *@import("object.zig").ObjModule,
+
+    module_name: []const u8,
+
+    new_globals: ?std.StringHashMap(@import("value.zig").Value),
+
+) !void {
+
     const vm_module = @import("vm.zig");
+
     const Value = @import("value.zig").Value;
 
-    // Check if it's a built-in module
-    var is_builtin = false;
-    for (MODULE_REGISTRY) |m| {
-        if (std.mem.eql(u8, m.name, module_name)) {
-            is_builtin = true;
-            break;
+
+
+    // For built-in modules, we still use the legacy filtering approach if no new_globals provided
+
+    if (new_globals == null) {
+
+        // Check if it's a built-in module
+
+        var is_builtin = false;
+
+        for (MODULE_REGISTRY) |m| {
+
+            if (std.mem.eql(u8, m.name, module_name)) {
+
+                is_builtin = true;
+
+                break;
+
+            }
+
         }
-    }
 
-    // Get all globals from the VM that belong to this module
-    const iterator = vm_module.vm.globals.entries;
-    var i: usize = 0;
 
-    // For math module, also add constants
-    if (std.mem.eql(u8, module_name, "math")) {
-        // Add PI constant
-        const pi_value = Value{
-            .type = .VAL_DOUBLE,
-            .as = .{ .num_double = 3.141592653589793 },
-        };
-        try module.setMember("PI", pi_value);
 
-        // Add E constant
-        const e_value = Value{
-            .type = .VAL_DOUBLE,
-            .as = .{ .num_double = 2.718281828459045 },
-        };
-        try module.setMember("E", e_value);
-    }
+        // Get all globals from the VM
 
-    // Add all functions from the module to the module object
-    if (iterator) |entries| {
-        while (i < vm_module.vm.globals.capacity) : (i += 1) {
+        const iterator = vm_module.vm.globals.entries;
+
+        var i: usize = 0;
+
+
+
+        // For math module, also add constants
+
+        if (std.mem.eql(u8, module_name, "math")) {
+
+            try module.setMember("PI", Value{ .type = .VAL_DOUBLE, .as = .{ .num_double = 3.141592653589793 } });
+
+            try module.setMember("E", Value{ .type = .VAL_DOUBLE, .as = .{ .num_double = 2.718281828459045 } });
+
+        }
+
+
+
+        if (iterator) |entries| {
+
+            while (i < vm_module.vm.globals.capacity) : (i += 1) {
+
                 if (entries[i].key) |objString| {
+
                     if (entries[i].deleted) continue;
-                    
+
                     const varName = objString.chars[0..@intCast(objString.length)];
+
                     const value = entries[i].value;
 
+
+
                     if (is_builtin) {
-                    // For builtins, we only add native functions
-                    if (value.type == .VAL_OBJ and value.as.obj != null) {
-                        if (value.as.obj.?.type == .OBJ_NATIVE) {
+
+                        if (value.type == .VAL_OBJ and value.as.obj != null and value.as.obj.?.type == .OBJ_NATIVE) {
+
                             try module.setMember(varName, value);
+
                         }
+
+                    } else {
+
+                        if (vm_module.isPublicGlobal(objString)) {
+
+                            try module.setMember(varName, value);
+
+                        }
+
                     }
-                } else {
-                    // For user modules (dependencies), add everything that is PUB
-                    if (vm_module.isPublicGlobal(objString)) {
-                        try module.setMember(varName, value);
-                    }
+
                 }
+
             }
+
         }
+
+        return;
+
     }
+
+
+
+    // Use the provided new_globals (snapshot result)
+
+    var iter = new_globals.?.iterator();
+
+    while (iter.next()) |entry| {
+
+        const name = entry.key_ptr.*;
+
+        const value = entry.value_ptr.*;
+
+
+
+        // Extract Objekt String for public check
+
+        const object_h = @import("object.zig");
+
+        const name_obj = object_h.copyString(name.ptr, name.len);
+
+        
+
+        // We only add PUB members to module objects for user modules
+
+        if (vm_module.isPublicGlobal(name_obj)) {
+
+            try module.setMember(name, value);
+
+        }
+
+    }
+
 }
+
+

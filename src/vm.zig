@@ -162,6 +162,42 @@ inline fn next_frame_count() i32 {
     return tmp;
 }
 
+/// Create a snapshot of currently defined global variable names
+pub fn snapshotGlobals(allocator: std.mem.Allocator) !std.StringHashMap(void) {
+    var snapshot = std.StringHashMap(void).init(allocator);
+    if (vm.globals.entries) |entries| {
+        var i: usize = 0;
+        while (i < vm.globals.capacity) : (i += 1) {
+            if (entries[i].key) |key| {
+                if (!entries[i].deleted) {
+                    const name = key.chars[0..key.length];
+                    try snapshot.put(name, {});
+                }
+            }
+        }
+    }
+    return snapshot;
+}
+
+/// Get all globals defined since the given snapshot
+pub fn getGlobalsSince(allocator: std.mem.Allocator, snapshot: std.StringHashMap(void)) !std.StringHashMap(Value) {
+    var new_globals = std.StringHashMap(Value).init(allocator);
+    if (vm.globals.entries) |entries| {
+        var i: usize = 0;
+        while (i < vm.globals.capacity) : (i += 1) {
+            if (entries[i].key) |key| {
+                if (!entries[i].deleted) {
+                    const name = key.chars[0..key.length];
+                    if (!snapshot.contains(name)) {
+                        try new_globals.put(name, entries[i].value);
+                    }
+                }
+            }
+        }
+    }
+    return new_globals;
+}
+
 pub fn runtimeError(comptime format: []const u8, args: anytype) void {
     std.debug.print(format, args);
     std.debug.print("\n", .{});
@@ -2632,6 +2668,19 @@ fn opImportModule() InterpretResult {
     const module_name = name_str.chars[0..@intCast(name_str.length)];
 
     const registry = @import("module_registry.zig");
+    
+    // Determine if it's a builtin or user module for snapshotting
+    const is_builtin = registry.isBuiltInModule(module_name);
+    
+    // Use GPA for temporary snapshot structures
+    const allocator = mem_utils.getAllocator();
+    
+    var snapshot: ?std.StringHashMap(void) = null;
+    if (!is_builtin) {
+        snapshot = snapshotGlobals(allocator) catch null;
+    }
+    defer if (snapshot) |*s| s.deinit();
+
     registry.loadModule(module_name) catch {
         runtimeError("Failed to load module '{s}'", .{module_name});
         return .INTERPRET_RUNTIME_ERROR;
@@ -2640,8 +2689,17 @@ fn opImportModule() InterpretResult {
     // Create a module object and register it as a global
     const module_obj = object_h.newModule(name_str);
 
+    var new_globals: ?std.StringHashMap(Value) = null;
+    if (snapshot) |s| {
+        new_globals = getGlobalsSince(allocator, s) catch null;
+    }
+    defer if (new_globals) |*ng| {
+        // Only free the map structure, not the values (they are in VM)
+        ng.deinit();
+    };
+
     // Populate the module with its members (constants and functions)
-    registry.populateModuleMembers(module_obj, module_name) catch {
+    registry.populateModuleMembers(module_obj, module_name, new_globals) catch {
         runtimeError("Failed to populate module '{s}'", .{module_name});
         return .INTERPRET_RUNTIME_ERROR;
     };
@@ -2729,27 +2787,24 @@ fn opImportFileAs() InterpretResult {
     const path_str = @as(*ObjString, @ptrCast(@alignCast(path_value.as.obj)));
     const alias_str = @as(*ObjString, @ptrCast(@alignCast(alias_value.as.obj)));
 
-    // NOTE: The file has already been loaded and executed by a preceding
-    // OP_IMPORT_FILE instruction. All pub globals are now in vm.publicGlobals.
+    const registry = @import("module_registry.zig");
 
-    // Create a module object and populate it with only public globals
+    // Create a module object and populate it with only public globals from the last import
     const module_obj = object_h.newModule(path_str);
 
-    // Iterate globals and add only public ones to the module
-    if (vm.publicGlobals.entries) |pub_entries| {
-        var i: usize = 0;
-        while (i < vm.publicGlobals.capacity) : (i += 1) {
-            if (pub_entries[i].key) |key| {
-                if (!pub_entries[i].deleted) {
-                    var global_value: Value = undefined;
-                    if (tableGet(&vm.globals, key, &global_value)) {
-                        const member_name = key.chars[0..@intCast(key.length)];
-                        module_obj.setMember(member_name, global_value) catch {
-                            runtimeError("Failed to populate module member '{s}'", .{member_name});
-                            return .INTERPRET_RUNTIME_ERROR;
-                        };
-                    }
-                }
+    if (registry.last_import_globals) |globals| {
+        var iter = globals.iterator();
+        while (iter.next()) |entry| {
+            const name = entry.key_ptr.*;
+            const value = entry.value_ptr.*;
+            
+            // Convert name to ObjString for public check
+            const name_obj = object_h.copyString(name.ptr, name.len);
+            if (isPublicGlobal(name_obj)) {
+                module_obj.setMember(name, value) catch {
+                    runtimeError("Failed to populate module member '{s}'", .{name});
+                    return .INTERPRET_RUNTIME_ERROR;
+                };
             }
         }
     }
@@ -2793,20 +2848,27 @@ fn opFromImportFile() InterpretResult {
     const func_str = @as(*ObjString, @ptrCast(@alignCast(func_value.as.obj)));
     const func_name = func_str.chars[0..@intCast(func_str.length)];
 
-    // NOTE: The file has already been loaded and executed by a preceding
-    // OP_IMPORT_FILE instruction. All pub globals are now in vm.publicGlobals.
+    const registry = @import("module_registry.zig");
 
-    // Check if the requested name is public
-    var pub_check: Value = undefined;
-    if (!tableGet(&vm.publicGlobals, func_str, &pub_check)) {
-        // If the file has ANY public globals, enforce visibility
-        if (vm.publicGlobals.count > 0) {
-            const path_str = @as(*ObjString, @ptrCast(@alignCast(path_value.as.obj)));
-            const file_path = path_str.chars[0..@intCast(path_str.length)];
-            runtimeError("'{s}' is not a public export of '{s}'", .{ func_name, file_path });
-            return .INTERPRET_RUNTIME_ERROR;
+    // Check if the requested name exists in the last imported symbols and is public
+    var found = false;
+    if (registry.last_import_globals) |globals| {
+        if (globals.get(func_name)) |_| {
+            found = true;
+            if (!isPublicGlobal(func_str)) {
+                const path_str = @as(*ObjString, @ptrCast(@alignCast(path_value.as.obj)));
+                const file_path = path_str.chars[0..@intCast(path_str.length)];
+                runtimeError("'{s}' is not a public export of '{s}'", .{ func_name, file_path });
+                return .INTERPRET_RUNTIME_ERROR;
+            }
         }
-        // Otherwise backward compat: no pub declarations means everything is accessible
+    }
+
+    if (!found) {
+        const path_str = @as(*ObjString, @ptrCast(@alignCast(path_value.as.obj)));
+        const file_path = path_str.chars[0..@intCast(path_str.length)];
+        runtimeError("'{s}' not found in '{s}'", .{ func_name, file_path });
+        return .INTERPRET_RUNTIME_ERROR;
     }
 
     return .INTERPRET_OK;
@@ -2901,7 +2963,7 @@ fn opImportModuleAs() InterpretResult {
     const module_obj = object_h.newModule(name_str);
 
     // Populate the module with its members (constants and functions)
-    registry.populateModuleMembers(module_obj, module_name) catch {
+    registry.populateModuleMembers(module_obj, module_name, null) catch {
         runtimeError("Failed to populate module '{s}'", .{module_name});
         return .INTERPRET_RUNTIME_ERROR;
     };

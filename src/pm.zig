@@ -257,14 +257,20 @@ pub fn run(allocator: std.mem.Allocator) !void {
     var pkg_cache = try cache.Cache.init(allocator);
     defer pkg_cache.deinit();
 
-    var deps = try readDependencies(allocator, cwd);
+    var resolved: std.ArrayList(resolver.DependencySpec) = undefined;
+    if (cwd.access("mufi.lock", .{})) |_| {
+        resolved = try readLockfile(allocator, cwd);
+    } else |_| {
+        resolved = try resolveAllDependencies(allocator, cwd);
+    }
     defer {
-        for (deps.items) |*dep| dep.deinit();
-        deps.deinit(allocator);
+        for (resolved.items) |*dep| dep.deinit();
+        resolved.deinit(allocator);
     }
 
-    for (deps.items) |dep| {
+    for (resolved.items) |dep| {
         if (try pkg_cache.getCachedPath(dep.url, dep.version)) |cached_path| {
+            defer allocator.free(cached_path);
             var dep_dir = try fs.cwd().openDir(cached_path, .{});
             defer dep_dir.close();
             
@@ -275,7 +281,6 @@ pub fn run(allocator: std.mem.Allocator) !void {
             defer allocator.free(full_dep_entry_path);
             
             try module_registry.registerDependency(dep.name, full_dep_entry_path);
-            allocator.free(cached_path);
         } else {
             std.debug.print("Warning: Dependency '{s}' not found in cache. Run 'mufiz pm install' first.\n", .{dep.name});
         }
@@ -305,20 +310,8 @@ fn readEntryPoint(allocator: std.mem.Allocator, dir: fs.Dir) ![]const u8 {
     return try allocator.dupe(u8, "src/main.mufi"); // Default
 }
 
-/// Install project dependencies recursively
-pub fn install(allocator: std.mem.Allocator) !void {
-    const cwd = fs.cwd();
-
-    // Check if mufi.zon exists
-    if (cwd.access("mufi.zon", .{})) |_| {
-        // mufi.zon exists, proceed
-    } else |_| {
-        std.debug.print("Error: Not a MufiZ project (mufi.zon not found)\n", .{});
-        return;
-    }
-
-    std.debug.print("📦 Installing dependencies (Recursive)...\n\n", .{});
-
+/// Resolve all dependencies (including transitive) using topological sort
+fn resolveAllDependencies(allocator: std.mem.Allocator, root_dir: fs.Dir) !std.ArrayList(resolver.DependencySpec) {
     // Initialize cache
     var pkg_cache = try cache.Cache.init(allocator);
     defer pkg_cache.deinit();
@@ -348,34 +341,24 @@ pub fn install(allocator: std.mem.Allocator) !void {
 
     // 1. Read root dependencies
     {
-        var root_deps = try readDependencies(allocator, cwd);
-        defer root_deps.deinit(allocator); // shallow deinit of list, items moved to queue
+        var root_deps = try readDependencies(allocator, root_dir);
+        defer root_deps.deinit(allocator);
 
         for (root_deps.items) |dep| {
-            // Deep copy for the queue
             const clone = try dep.clone(allocator);
             try queue.append(allocator, clone);
-
-            // Also add to resolver for final topological sort
             try dep_resolver.addDependency(try dep.clone(allocator));
         }
-        // Original items in root_deps must be freed since we cloned them
         for (root_deps.items) |*dep| {
             dep.deinit();
         }
     }
 
-    if (queue.items.len == 0) {
-        std.debug.print("✅ No dependencies to install\n", .{});
-        return;
-    }
-
-    // 2. Process Queue
+    // 2. Process Queue recursively
     var i: usize = 0;
     while (i < queue.items.len) : (i += 1) {
         const current_dep = queue.items[i];
 
-        // Generate key for visited check
         const visit_key = try std.fmt.allocPrint(allocator, "{s}@{s}", .{ current_dep.url, current_dep.version });
         if (visited.contains(visit_key)) {
             allocator.free(visit_key);
@@ -383,27 +366,32 @@ pub fn install(allocator: std.mem.Allocator) !void {
         }
         try visited.put(visit_key, {});
 
-        std.debug.print("pm: processing {s} ({s})\n", .{ current_dep.name, current_dep.version });
+        std.debug.print("pm: resolving {s} ({s})\n", .{ current_dep.name, current_dep.version });
 
-        // Install/Cache the package
+        // We MUST download/cache it now to see its dependencies
         const cached_pkg = try pkg_cache.cachePackage(current_dep.name, current_dep.url, current_dep.dep_type, current_dep.version);
-        // We need to keep cached_pkg around to read its directory?
-        // Actually cachePackage returns a struct with a path we can use.
+        
+        // Update hash in the spec and resolver
+        if (queue.items[i].hash) |h| allocator.free(h);
+        queue.items[i].hash = try allocator.dupe(u8, cached_pkg.hash);
+        
+        if (try dep_resolver.getNodeByName(current_dep.name)) |node| {
+            if (node.spec.hash) |h| allocator.free(h);
+            node.spec.hash = try allocator.dupe(u8, cached_pkg.hash);
+        }
+
+        const pkg_dir_path = try allocator.dupe(u8, cached_pkg.path);
+        defer allocator.free(pkg_dir_path);
+        
         defer {
-            var mut_pkg = cached_pkg; // make mutable for deinit
+            var mut_pkg = cached_pkg;
             mut_pkg.deinit();
         }
 
-        // 3. Read dependencies of the installed package
-        var pkg_dir = fs.cwd().openDir(cached_pkg.path, .{}) catch |err| {
-            std.debug.print("Warning: could not open package dir {s}: {any}\n", .{ cached_pkg.path, err });
-            continue;
-        };
+        var pkg_dir = fs.cwd().openDir(pkg_dir_path, .{}) catch continue;
         defer pkg_dir.close();
 
-        // Check for mufi.zon in the package
         if (pkg_dir.access("mufi.zon", .{})) |_| {
-            // Found manifest, read it
             var sub_deps = try readDependencies(allocator, pkg_dir);
             defer {
                 for (sub_deps.items) |*d| d.deinit();
@@ -411,32 +399,68 @@ pub fn install(allocator: std.mem.Allocator) !void {
             }
 
             for (sub_deps.items) |sub_dep| {
-                // Add to queue (if not visited check happens at start of loop)
                 try queue.append(allocator, try sub_dep.clone(allocator));
-
-                // Add to resolver for graph
                 try dep_resolver.addDependency(try sub_dep.clone(allocator));
-
-                // Add edge to resolver
                 try dep_resolver.addEdge(current_dep.name, sub_dep.name);
             }
-        } else |_| {
-            // No mufi.zon, leaf package
-        }
+        } else |_| {}
     }
 
-    // 4. Final Resolve (Topological Sort)
-    // The resolver has built the full graph. Now we resolve order.
+    // 3. Final Resolve (Topological Sort)
     try dep_resolver.validate();
-    var resolved = try dep_resolver.resolve();
+    return try dep_resolver.resolve();
+}
+
+/// Install project dependencies recursively
+pub fn install(allocator: std.mem.Allocator) !void {
+    const cwd = fs.cwd();
+
+    if (cwd.access("mufi.zon", .{})) |_| {
+        // proceed
+    } else |_| {
+        std.debug.print("Error: Not a MufiZ project (mufi.zon not found)\n", .{});
+        return;
+    }
+
+    std.debug.print("📦 Installing dependencies...\n\n", .{});
+
+    var pkg_cache = try cache.Cache.init(allocator);
+    defer pkg_cache.deinit();
+
+    var resolved: std.ArrayList(resolver.DependencySpec) = undefined;
+
+    if (cwd.access("mufi.lock", .{})) |_| {
+        std.debug.print("♻️  Using mufi.lock\n", .{});
+        resolved = try readLockfile(allocator, cwd);
+    } else |_| {
+        resolved = try resolveAllDependencies(allocator, cwd);
+    }
     defer {
-        for (resolved.items) |*item| {
-            item.deinit();
-        }
+        for (resolved.items) |*dep| dep.deinit();
         resolved.deinit(allocator);
     }
 
-    std.debug.print("📊 Resolved {d} total dependencies (including transitive)\n\n", .{resolved.items.len});
+    // Ensure all resolved deps are actually cached (if they were added manually to lock or something)
+    for (resolved.items) |*dep| {
+        const cached = try pkg_cache.cachePackage(dep.name, dep.url, dep.dep_type, dep.version);
+        // Ensure hash is up to date
+        if (dep.hash) |h| allocator.free(h);
+        dep.hash = try allocator.dupe(u8, cached.hash);
+        
+        var mut_cached = cached;
+        mut_cached.deinit();
+    }
+
+    // Regenerate/Update lockfile
+    try writeLockfile(allocator, cwd, resolved);
+
+    std.debug.print("📊 Resolved {d} total dependencies (including transitive)\n", .{resolved.items.len});
+    for (resolved.items) |dep| {
+        std.debug.print("  - {s} @ {s}\n", .{ dep.name, dep.version });
+    }
+
+    std.debug.print("\n✅ All dependencies installed successfully!\n", .{});
+}
 
     // (Optional) Print final install order
     for (resolved.items) |dep| {
@@ -444,6 +468,107 @@ pub fn install(allocator: std.mem.Allocator) !void {
     }
 
     std.debug.print("\n✅ All dependencies installed successfully!\n", .{});
+}
+
+/// Write the resolved dependencies to mufi.lock
+fn writeLockfile(allocator: std.mem.Allocator, root_dir: fs.Dir, resolved: std.ArrayList(resolver.DependencySpec)) !void {
+    var content = try std.ArrayList(u8).initCapacity(allocator, 0);
+    defer content.deinit(allocator);
+
+    try content.appendSlice(allocator, ".{\n");
+    try content.appendSlice(allocator, "    .dependencies = .{\n");
+
+    for (resolved.items) |dep| {
+        const sanitized = try sanitizeDepName(allocator, dep.name);
+        defer allocator.free(sanitized);
+
+        const dep_type_str = switch (dep.dep_type) {
+            .Git => ".Git",
+            .Local => ".Local",
+            .Http => ".Http",
+        };
+
+        const entry = try std.fmt.allocPrint(allocator,
+            \\        .{s} = .{{
+            \\            .name = "{s}",
+            \\            .src = "{s}",
+            \\            .type = {s},
+            \\            .version = "{s}",
+            \\            .hash = "{s}",
+            \\        }},
+            \\
+        , .{ sanitized, dep.name, dep.url, dep_type_str, dep.version, dep.hash orelse "" });
+        defer allocator.free(entry);
+        try content.appendSlice(allocator, entry);
+    }
+
+    try content.appendSlice(allocator, "    },\n");
+    try content.appendSlice(allocator, "}\n");
+
+    try writeFile(root_dir, "mufi.lock", content.items);
+    std.debug.print("📝 Generated mufi.lock\n", .{});
+}
+
+/// Read dependencies from mufi.lock in a specific directory
+fn readLockfile(allocator: std.mem.Allocator, dir: fs.Dir) !std.ArrayList(resolver.DependencySpec) {
+    var deps = try std.ArrayList(resolver.DependencySpec).initCapacity(allocator, 0);
+    errdefer {
+        for (deps.items) |*dep| dep.deinit();
+        deps.deinit(allocator);
+    }
+
+    const lock_bytes = dir.readFileAlloc(allocator, "mufi.lock", 1024 * 1024) catch |err| {
+        if (err == error.FileNotFound) return deps;
+        return err;
+    };
+    defer allocator.free(lock_bytes);
+
+    const dep_marker = ".dependencies = .{";
+    const deps_start = std.mem.indexOf(u8, lock_bytes, dep_marker) orelse return deps;
+    const deps_block_start = deps_start + dep_marker.len;
+
+    var brace_count: i32 = 1;
+    var pos: usize = deps_block_start;
+    while (pos < lock_bytes.len and brace_count > 0) : (pos += 1) {
+        if (lock_bytes[pos] == '{') brace_count += 1 else if (lock_bytes[pos] == '}') brace_count -= 1;
+    }
+    const deps_block_end = if (pos > 0) pos - 1 else deps_block_start;
+    const block = lock_bytes[deps_block_start..deps_block_end];
+
+    const open_seq = "= .{";
+    var scan_pos: usize = 0;
+    while (scan_pos < block.len) {
+        const rel_idx = std.mem.indexOf(u8, block[scan_pos..], open_seq) orelse break;
+        const entry_open = scan_pos + rel_idx + open_seq.len;
+
+        var bcount: i32 = 1;
+        var p: usize = entry_open;
+        while (p < block.len and bcount > 0) : (p += 1) {
+            if (block[p] == '{') bcount += 1 else if (block[p] == '}') bcount -= 1;
+        }
+        const entry_close = p;
+        const entry_slice = block[entry_open..entry_close];
+
+        if (extractQuotedField(entry_slice, ".name")) |name_val| {
+            var src_val_opt: ?[]const u8 = null;
+            if (extractQuotedField(entry_slice, ".src")) |s| src_val_opt = s else if (extractQuotedField(entry_slice, ".url")) |u| src_val_opt = u;
+
+            if (src_val_opt) |src_val| {
+                if (extractQuotedField(entry_slice, ".version")) |ver_val| {
+                    var type_enum: cache.SourceType = .Git;
+                    if (extractEnumField(entry_slice, ".type")) |enum_tok| {
+                        if (std.mem.eql(u8, enum_tok, "Local")) type_enum = .Local else if (std.mem.eql(u8, enum_tok, "Git")) type_enum = .Git else if (std.mem.eql(u8, enum_tok, "Http")) type_enum = .Http;
+                    }
+                    const hash_val = extractQuotedField(entry_slice, ".hash");
+                    const spec = try resolver.DependencySpec.initAll(allocator, name_val, src_val, ver_val, type_enum, hash_val);
+                    try deps.append(allocator, spec);
+                }
+            }
+        }
+        scan_pos = entry_close;
+    }
+
+    return deps;
 }
 
 /// Sanitize a dependency name for use as a ZON key:
@@ -825,6 +950,26 @@ pub fn docs(allocator: std.mem.Allocator) !void {
     try docgen.generateDocs(allocator, project_name);
 }
 
+/// Update project dependencies (ignore lockfile)
+pub fn update(allocator: std.mem.Allocator) !void {
+    const cwd = fs.cwd();
+
+    if (cwd.access("mufi.zon", .{})) |_| {
+        // proceed
+    } else |_| {
+        std.debug.print("Error: Not a MufiZ project (mufi.zon not found)\n", .{});
+        return;
+    }
+
+    // Delete lockfile if it exists to force re-resolution
+    cwd.deleteFile("mufi.lock") catch |err| {
+        if (err != error.FileNotFound) return err;
+    };
+
+    std.debug.print("🔄 Updating dependencies...\n", .{});
+    try install(allocator);
+}
+
 /// Print package manager help
 pub fn printHelp() void {
     std.debug.print(
@@ -838,7 +983,8 @@ pub fn printHelp() void {
         \\    init <name>          Initialize a MufiZ project in the current directory
         \\    info                 Display information about the current project
         \\    run                  Run the current project (execute src/main.mufi)
-        \\    install              Install project dependencies from mufi.zon
+        \\    install              Install project dependencies
+        \\    update               Update dependencies and refresh mufi.lock
         \\    add <name> <url> <v> Add a dependency to mufi.zon
         \\    docs                 Generate HTML documentation for the project
         \\    cache info           Show package cache statistics
@@ -851,6 +997,7 @@ pub fn printHelp() void {
         \\    mufiz pm info                  Show current project information
         \\    mufiz pm run                   Run the current project
         \\    mufiz pm install               Install all dependencies
+        \\    mufiz pm update                Refresh all dependencies
         \\    mufiz pm add http https://github.com/user/mufiz-http v1.0.0
         \\                                   Add a dependency
         \\    mufiz pm docs                  Generate documentation
@@ -860,6 +1007,7 @@ pub fn printHelp() void {
         \\PROJECT STRUCTURE:
         \\    my-project/
         \\    ├── mufi.zon       Project metadata and configuration (ZON format)
+        \\    ├── mufi.lock      Resolved dependencies (Auto-generated)
         \\    └── src/
         \\        └── main.mufi  Entry point of the application
         \\

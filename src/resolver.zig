@@ -5,6 +5,7 @@ const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
 const StringHashMap = std.StringHashMap;
 const cache = @import("cache.zig");
+const semver = @import("semver.zig");
 
 pub const ResolverError = error{
     CircularDependency,
@@ -21,6 +22,7 @@ pub const DependencySpec = struct {
     version: []const u8,
     // Explicit type of the source (enum)
     dep_type: cache.SourceType,
+    hash: ?[]const u8 = null,
     allocator: Allocator,
 
     pub fn init(allocator: Allocator, name: []const u8, url: []const u8, version: []const u8, dep_type: cache.SourceType) !DependencySpec {
@@ -29,6 +31,18 @@ pub const DependencySpec = struct {
             .url = try allocator.dupe(u8, url),
             .version = try allocator.dupe(u8, version),
             .dep_type = dep_type,
+            .hash = null,
+            .allocator = allocator,
+        };
+    }
+
+    pub fn initAll(allocator: Allocator, name: []const u8, url: []const u8, version: []const u8, dep_type: cache.SourceType, hash: ?[]const u8) !DependencySpec {
+        return DependencySpec{
+            .name = try allocator.dupe(u8, name),
+            .url = try allocator.dupe(u8, url),
+            .version = try allocator.dupe(u8, version),
+            .dep_type = dep_type,
+            .hash = if (hash) |h| try allocator.dupe(u8, h) else null,
             .allocator = allocator,
         };
     }
@@ -37,11 +51,11 @@ pub const DependencySpec = struct {
         self.allocator.free(self.name);
         self.allocator.free(self.url);
         self.allocator.free(self.version);
-        // dep_type is an enum value (no heap allocation) so nothing to free
+        if (self.hash) |h| self.allocator.free(h);
     }
 
     pub fn clone(self: DependencySpec, allocator: Allocator) !DependencySpec {
-        return DependencySpec.init(allocator, self.name, self.url, self.version, self.dep_type);
+        return DependencySpec.initAll(allocator, self.name, self.url, self.version, self.dep_type, self.hash);
     }
 };
 
@@ -112,7 +126,7 @@ pub const Resolver = struct {
     ///  2) sanitized form ( '-' -> '_' )
     ///  3) reverse-sanitized form ( '_' -> '-' )
     /// Returns null if not found. This function may allocate temporary buffers so it returns an error on allocation failure.
-    fn getNodeByName(self: *Resolver, name: []const u8) !?*Node {
+    pub fn getNodeByName(self: *Resolver, name: []const u8) !?*Node {
         // Try exact match first
         if (self.graph.get(name)) |n| {
             return n;
@@ -176,8 +190,24 @@ pub const Resolver = struct {
 
     /// Add a dependency to the graph
     pub fn addDependency(self: *Resolver, spec: DependencySpec) !void {
-        // If the dependency already exists (in any normalized form), ensure versions match
+        // If the dependency already exists (in any normalized form), ensure versions are compatible
         if (try self.getNodeByName(spec.name)) |existing| {
+            // Check if they are SemVer versions
+            const v1_req = semver.VersionRange.parse(self.allocator, spec.version) catch null;
+            const v2_actual = semver.Version.parse(self.allocator, existing.spec.version) catch null;
+
+            if (v1_req != null and v2_actual != null) {
+                if (!v1_req.?.isSatisfiedBy(v2_actual.?)) {
+                    std.debug.print(
+                        "⚠️  Version conflict: {s} requires {s} but {s} is already resolved\n",
+                        .{ spec.name, spec.version, existing.spec.version },
+                    );
+                    return ResolverError.VersionConflict;
+                }
+                return; // Compatible
+            }
+
+            // Fallback to exact match for non-semver (branches, etc.)
             if (!std.mem.eql(u8, existing.spec.version, spec.version)) {
                 std.debug.print(
                     "⚠️  Version conflict: {s} requires both {s} and {s}\n",
@@ -192,7 +222,7 @@ pub const Resolver = struct {
         const node = try self.allocator.create(Node);
         node.* = try Node.init(self.allocator, spec);
 
-        const key = try self.allocator.dupe(u8, spec.name);
+        const key = try allocator.dupe(u8, spec.name);
         try self.graph.put(key, node);
     }
 
