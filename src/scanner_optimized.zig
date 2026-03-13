@@ -430,6 +430,22 @@ fn handleBacktick() Token {
 }
 
 fn handleQuote() Token {
+    if (peek_internal() == '"' and peekNext_internal() == '"') {
+        _ = advance_internal(); // consume second quote
+        _ = advance_internal(); // consume third quote
+        while (true) {
+            const c = peek_internal();
+            if (c == '"' and peekNext_internal() == '"' and peek_at(2) == '"') {
+                _ = advance_internal();
+                _ = advance_internal();
+                _ = advance_internal();
+                return make_token(.TOKEN_MULTILINE_STRING);
+            }
+            if (c == '\x00') return errorToken(@constCast("Unterminated multiline string."));
+            if (c == '\n') scanner.line += 1;
+            _ = advance_internal();
+        }
+    }
     return string();
 }
 

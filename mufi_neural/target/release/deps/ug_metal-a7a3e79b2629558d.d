@@ -1,0 +1,11 @@
+/Users/mustafif/Projects/MufiZ/mufi_neural/target/release/deps/ug_metal-a7a3e79b2629558d.d: /Users/mustafif/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ug-metal-0.1.0/src/lib.rs /Users/mustafif/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ug-metal-0.1.0/src/code_gen.rs /Users/mustafif/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ug-metal-0.1.0/src/runtime.rs /Users/mustafif/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ug-metal-0.1.0/src/utils.rs /Users/mustafif/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ug-metal-0.1.0/src/mlx_gemm.metal
+
+/Users/mustafif/Projects/MufiZ/mufi_neural/target/release/deps/libug_metal-a7a3e79b2629558d.rlib: /Users/mustafif/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ug-metal-0.1.0/src/lib.rs /Users/mustafif/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ug-metal-0.1.0/src/code_gen.rs /Users/mustafif/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ug-metal-0.1.0/src/runtime.rs /Users/mustafif/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ug-metal-0.1.0/src/utils.rs /Users/mustafif/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ug-metal-0.1.0/src/mlx_gemm.metal
+
+/Users/mustafif/Projects/MufiZ/mufi_neural/target/release/deps/libug_metal-a7a3e79b2629558d.rmeta: /Users/mustafif/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ug-metal-0.1.0/src/lib.rs /Users/mustafif/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ug-metal-0.1.0/src/code_gen.rs /Users/mustafif/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ug-metal-0.1.0/src/runtime.rs /Users/mustafif/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ug-metal-0.1.0/src/utils.rs /Users/mustafif/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ug-metal-0.1.0/src/mlx_gemm.metal
+
+/Users/mustafif/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ug-metal-0.1.0/src/lib.rs:
+/Users/mustafif/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ug-metal-0.1.0/src/code_gen.rs:
+/Users/mustafif/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ug-metal-0.1.0/src/runtime.rs:
+/Users/mustafif/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ug-metal-0.1.0/src/utils.rs:
+/Users/mustafif/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ug-metal-0.1.0/src/mlx_gemm.metal:

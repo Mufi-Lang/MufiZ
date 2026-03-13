@@ -1,0 +1,28 @@
+[package]
+name = "mufi_neural"
+version = "0.1.0"
+edition = "2021"
+
+# cdylib → Swift FFI dylib; rlib → used by the binary crate.
+[lib]
+name = "mufi_neural"
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = ["metal"]
+metal = ["candle-core/metal"]
+
+[dependencies]
+candle-core         = { version = "0.8.2" }
+candle-nn           = "0.8.2"
+candle-transformers = "0.8.2"
+tokenizers          = "0.20.0"
+anyhow              = "1.0.86"
+clap                = { version = "4.5.11", features = ["derive"] }
+rand                = "0.8.5"
+serde               = { version = "1.0.204", features = ["derive"] }
+serde_json          = "1.0.120"
+tokio               = { version = "1", features = ["full"] }
+tower-lsp           = "0.20"
+tempfile            = "3"
+flate2              = "1.0"

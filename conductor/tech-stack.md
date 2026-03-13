@@ -19,3 +19,9 @@
 ## Infrastructure & Tooling
 - **Package Management:** Built-in PM using ZON (Zig Object Notation).
 - **Cross-Platform:** Support for macOS (ARM/Intel), Linux, Windows, and Browser (WASM).
+
+## LSP & Tooling (Neural Engine)
+- **Language:** Rust.
+- **ML Framework:** Hugging Face Candle (Rust).
+- **Hardware Acceleration:** Metal (Apple Silicon) via `candle-metal`.
+- **Model Architecture:** Small Language Model (Transformer-based).

@@ -4,6 +4,11 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
+- [ ] **Track: Neural LSP Engine (Error Prediction & Intellisense)**
+  *Link: [./tracks/neural_lsp_20260311/](./tracks/neural_lsp_20260311/)*
+
+---
+
 - [ ] **Track: Fix WebAssembly String Corruption and UI Escaping**
   *Link: [./tracks/wasm_string_fix_20260214/](./tracks/wasm_string_fix_20260214/)*
 
