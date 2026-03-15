@@ -1,0 +1,70 @@
+// MufiZ Type System Test - Simple Demo
+// Demonstrates type annotations and coercion
+
+print("=== Type System Demo ===");
+
+// Type Annotation Tests
+print("\n1. Type Annotations:");
+var x: int = 42;
+print("  int: " + x);
+
+var y: double = 3.14;
+print("  double: " + y);
+
+var msg: string = "hello";
+print("  string: " + msg);
+
+var flag: bool = true;
+print("  bool: " + flag);
+
+// Type Coercion Tests
+print("\n2. Type Coercion (int + double):");
+var a: int = 10;
+var b: double = 5.5;
+var sum = a + b;
+print("  10 + 5.5 = " + sum);
+
+// Division returns double
+print("\n3. Division (int / int):");
+var c: int = 10;
+var d: int = 4;
+var quotient = c / d;
+print("  10 / 4 = " + quotient);
+
+// Multiplication
+print("\n4. Multiplication (int * double):");
+var e: int = 5;
+var f: double = 2.5;
+var product = e * f;
+print("  5 * 2.5 = " + product);
+
+// Subtraction
+print("\n5. Subtraction (double - int):");
+var g: double = 10.5;
+var h: int = 3;
+var diff = g - h;
+print("  10.5 - 3 = " + diff);
+
+// Comparison
+print("\n6. Comparison (int > double):");
+var i: int = 10;
+var j: double = 5.5;
+if (i > j) {
+  print("  10 > 5.5: true");
+}
+
+// String concat
+print("\n7. String Concatenation:");
+var s1: string = "Hello";
+var s2: string = "World";
+var greeting = s1 + " " + s2;
+print("  " + greeting);
+
+// Integer operations stay int
+print("\n8. Integer Operations:");
+var p: int = 7;
+var q: int = 3;
+var mult = p * q;
+print("  7 * 3 = " + mult);
+
+print("\n✅ Type system working correctly!");

@@ -1,0 +1,9 @@
+// Test type annotations
+let x: int = 10;
+let y: double = 5.5;
+let result = x + y;
+print(result);
+
+// Test without annotations
+let a = 3;
+print(a);

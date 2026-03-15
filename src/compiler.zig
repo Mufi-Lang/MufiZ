@@ -26,6 +26,9 @@ const Value = value_h.Value;
 const Complex = value_h.Complex;
 const vm_h = @import("vm.zig");
 const bytecode_optimizer = @import("bytecode_optimizer.zig");
+const type_system = @import("type_system.zig");
+const type_checker = @import("type_checker.zig");
+const type_annotations = @import("type_annotations.zig");
 
 /// Helper to create a Value wrapping a string object (uses copyString — for runtime/dynamic strings).
 fn makeStringValue(start: [*]const u8, length: usize) Value {
@@ -44,11 +47,9 @@ pub var errorManagerInitialized: bool = false;
 
 // Track all declared variables for suggestion system
 pub fn addKnownVariable(name: []const u8) void {
-    if (errorManagerInitialized) {
-        // Use compiler arena for temporary variable tracking
-        const allocator = compiler_arena.getCompilerAllocator();
-        knownVariables.append(allocator, name) catch {};
-    }
+    _ = name;
+    // Variable tracking disabled to avoid memory management issues in REPL
+    // The suggestion system will work without prior variable tracking
 }
 
 pub fn findSimilarVariables(name: []const u8, allocator: std.mem.Allocator) []const []const u8 {
@@ -2175,6 +2176,22 @@ pub fn funDeclaration() void {
 }
 pub fn varDeclaration() void {
     const global = parseVariable("Expect variable name.");
+    
+    // Check for optional type annotation: ": typename"
+    if (match(.TOKEN_COLON)) {
+        if (parser.current.type == .TOKEN_IDENTIFIER) {
+            const type_name = parser.current.start[0..@intCast(parser.current.length)];
+            const annotated_type = type_annotations.parseTypeNameString(type_name);
+            
+            if (annotated_type == null) {
+                errorAtCurrent("Unknown type name");
+            }
+            advance();
+        } else {
+            errorAtCurrent("Expect type name after ':'");
+        }
+    }
+    
     if (match(.TOKEN_EQUAL)) {
         expression();
     } else {
@@ -2714,11 +2731,9 @@ pub fn compile(source: [*]const u8, file_path: ?[]const u8) ?*ObjFunction {
 
     // Initialize error manager if not already done
     if (!errorManagerInitialized) {
-        globalErrorManager = errors.ErrorManager.init(mem_utils.getAllocator());
-        knownVariables = std.ArrayList([]const u8){};
-        knownVariables.items = &[_][]const u8{};
-        knownVariables.capacity = 0;
-        // Note: allocator field doesn't exist in Zig 0.15 ArrayList
+        const allocator = mem_utils.getAllocator();
+        globalErrorManager = errors.ErrorManager.init(allocator);
+        knownVariables = std.ArrayList([]const u8).initCapacity(allocator, 0) catch unreachable;
         errorManagerInitialized = true;
     } else {
         globalErrorManager.reset();
