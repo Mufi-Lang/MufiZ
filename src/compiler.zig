@@ -2765,7 +2765,7 @@ pub fn compile(source: [*]const u8, file_path: ?[]const u8) ?*ObjFunction {
 
     // Optimize the compiled bytecode
     if (!parser.hadError) {
-        _ = bytecode_optimizer.optimizeDefault(&function_1.chunk);
+        _ = bytecode_optimizer.optimize(&function_1.chunk, bytecode_optimizer.OptimizerConfig.disabled());
     }
 
     return if (parser.hadError) null else function_1;

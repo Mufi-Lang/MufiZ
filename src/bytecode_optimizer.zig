@@ -26,7 +26,8 @@ const jump_patcher = @import("jump_patcher.zig");
 /// Configuration for optimization passes
 pub const OptimizerConfig = struct {
     /// Enable superinstruction fusion (Phase 3)
-    enable_superinstructions: bool = true,
+    /// DISABLED: Causes bytecode corruption with constant indices
+    enable_superinstructions: bool = false,
 
     /// Enable peephole optimizations
     enable_peephole: bool = true,
