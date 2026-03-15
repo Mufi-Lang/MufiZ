@@ -123,6 +123,10 @@ pub fn repl() !void {
 
     var statement_buffer = std.ArrayList(u8).initCapacity(allocator, 0) catch unreachable;
     defer statement_buffer.deinit(allocator);
+    
+    // Accumulate all source code for proper variable persistence
+    var accumulated_source = std.ArrayList(u8).initCapacity(allocator, 0) catch unreachable;
+    defer accumulated_source.deinit(allocator);
 
     while (true) {
         // Determine the prompt based on whether we're in a multi-line statement
@@ -151,7 +155,7 @@ pub fn repl() !void {
             } else {
                 // Empty line in multi-line mode might indicate completion
                 if (isStatementComplete(statement_buffer.items)) {
-                    try executeStatement(&statement_buffer, &line_editor, allocator);
+                    try executeStatement(&statement_buffer, &line_editor, allocator, &accumulated_source);
                     continue;
                 }
             }
@@ -170,7 +174,7 @@ pub fn repl() !void {
 
         // Check if the statement is complete
         if (isStatementComplete(statement_buffer.items)) {
-            try executeStatement(&statement_buffer, &line_editor, allocator);
+            try executeStatement(&statement_buffer, &line_editor, allocator, &accumulated_source);
         }
         // If statement is not complete, continue reading more lines
     }
@@ -249,18 +253,26 @@ pub const Runner = struct {
 };
 
 // Helper function to execute a complete statement
-fn executeStatement(statement_buffer: *std.ArrayList(u8), line_editor: *SimpleLineEditor, allocator: std.mem.Allocator) !void {
+fn executeStatement(statement_buffer: *std.ArrayList(u8), line_editor: *SimpleLineEditor, allocator: std.mem.Allocator, accumulated_source: *std.ArrayList(u8)) !void {
     if (statement_buffer.items.len == 0) return;
 
-    // Create a null-terminated buffer for the interpreter
-    var exec_buffer = try allocator.alloc(u8, statement_buffer.items.len + 1);
+    // Add newline separator if there's already accumulated code
+    if (accumulated_source.items.len > 0) {
+        try accumulated_source.append(allocator, '\n');
+    }
+    
+    // Append the current statement to accumulated source
+    try accumulated_source.appendSlice(allocator, statement_buffer.items);
+    
+    // Create a null-terminated buffer for the interpreter with all accumulated code
+    var exec_buffer = try allocator.alloc(u8, accumulated_source.items.len + 1);
     defer allocator.free(exec_buffer);
 
-    @memcpy(exec_buffer[0..statement_buffer.items.len], statement_buffer.items);
-    exec_buffer[statement_buffer.items.len] = 0; // null terminate
+    @memcpy(exec_buffer[0..accumulated_source.items.len], accumulated_source.items);
+    exec_buffer[accumulated_source.items.len] = 0; // null terminate
 
-    // Execute the complete statement
-    const result = vm_h.interpret(conv.cstr(exec_buffer[0..statement_buffer.items.len]));
+    // Execute with accumulated source code for proper variable persistence
+    const result = vm_h.interpret(conv.cstr(exec_buffer[0..accumulated_source.items.len]));
 
     // Provide feedback based on result
     switch (result) {
@@ -269,6 +281,15 @@ fn executeStatement(statement_buffer: *std.ArrayList(u8), line_editor: *SimpleLi
         },
         .INTERPRET_COMPILE_ERROR => {
             std.debug.print("💥 Compilation error - check your syntax\n", .{});
+            // Remove the failed statement from accumulated source
+            for (0..statement_buffer.items.len) |_| {
+                if (accumulated_source.items.len > 0) {
+                    accumulated_source.shrinkRetainingCapacity(accumulated_source.items.len - 1);
+                }
+            }
+            if (accumulated_source.items.len > 0) {
+                accumulated_source.shrinkRetainingCapacity(accumulated_source.items.len - 1); // Remove separator newline too
+            }
         },
         .INTERPRET_RUNTIME_ERROR => {
             std.debug.print("🚨 Runtime error - check your logic\n", .{});
