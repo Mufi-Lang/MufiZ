@@ -610,6 +610,580 @@ fn reverse_impl(argc: i32, args: [*]Value) Value {
     return Value.init_nil();
 }
 
+// ===== Phase 2: Vector Math Operations =====
+
+fn dot_impl(_: i32, args: [*]Value) Value {
+    if (!Value.is_obj_type(args[0], .OBJ_FVECTOR) or !Value.is_obj_type(args[1], .OBJ_FVECTOR)) {
+        return stdlib_core.stdlib_error("dot() requires two vectors!", .{});
+    }
+    
+    const v1 = args[0].as_vector();
+    const v2 = args[1].as_vector();
+    
+    if (v1.size != v2.size) {
+        return stdlib_core.stdlib_error("dot() requires vectors of same size!", .{});
+    }
+    
+    var dot_sum: f64 = 0.0;
+    for (0..v1.size) |i| {
+        dot_sum += v1.data[i] * v2.data[i];
+    }
+    
+    return Value.init_double(dot_sum);
+}
+
+fn cross_impl(_: i32, args: [*]Value) Value {
+    if (!Value.is_obj_type(args[0], .OBJ_FVECTOR) or !Value.is_obj_type(args[1], .OBJ_FVECTOR)) {
+        return stdlib_core.stdlib_error("cross() requires two vectors!", .{});
+    }
+    
+    const v1 = args[0].as_vector();
+    const v2 = args[1].as_vector();
+    
+    if (v1.size != 3 or v2.size != 3) {
+        return stdlib_core.stdlib_error("cross() requires 3D vectors!", .{});
+    }
+    
+    const result = fvector.FloatVector.init(3);
+    result.data[0] = v1.data[1] * v2.data[2] - v1.data[2] * v2.data[1];
+    result.data[1] = v1.data[2] * v2.data[0] - v1.data[0] * v2.data[2];
+    result.data[2] = v1.data[0] * v2.data[1] - v1.data[1] * v2.data[0];
+    result.size = 3;
+    
+    return Value.init_obj(@ptrCast(result));
+}
+
+fn magnitude_impl(_: i32, args: [*]Value) Value {
+    if (!Value.is_obj_type(args[0], .OBJ_FVECTOR)) {
+        return stdlib_core.stdlib_error("magnitude() requires a vector!", .{});
+    }
+    
+    const v = args[0].as_vector();
+    var mag_sum: f64 = 0.0;
+    for (0..v.size) |i| {
+        mag_sum += v.data[i] * v.data[i];
+    }
+    
+    return Value.init_double(@sqrt(mag_sum));
+}
+
+fn normalize_impl(_: i32, args: [*]Value) Value {
+    if (!Value.is_obj_type(args[0], .OBJ_FVECTOR)) {
+        return stdlib_core.stdlib_error("normalize() requires a vector!", .{});
+    }
+    
+    const v = args[0].as_vector();
+    var norm_sum: f64 = 0.0;
+    for (0..v.size) |i| {
+        norm_sum += v.data[i] * v.data[i];
+    }
+    
+    const mag = @sqrt(norm_sum);
+    if (mag == 0.0) {
+        return stdlib_core.stdlib_error("Cannot normalize zero vector!", .{});
+    }
+    
+    const result = fvector.FloatVector.init(v.size);
+    for (0..v.size) |i| {
+        result.data[i] = v.data[i] / mag;
+    }
+    result.size = v.size;
+    
+    return Value.init_obj(@ptrCast(result));
+}
+
+fn distance_impl(_: i32, args: [*]Value) Value {
+    if (!Value.is_obj_type(args[0], .OBJ_FVECTOR) or !Value.is_obj_type(args[1], .OBJ_FVECTOR)) {
+        return stdlib_core.stdlib_error("distance() requires two vectors!", .{});
+    }
+    
+    const v1 = args[0].as_vector();
+    const v2 = args[1].as_vector();
+    
+    if (v1.size != v2.size) {
+        return stdlib_core.stdlib_error("distance() requires vectors of same size!", .{});
+    }
+    
+    var dist_sum: f64 = 0.0;
+    for (0..v1.size) |i| {
+        const delta = v1.data[i] - v2.data[i];
+        dist_sum += delta * delta;
+    }
+    
+    return Value.init_double(@sqrt(dist_sum));
+}
+
+fn angle_between_impl(_: i32, args: [*]Value) Value {
+    if (!Value.is_obj_type(args[0], .OBJ_FVECTOR) or !Value.is_obj_type(args[1], .OBJ_FVECTOR)) {
+        return stdlib_core.stdlib_error("angle_between() requires two vectors!", .{});
+    }
+    
+    const v1 = args[0].as_vector();
+    const v2 = args[1].as_vector();
+    
+    if (v1.size != v2.size) {
+        return stdlib_core.stdlib_error("angle_between() requires vectors of same size!", .{});
+    }
+    
+    // Compute dot product
+    var dot_prod: f64 = 0.0;
+    for (0..v1.size) |i| {
+        dot_prod += v1.data[i] * v2.data[i];
+    }
+    
+    // Compute magnitudes
+    var mag1: f64 = 0.0;
+    var mag2: f64 = 0.0;
+    for (0..v1.size) |i| {
+        mag1 += v1.data[i] * v1.data[i];
+        mag2 += v2.data[i] * v2.data[i];
+    }
+    mag1 = @sqrt(mag1);
+    mag2 = @sqrt(mag2);
+    
+    if (mag1 == 0.0 or mag2 == 0.0) {
+        return stdlib_core.stdlib_error("Cannot compute angle with zero vector!", .{});
+    }
+    
+    // Compute angle
+    const cos_theta = dot_prod / (mag1 * mag2);
+    // Clamp to [-1, 1] to handle floating point errors
+    const clamped = @max(-1.0, @min(1.0, cos_theta));
+    
+    return Value.init_double(std.math.acos(clamped));
+}
+
+fn project_impl(_: i32, args: [*]Value) Value {
+    if (!Value.is_obj_type(args[0], .OBJ_FVECTOR) or !Value.is_obj_type(args[1], .OBJ_FVECTOR)) {
+        return stdlib_core.stdlib_error("project() requires two vectors!", .{});
+    }
+    
+    const v1 = args[0].as_vector();
+    const v2 = args[1].as_vector();
+    
+    if (v1.size != v2.size) {
+        return stdlib_core.stdlib_error("project() requires vectors of same size!", .{});
+    }
+    
+    // Compute dot products
+    var dot_v1_v2: f64 = 0.0;
+    var dot_v2_v2: f64 = 0.0;
+    for (0..v1.size) |i| {
+        dot_v1_v2 += v1.data[i] * v2.data[i];
+        dot_v2_v2 += v2.data[i] * v2.data[i];
+    }
+    
+    if (dot_v2_v2 == 0.0) {
+        return stdlib_core.stdlib_error("Cannot project onto zero vector!", .{});
+    }
+    
+    const scalar = dot_v1_v2 / dot_v2_v2;
+    const result = fvector.FloatVector.init(v1.size);
+    for (0..v1.size) |i| {
+        result.data[i] = scalar * v2.data[i];
+    }
+    result.size = v1.size;
+    
+    return Value.init_obj(@ptrCast(result));
+}
+
+fn reject_impl(_: i32, args: [*]Value) Value {
+    if (!Value.is_obj_type(args[0], .OBJ_FVECTOR) or !Value.is_obj_type(args[1], .OBJ_FVECTOR)) {
+        return stdlib_core.stdlib_error("reject() requires two vectors!", .{});
+    }
+    
+    const v1 = args[0].as_vector();
+    const v2 = args[1].as_vector();
+    
+    if (v1.size != v2.size) {
+        return stdlib_core.stdlib_error("reject() requires vectors of same size!", .{});
+    }
+    
+    // Compute projection
+    var dot_v1_v2: f64 = 0.0;
+    var dot_v2_v2: f64 = 0.0;
+    for (0..v1.size) |i| {
+        dot_v1_v2 += v1.data[i] * v2.data[i];
+        dot_v2_v2 += v2.data[i] * v2.data[i];
+    }
+    
+    if (dot_v2_v2 == 0.0) {
+        return stdlib_core.stdlib_error("Cannot reject from zero vector!", .{});
+    }
+    
+    const scalar = dot_v1_v2 / dot_v2_v2;
+    
+    // Compute rejection: v1 - proj
+    const result = fvector.FloatVector.init(v1.size);
+    for (0..v1.size) |i| {
+        result.data[i] = v1.data[i] - scalar * v2.data[i];
+    }
+    result.size = v1.size;
+    
+    return Value.init_obj(@ptrCast(result));
+}
+
+fn lerp_impl(_: i32, args: [*]Value) Value {
+    const t = args[2].as_num_double();
+    
+    // Check if both are vectors
+    if (Value.is_obj_type(args[0], .OBJ_FVECTOR) and Value.is_obj_type(args[1], .OBJ_FVECTOR)) {
+        const v1 = args[0].as_vector();
+        const v2 = args[1].as_vector();
+        
+        if (v1.size != v2.size) {
+            return stdlib_core.stdlib_error("lerp() requires vectors of same size!", .{});
+        }
+        
+        const result = fvector.FloatVector.init(v1.size);
+        for (0..v1.size) |i| {
+            result.data[i] = v1.data[i] * (1.0 - t) + v2.data[i] * t;
+        }
+        result.size = v1.size;
+        
+        return Value.init_obj(@ptrCast(result));
+    }
+    
+    // Scalar lerp
+    const a = args[0].as_num_double();
+    const b = args[1].as_num_double();
+    return Value.init_double(a * (1.0 - t) + b * t);
+}
+
+// ===== Phase 3: Advanced Statistics & Data Analysis =====
+
+fn median_impl(_: i32, args: [*]Value) Value {
+    if (!Value.is_obj_type(args[0], .OBJ_FVECTOR)) {
+        return stdlib_core.stdlib_error("median() requires a vector!", .{});
+    }
+    
+    const v = args[0].as_vector();
+    if (v.size == 0) {
+        return stdlib_core.stdlib_error("Cannot compute median of empty vector!", .{});
+    }
+    
+    // Clone and sort the vector
+    const sorted = fvector.FloatVector.init(v.size);
+    for (0..v.size) |i| {
+        sorted.data[i] = v.data[i];
+    }
+    sorted.size = v.size;
+    sorted.sort();
+    
+    const mid = v.size / 2;
+    if (v.size % 2 == 0) {
+        // Even: average of two middle elements
+        return Value.init_double((sorted.data[mid - 1] + sorted.data[mid]) / 2.0);
+    } else {
+        // Odd: middle element
+        return Value.init_double(sorted.data[mid]);
+    }
+}
+
+fn mode_impl(_: i32, args: [*]Value) Value {
+    if (!Value.is_obj_type(args[0], .OBJ_FVECTOR)) {
+        return stdlib_core.stdlib_error("mode() requires a vector!", .{});
+    }
+    
+    const v = args[0].as_vector();
+    if (v.size == 0) {
+        return stdlib_core.stdlib_error("Cannot compute mode of empty vector!", .{});
+    }
+    
+    // Clone and sort
+    const sorted = fvector.FloatVector.init(v.size);
+    for (0..v.size) |i| {
+        sorted.data[i] = v.data[i];
+    }
+    sorted.size = v.size;
+    sorted.sort();
+    
+    // Find mode
+    var max_count: usize = 1;
+    var current_count: usize = 1;
+    var mode_value = sorted.data[0];
+    
+    for (1..sorted.size) |i| {
+        if (sorted.data[i] == sorted.data[i - 1]) {
+            current_count += 1;
+            if (current_count > max_count) {
+                max_count = current_count;
+                mode_value = sorted.data[i];
+            }
+        } else {
+            current_count = 1;
+        }
+    }
+    
+    return Value.init_double(mode_value);
+}
+
+fn percentile_impl(_: i32, args: [*]Value) Value {
+    if (!Value.is_obj_type(args[0], .OBJ_FVECTOR)) {
+        return stdlib_core.stdlib_error("percentile() requires a vector!", .{});
+    }
+    
+    const v = args[0].as_vector();
+    const p = args[1].as_num_double();
+    
+    if (v.size == 0) {
+        return stdlib_core.stdlib_error("Cannot compute percentile of empty vector!", .{});
+    }
+    
+    if (p < 0.0 or p > 100.0) {
+        return stdlib_core.stdlib_error("Percentile must be in range [0, 100]!", .{});
+    }
+    
+    // Clone and sort
+    const sorted = fvector.FloatVector.init(v.size);
+    for (0..v.size) |i| {
+        sorted.data[i] = v.data[i];
+    }
+    sorted.size = v.size;
+    sorted.sort();
+    
+    // Linear interpolation method
+    const rank = (p / 100.0) * @as(f64, @floatFromInt(v.size - 1));
+    const lower_idx = @as(usize, @intFromFloat(@floor(rank)));
+    const upper_idx = @min(lower_idx + 1, v.size - 1);
+    const frac = rank - @floor(rank);
+    
+    const result = sorted.data[lower_idx] * (1.0 - frac) + sorted.data[upper_idx] * frac;
+    return Value.init_double(result);
+}
+
+fn quantile_impl(_: i32, args: [*]Value) Value {
+    if (!Value.is_obj_type(args[0], .OBJ_FVECTOR)) {
+        return stdlib_core.stdlib_error("quantile() requires a vector!", .{});
+    }
+    
+    const v = args[0].as_vector();
+    const q = args[1].as_num_double();
+    
+    if (v.size == 0) {
+        return stdlib_core.stdlib_error("Cannot compute quantile of empty vector!", .{});
+    }
+    
+    if (q < 0.0 or q > 1.0) {
+        return stdlib_core.stdlib_error("Quantile must be in range [0, 1]!", .{});
+    }
+    
+    // Clone and sort
+    const sorted = fvector.FloatVector.init(v.size);
+    for (0..v.size) |i| {
+        sorted.data[i] = v.data[i];
+    }
+    sorted.size = v.size;
+    sorted.sort();
+    
+    // Linear interpolation
+    const rank = q * @as(f64, @floatFromInt(v.size - 1));
+    const lower_idx = @as(usize, @intFromFloat(@floor(rank)));
+    const upper_idx = @min(lower_idx + 1, v.size - 1);
+    const frac = rank - @floor(rank);
+    
+    const result = sorted.data[lower_idx] * (1.0 - frac) + sorted.data[upper_idx] * frac;
+    return Value.init_double(result);
+}
+
+fn covariance_impl(_: i32, args: [*]Value) Value {
+    if (!Value.is_obj_type(args[0], .OBJ_FVECTOR) or !Value.is_obj_type(args[1], .OBJ_FVECTOR)) {
+        return stdlib_core.stdlib_error("covariance() requires two vectors!", .{});
+    }
+    
+    const v1 = args[0].as_vector();
+    const v2 = args[1].as_vector();
+    
+    if (v1.size != v2.size) {
+        return stdlib_core.stdlib_error("covariance() requires vectors of same size!", .{});
+    }
+    
+    if (v1.size == 0) {
+        return stdlib_core.stdlib_error("Cannot compute covariance of empty vectors!", .{});
+    }
+    
+    // Compute means
+    const mean1 = v1.mean();
+    const mean2 = v2.mean();
+    
+    // Compute covariance
+    var cov: f64 = 0.0;
+    for (0..v1.size) |i| {
+        cov += (v1.data[i] - mean1) * (v2.data[i] - mean2);
+    }
+    cov /= @as(f64, @floatFromInt(v1.size));
+    
+    return Value.init_double(cov);
+}
+
+fn correlation_impl(_: i32, args: [*]Value) Value {
+    if (!Value.is_obj_type(args[0], .OBJ_FVECTOR) or !Value.is_obj_type(args[1], .OBJ_FVECTOR)) {
+        return stdlib_core.stdlib_error("correlation() requires two vectors!", .{});
+    }
+    
+    const v1 = args[0].as_vector();
+    const v2 = args[1].as_vector();
+    
+    if (v1.size != v2.size) {
+        return stdlib_core.stdlib_error("correlation() requires vectors of same size!", .{});
+    }
+    
+    if (v1.size == 0) {
+        return stdlib_core.stdlib_error("Cannot compute correlation of empty vectors!", .{});
+    }
+    
+    // Compute means and standard deviations
+    const mean1 = v1.mean();
+    const mean2 = v2.mean();
+    const std1 = v1.std_dev();
+    const std2 = v2.std_dev();
+    
+    if (std1 == 0.0 or std2 == 0.0) {
+        return stdlib_core.stdlib_error("Cannot compute correlation with zero variance!", .{});
+    }
+    
+    // Compute correlation
+    var corr: f64 = 0.0;
+    for (0..v1.size) |i| {
+        corr += (v1.data[i] - mean1) * (v2.data[i] - mean2);
+    }
+    corr /= @as(f64, @floatFromInt(v1.size));
+    corr /= (std1 * std2);
+    
+    return Value.init_double(corr);
+}
+
+fn cumsum_impl(_: i32, args: [*]Value) Value {
+    if (!Value.is_obj_type(args[0], .OBJ_FVECTOR)) {
+        return stdlib_core.stdlib_error("cumsum() requires a vector!", .{});
+    }
+    
+    const v = args[0].as_vector();
+    const result = fvector.FloatVector.init(v.size);
+    
+    var cum: f64 = 0.0;
+    for (0..v.size) |i| {
+        cum += v.data[i];
+        result.data[i] = cum;
+    }
+    result.size = v.size;
+    
+    return Value.init_obj(@ptrCast(result));
+}
+
+fn cumprod_impl(_: i32, args: [*]Value) Value {
+    if (!Value.is_obj_type(args[0], .OBJ_FVECTOR)) {
+        return stdlib_core.stdlib_error("cumprod() requires a vector!", .{});
+    }
+    
+    const v = args[0].as_vector();
+    const result = fvector.FloatVector.init(v.size);
+    
+    var prod: f64 = 1.0;
+    for (0..v.size) |i| {
+        prod *= v.data[i];
+        result.data[i] = prod;
+    }
+    result.size = v.size;
+    
+    return Value.init_obj(@ptrCast(result));
+}
+
+fn diff_impl(_: i32, args: [*]Value) Value {
+    if (!Value.is_obj_type(args[0], .OBJ_FVECTOR)) {
+        return stdlib_core.stdlib_error("diff() requires a vector!", .{});
+    }
+    
+    const v = args[0].as_vector();
+    if (v.size < 2) {
+        return stdlib_core.stdlib_error("diff() requires at least 2 elements!", .{});
+    }
+    
+    const result = fvector.FloatVector.init(v.size - 1);
+    for (0..v.size - 1) |i| {
+        result.data[i] = v.data[i + 1] - v.data[i];
+    }
+    result.size = v.size - 1;
+    
+    return Value.init_obj(@ptrCast(result));
+}
+
+fn histogram_impl(_: i32, args: [*]Value) Value {
+    if (!Value.is_obj_type(args[0], .OBJ_FVECTOR)) {
+        return stdlib_core.stdlib_error("histogram() requires a vector!", .{});
+    }
+    
+    const v = args[0].as_vector();
+    const bins_count = @as(usize, @intCast(args[1].as_num_int()));
+    
+    if (v.size == 0) {
+        return stdlib_core.stdlib_error("Cannot compute histogram of empty vector!", .{});
+    }
+    
+    if (bins_count == 0) {
+        return stdlib_core.stdlib_error("Number of bins must be positive!", .{});
+    }
+    
+    // Find min and max
+    var min_val = v.data[0];
+    var max_val = v.data[0];
+    for (0..v.size) |i| {
+        if (v.data[i] < min_val) min_val = v.data[i];
+        if (v.data[i] > max_val) max_val = v.data[i];
+    }
+    
+    const bin_width = (max_val - min_val) / @as(f64, @floatFromInt(bins_count));
+    const result = fvector.FloatVector.init(bins_count);
+    
+    // Initialize bins to zero
+    for (0..bins_count) |i| {
+        result.data[i] = 0.0;
+    }
+    
+    // Count values in each bin
+    for (0..v.size) |i| {
+        var bin_idx: usize = 0;
+        if (bin_width > 0.0) {
+            bin_idx = @intFromFloat(@floor((v.data[i] - min_val) / bin_width));
+            if (bin_idx >= bins_count) bin_idx = bins_count - 1;
+        }
+        result.data[bin_idx] += 1.0;
+    }
+    result.size = bins_count;
+    
+    return Value.init_obj(@ptrCast(result));
+}
+
+fn moving_average_impl(_: i32, args: [*]Value) Value {
+    if (!Value.is_obj_type(args[0], .OBJ_FVECTOR)) {
+        return stdlib_core.stdlib_error("moving_average() requires a vector!", .{});
+    }
+    
+    const v = args[0].as_vector();
+    const window = @as(usize, @intCast(args[1].as_num_int()));
+    
+    if (window == 0) {
+        return stdlib_core.stdlib_error("Window size must be positive!", .{});
+    }
+    
+    if (window > v.size) {
+        return stdlib_core.stdlib_error("Window size cannot exceed vector size!", .{});
+    }
+    
+    const result = fvector.FloatVector.init(v.size - window + 1);
+    
+    for (0..result.size) |i| {
+        var avg: f64 = 0.0;
+        for (0..window) |j| {
+            avg += v.data[i + j];
+        }
+        result.data[i] = avg / @as(f64, @floatFromInt(window));
+    }
+    result.size = v.size - window + 1;
+    
+    return Value.init_obj(@ptrCast(result));
+}
+
 // Public function wrappers with metadata
 
 pub const linked_list = DefineFunction(
@@ -1143,4 +1717,322 @@ pub const reverse = DefineFunction(
         "reverse(list) -> nil (list is reversed)",
     },
     reverse_impl,
+);
+
+// ===== Phase 2: Vector Math Operations =====
+
+pub const dot = DefineFunction(
+    "dot",
+    "collections",
+    "Compute dot product of two vectors",
+    &[_]ParamSpec{
+        .{ .name = "v1", .type = .object },
+        .{ .name = "v2", .type = .object },
+    },
+    .double,
+    &[_][]const u8{
+        "dot({1, 2, 3}, {4, 5, 6}) -> 32.0",
+        "dot({1, 0}, {0, 1}) -> 0.0",
+    },
+    dot_impl,
+);
+
+pub const cross = DefineFunction(
+    "cross",
+    "collections",
+    "Compute cross product of two 3D vectors",
+    &[_]ParamSpec{
+        .{ .name = "v1", .type = .object },
+        .{ .name = "v2", .type = .object },
+    },
+    .object,
+    &[_][]const u8{
+        "cross({1, 0, 0}, {0, 1, 0}) -> {0, 0, 1}",
+        "cross({1, 2, 3}, {4, 5, 6}) -> {-3, 6, -3}",
+    },
+    cross_impl,
+);
+
+pub const magnitude = DefineFunction(
+    "magnitude",
+    "collections",
+    "Compute magnitude (length) of a vector",
+    &[_]ParamSpec{
+        .{ .name = "vector", .type = .object },
+    },
+    .double,
+    &[_][]const u8{
+        "magnitude({3, 4}) -> 5.0",
+        "magnitude({1, 1, 1}) -> 1.732",
+    },
+    magnitude_impl,
+);
+
+pub const normalize = DefineFunction(
+    "normalize",
+    "collections",
+    "Return unit vector in the same direction",
+    &[_]ParamSpec{
+        .{ .name = "vector", .type = .object },
+    },
+    .object,
+    &[_][]const u8{
+        "normalize({3, 4}) -> {0.6, 0.8}",
+        "normalize({1, 1}) -> {0.707, 0.707}",
+    },
+    normalize_impl,
+);
+
+pub const distance = DefineFunction(
+    "distance",
+    "collections",
+    "Compute Euclidean distance between two vectors",
+    &[_]ParamSpec{
+        .{ .name = "v1", .type = .object },
+        .{ .name = "v2", .type = .object },
+    },
+    .double,
+    &[_][]const u8{
+        "distance({0, 0}, {3, 4}) -> 5.0",
+        "distance({1, 2, 3}, {4, 5, 6}) -> 5.196",
+    },
+    distance_impl,
+);
+
+pub const angle_between = DefineFunction(
+    "angle_between",
+    "collections",
+    "Compute angle in radians between two vectors",
+    &[_]ParamSpec{
+        .{ .name = "v1", .type = .object },
+        .{ .name = "v2", .type = .object },
+    },
+    .double,
+    &[_][]const u8{
+        "angle_between({1, 0}, {0, 1}) -> 1.5708",
+        "angle_between({1, 1}, {1, 0}) -> 0.7854",
+    },
+    angle_between_impl,
+);
+
+pub const project = DefineFunction(
+    "project",
+    "collections",
+    "Project vector v1 onto vector v2",
+    &[_]ParamSpec{
+        .{ .name = "v1", .type = .object },
+        .{ .name = "v2", .type = .object },
+    },
+    .object,
+    &[_][]const u8{
+        "project({3, 4}, {1, 0}) -> {3, 0}",
+        "project({2, 3}, {1, 1}) -> {2.5, 2.5}",
+    },
+    project_impl,
+);
+
+pub const reject = DefineFunction(
+    "reject",
+    "collections",
+    "Reject vector v1 from vector v2 (orthogonal component)",
+    &[_]ParamSpec{
+        .{ .name = "v1", .type = .object },
+        .{ .name = "v2", .type = .object },
+    },
+    .object,
+    &[_][]const u8{
+        "reject({3, 4}, {1, 0}) -> {0, 4}",
+        "reject({2, 3}, {1, 1}) -> {-0.5, 0.5}",
+    },
+    reject_impl,
+);
+
+pub const lerp = DefineFunction(
+    "lerp",
+    "collections",
+    "Linear interpolation between two values or vectors",
+    &[_]ParamSpec{
+        .{ .name = "a", .type = .any },
+        .{ .name = "b", .type = .any },
+        .{ .name = "t", .type = .number },
+    },
+    .any,
+    &[_][]const u8{
+        "lerp(0, 10, 0.5) -> 5.0",
+        "lerp({0, 0}, {10, 10}, 0.25) -> {2.5, 2.5}",
+    },
+    lerp_impl,
+);
+
+// ===== Phase 3: Advanced Statistics & Data Analysis =====
+
+pub const median = DefineFunction(
+    "median",
+    "collections",
+    "Compute median (50th percentile) of a vector",
+    &[_]ParamSpec{
+        .{ .name = "vector", .type = .object },
+    },
+    .double,
+    &[_][]const u8{
+        "median({1, 2, 3, 4, 5}) -> 3.0",
+        "median({1, 2, 3, 4}) -> 2.5",
+    },
+    median_impl,
+);
+
+pub const mode = DefineFunction(
+    "mode",
+    "collections",
+    "Find most frequent value in a vector",
+    &[_]ParamSpec{
+        .{ .name = "vector", .type = .object },
+    },
+    .double,
+    &[_][]const u8{
+        "mode({1, 2, 2, 3}) -> 2.0",
+        "mode({5, 5, 5, 1, 2}) -> 5.0",
+    },
+    mode_impl,
+);
+
+pub const percentile = DefineFunction(
+    "percentile",
+    "collections",
+    "Compute p-th percentile (0-100) of a vector",
+    &[_]ParamSpec{
+        .{ .name = "vector", .type = .object },
+        .{ .name = "p", .type = .number },
+    },
+    .double,
+    &[_][]const u8{
+        "percentile({1, 2, 3, 4, 5}, 50) -> 3.0",
+        "percentile({1, 2, 3, 4}, 75) -> 3.25",
+    },
+    percentile_impl,
+);
+
+pub const quantile = DefineFunction(
+    "quantile",
+    "collections",
+    "Compute q-th quantile (0-1) of a vector",
+    &[_]ParamSpec{
+        .{ .name = "vector", .type = .object },
+        .{ .name = "q", .type = .number },
+    },
+    .double,
+    &[_][]const u8{
+        "quantile({1, 2, 3, 4, 5}, 0.5) -> 3.0",
+        "quantile({1, 2, 3, 4}, 0.75) -> 3.25",
+    },
+    quantile_impl,
+);
+
+pub const covariance = DefineFunction(
+    "covariance",
+    "collections",
+    "Compute covariance between two vectors",
+    &[_]ParamSpec{
+        .{ .name = "v1", .type = .object },
+        .{ .name = "v2", .type = .object },
+    },
+    .double,
+    &[_][]const u8{
+        "covariance({1, 2, 3}, {2, 4, 6}) -> 2.0",
+        "covariance({1, 2, 3}, {3, 2, 1}) -> -1.0",
+    },
+    covariance_impl,
+);
+
+pub const correlation = DefineFunction(
+    "correlation",
+    "collections",
+    "Compute Pearson correlation coefficient between two vectors",
+    &[_]ParamSpec{
+        .{ .name = "v1", .type = .object },
+        .{ .name = "v2", .type = .object },
+    },
+    .double,
+    &[_][]const u8{
+        "correlation({1, 2, 3}, {2, 4, 6}) -> 1.0",
+        "correlation({1, 2, 3}, {3, 2, 1}) -> -1.0",
+    },
+    correlation_impl,
+);
+
+pub const cumsum = DefineFunction(
+    "cumsum",
+    "collections",
+    "Cumulative sum of vector elements",
+    &[_]ParamSpec{
+        .{ .name = "vector", .type = .object },
+    },
+    .object,
+    &[_][]const u8{
+        "cumsum({1, 2, 3, 4}) -> {1, 3, 6, 10}",
+        "cumsum({1, 1, 1}) -> {1, 2, 3}",
+    },
+    cumsum_impl,
+);
+
+pub const cumprod = DefineFunction(
+    "cumprod",
+    "collections",
+    "Cumulative product of vector elements",
+    &[_]ParamSpec{
+        .{ .name = "vector", .type = .object },
+    },
+    .object,
+    &[_][]const u8{
+        "cumprod({1, 2, 3, 4}) -> {1, 2, 6, 24}",
+        "cumprod({2, 2, 2}) -> {2, 4, 8}",
+    },
+    cumprod_impl,
+);
+
+pub const diff = DefineFunction(
+    "diff",
+    "collections",
+    "Differences between consecutive elements",
+    &[_]ParamSpec{
+        .{ .name = "vector", .type = .object },
+    },
+    .object,
+    &[_][]const u8{
+        "diff({1, 3, 7, 10}) -> {2, 4, 3}",
+        "diff({10, 5, 8}) -> {-5, 3}",
+    },
+    diff_impl,
+);
+
+pub const histogram = DefineFunction(
+    "histogram",
+    "collections",
+    "Bin vector data into histogram",
+    &[_]ParamSpec{
+        .{ .name = "vector", .type = .object },
+        .{ .name = "bins", .type = .int },
+    },
+    .object,
+    &[_][]const u8{
+        "histogram({1, 2, 3, 4, 5}, 2) -> counts per bin",
+        "histogram(randn_vector, 10) -> 10 bins",
+    },
+    histogram_impl,
+);
+
+pub const moving_average = DefineFunction(
+    "moving_average",
+    "collections",
+    "Simple moving average with specified window size",
+    &[_]ParamSpec{
+        .{ .name = "vector", .type = .object },
+        .{ .name = "window", .type = .int },
+    },
+    .object,
+    &[_][]const u8{
+        "moving_average({1, 2, 3, 4, 5}, 3) -> {2, 3, 4}",
+        "moving_average({1, 3, 5, 7}, 2) -> {2, 4, 6}",
+    },
+    moving_average_impl,
 );

@@ -183,6 +183,34 @@ pub const MathModule = struct {
         try registry.register(math.round);
         try registry.register(math.max);
         try registry.register(math.min);
+        // Phase 1: Hyperbolic functions
+        try registry.register(math.sinh);
+        try registry.register(math.cosh);
+        try registry.register(math.tanh);
+        try registry.register(math.asinh);
+        try registry.register(math.acosh);
+        try registry.register(math.atanh);
+        // Phase 1: Angle and utility functions
+        try registry.register(math.atan2);
+        try registry.register(math.sign);
+        try registry.register(math.clamp);
+        // Phase 1: Complex number utilities
+        try registry.register(math.real);
+        try registry.register(math.imag);
+        try registry.register(math.conj);
+        // Phase 4: Enhanced randomness and special functions
+        try registry.register(math.set_seed);
+        try registry.register(math.get_seed);
+        try registry.register(math.randint);
+        try registry.register(math.randrange);
+        try registry.register(math.isnan);
+        try registry.register(math.isinf);
+        try registry.register(math.isfinite);
+        try registry.register(math.factorial);
+        try registry.register(math.gcd);
+        try registry.register(math.lcm);
+        try registry.register(math.isprime);
+        try registry.register(math.nextprime);
     }
 };
 
@@ -268,6 +296,28 @@ pub const CollectionsModule = struct {
         try registry.register(collections.minl);
         try registry.register(collections.maxl);
         try registry.register(collections.reverse);
+        // Phase 2: Vector math operations
+        try registry.register(collections.dot);
+        try registry.register(collections.cross);
+        try registry.register(collections.magnitude);
+        try registry.register(collections.normalize);
+        try registry.register(collections.distance);
+        try registry.register(collections.angle_between);
+        try registry.register(collections.project);
+        try registry.register(collections.reject);
+        try registry.register(collections.lerp);
+        // Phase 3: Advanced statistics and data analysis
+        try registry.register(collections.median);
+        try registry.register(collections.mode);
+        try registry.register(collections.percentile);
+        try registry.register(collections.quantile);
+        try registry.register(collections.covariance);
+        try registry.register(collections.correlation);
+        try registry.register(collections.cumsum);
+        try registry.register(collections.cumprod);
+        try registry.register(collections.diff);
+        try registry.register(collections.histogram);
+        try registry.register(collections.moving_average);
     }
 };
 

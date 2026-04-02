@@ -1,0 +1,58 @@
+// Test Phase 3 statistical functions
+
+// Test median
+var v1 = linspace(1.0, 5.0, 5);
+assert(median(v1), 3.0);
+print("median({1,2,3,4,5}) = 3 ✓");
+
+var v2 = linspace(1.0, 4.0, 4);
+var med = median(v2);
+assert(floor(med * 10), 25);  // 2.5
+print("median({1,2,3,4}) ≈ 2.5 ✓");
+
+// Test percentile
+var p50 = percentile(v1, 50);
+assert(p50, 3.0);
+print("percentile({1,2,3,4,5}, 50) = 3 ✓");
+
+var p75 = percentile(v1, 75);
+assert(floor(p75 * 10), 40);  // ≈4
+print("percentile({1,2,3,4,5}, 75) ≈ 4 ✓");
+
+// Test quantile
+var q50 = quantile(v1, 0.5);
+assert(q50, 3.0);
+print("quantile({1,2,3,4,5}, 0.5) = 3 ✓");
+
+// Test cumsum
+var cs = cumsum({1, 2, 3, 4});
+assert(get(cs, 0), 1.0);
+assert(get(cs, 3), 10.0);
+print("cumsum({1,2,3,4}) = {1,3,6,10} ✓");
+
+// Test cumprod
+var cp = cumprod({1, 2, 3, 4});
+assert(get(cp, 0), 1.0);
+assert(get(cp, 3), 24.0);
+print("cumprod({1,2,3,4}) = {1,2,6,24} ✓");
+
+// Test diff
+var dv = diff({1, 3, 7, 10});
+assert(get(dv, 0), 2.0);
+assert(get(dv, 1), 4.0);
+assert(get(dv, 2), 3.0);
+print("diff({1,3,7,10}) = {2,4,3} ✓");
+
+// Test moving_average
+var ma = moving_average({1, 3, 5, 7}, 2);
+assert(get(ma, 0), 2.0);
+assert(get(ma, 1), 4.0);
+assert(get(ma, 2), 6.0);
+print("moving_average({1,3,5,7}, 2) = {2,4,6} ✓");
+
+// Test histogram
+var hist = histogram({1, 2, 3, 4, 5}, 2);
+assert(len(hist), 2);
+print("histogram with 2 bins created ✓");
+
+print("All Phase 3 statistical tests passed!");

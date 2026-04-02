@@ -1,0 +1,65 @@
+// Test angle and utility functions
+
+// Test atan2
+assert(atan2(0, 1), 0.0);
+print("atan2(0, 1) = 0 ✓");
+
+var atan2_result = atan2(1, 1);
+assert(floor(atan2_result * 100), 78);  // π/4 ≈ 0.7854
+print("atan2(1, 1) ≈ π/4 ✓");
+
+// Test atan2 quadrants
+var q1 = atan2(1, 1);    // Quadrant 1: positive
+var q2 = atan2(1, -1);   // Quadrant 2: positive
+var q3 = atan2(-1, -1);  // Quadrant 3: negative
+var q4 = atan2(-1, 1);   // Quadrant 4: negative
+
+assert(q1 > 0, true);
+assert(q2 > 0, true);
+assert(q3 < 0, true);
+assert(q4 < 0, true);
+print("atan2 handles all quadrants correctly ✓");
+
+// Test sign function
+assert(sign(5), 1);
+print("sign(5) = 1 ✓");
+
+assert(sign(-3), -1);
+print("sign(-3) = -1 ✓");
+
+assert(sign(0), 0);
+print("sign(0) = 0 ✓");
+
+assert(sign(0.001), 1);
+print("sign(0.001) = 1 ✓");
+
+assert(sign(-0.001), -1);
+print("sign(-0.001) = -1 ✓");
+
+// Test clamp function
+assert(clamp(5, 0, 10), 5.0);
+print("clamp(5, 0, 10) = 5 ✓");
+
+assert(clamp(-5, 0, 10), 0.0);
+print("clamp(-5, 0, 10) = 0 ✓");
+
+assert(clamp(15, 0, 10), 10.0);
+print("clamp(15, 0, 10) = 10 ✓");
+
+assert(clamp(0, 0, 10), 0.0);
+print("clamp(0, 0, 10) = 0 ✓");
+
+assert(clamp(10, 0, 10), 10.0);
+print("clamp(10, 0, 10) = 10 ✓");
+
+// Test clamp with negative range
+assert(clamp(-5, -10, -2), -5.0);
+print("clamp(-5, -10, -2) = -5 ✓");
+
+assert(clamp(-15, -10, -2), -10.0);
+print("clamp(-15, -10, -2) = -10 ✓");
+
+assert(clamp(0, -10, -2), -2.0);
+print("clamp(0, -10, -2) = -2 ✓");
+
+print("All angle and utility function tests passed!");
