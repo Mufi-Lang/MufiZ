@@ -1,0 +1,23 @@
+// Test hyperbolic trigonometric functions
+print("Testing hyperbolic functions...");
+
+var s = sinh(0.0);
+assert(s, 0.0);
+
+var c = cosh(0.0);
+assert(c, 1.0);
+
+var t = tanh(0.0);
+assert(t, 0.0);
+
+// Test inverse hyperbolic functions
+var asinh_val = asinh(0.0);
+assert(asinh_val, 0.0);
+
+var acosh_val = acosh(1.0);
+assert(acosh_val, 0.0);
+
+var atanh_val = atanh(0.0);
+assert(atanh_val, 0.0);
+
+print("Hyperbolic functions pass");

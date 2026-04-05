@@ -183,6 +183,27 @@ pub const MathModule = struct {
         try registry.register(math.round);
         try registry.register(math.max);
         try registry.register(math.min);
+        
+        // Phase 1: New math functions
+        try registry.register(math.sinh);
+        try registry.register(math.cosh);
+        try registry.register(math.tanh);
+        try registry.register(math.asinh);
+        try registry.register(math.acosh);
+        try registry.register(math.atanh);
+        try registry.register(math.atan2);
+        try registry.register(math.deg2rad);
+        try registry.register(math.rad2deg);
+        try registry.register(math.hypot);
+        try registry.register(math.conj);
+        try registry.register(math.real);
+        try registry.register(math.imag);
+        try registry.register(math.gcd);
+        try registry.register(math.lcm);
+        try registry.register(math.factorial);
+        try registry.register(math.trunc);
+        try registry.register(math.sign);
+        try registry.register(math.clamp);
     }
 };
 
@@ -399,9 +420,10 @@ pub fn registerCoreOnly() !void {
     try registry.register(clear);
     try IoModule.register();
     try TypesModule.register();
+    try MathModule.register(); // Add math module to core
+    try UtilsModule.register(); // Add utils (includes assert) to core
 
     registry.registerAll();
-    std.log.info("Core standard library initialized with {d} functions", .{registry.getFunctionCount()});
 }
 
 // Register specific modules

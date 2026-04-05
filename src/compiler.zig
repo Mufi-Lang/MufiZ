@@ -2699,8 +2699,9 @@ pub fn compile(source: [*]const u8, file_path: ?[]const u8) ?*ObjFunction {
     compiler_arena.initCompilerArena();
     defer compiler_arena.deinitCompilerArena();
 
-    // Reset VM globals for this compilation
-    vm_h.resetGlobals();
+    // NOTE: Removed resetGlobals() - it was clearing stdlib functions!
+    // TODO: Implement proper separation between stdlib and user globals
+    // vm_h.resetGlobals();
 
     // Initialize Global Analyzer for this script
     const analyzer_allocator = compiler_arena.getCompilerAllocator();

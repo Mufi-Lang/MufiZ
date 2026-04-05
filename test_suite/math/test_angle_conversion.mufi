@@ -1,0 +1,25 @@
+// Test degree/radian conversion
+print("Testing angle conversion...");
+
+var pi_val = pi();
+
+// 180 degrees = pi radians
+var rad = deg2rad(180.0);
+assert(round(rad * 1000.0), round(pi_val * 1000.0));
+
+// pi radians = 180 degrees
+var deg = rad2deg(pi_val);
+assert(round(deg), 180);
+
+// 90 degrees = pi/2 radians
+var rad2 = deg2rad(90.0);
+var expected = pi_val / 2.0;
+assert(round(rad2 * 1000.0), round(expected * 1000.0));
+
+// Round trip test
+var deg_in = 45.0;
+var rad_out = deg2rad(deg_in);
+var deg_out = rad2deg(rad_out);
+assert(round(deg_out), round(deg_in));
+
+print("Angle conversion tests pass");

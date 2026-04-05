@@ -153,6 +153,171 @@ fn min_impl(_: i32, args: [*]Value) Value {
     return Value.init_double(@min(a, b));
 }
 
+// ============================================================================
+// Phase 1: New Math Functions
+// ============================================================================
+
+// Hyperbolic trigonometric functions
+fn sinh_impl(_: i32, args: [*]Value) Value {
+    const double = args[0].as_num_double();
+    return Value.init_double(std.math.sinh(double));
+}
+
+fn cosh_impl(_: i32, args: [*]Value) Value {
+    const double = args[0].as_num_double();
+    return Value.init_double(std.math.cosh(double));
+}
+
+fn tanh_impl(_: i32, args: [*]Value) Value {
+    const double = args[0].as_num_double();
+    return Value.init_double(std.math.tanh(double));
+}
+
+fn asinh_impl(_: i32, args: [*]Value) Value {
+    const double = args[0].as_num_double();
+    return Value.init_double(std.math.asinh(double));
+}
+
+fn acosh_impl(_: i32, args: [*]Value) Value {
+    const double = args[0].as_num_double();
+    return Value.init_double(std.math.acosh(double));
+}
+
+fn atanh_impl(_: i32, args: [*]Value) Value {
+    const double = args[0].as_num_double();
+    return Value.init_double(std.math.atanh(double));
+}
+
+// Two-argument arctangent
+fn atan2_impl(_: i32, args: [*]Value) Value {
+    const y = args[0].as_num_double();
+    const x = args[1].as_num_double();
+    return Value.init_double(std.math.atan2(y, x));
+}
+
+// Angle conversion functions
+fn deg2rad_impl(_: i32, args: [*]Value) Value {
+    const degrees = args[0].as_num_double();
+    return Value.init_double(degrees * std.math.pi / 180.0);
+}
+
+fn rad2deg_impl(_: i32, args: [*]Value) Value {
+    const radians = args[0].as_num_double();
+    return Value.init_double(radians * 180.0 / std.math.pi);
+}
+
+// Euclidean distance
+fn hypot_impl(_: i32, args: [*]Value) Value {
+    const x = args[0].as_num_double();
+    const y = args[1].as_num_double();
+    return Value.init_double(std.math.hypot(x, y));
+}
+
+// Complex number operations
+fn conj_impl(_: i32, args: [*]Value) Value {
+    const c = args[0].as_complex();
+    return Value.init_complex(.{ .r = c.r, .i = -c.i });
+}
+
+fn real_impl(_: i32, args: [*]Value) Value {
+    const c = args[0].as_complex();
+    return Value.init_double(c.r);
+}
+
+fn imag_impl(_: i32, args: [*]Value) Value {
+    const c = args[0].as_complex();
+    return Value.init_double(c.i);
+}
+
+// Integer math functions
+fn gcd_impl(_: i32, args: [*]Value) Value {
+    var a: i64 = @abs(args[0].as_num_int());
+    var b: i64 = @abs(args[1].as_num_int());
+    
+    while (b != 0) {
+        const temp = b;
+        b = @mod(a, b);
+        a = temp;
+    }
+    return Value.init_int(@intCast(a));
+}
+
+fn lcm_impl(_: i32, args: [*]Value) Value {
+    const a: i64 = @abs(args[0].as_num_int());
+    const b: i64 = @abs(args[1].as_num_int());
+    
+    if (a == 0 or b == 0) {
+        return Value.init_int(0);
+    }
+    
+    // LCM(a,b) = |a*b| / GCD(a,b)
+    var gcd_a = a;
+    var gcd_b = b;
+    while (gcd_b != 0) {
+        const temp = gcd_b;
+        gcd_b = @mod(gcd_a, gcd_b);
+        gcd_a = temp;
+    }
+    
+    return Value.init_int(@intCast(@divTrunc(a * b, gcd_a)));
+}
+
+fn factorial_impl(_: i32, args: [*]Value) Value {
+    const n = args[0].as_num_int();
+    
+    if (n < 0) {
+        return stdlib_core.stdlib_error("factorial() requires non-negative integer", .{});
+    }
+    
+    if (n > 20) {
+        return stdlib_core.stdlib_error("factorial() overflow: n > 20", .{});
+    }
+    
+    var result: i64 = 1;
+    var i: i64 = 2;
+    while (i <= n) : (i += 1) {
+        result *= i;
+    }
+    
+    return Value.init_int(@intCast(result));
+}
+
+// Rounding and utility functions
+fn trunc_impl(_: i32, args: [*]Value) Value {
+    const double = args[0].as_num_double();
+    return Value.init_int(@intFromFloat(@trunc(double)));
+}
+
+fn sign_impl(_: i32, args: [*]Value) Value {
+    switch (args[0].type) {
+        .VAL_DOUBLE => {
+            const d = args[0].as_num_double();
+            if (d > 0.0) return Value.init_int(1);
+            if (d < 0.0) return Value.init_int(-1);
+            return Value.init_int(0);
+        },
+        .VAL_INT => {
+            const i = args[0].as_num_int();
+            if (i > 0) return Value.init_int(1);
+            if (i < 0) return Value.init_int(-1);
+            return Value.init_int(0);
+        },
+        else => return stdlib_core.stdlib_error("sign() expects a number", .{}),
+    }
+}
+
+fn clamp_impl(_: i32, args: [*]Value) Value {
+    const x = args[0].as_num_double();
+    const min_val = args[1].as_num_double();
+    const max_val = args[2].as_num_double();
+    
+    if (min_val > max_val) {
+        return stdlib_core.stdlib_error("clamp() requires min <= max", .{});
+    }
+    
+    return Value.init_double(std.math.clamp(x, min_val, max_val));
+}
+
 // Auto-registered function wrappers with metadata
 pub const ln = DefineFunction(
     "ln",
@@ -393,4 +558,220 @@ pub const min = DefineFunction(
     .double,
     &[_][]const u8{"min(3, 7) -> 3.0"},
     min_impl,
+);
+
+// ============================================================================
+// Phase 1: New Math Functions
+// ============================================================================
+
+// Hyperbolic trigonometric functions
+pub const sinh = DefineFunction(
+    "sinh",
+    "math",
+    "Hyperbolic sine function",
+    OneNumber,
+    .double,
+    &[_][]const u8{"sinh(0) -> 0.0", "sinh(1) -> 1.1752011936438014"},
+    sinh_impl,
+);
+
+pub const cosh = DefineFunction(
+    "cosh",
+    "math",
+    "Hyperbolic cosine function",
+    OneNumber,
+    .double,
+    &[_][]const u8{"cosh(0) -> 1.0", "cosh(1) -> 1.5430806348152437"},
+    cosh_impl,
+);
+
+pub const tanh = DefineFunction(
+    "tanh",
+    "math",
+    "Hyperbolic tangent function",
+    OneNumber,
+    .double,
+    &[_][]const u8{"tanh(0) -> 0.0", "tanh(1) -> 0.7615941559557649"},
+    tanh_impl,
+);
+
+pub const asinh = DefineFunction(
+    "asinh",
+    "math",
+    "Inverse hyperbolic sine function",
+    OneNumber,
+    .double,
+    &[_][]const u8{"asinh(0) -> 0.0", "asinh(1) -> 0.881373587019543"},
+    asinh_impl,
+);
+
+pub const acosh = DefineFunction(
+    "acosh",
+    "math",
+    "Inverse hyperbolic cosine function",
+    OneNumber,
+    .double,
+    &[_][]const u8{"acosh(1) -> 0.0", "acosh(2) -> 1.3169578969248166"},
+    acosh_impl,
+);
+
+pub const atanh = DefineFunction(
+    "atanh",
+    "math",
+    "Inverse hyperbolic tangent function",
+    OneNumber,
+    .double,
+    &[_][]const u8{"atanh(0) -> 0.0", "atanh(0.5) -> 0.5493061443340548"},
+    atanh_impl,
+);
+
+pub const atan2 = DefineFunction(
+    "atan2",
+    "math",
+    "Two-argument arctangent (atan2(y, x))",
+    &[_]ParamSpec{
+        .{ .name = "y", .type = .number },
+        .{ .name = "x", .type = .number },
+    },
+    .double,
+    &[_][]const u8{"atan2(1, 1) -> 0.7853981633974483", "atan2(0, -1) -> 3.141592653589793"},
+    atan2_impl,
+);
+
+pub const deg2rad = DefineFunction(
+    "deg2rad",
+    "math",
+    "Convert degrees to radians",
+    OneNumber,
+    .double,
+    &[_][]const u8{"deg2rad(180) -> 3.141592653589793", "deg2rad(90) -> 1.5707963267948966"},
+    deg2rad_impl,
+);
+
+pub const rad2deg = DefineFunction(
+    "rad2deg",
+    "math",
+    "Convert radians to degrees",
+    OneNumber,
+    .double,
+    &[_][]const u8{"rad2deg(3.14159) -> 180.0", "rad2deg(1.5708) -> 90.0"},
+    rad2deg_impl,
+);
+
+pub const hypot = DefineFunction(
+    "hypot",
+    "math",
+    "Euclidean distance sqrt(x²+y²)",
+    TwoNumbers,
+    .double,
+    &[_][]const u8{"hypot(3, 4) -> 5.0", "hypot(5, 12) -> 13.0"},
+    hypot_impl,
+);
+
+pub const conj = DefineFunction(
+    "conj",
+    "math",
+    "Complex conjugate",
+    &[_]ParamSpec{
+        .{ .name = "complex", .type = .complex },
+    },
+    .complex,
+    &[_][]const u8{"conj(3+4i) -> 3-4i"},
+    conj_impl,
+);
+
+pub const real = DefineFunction(
+    "real",
+    "math",
+    "Extract real part of complex number",
+    &[_]ParamSpec{
+        .{ .name = "complex", .type = .complex },
+    },
+    .double,
+    &[_][]const u8{"real(3+4i) -> 3.0"},
+    real_impl,
+);
+
+pub const imag = DefineFunction(
+    "imag",
+    "math",
+    "Extract imaginary part of complex number",
+    &[_]ParamSpec{
+        .{ .name = "complex", .type = .complex },
+    },
+    .double,
+    &[_][]const u8{"imag(3+4i) -> 4.0"},
+    imag_impl,
+);
+
+pub const gcd = DefineFunction(
+    "gcd",
+    "math",
+    "Greatest common divisor",
+    &[_]ParamSpec{
+        .{ .name = "a", .type = .int },
+        .{ .name = "b", .type = .int },
+    },
+    .int,
+    &[_][]const u8{"gcd(12, 8) -> 4", "gcd(21, 14) -> 7"},
+    gcd_impl,
+);
+
+pub const lcm = DefineFunction(
+    "lcm",
+    "math",
+    "Least common multiple",
+    &[_]ParamSpec{
+        .{ .name = "a", .type = .int },
+        .{ .name = "b", .type = .int },
+    },
+    .int,
+    &[_][]const u8{"lcm(12, 8) -> 24", "lcm(21, 14) -> 42"},
+    lcm_impl,
+);
+
+pub const factorial = DefineFunction(
+    "factorial",
+    "math",
+    "Factorial function (n!)",
+    &[_]ParamSpec{
+        .{ .name = "n", .type = .int },
+    },
+    .int,
+    &[_][]const u8{"factorial(5) -> 120", "factorial(0) -> 1"},
+    factorial_impl,
+);
+
+pub const trunc = DefineFunction(
+    "trunc",
+    "math",
+    "Truncate to integer (remove fractional part)",
+    OneNumber,
+    .int,
+    &[_][]const u8{"trunc(3.9) -> 3", "trunc(-2.5) -> -2"},
+    trunc_impl,
+);
+
+pub const sign = DefineFunction(
+    "sign",
+    "math",
+    "Sign function (-1, 0, or 1)",
+    OneNumber,
+    .int,
+    &[_][]const u8{"sign(5.2) -> 1", "sign(-3) -> -1", "sign(0) -> 0"},
+    sign_impl,
+);
+
+pub const clamp = DefineFunction(
+    "clamp",
+    "math",
+    "Clamp value to range [min, max]",
+    &[_]ParamSpec{
+        .{ .name = "x", .type = .number },
+        .{ .name = "min", .type = .number },
+        .{ .name = "max", .type = .number },
+    },
+    .double,
+    &[_][]const u8{"clamp(5, 0, 10) -> 5.0", "clamp(15, 0, 10) -> 10.0", "clamp(-5, 0, 10) -> 0.0"},
+    clamp_impl,
 );

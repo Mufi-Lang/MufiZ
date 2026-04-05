@@ -284,11 +284,19 @@ pub fn defineNative(name: [*]const u8, function: NativeFn) void {
         .as = .{ .obj = @ptrCast(@alignCast(nameString)) },
     });
     const native = object_h.newNative(function);
-    push(Value{
+    const nativeValue = Value{
         .type = .VAL_OBJ,
         .as = .{ .obj = @ptrCast(@alignCast(native)) },
-    });
+    };
+    push(nativeValue);
+    
+    // Store in hash table for OP_GET_GLOBAL
     _ = tableSetProtected(&vm.globals, @ptrCast(@alignCast(vm.stack[0].as.obj)), vm.stack[1], true);
+    
+    // ALSO store in globalValues array for OP_GET_GLOBAL_SLOT
+    const slot = getGlobalSlot(nameString);
+    vm.globalValues[slot] = nativeValue;
+    
     _ = pop();
     _ = pop();
 }

@@ -1,0 +1,56 @@
+// Test rounding and utility functions
+print("Testing rounding and utility functions...");
+
+// Truncate tests
+var t1 = trunc(3.9);
+assert(t1, 3);
+
+var t2 = trunc(3.1);
+assert(t2, 3);
+
+var t3 = trunc(-2.5);
+assert(t3, -2);
+
+var t4 = trunc(-2.9);
+assert(t4, -2);
+
+// Sign tests
+var s1 = sign(5.2);
+assert(s1, 1);
+
+var s2 = sign(100);
+assert(s2, 1);
+
+var s3 = sign(-3.7);
+assert(s3, -1);
+
+var s4 = sign(-10);
+assert(s4, -1);
+
+var s5 = sign(0);
+assert(s5, 0);
+
+var s6 = sign(0.0);
+assert(s6, 0);
+
+// Clamp tests
+var c1 = clamp(5.0, 0.0, 10.0);
+assert(c1, 5.0);
+
+var c2 = clamp(15.0, 0.0, 10.0);
+assert(c2, 10.0);
+
+var c3 = clamp(-5.0, 0.0, 10.0);
+assert(c3, 0.0);
+
+var c4 = clamp(0.0, 0.0, 10.0);
+assert(c4, 0.0);
+
+var c5 = clamp(10.0, 0.0, 10.0);
+assert(c5, 10.0);
+
+// Edge case
+var c6 = clamp(7.5, 5.0, 5.0);
+assert(c6, 5.0);
+
+print("Rounding and utility functions pass");

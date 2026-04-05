@@ -1,0 +1,41 @@
+// Test new complex number functions
+print("Testing complex number functions...");
+
+var z = 3.0 + 4.0i;
+
+// Test real and imag extraction
+var r = real(z);
+assert(r, 3.0);
+
+var i = imag(z);
+assert(i, 4.0);
+
+// Test conjugate
+var z_conj = conj(z);
+var conj_r = real(z_conj);
+var conj_i = imag(z_conj);
+assert(conj_r, 3.0);
+assert(conj_i, -4.0);
+
+// Test with negative imaginary
+var z2 = 5.0 - 2.0i;
+var r2 = real(z2);
+assert(r2, 5.0);
+
+var i2 = imag(z2);
+assert(i2, -2.0);
+
+var z2_conj = conj(z2);
+var conj_r2 = real(z2_conj);
+var conj_i2 = imag(z2_conj);
+assert(conj_r2, 5.0);
+assert(conj_i2, 2.0);
+
+// Test conjugate property: conj(conj(z)) = z
+var z_double_conj = conj(conj(z));
+var final_r = real(z_double_conj);
+var final_i = imag(z_double_conj);
+assert(final_r, real(z));
+assert(final_i, imag(z));
+
+print("Complex number functions pass");

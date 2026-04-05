@@ -1,0 +1,52 @@
+// Test integer math functions
+print("Testing integer math...");
+
+// GCD tests
+var g1 = gcd(12, 8);
+assert(g1, 4);
+
+var g2 = gcd(21, 14);
+assert(g2, 7);
+
+var g3 = gcd(17, 19);
+assert(g3, 1); // coprime
+
+var g4 = gcd(100, 50);
+assert(g4, 50);
+
+var g5 = gcd(0, 5);
+assert(g5, 5);
+
+var g6 = gcd(5, 0);
+assert(g6, 5);
+
+// LCM tests
+var l1 = lcm(12, 8);
+assert(l1, 24);
+
+var l2 = lcm(21, 14);
+assert(l2, 42);
+
+var l3 = lcm(4, 6);
+assert(l3, 12);
+
+var l4 = lcm(7, 5);
+assert(l4, 35);
+
+// Factorial tests
+var f0 = factorial(0);
+assert(f0, 1);
+
+var f1 = factorial(1);
+assert(f1, 1);
+
+var f5 = factorial(5);
+assert(f5, 120);
+
+var f6 = factorial(6);
+assert(f6, 720);
+
+var f10 = factorial(10);
+assert(f10, 3628800);
+
+print("Integer math functions pass");

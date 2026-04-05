@@ -1,0 +1,21 @@
+// Test atan2 function
+print("Testing atan2...");
+
+var pi_val = pi();
+
+// atan2(1, 1) should be pi/4
+var result = atan2(1.0, 1.0);
+var expected = pi_val / 4.0;
+// Round for comparison
+assert(round(result * 1000.0), round(expected * 1000.0));
+
+// atan2(0, -1) should be pi
+var result2 = atan2(0.0, -1.0);
+assert(round(result2 * 1000.0), round(pi_val * 1000.0));
+
+// atan2(1, 0) should be pi/2
+var result3 = atan2(1.0, 0.0);
+var expected3 = pi_val / 2.0;
+assert(round(result3 * 1000.0), round(expected3 * 1000.0));
+
+print("atan2 tests pass");
