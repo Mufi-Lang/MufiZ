@@ -1,0 +1,73 @@
+// Test complex number utility functions
+
+// Test real() with complex numbers
+var z1 = complex(3, 4);
+assert(real(z1), 3.0);
+print("real(3+4i) = 3 ✓");
+
+var z2 = complex(-5, 2);
+assert(real(z2), -5.0);
+print("real(-5+2i) = -5 ✓");
+
+// Test real() with real numbers
+assert(real(7), 7);
+print("real(7) = 7 ✓");
+
+assert(real(3.14), 3.14);
+print("real(3.14) = 3.14 ✓");
+
+// Test imag() with complex numbers
+assert(imag(z1), 4.0);
+print("imag(3+4i) = 4 ✓");
+
+assert(imag(z2), 2.0);
+print("imag(-5+2i) = 2 ✓");
+
+// Test imag() with real numbers
+assert(imag(7), 0.0);
+print("imag(7) = 0 ✓");
+
+assert(imag(3.14), 0.0);
+print("imag(3.14) = 0 ✓");
+
+// Test conj() with complex numbers
+var z3 = conj(z1);
+assert(real(z3), 3.0);
+assert(imag(z3), -4.0);
+print("conj(3+4i) = 3-4i ✓");
+
+var z4 = conj(z2);
+assert(real(z4), -5.0);
+assert(imag(z4), -2.0);
+print("conj(-5+2i) = -5-2i ✓");
+
+// Test conj() with real numbers
+assert(conj(7), 7);
+print("conj(7) = 7 ✓");
+
+// Test double conjugate: conj(conj(z)) = z
+var z5 = complex(2, 3);
+var z5_conj = conj(z5);
+var z5_conj_conj = conj(z5_conj);
+assert(real(z5_conj_conj), 2.0);
+assert(imag(z5_conj_conj), 3.0);
+print("conj(conj(z)) = z ✓");
+
+// Test that abs(z) = abs(conj(z))
+var z6 = complex(4, 3);
+var z6_conj = conj(z6);
+assert(abs(z6), abs(z6_conj));
+print("abs(z) = abs(conj(z)) ✓");
+
+// Test extraction and reconstruction
+var a = 5.0;
+var b = 12.0;
+var z7 = complex(a, b);
+var r = real(z7);
+var i = imag(z7);
+var z8 = complex(r, i);
+assert(real(z8), a);
+assert(imag(z8), b);
+print("Extraction and reconstruction works ✓");
+
+print("All complex utility function tests passed!");

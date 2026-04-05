@@ -98,29 +98,49 @@
       "type_of"
     ],
     "collections": [
+      "angle_between",
       "clear",
       "contains",
+      "correlation",
+      "covariance",
+      "cross",
+      "cumprod",
+      "cumsum",
+      "diff",
+      "distance",
+      "dot",
       "fvec",
       "get",
       "hash_table",
+      "histogram",
       "insert",
       "is_empty",
       "len",
+      "lerp",
       "linked_list",
       "linspace",
+      "magnitude",
       "maxl",
       "mean",
+      "median",
       "merge",
       "minl",
+      "mode",
+      "moving_average",
+      "normalize",
       "nth",
       "pairs",
+      "percentile",
       "pop",
       "pop_front",
+      "project",
       "push",
       "push_front",
       "put",
+      "quantile",
       "range",
       "range_to_array",
+      "reject",
       "remove",
       "reverse",
       "search",
@@ -147,16 +167,28 @@
     ],
     "math": [
       "abs",
+      "acosh",
       "acos",
+      "asinh",
       "asin",
+<<<<<<< HEAD
       "asinh",
       "atan",
       "atan2",
       "atanh",
+=======
+      "atanh",
+      "atan",
+      "atan2",
+>>>>>>> 44216b23d36fa487e45525341b2478b089f83d67
       "ceil",
       "clamp",
       "complex",
       "conj",
+<<<<<<< HEAD
+=======
+      "cosh",
+>>>>>>> 44216b23d36fa487e45525341b2478b089f83d67
       "cos",
       "cosh",
       "deg2rad",
@@ -165,28 +197,51 @@
       "factorial",
       "floor",
       "gcd",
+<<<<<<< HEAD
       "imag",
       "lcm",
       "length",
+=======
+      "get_seed",
+      "imag",
+      "isinf",
+      "isfinite",
+      "isnan",
+      "isprime",
+      "lcm",
+>>>>>>> 44216b23d36fa487e45525341b2478b089f83d67
       "ln",
       "log10",
       "log2",
       "max",
       "mean",
       "min",
+<<<<<<< HEAD
       "norm",
+=======
+      "nextprime",
+>>>>>>> 44216b23d36fa487e45525341b2478b089f83d67
       "phase",
       "pi",
       "pow",
       "rad2deg",
       "rand",
+      "randint",
+      "randrange",
       "randn",
       "real",
       "round",
+<<<<<<< HEAD
       "sign",
+=======
+      "set_seed",
+      "sign",
+      "sinh",
+>>>>>>> 44216b23d36fa487e45525341b2478b089f83d67
       "sin",
       "sinh",
       "sqrt",
+<<<<<<< HEAD
       "stddev",
       "sum",
       "tan",
@@ -201,6 +256,10 @@
       "bnot",
       "shl",
       "shr"
+=======
+      "tanh",
+      "tan"
+>>>>>>> 44216b23d36fa487e45525341b2478b089f83d67
     ]
   }
 }

@@ -1,0 +1,63 @@
+// Test mathematical constants
+
+// Test PI (existing)
+assert(floor(PI * 100), 314);
+print("PI ≈ 3.14159 ✓");
+
+// Test E (existing)
+assert(floor(E * 100), 271);
+print("E ≈ 2.71828 ✓");
+
+// Test TAU = 2*PI
+assert(floor(TAU * 100), 628);
+print("TAU ≈ 6.28318 ✓");
+
+var tau_check = 2 * PI;
+assert(floor(TAU * 1000), floor(tau_check * 1000));
+print("TAU = 2*PI ✓");
+
+// Test PHI (golden ratio)
+assert(floor(PHI * 100), 161);
+print("PHI ≈ 1.61803 ✓");
+
+// Golden ratio property: PHI² = PHI + 1
+var phi_squared = PHI * PHI;
+var phi_plus_one = PHI + 1;
+assert(floor(phi_squared * 100), floor(phi_plus_one * 100));
+print("PHI² = PHI + 1 ✓");
+
+// Test SQRT2
+assert(floor(SQRT2 * 100), 141);
+print("SQRT2 ≈ 1.41421 ✓");
+
+var sqrt2_check = sqrt(2);
+assert(floor(SQRT2 * 1000), floor(sqrt2_check * 1000));
+print("SQRT2 = sqrt(2) ✓");
+
+// Test LN2
+assert(floor(LN2 * 100), 69);
+print("LN2 ≈ 0.69315 ✓");
+
+var ln2_check = ln(2);
+assert(floor(LN2 * 1000), floor(ln2_check * 1000));
+print("LN2 = ln(2) ✓");
+
+// Test LN10
+assert(floor(LN10 * 100), 230);
+print("LN10 ≈ 2.30259 ✓");
+
+var ln10_check = ln(10);
+assert(floor(LN10 * 1000), floor(ln10_check * 1000));
+print("LN10 = ln(10) ✓");
+
+// Test relationship: exp(LN2) ≈ 2
+var exp_ln2 = exp(LN2);
+assert(floor(exp_ln2 * 100), 200);
+print("exp(LN2) ≈ 2 ✓");
+
+// Test relationship: exp(LN10) ≈ 10
+var exp_ln10 = exp(LN10);
+assert(floor(exp_ln10), 10);
+print("exp(LN10) ≈ 10 ✓");
+
+print("All constant tests passed!");

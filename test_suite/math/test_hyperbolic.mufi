@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // Test hyperbolic trigonometric functions
 print("Testing hyperbolic functions...");
 
@@ -21,3 +22,64 @@ var atanh_val = atanh(0.0);
 assert(atanh_val, 0.0);
 
 print("Hyperbolic functions pass");
+=======
+// Test hyperbolic functions
+
+// Test sinh
+assert(sinh(0), 0.0);
+print("sinh(0) = 0 ✓");
+
+var sinh_1 = sinh(1.0);
+assert(floor(sinh_1 * 100), 117);  // sinh(1) ≈ 1.1752
+print("sinh(1) ≈ 1.1752 ✓");
+
+// Test cosh
+assert(cosh(0), 1.0);
+print("cosh(0) = 1 ✓");
+
+var cosh_1 = cosh(1.0);
+assert(floor(cosh_1 * 100), 154);  // cosh(1) ≈ 1.5431
+print("cosh(1) ≈ 1.5431 ✓");
+
+// Test tanh
+assert(tanh(0), 0.0);
+print("tanh(0) = 0 ✓");
+
+var tanh_1 = tanh(1.0);
+assert(floor(tanh_1 * 100), 76);  // tanh(1) ≈ 0.7616
+print("tanh(1) ≈ 0.7616 ✓");
+
+// Test asinh (inverse)
+assert(asinh(0), 0.0);
+print("asinh(0) = 0 ✓");
+
+var asinh_1 = asinh(sinh(1.0));
+assert(floor(asinh_1 * 100), 100);  // should be ~1.0
+print("asinh(sinh(1)) ≈ 1.0 ✓");
+
+// Test acosh (inverse)
+assert(acosh(1), 0.0);
+print("acosh(1) = 0 ✓");
+
+var acosh_cosh = acosh(cosh(1.0));
+assert(floor(acosh_cosh * 100), 100);
+print("acosh(cosh(1)) ≈ 1.0 ✓");
+
+// Test atanh (inverse)
+assert(atanh(0), 0.0);
+print("atanh(0) = 0 ✓");
+
+var atanh_tanh = atanh(tanh(0.5));
+assert(floor(atanh_tanh * 100), 50);
+print("atanh(tanh(0.5)) ≈ 0.5 ✓");
+
+// Identity: cosh²(x) - sinh²(x) = 1
+var x = 2.0;
+var cosh_x = cosh(x);
+var sinh_x = sinh(x);
+var identity = cosh_x * cosh_x - sinh_x * sinh_x;
+assert(floor(identity * 100), 100);
+print("cosh²(x) - sinh²(x) = 1 identity holds ✓");
+
+print("All hyperbolic function tests passed!");
+>>>>>>> 44216b23d36fa487e45525341b2478b089f83d67

@@ -346,6 +346,16 @@ pub fn populateModuleMembers(
 
             try module.setMember("E", Value{ .type = .VAL_DOUBLE, .as = .{ .num_double = 2.718281828459045 } });
 
+            try module.setMember("TAU", Value{ .type = .VAL_DOUBLE, .as = .{ .num_double = 6.283185307179586 } });
+
+            try module.setMember("PHI", Value{ .type = .VAL_DOUBLE, .as = .{ .num_double = 1.618033988749895 } });
+
+            try module.setMember("SQRT2", Value{ .type = .VAL_DOUBLE, .as = .{ .num_double = 1.4142135623730951 } });
+
+            try module.setMember("LN2", Value{ .type = .VAL_DOUBLE, .as = .{ .num_double = 0.6931471805599453 } });
+
+            try module.setMember("LN10", Value{ .type = .VAL_DOUBLE, .as = .{ .num_double = 2.302585092994046 } });
+
         }
 
 

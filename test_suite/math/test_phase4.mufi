@@ -1,0 +1,47 @@
+// Phase 4: Enhanced Randomness & Special Functions Tests
+
+// Test set_seed and get_seed
+set_seed(42);
+s1 = get_seed();
+print("Seed set to 42, retrieved:", s1);
+
+// Test randint
+r1 = randint(1, 10);
+r2 = randint(1, 10);
+print("randint(1,10):", r1, r2);
+
+// Test isnan
+print("isnan(1.5):", isnan(1.5));
+
+// Test isinf
+print("isinf(1.5):", isinf(1.5));
+
+// Test isfinite
+print("isfinite(1.5):", isfinite(1.5));
+
+// Test factorial
+fact5 = factorial(5);
+print("factorial(5):", fact5);
+fact0 = factorial(0);
+print("factorial(0):", fact0);
+
+// Test gcd
+gcd_val = gcd(48, 18);
+print("gcd(48, 18):", gcd_val);
+
+// Test lcm
+lcm_val = lcm(12, 18);
+print("lcm(12, 18):", lcm_val);
+
+// Test isprime
+print("isprime(17):", isprime(17));
+print("isprime(10):", isprime(10));
+print("isprime(2):", isprime(2));
+print("isprime(1):", isprime(1));
+
+// Test nextprime
+next_p1 = nextprime(10);
+next_p2 = nextprime(20);
+print("nextprime(10):", next_p1);
+print("nextprime(20):", next_p2);
+
