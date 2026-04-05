@@ -132,16 +132,20 @@ pub const PREC_ASSIGNMENT: i32 = 1;
 pub const PREC_TERNARY: i32 = 2;
 pub const PREC_OR: i32 = 3;
 pub const PREC_AND: i32 = 4;
-pub const PREC_EQUALITY: i32 = 5;
-pub const PREC_COMPARISON: i32 = 6;
-pub const PREC_TERM: i32 = 7;
-pub const PREC_RANGE: i32 = 8; // Between PREC_TERM and PREC_FACTOR
-pub const PREC_FACTOR: i32 = 9;
-pub const PREC_EXPONENT: i32 = 10;
-pub const PREC_UNARY: i32 = 11;
-pub const PREC_CALL: i32 = 12;
-pub const PREC_INDEX: i32 = 13;
-pub const PREC_PRIMARY: i32 = 14;
+pub const PREC_BIT_OR: i32 = 5;    // bitwise OR
+pub const PREC_BIT_XOR: i32 = 6;   // bitwise XOR
+pub const PREC_BIT_AND: i32 = 7;   // bitwise AND
+pub const PREC_EQUALITY: i32 = 8;
+pub const PREC_COMPARISON: i32 = 9;
+pub const PREC_SHIFT: i32 = 10;    // bit shifts
+pub const PREC_TERM: i32 = 11;
+pub const PREC_RANGE: i32 = 12; // Between PREC_TERM and PREC_FACTOR
+pub const PREC_FACTOR: i32 = 13;
+pub const PREC_EXPONENT: i32 = 14;
+pub const PREC_UNARY: i32 = 15;
+pub const PREC_CALL: i32 = 16;
+pub const PREC_INDEX: i32 = 17;
+pub const PREC_PRIMARY: i32 = 18;
 pub const Precedence = u32;
 
 pub const ParseFn = ?*const fn (bool) void;
@@ -643,6 +647,13 @@ pub fn getRule(type_: TokenType) ParseRule {
         .TOKEN_AS => ParseRule{ .precedence = PREC_NONE },
         // Visibility tokens
         .TOKEN_PUB => ParseRule{ .precedence = PREC_NONE },
+        // Bitwise operators
+        .TOKEN_BAND => ParseRule{ .infix = &binary, .precedence = PREC_BIT_AND },
+        .TOKEN_BOR => ParseRule{ .infix = &binary, .precedence = PREC_BIT_OR },
+        .TOKEN_BXOR => ParseRule{ .infix = &binary, .precedence = PREC_BIT_XOR },
+        .TOKEN_BNOT => ParseRule{ .prefix = &unary, .precedence = PREC_NONE },
+        .TOKEN_SHL => ParseRule{ .infix = &binary, .precedence = PREC_SHIFT },
+        .TOKEN_SHR => ParseRule{ .infix = &binary, .precedence = PREC_SHIFT },
         else => ParseRule{ .precedence = PREC_NONE },
     };
 }
@@ -1051,6 +1062,11 @@ pub fn binary(canAssign: bool) void {
         .TOKEN_SLASH => emitByte(@intFromEnum(OpCode.OP_DIVIDE)),
         .TOKEN_PERCENT => emitByte(@intFromEnum(OpCode.OP_MODULO)),
         .TOKEN_HAT => emitByte(@intFromEnum(OpCode.OP_EXPONENT)),
+        .TOKEN_BAND => emitByte(@intFromEnum(OpCode.OP_BAND)),
+        .TOKEN_BOR => emitByte(@intFromEnum(OpCode.OP_BOR)),
+        .TOKEN_BXOR => emitByte(@intFromEnum(OpCode.OP_BXOR)),
+        .TOKEN_SHL => emitByte(@intFromEnum(OpCode.OP_SHL)),
+        .TOKEN_SHR => emitByte(@intFromEnum(OpCode.OP_SHR)),
         else => {},
     }
 
@@ -1793,6 +1809,7 @@ pub fn unary(canAssign: bool) void {
     switch (operatorType) {
         .TOKEN_BANG => emitByte(@intFromEnum(OpCode.OP_NOT)),
         .TOKEN_MINUS => emitByte(@intFromEnum(OpCode.OP_NEGATE)),
+        .TOKEN_BNOT => emitByte(@intFromEnum(OpCode.OP_BNOT)),
         else => {},
     }
 

@@ -775,3 +775,280 @@ pub const clamp = DefineFunction(
     &[_][]const u8{"clamp(5, 0, 10) -> 5.0", "clamp(15, 0, 10) -> 10.0", "clamp(-5, 0, 10) -> 0.0"},
     clamp_impl,
 );
+
+// ============================================================
+// Phase 3: Vector Operations
+// ============================================================
+
+fn dot_impl(_: i32, args: [*]Value) Value {
+    const v1 = args[0];
+    const v2 = args[1];
+    
+    if (!Value.is_obj_type(v1, .OBJ_FVECTOR) or !Value.is_obj_type(v2, .OBJ_FVECTOR)) {
+        return Value.init_nil();
+    }
+    
+    const vec1 = v1.as_vector();
+    const vec2 = v2.as_vector();
+    
+    if (vec1.count != vec2.count) {
+        return Value.init_nil();
+    }
+    
+    var dot_sum: f64 = 0.0;
+    for (0..vec1.count) |i| {
+        dot_sum += vec1.data[i] * vec2.data[i];
+    }
+    
+    return Value.init_double(dot_sum);
+}
+
+fn norm_impl(_: i32, args: [*]Value) Value {
+    const v = args[0];
+    
+    if (!Value.is_obj_type(v, .OBJ_FVECTOR)) {
+        return Value.init_nil();
+    }
+    
+    const vec = v.as_vector();
+    var sum_sq: f64 = 0.0;
+    
+    for (0..vec.count) |i| {
+        sum_sq += vec.data[i] * vec.data[i];
+    }
+    
+    return Value.init_double(@sqrt(sum_sq));
+}
+
+fn length_impl(_: i32, args: [*]Value) Value {
+    return norm_impl(1, args);
+}
+
+pub const dot = DefineFunction(
+    "dot",
+    "math",
+    "Dot product of two vectors",
+    &[_]ParamSpec{
+        .{ .name = "v1", .type = .object },
+        .{ .name = "v2", .type = .object },
+    },
+    .double,
+    &[_][]const u8{"dot([1,2], [3,4]) -> 11.0"},
+    dot_impl,
+);
+
+pub const norm = DefineFunction(
+    "norm",
+    "math",
+    "Vector norm (magnitude)",
+    &[_]ParamSpec{
+        .{ .name = "v", .type = .object },
+    },
+    .double,
+    &[_][]const u8{"norm([3,4]) -> 5.0"},
+    norm_impl,
+);
+
+pub const length = DefineFunction(
+    "length",
+    "math",
+    "Vector length",
+    &[_]ParamSpec{
+        .{ .name = "v", .type = .object },
+    },
+    .double,
+    &[_][]const u8{"length([3,4]) -> 5.0"},
+    length_impl,
+);
+
+// ============================================================
+// Phase 4: Statistical Functions
+// ============================================================
+
+fn sum_impl(_: i32, args: [*]Value) Value {
+    const arr = args[0];
+    
+    if (!Value.is_obj_type(arr, .OBJ_LINKED_LIST) and 
+        !Value.is_obj_type(arr, .OBJ_FVECTOR)) {
+        return Value.init_double(0.0);
+    }
+    
+    var total: f64 = 0.0;
+    
+    if (Value.is_obj_type(arr, .OBJ_LINKED_LIST)) {
+        const list = arr.as_linked_list();
+        var node = list.head;
+        while (node != null) {
+            const item = node.?.data;
+            if (item.is_prim_num()) {
+                total += item.as_num_double();
+            }
+            node = node.?.next;
+        }
+    } else {
+        const vec = arr.as_vector();
+        for (0..vec.count) |i| {
+            total += vec.data[i];
+        }
+    }
+    
+    return Value.init_double(total);
+}
+
+fn mean_impl(_: i32, args: [*]Value) Value {
+    const arr = args[0];
+    
+    if (!Value.is_obj_type(arr, .OBJ_LINKED_LIST) and 
+        !Value.is_obj_type(arr, .OBJ_FVECTOR)) {
+        return Value.init_nil();
+    }
+    
+    var count: f64 = 0.0;
+    var total: f64 = 0.0;
+    
+    if (Value.is_obj_type(arr, .OBJ_LINKED_LIST)) {
+        const list = arr.as_linked_list();
+        var node = list.head;
+        while (node != null) {
+            const item = node.?.data;
+            if (item.is_prim_num()) {
+                total += item.as_num_double();
+                count += 1.0;
+            }
+            node = node.?.next;
+        }
+    } else {
+        const vec = arr.as_vector();
+        count = @floatFromInt(vec.count);
+        for (0..vec.count) |i| {
+            total += vec.data[i];
+        }
+    }
+    
+    if (count == 0.0) {
+        return Value.init_nil();
+    }
+    
+    return Value.init_double(total / count);
+}
+
+fn variance_impl(_: i32, args: [*]Value) Value {
+    const arr = args[0];
+    
+    if (!Value.is_obj_type(arr, .OBJ_LINKED_LIST) and 
+        !Value.is_obj_type(arr, .OBJ_FVECTOR)) {
+        return Value.init_nil();
+    }
+    
+    // First compute mean
+    var count: f64 = 0.0;
+    var total: f64 = 0.0;
+    
+    if (Value.is_obj_type(arr, .OBJ_LINKED_LIST)) {
+        const list = arr.as_linked_list();
+        var node = list.head;
+        while (node != null) {
+            const item = node.?.data;
+            if (item.is_prim_num()) {
+                total += item.as_num_double();
+                count += 1.0;
+            }
+            node = node.?.next;
+        }
+    } else {
+        const vec = arr.as_vector();
+        count = @floatFromInt(vec.count);
+        for (0..vec.count) |i| {
+            total += vec.data[i];
+        }
+    }
+    
+    if (count < 2.0) {
+        return Value.init_nil();
+    }
+    
+    const avg = total / count;
+    
+    // Compute variance
+    var sum_sq_dev: f64 = 0.0;
+    
+    if (Value.is_obj_type(arr, .OBJ_LINKED_LIST)) {
+        const list = arr.as_linked_list();
+        var node = list.head;
+        while (node != null) {
+            const item = node.?.data;
+            if (item.is_prim_num()) {
+                const dev = item.as_num_double() - avg;
+                sum_sq_dev += dev * dev;
+            }
+            node = node.?.next;
+        }
+    } else {
+        const vec = arr.as_vector();
+        for (0..vec.count) |i| {
+            const dev = vec.data[i] - avg;
+            sum_sq_dev += dev * dev;
+        }
+    }
+    
+    return Value.init_double(sum_sq_dev / (count - 1.0));
+}
+
+fn stddev_impl(_: i32, args: [*]Value) Value {
+    const var_result = variance_impl(1, args);
+    
+    if (var_result.type == .VAL_NIL) {
+        return Value.init_nil();
+    }
+    
+    const var_val = var_result.as_num_double();
+    return Value.init_double(@sqrt(var_val));
+}
+
+pub const sum = DefineFunction(
+    "sum",
+    "math",
+    "Sum of array elements",
+    &[_]ParamSpec{
+        .{ .name = "arr", .type = .object },
+    },
+    .double,
+    &[_][]const u8{"sum([1,2,3]) -> 6.0"},
+    sum_impl,
+);
+
+pub const mean = DefineFunction(
+    "mean",
+    "math",
+    "Mean of array",
+    &[_]ParamSpec{
+        .{ .name = "arr", .type = .object },
+    },
+    .double,
+    &[_][]const u8{"mean([1,2,3]) -> 2.0"},
+    mean_impl,
+);
+
+pub const variance = DefineFunction(
+    "variance",
+    "math",
+    "Variance of array",
+    &[_]ParamSpec{
+        .{ .name = "arr", .type = .object },
+    },
+    .double,
+    &[_][]const u8{"variance([1,2,3]) -> 1.0"},
+    variance_impl,
+);
+
+pub const stddev = DefineFunction(
+    "stddev",
+    "math",
+    "Standard deviation",
+    &[_]ParamSpec{
+        .{ .name = "arr", .type = .object },
+    },
+    .double,
+    &[_][]const u8{"stddev([1,2,3]) -> ~1.41"},
+    stddev_impl,
+);

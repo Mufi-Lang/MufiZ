@@ -1,0 +1,83 @@
+// Comprehensive tests for bitwise operators
+print("Testing bitwise operators...");
+
+// Test bitwise AND (band)
+var and_1 = 12 band 10;  // 1100 & 1010 = 1000 = 8
+assert(and_1, 8);
+
+var and_2 = 255 band 15;  // 11111111 & 00001111 = 00001111 = 15
+assert(and_2, 15);
+
+var and_3 = 0 band 100;  // 0
+assert(and_3, 0);
+
+// Test bitwise OR (bor)
+var or_1 = 12 bor 10;   // 1100 | 1010 = 1110 = 14
+assert(or_1, 14);
+
+var or_2 = 8 bor 4;     // 1000 | 0100 = 1100 = 12
+assert(or_2, 12);
+
+var or_3 = 0 bor 0;     // 0
+assert(or_3, 0);
+
+// Test bitwise XOR (bxor)
+var xor_1 = 12 bxor 10;  // 1100 ^ 1010 = 0110 = 6
+assert(xor_1, 6);
+
+var xor_2 = 15 bxor 7;   // 1111 ^ 0111 = 1000 = 8
+assert(xor_2, 8);
+
+var xor_3 = 5 bxor 5;    // 0101 ^ 0101 = 0000 = 0
+assert(xor_3, 0);
+
+// Test bitwise NOT (bnot)
+var not_1 = bnot 0;      // ~0 = -1 (all bits set)
+assert(not_1, -1);
+
+var not_2 = bnot 1;      // ~1 = -2
+assert(not_2, -2);
+
+var not_3 = bnot -1;     // ~-1 = 0
+assert(not_3, 0);
+
+// Test shift left (shl)
+var shl_1 = 5 shl 2;     // 0101 << 2 = 10100 = 20
+assert(shl_1, 20);
+
+var shl_2 = 1 shl 3;     // 0001 << 3 = 1000 = 8
+assert(shl_2, 8);
+
+var shl_3 = 7 shl 0;     // 0111 << 0 = 0111 = 7
+assert(shl_3, 7);
+
+// Test shift right (shr)
+var shr_1 = 20 shr 2;    // 10100 >> 2 = 0101 = 5
+assert(shr_1, 5);
+
+var shr_2 = 8 shr 3;     // 1000 >> 3 = 0001 = 1
+assert(shr_2, 1);
+
+var shr_3 = 7 shr 0;     // 0111 >> 0 = 0111 = 7
+assert(shr_3, 7);
+
+// Test operator precedence and chaining
+var prec_1 = 8 band 12 bor 4;  // (8 & 12) | 4 = 8 | 4 = 12
+assert(prec_1, 12);
+
+var prec_2 = 15 bxor 3 band 7;  // 15 ^ (3 & 7) = 15 ^ 3 = 12
+assert(prec_2, 12);
+
+// Test with variables
+var x = 24;
+var y = 6;
+var res_and = x band y;
+assert(res_and, 0);  // 11000 & 00110 = 00000 = 0
+
+var res_or = x bor y;
+assert(res_or, 30);  // 11000 | 00110 = 11110 = 30
+
+var res_xor = x bxor y;
+assert(res_xor, 30);  // 11000 ^ 00110 = 11110 = 30
+
+print("All bitwise operator tests passed!");

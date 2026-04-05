@@ -1569,6 +1569,79 @@ fn opExponent() InterpretResult {
     return .INTERPRET_OK;
 }
 
+fn opBand() InterpretResult {
+    if (!peek(0).is_int() or !peek(1).is_int()) {
+        runtimeError("Bitwise AND requires integer operands.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    const b = pop().as.num_int;
+    const a = pop().as.num_int;
+    push(Value.init_int(a & b));
+    return .INTERPRET_OK;
+}
+
+fn opBor() InterpretResult {
+    if (!peek(0).is_int() or !peek(1).is_int()) {
+        runtimeError("Bitwise OR requires integer operands.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    const b = pop().as.num_int;
+    const a = pop().as.num_int;
+    push(Value.init_int(a | b));
+    return .INTERPRET_OK;
+}
+
+fn opBxor() InterpretResult {
+    if (!peek(0).is_int() or !peek(1).is_int()) {
+        runtimeError("Bitwise XOR requires integer operands.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    const b = pop().as.num_int;
+    const a = pop().as.num_int;
+    push(Value.init_int(a ^ b));
+    return .INTERPRET_OK;
+}
+
+fn opBnot() InterpretResult {
+    if (!peek(0).is_int()) {
+        runtimeError("Bitwise NOT requires an integer operand.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    const a = pop().as.num_int;
+    push(Value.init_int(~a));
+    return .INTERPRET_OK;
+}
+
+fn opShl() InterpretResult {
+    if (!peek(0).is_int() or !peek(1).is_int()) {
+        runtimeError("Bit shift requires integer operands.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    const b = pop().as.num_int;
+    const a = pop().as.num_int;
+    if (b < 0 or b >= 32) {
+        runtimeError("Shift amount must be between 0 and 31.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    push(Value.init_int(a << @intCast(b)));
+    return .INTERPRET_OK;
+}
+
+fn opShr() InterpretResult {
+    if (!peek(0).is_int() or !peek(1).is_int()) {
+        runtimeError("Bit shift requires integer operands.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    const b = pop().as.num_int;
+    const a = pop().as.num_int;
+    if (b < 0 or b >= 32) {
+        runtimeError("Shift amount must be between 0 and 31.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    push(Value.init_int(a >> @intCast(b)));
+    return .INTERPRET_OK;
+}
+
 fn opNot() InterpretResult {
     push(Value.init_bool(isFalsey(pop())));
     return .INTERPRET_OK;
@@ -3320,6 +3393,12 @@ const jumpTable = blk: {
     table[@intFromEnum(OpCode.OP_DIVIDE)] = opDivide;
     table[@intFromEnum(OpCode.OP_MODULO)] = opModulo;
     table[@intFromEnum(OpCode.OP_EXPONENT)] = opExponent;
+    table[@intFromEnum(OpCode.OP_BAND)] = opBand;
+    table[@intFromEnum(OpCode.OP_BOR)] = opBor;
+    table[@intFromEnum(OpCode.OP_BXOR)] = opBxor;
+    table[@intFromEnum(OpCode.OP_BNOT)] = opBnot;
+    table[@intFromEnum(OpCode.OP_SHL)] = opShl;
+    table[@intFromEnum(OpCode.OP_SHR)] = opShr;
     table[@intFromEnum(OpCode.OP_NOT)] = opNot;
     table[@intFromEnum(OpCode.OP_NEGATE)] = opNegate;
     table[@intFromEnum(OpCode.OP_PRINT)] = opPrint;

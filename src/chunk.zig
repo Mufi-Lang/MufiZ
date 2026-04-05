@@ -141,6 +141,14 @@ pub const OpCode = enum(u8) {
     OP_LOOP_COUNT = 199, // Fuses increment, check, and loop jump
     OP_GET_LOCAL_LESS = 200, // Fuses GET_LOCAL(slot) + CONSTANT(limit) + LESS
 
+    // Bitwise operations (Phase 2)
+    OP_BAND = 201,      // bitwise AND
+    OP_BOR = 202,       // bitwise OR
+    OP_BXOR = 203,      // bitwise XOR
+    OP_BNOT = 204,      // bitwise NOT
+    OP_SHL = 205,       // shift left
+    OP_SHR = 206,       // shift right
+
     // ============================================================
     // PHASE 2 OPCODES: Small Constants (67-82)
     // ============================================================

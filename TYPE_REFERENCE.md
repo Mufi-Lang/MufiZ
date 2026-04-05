@@ -312,8 +312,126 @@ print ready; // Output: true
 
 ---
 
+---
+
+## Mathematical Operations
+
+### Trigonometric Functions
+```mufi
+import math
+
+sin(x)          // Sine (radians)
+cos(x)          // Cosine (radians)
+tan(x)          // Tangent (radians)
+asin(x)         // Arc sine
+acos(x)         // Arc cosine
+atan(x)         // Arc tangent
+atan2(y, x)     // Two-argument arc tangent
+```
+
+### Hyperbolic Functions
+```mufi
+import math
+
+sinh(x)         // Hyperbolic sine
+cosh(x)         // Hyperbolic cosine
+tanh(x)         // Hyperbolic tangent
+asinh(x)        // Inverse hyperbolic sine
+acosh(x)        // Inverse hyperbolic cosine
+atanh(x)        // Inverse hyperbolic tangent
+```
+
+### Exponential and Logarithmic Functions
+```mufi
+import math
+
+exp(x)          // e^x
+ln(x)           // Natural logarithm
+log2(x)         // Logarithm base 2
+log10(x)        // Logarithm base 10
+pow(base, exp)  // base^exponent
+sqrt(x)         // Square root
+```
+
+### Rounding and Utility Functions
+```mufi
+import math
+
+abs(x)          // Absolute value
+ceil(x)         // Round up
+floor(x)        // Round down
+round(x)        // Round to nearest
+trunc(x)        // Truncate to integer
+sign(x)         // Returns -1, 0, or 1
+clamp(x, min, max)  // Clamp to range
+max(a, b)       // Maximum
+min(a, b)       // Minimum
+```
+
+### Geometric Functions
+```mufi
+import math
+
+hypot(x, y)     // Euclidean distance sqrt(x²+y²)
+deg2rad(d)      // Degrees to radians
+rad2deg(r)      // Radians to degrees
+```
+
+### Integer Functions
+```mufi
+import math
+
+gcd(a, b)       // Greatest common divisor
+lcm(a, b)       // Least common multiple
+factorial(n)    // n!
+```
+
+### Bitwise Operators
+```mufi
+a band b        // Bitwise AND
+a bor b         // Bitwise OR
+a bxor b        // Bitwise XOR
+bnot a          // Bitwise NOT
+a shl b         // Shift left
+a shr b         // Shift right
+```
+
+### Vector Functions
+```mufi
+import math
+
+dot(v1, v2)     // Dot product
+norm(v)         // Vector magnitude
+length(v)       // Vector length (alias for norm)
+```
+
+### Statistical Functions
+```mufi
+import math
+
+sum(arr)        // Sum of elements
+mean(arr)       // Average (mean)
+variance(arr)   // Sample variance
+stddev(arr)     // Standard deviation
+```
+
+### Complex Number Functions
+```mufi
+import math
+
+complex(r, i)   // Create complex number: r + i*j
+conj(z)         // Complex conjugate
+real(z)         // Real part
+imag(z)         // Imaginary part
+abs(z)          // Magnitude
+phase(z)        // Phase angle
+```
+
+---
+
 ## See Also
 - [Type System Architecture](src/type_system.zig)
 - [Type Annotations](src/type_annotations.zig)
 - [Type Checker](src/type_checker.zig)
 - [Type Inference](src/type_inference.zig)
+- [Mathematical Operations Guide](docs/math_guide.md)

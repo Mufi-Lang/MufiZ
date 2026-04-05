@@ -204,6 +204,17 @@ pub const MathModule = struct {
         try registry.register(math.trunc);
         try registry.register(math.sign);
         try registry.register(math.clamp);
+        
+        // Phase 3: Vector functions
+        try registry.register(math.dot);
+        try registry.register(math.norm);
+        try registry.register(math.length);
+        
+        // Phase 4: Statistical functions
+        try registry.register(math.sum);
+        try registry.register(math.mean);
+        try registry.register(math.variance);
+        try registry.register(math.stddev);
     }
 };
 

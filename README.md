@@ -329,6 +329,41 @@ let result = serde_deserialize(input_string, format)
 
 For detailed documentation, see `docs/serde_interface.md`
 
+### Mathematical Operations
+
+MufiZ provides comprehensive mathematical capabilities for numerical computing:
+
+#### Core Features
+- **Standard Math Functions**: Trigonometric, logarithmic, exponential functions
+- **Hyperbolic Functions**: sinh, cosh, tanh, and their inverses
+- **Vector Operations**: Dot products, norms, vector arithmetic
+- **Statistical Functions**: Sum, mean, variance, standard deviation
+- **Bitwise Operators**: Efficient bit manipulation with `band`, `bor`, `bxor`, `bnot`, `shl`, `shr`
+- **Complex Numbers**: Full support for complex arithmetic
+- **Matrix Operations**: Comprehensive linear algebra capabilities
+
+#### Quick Example
+```mufi
+import math
+
+// Vector operations
+let v1 = [1, 2, 3]
+let v2 = [4, 5, 6]
+let dot_product = dot(v1, v2)    // 32
+let magnitude = norm(v1)         // 3.74...
+
+// Statistics
+let data = [1, 2, 3, 4, 5]
+let average = mean(data)         // 3.0
+let deviation = stddev(data)     // 1.58...
+
+// Bitwise operations
+let flags = 5 bor 3              // 7 (binary: 0101 | 0011 = 0111)
+let shifted = 4 shl 2           // 16 (4 << 2)
+```
+
+For comprehensive documentation, see [Mathematical Operations Guide](./docs/math_guide.md)
+
 ## Related Repositories
 
 - [homebrew-mufi](https://github.com/Mustafif/homebrew-mufi): The official Homebrew Tap for MufiZ.
