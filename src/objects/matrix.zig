@@ -909,6 +909,114 @@ pub const Matrix = struct {
 
         return .{ .U = U, .singularValues = sigma_vals, .V = V };
     }
+
+    /// Compute condition number using SVD: κ(A) = σ_max / σ_min
+    /// Returns infinity if matrix is singular
+    pub fn conditionNumber(self: *const Self) f64 {
+        if (self.rows != self.cols) {
+            return std.math.inf(f64); // Only defined for square matrices
+        }
+
+        const result = self.svdDecomposition();
+        const sigma_vals = result.singularValues;
+
+        var sigma_max: f64 = 0;
+        var sigma_min: f64 = std.math.inf(f64);
+
+        for (0..sigma_vals.rows) |i| {
+            const s = sigma_vals.get(i, 0);
+            if (s > sigma_max) sigma_max = s;
+            if (s < sigma_min and s > 1e-15) sigma_min = s;
+        }
+
+        if (sigma_min < 1e-15 or sigma_min == std.math.inf(f64)) {
+            return std.math.inf(f64);
+        }
+
+        return sigma_max / sigma_min;
+    }
+
+    /// Cholesky decomposition: A = L*L^T for symmetric positive definite matrices
+    /// Returns {L: lower triangular matrix}
+    /// Returns null if matrix is not symmetric positive definite
+    pub fn choleskyDecomposition(self: *const Self) ?struct { L: Matrix } {
+        if (self.rows != self.cols) {
+            return null; // Must be square
+        }
+
+        const n = self.rows;
+        var L = Matrix.init(n, n);
+
+        // Check if matrix is symmetric (required for Cholesky)
+        for (0..n) |i| {
+            for (0..n) |j| {
+                if (@abs(self.get(i, j) - self.get(j, i)) > 1e-10) {
+                    return null; // Not symmetric
+                }
+            }
+        }
+
+        // Perform Cholesky decomposition
+        for (0..n) |i| {
+            for (0..i + 1) |j| {
+                var sum: f64 = 0;
+                for (0..j) |k| {
+                    sum += L.get(i, k) * L.get(j, k);
+                }
+
+                if (i == j) {
+                    const diag_val = self.get(i, i) - sum;
+                    if (diag_val <= 0) {
+                        return null; // Not positive definite
+                    }
+                    L.set(i, j, @sqrt(diag_val));
+                } else {
+                    const L_jj = L.get(j, j);
+                    if (@abs(L_jj) < 1e-15) {
+                        return null; // Singular
+                    }
+                    L.set(i, j, (self.get(i, j) - sum) / L_jj);
+                }
+            }
+        }
+
+        return .{ .L = L };
+    }
+
+    /// Reorthogonalize Q matrix to improve numerical stability
+    /// Used after QR decomposition for ill-conditioned matrices
+    pub fn reorthogonalize(self: *Self) void {
+        const m = self.rows;
+        const n = self.cols;
+
+        // Second pass of Gram-Schmidt orthogonalization
+        for (0..n) |j| {
+            for (0..j) |i| {
+                var dot_product: f64 = 0;
+                for (0..m) |k| {
+                    dot_product += self.get(k, i) * self.get(k, j);
+                }
+
+                for (0..m) |k| {
+                    self.set(k, j, self.get(k, j) - dot_product * self.get(k, i));
+                }
+            }
+
+            // Normalize column j
+            var norm: f64 = 0;
+            for (0..m) |k| {
+                const val = self.get(k, j);
+                norm += val * val;
+            }
+            norm = @sqrt(norm);
+
+            if (norm > 1e-15) {
+                for (0..m) |k| {
+                    self.set(k, j, self.get(k, j) / norm);
+                }
+            }
+        }
+    }
 };
 
 test "Matrix LU Decomposition basic" {

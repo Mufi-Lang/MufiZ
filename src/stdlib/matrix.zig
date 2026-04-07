@@ -374,6 +374,39 @@ fn svd_impl(_: i32, args: [*]Value) Value {
     return Value.init_obj(@ptrCast(result));
 }
 
+fn condNumber_impl(_: i32, args: [*]Value) Value {
+    const a = args[0].as_matrix();
+    const kappa = a.conditionNumber();
+    return Value.init_float(kappa);
+}
+
+fn cholesky_impl(_: i32, args: [*]Value) Value {
+    const a = args[0].as_matrix();
+
+    const chol_result = a.choleskyDecomposition();
+    if (chol_result == null) {
+        return Value.init_null();
+    }
+
+    const chol_decomp = chol_result.?;
+    
+    // Return as a hash table with "L" key
+    const allocator = @import("../vm_allocator.zig").allocator;
+    var table = try allocator.create(std.StringHashMap(Value));
+    table.* = std.StringHashMap(Value).init(allocator);
+    
+    const l_key = try allocator.dupe(u8, "L");
+    try table.put(l_key, Value.init_obj(@ptrCast(chol_decomp.L)));
+    
+    const result = try allocator.create(object_h.ObjHashTable);
+    result.* = .{
+        .obj = object_h.Obj{ .type = .OBJ_HASH_TABLE },
+        .table = table,
+    };
+    
+    return Value.init_obj(@ptrCast(result));
+}
+
 // === Parameter Specifications ===
 
 const SizeParam = &[_]ParamSpec{.{ .name = "size", .type = .int }};
@@ -664,4 +697,24 @@ pub const svd = DefineFunction(
     .object,
     &[_][]const u8{ "svd(A) -> #{\"U\": U_matrix, \"S\": singular_values, \"V\": V_matrix}", "result = svd(A); u = result[\"U\"]; s = result[\"S\"]; v = result[\"V\"];" },
     svd_impl,
+);
+
+pub const condNumber = DefineFunction(
+    "condNumber",
+    "matrix",
+    "Calculate the condition number κ(A) = σ_max / σ_min for numerical stability assessment",
+    MatrixParam,
+    .float,
+    &[_][]const u8{ "condNumber(A) -> condition number (float)", "if (condNumber(A) > 1e10) print(\"ill-conditioned matrix\")" },
+    condNumber_impl,
+);
+
+pub const cholesky = DefineFunction(
+    "cholesky",
+    "matrix",
+    "Calculate Cholesky decomposition A = L*L^T for symmetric positive definite matrices",
+    MatrixParam,
+    .object,
+    &[_][]const u8{ "cholesky(A) -> #{\"L\": lower_triangular_matrix}", "result = cholesky(A); if (result != null) L = result[\"L\"];" },
+    cholesky_impl,
 );
