@@ -700,6 +700,119 @@ pub const Matrix = struct {
         // Let GC handle cleanup
         return rank_count;
     }
+
+    /// QR Decomposition using Modified Gram-Schmidt
+    /// Returns a struct containing Q (orthogonal) and R (upper triangular)
+    /// Q has dimensions m x n, R has dimensions n x n
+    pub fn qrDecomposition(self: Self) ?struct { Q: Self, R: Self } {
+        const m = self.rows;
+        const n = self.cols;
+
+        // Q will be m x n matrix of orthonormal columns
+        const Q = Matrix.zeros(m, n);
+        // R will be n x n upper triangular matrix
+        const R = Matrix.zeros(n, n);
+
+        // Modified Gram-Schmidt process
+        for (0..n) |j| {
+            // R[j,j] = ||A[:,j]|| (norm of column j)
+            var norm_sq: f64 = 0.0;
+            for (0..m) |i| {
+                const val = self.get(i, j);
+                norm_sq += val * val;
+            }
+            const r_jj = std.math.sqrt(norm_sq);
+
+            // Check for zero column
+            if (r_jj < 1e-14) {
+                return null; // Rank deficient
+            }
+
+            R.set(j, j, r_jj);
+
+            // Q[:,j] = A[:,j] / R[j,j]
+            for (0..m) |i| {
+                Q.set(i, j, self.get(i, j) / r_jj);
+            }
+
+            // For each subsequent column
+            for (j + 1..n) |k| {
+                // R[j,k] = Q[:,j]^T * A[:,k]
+                var dot_prod: f64 = 0.0;
+                for (0..m) |i| {
+                    dot_prod += Q.get(i, j) * self.get(i, k);
+                }
+                R.set(j, k, dot_prod);
+
+                // A[:,k] = A[:,k] - R[j,k] * Q[:,j]
+                for (0..m) |i| {
+                    const new_val = self.get(i, k) - dot_prod * Q.get(i, j);
+                    self.set(i, k, new_val);
+                }
+            }
+        }
+
+        return .{ .Q = Q, .R = R };
+    }
+
+    /// Eigenvalues and Eigenvectors using QR Algorithm
+    /// Only works for symmetric matrices
+    /// Returns tuple containing eigenvalues (vector) and eigenvectors (matrix columns)
+    pub fn eigenDecomposition(self: Self) ?struct { eigenvalues: Self, eigenvectors: Self } {
+        if (self.rows != self.cols) {
+            return null; // Must be square
+        }
+
+        const n = self.rows;
+        const max_iterations = 100;
+        const tolerance = 1e-10;
+
+        // Copy the matrix so we don't modify the original
+        var A = self.clone();
+        // Track the accumulated Q matrices for eigenvectors
+        var V = Matrix.eye(n);
+
+        // QR algorithm iteration
+        for (0..max_iterations) |_| {
+            // QR decomposition of current matrix
+            const qr_result = A.qrDecomposition() orelse return null;
+            const Q = qr_result.Q;
+            const R = qr_result.R;
+
+            // A_new = R * Q
+            const A_new = R.mul(Q) orelse return null;
+
+            // V = V * Q (accumulate eigenvectors)
+            const V_new = V.mul(Q) orelse return null;
+
+            // Check convergence (off-diagonal elements should be small)
+            var off_diag_norm: f64 = 0.0;
+            for (0..n) |i| {
+                for (0..n) |j| {
+                    if (i != j) {
+                        const val = A_new.get(i, j);
+                        off_diag_norm += val * val;
+                    }
+                }
+            }
+            off_diag_norm = std.math.sqrt(off_diag_norm);
+
+            A = A_new;
+            V = V_new;
+
+            if (off_diag_norm < tolerance) {
+                break;
+            }
+        }
+
+        // Extract eigenvalues from diagonal of A
+        const eigenvalues = Matrix.zeros(n, 1);
+        for (0..n) |i| {
+            eigenvalues.set(i, 0, A.get(i, i));
+        }
+
+        return .{ .eigenvalues = eigenvalues, .eigenvectors = V };
+    }
 };
 
 test "Matrix LU Decomposition basic" {

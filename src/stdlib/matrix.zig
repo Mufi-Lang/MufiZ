@@ -282,6 +282,66 @@ fn solve_impl(_: i32, args: [*]Value) Value {
     return Value.init_obj(@ptrCast(x.?));
 }
 
+fn qr_impl(_: i32, args: [*]Value) Value {
+    const a = args[0].as_matrix();
+
+    const qr_result = a.qrDecomposition();
+    if (qr_result == null) {
+        return stdlib_core.stdlib_error("Matrix must have full column rank for QR decomposition", .{});
+    }
+
+    const qr_decomp = qr_result.?;
+    
+    // Return as a hash table with "Q" and "R" keys
+    const allocator = @import("../vm_allocator.zig").allocator;
+    var table = try allocator.create(std.StringHashMap(Value));
+    table.* = std.StringHashMap(Value).init(allocator);
+    
+    const q_key = try allocator.dupe(u8, "Q");
+    const r_key = try allocator.dupe(u8, "R");
+    
+    try table.put(q_key, Value.init_obj(@ptrCast(qr_decomp.Q)));
+    try table.put(r_key, Value.init_obj(@ptrCast(qr_decomp.R)));
+    
+    const pair = try allocator.create(object_h.ObjHashTable);
+    pair.* = .{
+        .obj = object_h.Obj{ .type = .OBJ_HASH_TABLE },
+        .table = table,
+    };
+    
+    return Value.init_obj(@ptrCast(pair));
+}
+
+fn eig_impl(_: i32, args: [*]Value) Value {
+    const a = args[0].as_matrix();
+
+    const eig_result = a.eigenDecomposition();
+    if (eig_result == null) {
+        return stdlib_core.stdlib_error("Matrix must be square for eigendecomposition", .{});
+    }
+
+    const eig_decomp = eig_result.?;
+    
+    // Return as a hash table with "eigenvalues" and "eigenvectors" keys
+    const allocator = @import("../vm_allocator.zig").allocator;
+    var table = try allocator.create(std.StringHashMap(Value));
+    table.* = std.StringHashMap(Value).init(allocator);
+    
+    const vals_key = try allocator.dupe(u8, "eigenvalues");
+    const vecs_key = try allocator.dupe(u8, "eigenvectors");
+    
+    try table.put(vals_key, Value.init_obj(@ptrCast(eig_decomp.eigenvalues)));
+    try table.put(vecs_key, Value.init_obj(@ptrCast(eig_decomp.eigenvectors)));
+    
+    const pair = try allocator.create(object_h.ObjHashTable);
+    pair.* = .{
+        .obj = object_h.Obj{ .type = .OBJ_HASH_TABLE },
+        .table = table,
+    };
+    
+    return Value.init_obj(@ptrCast(pair));
+}
+
 // === Parameter Specifications ===
 
 const SizeParam = &[_]ParamSpec{.{ .name = "size", .type = .int }};
@@ -542,4 +602,24 @@ pub const solve = DefineFunction(
     .object,
     &[_][]const u8{ "solve(A, b) -> solution vector/matrix x" },
     solve_impl,
+);
+
+pub const qr = DefineFunction(
+    "qr",
+    "matrix",
+    "Calculate the QR decomposition using Gram-Schmidt orthogonalization",
+    MatrixParam,
+    .object,
+    &[_][]const u8{ "qr(A) -> #{\"Q\": Q_matrix, \"R\": R_matrix}", "q, r = qr(A); // Access as hash table" },
+    qr_impl,
+);
+
+pub const eig = DefineFunction(
+    "eig",
+    "matrix",
+    "Calculate eigenvalues and eigenvectors using QR algorithm (for symmetric matrices)",
+    MatrixParam,
+    .object,
+    &[_][]const u8{ "eig(A) -> #{\"eigenvalues\": vals_vector, \"eigenvectors\": vecs_matrix}", "result = eig(A); vals = result[\"eigenvalues\"];" },
+    eig_impl,
 );

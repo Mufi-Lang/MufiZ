@@ -1,0 +1,50 @@
+// QR Decomposition Tests
+print "=== QR Decomposition Tests ===\n";
+
+// Test 1: Identity matrix
+print "Test 1: QR of identity matrix";
+var I = eye(3);
+var result1 = qr(I);
+var Q1 = result1["Q"];
+var R1 = result1["R"];
+print "Q:";
+print Q1;
+print "R:";
+print R1;
+
+// Test 2: Simple 3x3 matrix
+print "\nTest 2: QR of 3x3 random matrix";
+var A = [[1, 2, 3], [4, 5, 6], [7, 8, 10]];
+var result2 = qr(A);
+var Q2 = result2["Q"];
+var R2 = result2["R"];
+print "Q:";
+print Q2;
+print "R:";
+print R2;
+
+// Test 3: Verify Q * R ≈ A (reconstruction)
+print "\nTest 3: Verify reconstruction Q*R = A";
+var reconstructed = Q2 * R2;
+print "A original:";
+print A;
+print "Q*R (should match):";
+print reconstructed;
+
+// Test 4: Verify Q is orthogonal (Q^T * Q ≈ I)
+print "\nTest 4: Verify orthogonality (Q^T * Q should ≈ I)";
+var QT = transpose(Q2);
+var QTQ = QT * Q2;
+var I_approx = eye(3);
+print "Q^T * Q:";
+print QTQ;
+print "Identity:";
+print I_approx;
+
+// Test 5: Rectangular matrix
+print "\nTest 5: QR of 4x2 rectangular matrix";
+var B = [[1, 2], [3, 4], [5, 6], [7, 8]];
+var result5 = qr(B);
+print "Rectangular matrix QR computed successfully";
+
+print "\n=== QR Decomposition Tests Complete ===";
