@@ -165,6 +165,23 @@ fn tensor_transpose_impl(_: i32, argv: [*]Value) Value {
     return Value.init_obj(@ptrCast(result.?));
 }
 
+fn tensor_matmul_impl(_: i32, argv: [*]Value) Value {
+    if (argv[0].type != .VAL_OBJ or argv[0].as.obj.?.type != .OBJ_TENSOR) {
+        return stdlib_core.stdlib_error("First argument must be a tensor", .{});
+    }
+    if (argv[1].type != .VAL_OBJ or argv[1].as.obj.?.type != .OBJ_TENSOR) {
+        return stdlib_core.stdlib_error("Second argument must be a tensor", .{});
+    }
+
+    const t1 = argv[0].as_tensor();
+    const t2 = argv[1].as_tensor();
+    if (t1.matmul(t2)) |result| {
+        return Value.init_obj(@ptrCast(result));
+    } else {
+        return stdlib_core.stdlib_error("Matrix dimensions incompatible for multiplication", .{});
+    }
+}
+
 fn tensor_add_scalar_impl(_: i32, argv: [*]Value) Value {
     if (argv[0].type != .VAL_OBJ or argv[0].as.obj.?.type != .OBJ_TENSOR) {
         return stdlib_core.stdlib_error("First argument must be a tensor", .{});
@@ -203,7 +220,7 @@ fn tensor_add_impl(_: i32, argv: [*]Value) Value {
 
     const t1 = argv[0].as_tensor();
     const t2 = argv[1].as_tensor();
-    if (t1.add(t2.*)) |result| {
+    if (t1.add(t2)) |result| {
         return Value.init_obj(@ptrCast(result));
     } else {
         return stdlib_core.stdlib_error("Tensors must have the same shape", .{});
@@ -220,7 +237,7 @@ fn tensor_subtract_impl(_: i32, argv: [*]Value) Value {
 
     const t1 = argv[0].as_tensor();
     const t2 = argv[1].as_tensor();
-    if (t1.subtract(t2.*)) |result| {
+    if (t1.subtract(t2)) |result| {
         return Value.init_obj(@ptrCast(result));
     } else {
         return stdlib_core.stdlib_error("Tensors must have the same shape", .{});
@@ -237,7 +254,7 @@ fn tensor_elem_multiply_impl(_: i32, argv: [*]Value) Value {
 
     const t1 = argv[0].as_tensor();
     const t2 = argv[1].as_tensor();
-    if (t1.multiply(t2.*)) |result| {
+    if (t1.multiply(t2)) |result| {
         return Value.init_obj(@ptrCast(result));
     } else {
         return stdlib_core.stdlib_error("Tensors must have the same shape", .{});
@@ -254,7 +271,7 @@ fn tensor_elem_divide_impl(_: i32, argv: [*]Value) Value {
 
     const t1 = argv[0].as_tensor();
     const t2 = argv[1].as_tensor();
-    if (t1.divide(t2.*)) |result| {
+    if (t1.divide(t2)) |result| {
         return Value.init_obj(@ptrCast(result));
     } else {
         return stdlib_core.stdlib_error("Tensors must have the same shape", .{});
@@ -430,4 +447,14 @@ pub const tensor_elem_divide = stdlib_core.DefineFunction(
     .object,
     &[_][]const u8{"tensor_elem_divide(t1, t2)"},
     tensor_elem_divide_impl,
+);
+
+pub const tensor_matmul = stdlib_core.DefineFunction(
+    "tensor_matmul",
+    "tensor",
+    "Matrix multiplication for 2D tensors",
+    &[_]stdlib_core.ParamSpec{ .{ .name = "tensor1", .type = .object }, .{ .name = "tensor2", .type = .object } },
+    .object,
+    &[_][]const u8{"tensor_matmul(m1, m2)"},
+    tensor_matmul_impl,
 );

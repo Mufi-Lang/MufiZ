@@ -278,6 +278,33 @@ pub const Tensor = struct {
         return result;
     }
 
+    /// Matrix multiplication for 2D tensors (matrices)
+    /// For self[m×n] @ other[n×p], returns result[m×p]
+    pub fn matmul(self: Self, other: Self) ?Self {
+        if (self.rank != 2 or other.rank != 2) return null;
+        if (self.shape[1] != other.shape[0]) return null;
+
+        const m = self.shape[0];
+        const n = self.shape[1];
+        const p = other.shape[1];
+
+        var result_shape = [_]usize{m, p};
+        const result = Tensor.init(&result_shape);
+
+        for (0..m) |i| {
+            for (0..p) |j| {
+                var accum: f64 = 0;
+                for (0..n) |k| {
+                    const a_val = self.get2D(i, k);
+                    const b_val = other.get2D(k, j);
+                    accum += a_val * b_val;
+                }
+                result.set2D(i, j, accum);
+            }
+        }
+        return result;
+    }
+
     /// Scalar addition
     pub fn addScalar(self: Self, scalar: f64) Self {
         const result = Tensor.init(self.shape);

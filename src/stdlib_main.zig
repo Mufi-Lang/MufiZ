@@ -380,6 +380,7 @@ pub const TensorModule = struct {
         try registry.register(tensor.tensor_mean);
         try registry.register(tensor.tensor_flatten);
         try registry.register(tensor.tensor_transpose);
+        try registry.register(tensor.tensor_matmul);
         try registry.register(tensor.tensor_add_scalar);
         try registry.register(tensor.tensor_scalar_multiply);
         try registry.register(tensor.tensor_add);
