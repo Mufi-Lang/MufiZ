@@ -1,0 +1,172 @@
+// Test Cholesky decomposition
+// For symmetric positive definite (SPD) matrices: A = L*L^T
+// L is lower triangular with positive diagonal elements
+
+print("=== Cholesky Decomposition Tests ===");
+
+// Test 1: Simple SPD matrix
+{
+    A = matrix(2, 2, 0);
+    A[0, 0] = 4;    A[0, 1] = 2;
+    A[1, 0] = 2;    A[1, 1] = 3;
+    
+    result = cholesky(A);
+    assert(result != null, "Cholesky should succeed for SPD matrix");
+    L = result["L"];
+    
+    // Verify A = L*L^T
+    L_T = transpose(L);
+    A_reconstructed = L * L_T;
+    
+    for (i = 0; i < 2; i = i + 1) {
+        for (j = 0; j < 2; j = j + 1) {
+            diff = abs(A[i, j] - A_reconstructed[i, j]);
+            assert(diff < 1e-10, "L*L^T should reconstruct A");
+        }
+    }
+    print("✓ Simple 2x2 SPD matrix: A = L*L^T verified");
+}
+
+// Test 2: Identity matrix
+{
+    A = eye(3);
+    result = cholesky(A);
+    assert(result != null, "Cholesky of identity should succeed");
+    L = result["L"];
+    
+    // For identity, L should be identity
+    L_T = transpose(L);
+    A_reconstructed = L * L_T;
+    
+    for (i = 0; i < 3; i = i + 1) {
+        for (j = 0; j < 3; j = j + 1) {
+            diff = abs(A[i, j] - A_reconstructed[i, j]);
+            assert(diff < 1e-10, "Cholesky of identity should give identity");
+        }
+    }
+    print("✓ Identity matrix: Cholesky succeeded");
+}
+
+// Test 3: Diagonal SPD matrix
+{
+    A = matrix(3, 3, 0);
+    A[0, 0] = 4;    A[1, 1] = 9;    A[2, 2] = 16;
+    
+    result = cholesky(A);
+    assert(result != null, "Cholesky of diagonal SPD should succeed");
+    L = result["L"];
+    
+    // Verify L is lower triangular
+    for (i = 0; i < 3; i = i + 1) {
+        for (j = i + 1; j < 3; j = j + 1) {
+            assert(abs(L[i, j]) < 1e-10, "L should be lower triangular");
+        }
+    }
+    
+    // Verify A = L*L^T
+    L_T = transpose(L);
+    A_reconstructed = L * L_T;
+    for (i = 0; i < 3; i = i + 1) {
+        for (j = 0; j < 3; j = j + 1) {
+            diff = abs(A[i, j] - A_reconstructed[i, j]);
+            assert(diff < 1e-10, "L*L^T should reconstruct A");
+        }
+    }
+    print("✓ Diagonal SPD matrix [4, 9, 16]: Cholesky succeeded");
+}
+
+// Test 4: Larger SPD matrix (4x4)
+{
+    A = matrix(4, 4, 0);
+    A[0, 0] = 4;    A[0, 1] = 2;    A[0, 2] = 1;    A[0, 3] = 0.5;
+    A[1, 0] = 2;    A[1, 1] = 5;    A[1, 2] = 2;    A[1, 3] = 1;
+    A[2, 0] = 1;    A[2, 1] = 2;    A[2, 2] = 4;    A[2, 3] = 1.5;
+    A[3, 0] = 0.5;  A[3, 1] = 1;    A[3, 2] = 1.5;  A[3, 3] = 3;
+    
+    result = cholesky(A);
+    assert(result != null, "Cholesky of larger SPD should succeed");
+    L = result["L"];
+    
+    // Verify reconstruction
+    L_T = transpose(L);
+    A_reconstructed = L * L_T;
+    for (i = 0; i < 4; i = i + 1) {
+        for (j = 0; j < 4; j = j + 1) {
+            diff = abs(A[i, j] - A_reconstructed[i, j]);
+            assert(diff < 1e-9, "Reconstruction should be accurate");
+        }
+    }
+    print("✓ 4x4 SPD matrix: Cholesky succeeded with accurate reconstruction");
+}
+
+// Test 5: Non-symmetric matrix should fail
+{
+    A = matrix(2, 2, 0);
+    A[0, 0] = 2;    A[0, 1] = 1;
+    A[1, 0] = 2;    A[1, 1] = 3;    // Not symmetric!
+    
+    result = cholesky(A);
+    assert(result == null, "Cholesky should return null for non-symmetric matrix");
+    print("✓ Non-symmetric matrix rejected: Cholesky returned null");
+}
+
+// Test 6: Positive semi-definite (singular) matrix should fail
+{
+    A = matrix(2, 2, 0);
+    A[0, 0] = 1;    A[0, 1] = 1;
+    A[1, 0] = 1;    A[1, 1] = 1;    // Singular (rank 1)
+    
+    result = cholesky(A);
+    assert(result == null, "Cholesky should fail for singular matrix");
+    print("✓ Singular matrix rejected: Cholesky returned null");
+}
+
+// Test 7: Non-positive definite matrix should fail
+{
+    A = matrix(2, 2, 0);
+    A[0, 0] = 1;    A[0, 1] = 2;
+    A[1, 0] = 2;    A[1, 1] = 3;    // Indefinite (has negative eigenvalue)
+    
+    result = cholesky(A);
+    assert(result == null, "Cholesky should fail for non-positive definite matrix");
+    print("✓ Non-positive definite matrix rejected: Cholesky returned null");
+}
+
+// Test 8: Lower triangular matrix has diagonal positive
+{
+    A = matrix(3, 3, 0);
+    A[0, 0] = 4;    A[0, 1] = 2;    A[0, 2] = 1;
+    A[1, 0] = 2;    A[1, 1] = 5;    A[1, 2] = 2;
+    A[2, 0] = 1;    A[2, 1] = 2;    A[2, 2] = 4;
+    
+    result = cholesky(A);
+    L = result["L"];
+    
+    // Check diagonal elements are positive
+    for (i = 0; i < 3; i = i + 1) {
+        assert(L[i, i] > 0, "Diagonal of L should be positive");
+    }
+    print("✓ L matrix has positive diagonal elements");
+}
+
+// Test 9: Consistency - multiple calls should give same result
+{
+    A = matrix(2, 2, 0);
+    A[0, 0] = 9;    A[0, 1] = 3;
+    A[1, 0] = 3;    A[1, 1] = 2;
+    
+    result1 = cholesky(A);
+    result2 = cholesky(A);
+    L1 = result1["L"];
+    L2 = result2["L"];
+    
+    for (i = 0; i < 2; i = i + 1) {
+        for (j = 0; j < 2; j = j + 1) {
+            diff = abs(L1[i, j] - L2[i, j]);
+            assert(diff < 1e-15, "Cholesky should be consistent");
+        }
+    }
+    print("✓ Consistency check: Multiple calls give same result");
+}
+
+print("\n=== All Cholesky Decomposition Tests Passed ===");

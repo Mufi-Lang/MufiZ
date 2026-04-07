@@ -787,6 +787,10 @@ pub fn freeObject(object: *Obj) void {
             const module_slice = @as([*]u8, @ptrCast(object))[0..@sizeOf(object_h.ObjModule)];
             mem_utils.free(allocator, module_slice);
         },
+        .OBJ_TENSOR => {
+            const tensor: *object_h.Tensor = @ptrCast(@alignCast(object));
+            tensor.deinit();
+        },
     }
 }
 
@@ -869,6 +873,9 @@ pub fn blackenObject(object: *Obj) void {
             while (iterator.next()) |entry| {
                 markValue(entry.value_ptr.*);
             }
+        },
+        .OBJ_TENSOR => {
+            // Tensor has no GC-managed fields to mark (only contains f64 data and metadata)
         },
 
         else => {},

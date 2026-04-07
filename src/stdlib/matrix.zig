@@ -282,6 +282,131 @@ fn solve_impl(_: i32, args: [*]Value) Value {
     return Value.init_obj(@ptrCast(x.?));
 }
 
+fn qr_impl(_: i32, args: [*]Value) Value {
+    const a = args[0].as_matrix();
+
+    const qr_result = a.qrDecomposition();
+    if (qr_result == null) {
+        return stdlib_core.stdlib_error("Matrix must have full column rank for QR decomposition", .{});
+    }
+
+    const qr_decomp = qr_result.?;
+    
+    // Return as a hash table with "Q" and "R" keys
+    const allocator = @import("../vm_allocator.zig").allocator;
+    var table = try allocator.create(std.StringHashMap(Value));
+    table.* = std.StringHashMap(Value).init(allocator);
+    
+    const q_key = try allocator.dupe(u8, "Q");
+    const r_key = try allocator.dupe(u8, "R");
+    
+    try table.put(q_key, Value.init_obj(@ptrCast(qr_decomp.Q)));
+    try table.put(r_key, Value.init_obj(@ptrCast(qr_decomp.R)));
+    
+    const pair = try allocator.create(object_h.ObjHashTable);
+    pair.* = .{
+        .obj = object_h.Obj{ .type = .OBJ_HASH_TABLE },
+        .table = table,
+    };
+    
+    return Value.init_obj(@ptrCast(pair));
+}
+
+fn eig_impl(_: i32, args: [*]Value) Value {
+    const a = args[0].as_matrix();
+
+    const eig_result = a.eigenDecomposition();
+    if (eig_result == null) {
+        return stdlib_core.stdlib_error("Matrix must be square for eigendecomposition", .{});
+    }
+
+    const eig_decomp = eig_result.?;
+    
+    // Return as a hash table with "eigenvalues" and "eigenvectors" keys
+    const allocator = @import("../vm_allocator.zig").allocator;
+    var table = try allocator.create(std.StringHashMap(Value));
+    table.* = std.StringHashMap(Value).init(allocator);
+    
+    const vals_key = try allocator.dupe(u8, "eigenvalues");
+    const vecs_key = try allocator.dupe(u8, "eigenvectors");
+    
+    try table.put(vals_key, Value.init_obj(@ptrCast(eig_decomp.eigenvalues)));
+    try table.put(vecs_key, Value.init_obj(@ptrCast(eig_decomp.eigenvectors)));
+    
+    const pair = try allocator.create(object_h.ObjHashTable);
+    pair.* = .{
+        .obj = object_h.Obj{ .type = .OBJ_HASH_TABLE },
+        .table = table,
+    };
+    
+    return Value.init_obj(@ptrCast(pair));
+}
+
+fn svd_impl(_: i32, args: [*]Value) Value {
+    const a = args[0].as_matrix();
+
+    const svd_result = a.svdDecomposition();
+    if (svd_result == null) {
+        return stdlib_core.stdlib_error("SVD decomposition failed", .{});
+    }
+
+    const svd_decomp = svd_result.?;
+    
+    // Return as a hash table with "U", "S", and "V" keys
+    const allocator = @import("../vm_allocator.zig").allocator;
+    var table = try allocator.create(std.StringHashMap(Value));
+    table.* = std.StringHashMap(Value).init(allocator);
+    
+    const u_key = try allocator.dupe(u8, "U");
+    const s_key = try allocator.dupe(u8, "S");
+    const v_key = try allocator.dupe(u8, "V");
+    
+    try table.put(u_key, Value.init_obj(@ptrCast(svd_decomp.U)));
+    try table.put(s_key, Value.init_obj(@ptrCast(svd_decomp.singularValues)));
+    try table.put(v_key, Value.init_obj(@ptrCast(svd_decomp.V)));
+    
+    const result = try allocator.create(object_h.ObjHashTable);
+    result.* = .{
+        .obj = object_h.Obj{ .type = .OBJ_HASH_TABLE },
+        .table = table,
+    };
+    
+    return Value.init_obj(@ptrCast(result));
+}
+
+fn condNumber_impl(_: i32, args: [*]Value) Value {
+    const a = args[0].as_matrix();
+    const kappa = a.conditionNumber();
+    return Value.init_float(kappa);
+}
+
+fn cholesky_impl(_: i32, args: [*]Value) Value {
+    const a = args[0].as_matrix();
+
+    const chol_result = a.choleskyDecomposition();
+    if (chol_result == null) {
+        return Value.init_null();
+    }
+
+    const chol_decomp = chol_result.?;
+    
+    // Return as a hash table with "L" key
+    const allocator = @import("../vm_allocator.zig").allocator;
+    var table = try allocator.create(std.StringHashMap(Value));
+    table.* = std.StringHashMap(Value).init(allocator);
+    
+    const l_key = try allocator.dupe(u8, "L");
+    try table.put(l_key, Value.init_obj(@ptrCast(chol_decomp.L)));
+    
+    const result = try allocator.create(object_h.ObjHashTable);
+    result.* = .{
+        .obj = object_h.Obj{ .type = .OBJ_HASH_TABLE },
+        .table = table,
+    };
+    
+    return Value.init_obj(@ptrCast(result));
+}
+
 // === Parameter Specifications ===
 
 const SizeParam = &[_]ParamSpec{.{ .name = "size", .type = .int }};
@@ -542,4 +667,54 @@ pub const solve = DefineFunction(
     .object,
     &[_][]const u8{ "solve(A, b) -> solution vector/matrix x" },
     solve_impl,
+);
+
+pub const qr = DefineFunction(
+    "qr",
+    "matrix",
+    "Calculate the QR decomposition using Gram-Schmidt orthogonalization",
+    MatrixParam,
+    .object,
+    &[_][]const u8{ "qr(A) -> #{\"Q\": Q_matrix, \"R\": R_matrix}", "q, r = qr(A); // Access as hash table" },
+    qr_impl,
+);
+
+pub const eig = DefineFunction(
+    "eig",
+    "matrix",
+    "Calculate eigenvalues and eigenvectors using QR algorithm (for symmetric matrices)",
+    MatrixParam,
+    .object,
+    &[_][]const u8{ "eig(A) -> #{\"eigenvalues\": vals_vector, \"eigenvectors\": vecs_matrix}", "result = eig(A); vals = result[\"eigenvalues\"];" },
+    eig_impl,
+);
+
+pub const svd = DefineFunction(
+    "svd",
+    "matrix",
+    "Calculate Singular Value Decomposition (U, S, V^T) via power iteration",
+    MatrixParam,
+    .object,
+    &[_][]const u8{ "svd(A) -> #{\"U\": U_matrix, \"S\": singular_values, \"V\": V_matrix}", "result = svd(A); u = result[\"U\"]; s = result[\"S\"]; v = result[\"V\"];" },
+    svd_impl,
+);
+
+pub const condNumber = DefineFunction(
+    "condNumber",
+    "matrix",
+    "Calculate the condition number κ(A) = σ_max / σ_min for numerical stability assessment",
+    MatrixParam,
+    .float,
+    &[_][]const u8{ "condNumber(A) -> condition number (float)", "if (condNumber(A) > 1e10) print(\"ill-conditioned matrix\")" },
+    condNumber_impl,
+);
+
+pub const cholesky = DefineFunction(
+    "cholesky",
+    "matrix",
+    "Calculate Cholesky decomposition A = L*L^T for symmetric positive definite matrices",
+    MatrixParam,
+    .object,
+    &[_][]const u8{ "cholesky(A) -> #{\"L\": lower_triangular_matrix}", "result = cholesky(A); if (result != null) L = result[\"L\"];" },
+    cholesky_impl,
 );

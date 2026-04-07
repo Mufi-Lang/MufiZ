@@ -654,6 +654,10 @@ pub fn getRule(type_: TokenType) ParseRule {
         .TOKEN_BNOT => ParseRule{ .prefix = &unary, .precedence = PREC_NONE },
         .TOKEN_SHL => ParseRule{ .infix = &binary, .precedence = PREC_SHIFT },
         .TOKEN_SHR => ParseRule{ .infix = &binary, .precedence = PREC_SHIFT },
+        // Element-wise operators for matrices
+        .TOKEN_STAR_DOT => ParseRule{ .infix = &binary, .precedence = PREC_FACTOR },
+        .TOKEN_SLASH_DOT => ParseRule{ .infix = &binary, .precedence = PREC_FACTOR },
+        .TOKEN_HAT_DOT => ParseRule{ .infix = &binary, .precedence = PREC_EXPONENT },
         else => ParseRule{ .precedence = PREC_NONE },
     };
 }
@@ -1067,6 +1071,10 @@ pub fn binary(canAssign: bool) void {
         .TOKEN_BXOR => emitByte(@intFromEnum(OpCode.OP_BXOR)),
         .TOKEN_SHL => emitByte(@intFromEnum(OpCode.OP_SHL)),
         .TOKEN_SHR => emitByte(@intFromEnum(OpCode.OP_SHR)),
+        // Element-wise operators
+        .TOKEN_STAR_DOT => emitByte(@intFromEnum(OpCode.OP_ELEMENT_WISE_MULTIPLY)),
+        .TOKEN_SLASH_DOT => emitByte(@intFromEnum(OpCode.OP_ELEMENT_WISE_DIVIDE)),
+        .TOKEN_HAT_DOT => emitByte(@intFromEnum(OpCode.OP_ELEMENT_WISE_POWER)),
         else => {},
     }
 
@@ -1779,6 +1787,7 @@ fn parseIndexExpression() void {
 
 pub fn index_(canAssign: bool) void {
     var isSlice = false;
+    var is2DSlice = false;
 
     // Parse the first index
     parseIndexExpression();
@@ -1787,11 +1796,31 @@ pub fn index_(canAssign: bool) void {
     if (match(.TOKEN_COLON)) {
         isSlice = true;
         parseIndexExpression();
+        
+        // Check for 2D slicing: m[r1:r2, c1:c2]
+        if (match(.TOKEN_COMMA)) {
+            is2DSlice = true;
+            // Parse column start:end
+            parseIndexExpression();
+            if (match(.TOKEN_COLON)) {
+                parseIndexExpression();
+            } else {
+                // If no colon after comma, treat as single column index
+                // Emit a constant for the end (same as start)
+                emitConstant(Value.init_int(0)); // Will be fixed by VM
+            }
+        }
+    } else if (match(.TOKEN_COMMA)) {
+        // 2D indexing without slice: m[r, c]
+        parseIndexExpression();
+        // This is handled by OP_GET_INDEX with 2 indices on stack
     }
 
     consume(.TOKEN_RIGHT_SQPAREN, "Expect ']' after index expression.");
 
-    if (isSlice) {
+    if (is2DSlice) {
+        emitByte(@intFromEnum(OpCode.OP_MATRIX_SLICE));
+    } else if (isSlice) {
         emitByte(@intFromEnum(OpCode.OP_SLICE));
     } else if (canAssign and match(.TOKEN_EQUAL)) {
         expression();

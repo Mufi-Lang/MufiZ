@@ -1,0 +1,144 @@
+// Test Suite: Element-wise Matrix Operators (.*, ./, .^)
+// Tests the new element-wise operations for matrices
+
+print "=== Element-wise Operator Tests ===";
+
+fun test_elementwise_multiply() {
+    print "\n[Test 1] Element-wise multiplication (.*)";
+    var m1 = [[2, 3], [4, 5]];
+    var m2 = [[1, 2], [3, 4]];
+    var result = m1 .* m2;
+    
+    // Verify dimensions
+    var dims = size(result);
+    assert(dims.get(0, 0), 2.0);  // rows
+    assert(dims.get(0, 1), 2.0);  // cols
+    
+    // Verify values: [2*1, 3*2], [4*3, 5*4] = [2, 6], [12, 20]
+    assert(result.get(0, 0), 2.0);
+    assert(result.get(0, 1), 6.0);
+    assert(result.get(1, 0), 12.0);
+    assert(result.get(1, 1), 20.0);
+    
+    print "✓ Element-wise multiplication passed";
+}
+
+fun test_elementwise_divide() {
+    print "\n[Test 2] Element-wise division (./)";
+    var m1 = [[4, 6], [8, 10]];
+    var m2 = [[2, 2], [2, 2]];
+    var result = m1 ./ m2;
+    
+    // Verify dimensions
+    var dims = size(result);
+    assert(dims.get(0, 0), 2.0);
+    assert(dims.get(0, 1), 2.0);
+    
+    // Verify values: [4/2, 6/2], [8/2, 10/2] = [2, 3], [4, 5]
+    assert(result.get(0, 0), 2.0);
+    assert(result.get(0, 1), 3.0);
+    assert(result.get(1, 0), 4.0);
+    assert(result.get(1, 1), 5.0);
+    
+    // Verify trace: 2 + 5 = 7
+    assert(trace(result), 7.0);
+    
+    print "✓ Element-wise division passed";
+}
+
+fun test_elementwise_power() {
+    print "\n[Test 3] Element-wise power (.^)";
+    var m1 = [[2, 3], [4, 5]];
+    var m2 = [[2, 2], [2, 2]];
+    var result = m1 .^ m2;
+    
+    // Verify dimensions
+    var dims = size(result);
+    assert(dims.get(0, 0), 2.0);
+    assert(dims.get(0, 1), 2.0);
+    
+    // Verify values: [2^2, 3^2], [4^2, 5^2] = [4, 9], [16, 25]
+    assert(result.get(0, 0), 4.0);
+    assert(result.get(0, 1), 9.0);
+    assert(result.get(1, 0), 16.0);
+    assert(result.get(1, 1), 25.0);
+    
+    // Verify trace: 4 + 25 = 29
+    assert(trace(result), 29.0);
+    
+    print "✓ Element-wise power passed";
+}
+
+fun test_elementwise_chain() {
+    print "\n[Test 4] Chained element-wise operations";
+    var m1 = [[1, 2], [3, 4]];
+    var m2 = [[2, 2], [2, 2]];
+    
+    // Chain operations: (m1 .* m2) .^ m2
+    var result = (m1 .* m2) .^ m2;
+    
+    // m1 .* m2 = [[2, 4], [6, 8]]
+    // [[2, 4], [6, 8]] .^ [[2, 2], [2, 2]] = [[4, 16], [36, 64]]
+    assert(result.get(0, 0), 4.0);
+    assert(result.get(0, 1), 16.0);
+    assert(result.get(1, 0), 36.0);
+    assert(result.get(1, 1), 64.0);
+    
+    print "✓ Chained element-wise operations passed";
+}
+
+fun test_elementwise_with_identity() {
+    print "\n[Test 5] Element-wise operations with identity matrices";
+    var m1 = [[2, 3], [4, 5]];
+    var I = [[1, 1], [1, 1]];
+    
+    // m1 .* I should equal m1
+    var result_mul = m1 .* I;
+    assert(result_mul.get(0, 0), 2.0);
+    assert(result_mul.get(0, 1), 3.0);
+    assert(result_mul.get(1, 0), 4.0);
+    assert(result_mul.get(1, 1), 5.0);
+    
+    // m1 ./ I should equal m1
+    var result_div = m1 ./ I;
+    assert(result_div.get(0, 0), 2.0);
+    assert(result_div.get(0, 1), 3.0);
+    assert(result_div.get(1, 0), 4.0);
+    assert(result_div.get(1, 1), 5.0);
+    
+    print "✓ Element-wise operations with identity passed";
+}
+
+fun test_elementwise_rectangular() {
+    print "\n[Test 6] Element-wise operations on rectangular matrices";
+    var m1 = [[1, 2, 3], [4, 5, 6]];
+    var m2 = [[2, 2, 2], [2, 2, 2]];
+    
+    var result = m1 .* m2;
+    
+    // Verify dimensions (2x3)
+    var dims = size(result);
+    assert(dims.get(0, 0), 2.0);
+    assert(dims.get(0, 1), 3.0);
+    
+    // Verify values
+    assert(result.get(0, 0), 2.0);   // 1*2
+    assert(result.get(0, 1), 4.0);   // 2*2
+    assert(result.get(0, 2), 6.0);   // 3*2
+    assert(result.get(1, 0), 8.0);   // 4*2
+    assert(result.get(1, 1), 10.0);  // 5*2
+    assert(result.get(1, 2), 12.0);  // 6*2
+    
+    print "✓ Element-wise operations on rectangular matrices passed";
+}
+
+// Run all tests
+test_elementwise_multiply();
+test_elementwise_divide();
+test_elementwise_power();
+test_elementwise_chain();
+test_elementwise_with_identity();
+test_elementwise_rectangular();
+
+print "\n=== ALL ELEMENT-WISE OPERATOR TESTS PASSED ===";
+print "Element-wise operators (.*, ./, .^) implemented successfully!";

@@ -14,6 +14,7 @@ const collections = @import("stdlib/collections.zig");
 // const fs = @import("stdlib/fs.zig");
 // const network = @import("stdlib/network.zig");
 const matrix = @import("stdlib/matrix.zig");
+const tensor = @import("stdlib/tensor.zig");
 const json = @import("stdlib/json.zig");
 const serde = @import("stdlib/serde.zig");
 
@@ -183,19 +184,14 @@ pub const MathModule = struct {
         try registry.register(math.round);
         try registry.register(math.max);
         try registry.register(math.min);
-<<<<<<< HEAD
         
         // Phase 1: New math functions
-=======
-        // Phase 1: Hyperbolic functions
->>>>>>> 44216b23d36fa487e45525341b2478b089f83d67
         try registry.register(math.sinh);
         try registry.register(math.cosh);
         try registry.register(math.tanh);
         try registry.register(math.asinh);
         try registry.register(math.acosh);
         try registry.register(math.atanh);
-<<<<<<< HEAD
         try registry.register(math.atan2);
         try registry.register(math.deg2rad);
         try registry.register(math.rad2deg);
@@ -220,29 +216,6 @@ pub const MathModule = struct {
         try registry.register(math.mean);
         try registry.register(math.variance);
         try registry.register(math.stddev);
-=======
-        // Phase 1: Angle and utility functions
-        try registry.register(math.atan2);
-        try registry.register(math.sign);
-        try registry.register(math.clamp);
-        // Phase 1: Complex number utilities
-        try registry.register(math.real);
-        try registry.register(math.imag);
-        try registry.register(math.conj);
-        // Phase 4: Enhanced randomness and special functions
-        try registry.register(math.set_seed);
-        try registry.register(math.get_seed);
-        try registry.register(math.randint);
-        try registry.register(math.randrange);
-        try registry.register(math.isnan);
-        try registry.register(math.isinf);
-        try registry.register(math.isfinite);
-        try registry.register(math.factorial);
-        try registry.register(math.gcd);
-        try registry.register(math.lcm);
-        try registry.register(math.isprime);
-        try registry.register(math.nextprime);
->>>>>>> 44216b23d36fa487e45525341b2478b089f83d67
     }
 };
 
@@ -390,6 +363,30 @@ pub const MatrixModule = struct {
         try registry.register(matrix.rank);
         try registry.register(matrix.lu);
         try registry.register(matrix.solve);
+    }
+};
+
+pub const TensorModule = struct {
+    pub fn register() !void {
+        const registry = stdlib_core.getGlobalRegistry();
+        try registry.register(tensor.tensor_eye);
+        try registry.register(tensor.tensor_rank);
+        try registry.register(tensor.tensor_total_size);
+        try registry.register(tensor.tensor_get_1d);
+        try registry.register(tensor.tensor_set_1d);
+        try registry.register(tensor.tensor_get_2d);
+        try registry.register(tensor.tensor_set_2d);
+        try registry.register(tensor.tensor_sum);
+        try registry.register(tensor.tensor_mean);
+        try registry.register(tensor.tensor_flatten);
+        try registry.register(tensor.tensor_transpose);
+        try registry.register(tensor.tensor_matmul);
+        try registry.register(tensor.tensor_add_scalar);
+        try registry.register(tensor.tensor_scalar_multiply);
+        try registry.register(tensor.tensor_add);
+        try registry.register(tensor.tensor_subtract);
+        try registry.register(tensor.tensor_elem_multiply);
+        try registry.register(tensor.tensor_elem_divide);
     }
 };
 

@@ -54,6 +54,7 @@ const ObjLinkedList = object_h.LinkedList;
 const Node = object_h.Node;
 const FloatVector = object_h.FloatVector;
 const Matrix = object_h.Matrix;
+const Tensor = object_h.Tensor;
 const MatrixRow = object_h.MatrixRow;
 const fvec = @import("objects/fvec.zig");
 const obj_range = @import("objects/range.zig");
@@ -574,6 +575,10 @@ pub const Value = struct {
     }
 
     pub fn as_matrix(self: Self) *Matrix {
+        return @ptrCast(@alignCast(self.as.obj));
+    }
+
+    pub fn as_tensor(self: Self) *Tensor {
         return @ptrCast(@alignCast(self.as.obj));
     }
 

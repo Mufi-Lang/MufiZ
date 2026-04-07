@@ -1,0 +1,34 @@
+// Eigenvalue Decomposition Tests
+print "=== Eigenvalue Tests ===\n";
+
+// Test 1: Diagonal matrix (eigenvalues should be on diagonal)
+print "Test 1: Eigenvalues of diagonal matrix";
+var D = [[2, 0, 0], [0, 3, 0], [0, 0, 5]];
+var eig1 = eig(D);
+var vals1 = eig1["eigenvalues"];
+var vecs1 = eig1["eigenvectors"];
+print "Eigenvalues (should be 2, 3, 5):";
+print vals1;
+print "Eigenvectors:";
+print vecs1;
+
+// Test 2: Symmetric matrix
+print "\nTest 2: Eigenvalues of symmetric matrix";
+var S = [[4, -2], [-2, 1]];
+var eig2 = eig(S);
+var vals2 = eig2["eigenvalues"];
+var vecs2 = eig2["eigenvectors"];
+print "Eigenvalues:";
+print vals2;
+print "Eigenvectors:";
+print vecs2;
+
+// Test 3: Identity matrix (eigenvalues should all be 1)
+print "\nTest 3: Eigenvalues of identity matrix (should be 1, 1, 1)";
+var I = eye(3);
+var eig3 = eig(I);
+var vals3 = eig3["eigenvalues"];
+print "Eigenvalues:";
+print vals3;
+
+print "\n=== Eigenvalue Tests Complete ===";

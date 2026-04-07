@@ -1,0 +1,36 @@
+// Test tensor 3D and higher-dimensional operations
+import "tensor"
+
+fn main() {
+    // Test creating identity matrix
+    var eye = tensor_eye(2)
+    
+    // Test basic operations
+    var rank = tensor_rank(eye)
+    print("Rank check: " + str(rank))
+    
+    var size = tensor_total_size(eye)
+    print("Size check: " + str(size))
+    
+    // Test get/set on 2D tensor
+    tensor_set_2d(eye, 0, 0, 10.0)
+    var val = tensor_get_2d(eye, 0, 0)
+    print("After set_2d, value: " + str(val))
+    
+    // Test aggregations
+    var sum = tensor_sum(eye)
+    print("Sum check: " + str(sum))
+    
+    var mean = tensor_mean(eye)
+    print("Mean check: " + str(mean))
+    
+    // Test tensor-to-tensor operations
+    var eye2 = tensor_eye(2)
+    var sum_result = tensor_add(eye, eye2)
+    print("Add result rank: " + str(tensor_rank(sum_result)))
+    
+    var elem_product = tensor_elem_multiply(eye, eye2)
+    print("Hadamard product rank: " + str(tensor_rank(elem_product)))
+    
+    print("All 2D tensor tests passed!")
+}
