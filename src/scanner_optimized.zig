@@ -227,6 +227,9 @@ pub const TokenType = enum(c_int) {
     TOKEN_BNOT = 79,  // bitwise NOT
     TOKEN_SHL = 80,   // shift left
     TOKEN_SHR = 81,   // shift right
+    TOKEN_STAR_DOT = 82,  // .* element-wise multiply
+    TOKEN_SLASH_DOT = 83,  // ./ element-wise divide
+    TOKEN_HAT_DOT = 84,  // .^ element-wise power
 };
 
 pub const Token = struct {
@@ -413,6 +416,9 @@ fn handleComma() Token {
 }
 
 fn handleHat() Token {
+    if (match_internal('.')) {
+        return make_token(.TOKEN_HAT_DOT);
+    }
     return make_token(.TOKEN_HAT);
 }
 
@@ -467,6 +473,8 @@ fn handlePlus() Token {
 fn handleSlash() Token {
     if (match_internal('=')) {
         return make_token(.TOKEN_SLASH_EQUAL);
+    } else if (match_internal('.')) {
+        return make_token(.TOKEN_SLASH_DOT);
     } else if (match_internal('#')) {
         // Multi-line comment - backtrack and skip
         scanner.current -= 1;
@@ -478,7 +486,13 @@ fn handleSlash() Token {
 }
 
 fn handleStar() Token {
-    return make_token(if (match_internal('=')) .TOKEN_STAR_EQUAL else .TOKEN_STAR);
+    if (match_internal('=')) {
+        return make_token(.TOKEN_STAR_EQUAL);
+    } else if (match_internal('.')) {
+        return make_token(.TOKEN_STAR_DOT);
+    } else {
+        return make_token(.TOKEN_STAR);
+    }
 }
 
 fn handleBang() Token {

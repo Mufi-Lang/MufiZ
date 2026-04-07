@@ -1642,6 +1642,100 @@ fn opShr() InterpretResult {
     return .INTERPRET_OK;
 }
 
+fn opElementWiseMultiply() InterpretResult {
+    const b = pop();
+    const a = pop();
+
+    // Both operands must be matrices
+    if ((!a.is_obj() or !object_h.isObjType(a, .OBJ_MATRIX)) or
+        (!b.is_obj() or !object_h.isObjType(b, .OBJ_MATRIX))) {
+        runtimeError("Element-wise multiplication (.* ) requires matrix operands.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    const matrixA: *object_h.Matrix = @ptrCast(@alignCast(a.as.obj));
+    const matrixB: *object_h.Matrix = @ptrCast(@alignCast(b.as.obj));
+
+    // Dimensions must match
+    if (matrixA.rows != matrixB.rows or matrixA.cols != matrixB.cols) {
+        runtimeError("Element-wise multiplication requires matrices of the same dimensions.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    // Create result matrix
+    const result = object_h.Matrix.init(matrixA.rows, matrixA.cols);
+    for (0..matrixA.rows * matrixA.cols) |i| {
+        result.data[i] = matrixA.data[i] * matrixB.data[i];
+    }
+
+    push(Value.init_obj(@ptrCast(result)));
+    return .INTERPRET_OK;
+}
+
+fn opElementWiseDivide() InterpretResult {
+    const b = pop();
+    const a = pop();
+
+    // Both operands must be matrices
+    if ((!a.is_obj() or !object_h.isObjType(a, .OBJ_MATRIX)) or
+        (!b.is_obj() or !object_h.isObjType(b, .OBJ_MATRIX))) {
+        runtimeError("Element-wise division (./ ) requires matrix operands.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    const matrixA: *object_h.Matrix = @ptrCast(@alignCast(a.as.obj));
+    const matrixB: *object_h.Matrix = @ptrCast(@alignCast(b.as.obj));
+
+    // Dimensions must match
+    if (matrixA.rows != matrixB.rows or matrixA.cols != matrixB.cols) {
+        runtimeError("Element-wise division requires matrices of the same dimensions.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    // Create result matrix
+    const result = object_h.Matrix.init(matrixA.rows, matrixA.cols);
+    for (0..matrixA.rows * matrixA.cols) |i| {
+        if (matrixB.data[i] == 0.0) {
+            runtimeError("Division by zero in element-wise division.", .{});
+            return .INTERPRET_RUNTIME_ERROR;
+        }
+        result.data[i] = matrixA.data[i] / matrixB.data[i];
+    }
+
+    push(Value.init_obj(@ptrCast(result)));
+    return .INTERPRET_OK;
+}
+
+fn opElementWisePower() InterpretResult {
+    const b = pop();
+    const a = pop();
+
+    // Both operands must be matrices
+    if ((!a.is_obj() or !object_h.isObjType(a, .OBJ_MATRIX)) or
+        (!b.is_obj() or !object_h.isObjType(b, .OBJ_MATRIX))) {
+        runtimeError("Element-wise power (.^ ) requires matrix operands.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    const matrixA: *object_h.Matrix = @ptrCast(@alignCast(a.as.obj));
+    const matrixB: *object_h.Matrix = @ptrCast(@alignCast(b.as.obj));
+
+    // Dimensions must match
+    if (matrixA.rows != matrixB.rows or matrixA.cols != matrixB.cols) {
+        runtimeError("Element-wise power requires matrices of the same dimensions.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    // Create result matrix
+    const result = object_h.Matrix.init(matrixA.rows, matrixA.cols);
+    for (0..matrixA.rows * matrixA.cols) |i| {
+        result.data[i] = pow(matrixA.data[i], matrixB.data[i]);
+    }
+
+    push(Value.init_obj(@ptrCast(result)));
+    return .INTERPRET_OK;
+}
+
 fn opNot() InterpretResult {
     push(Value.init_bool(isFalsey(pop())));
     return .INTERPRET_OK;
@@ -3486,6 +3580,9 @@ const jumpTable = blk: {
     table[@intFromEnum(OpCode.OP_SET_GLOBAL_SLOT_KEEP)] = opSetGlobalSlotKeep;
     table[@intFromEnum(OpCode.OP_LOOP_COUNT)] = opLoopCount;
     table[@intFromEnum(OpCode.OP_GET_LOCAL_LESS)] = opGetLocalLess;
+    table[@intFromEnum(OpCode.OP_ELEMENT_WISE_MULTIPLY)] = opElementWiseMultiply;
+    table[@intFromEnum(OpCode.OP_ELEMENT_WISE_DIVIDE)] = opElementWiseDivide;
+    table[@intFromEnum(OpCode.OP_ELEMENT_WISE_POWER)] = opElementWisePower;
 
     break :blk table;
 };

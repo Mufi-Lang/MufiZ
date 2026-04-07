@@ -183,19 +183,14 @@ pub const MathModule = struct {
         try registry.register(math.round);
         try registry.register(math.max);
         try registry.register(math.min);
-<<<<<<< HEAD
         
         // Phase 1: New math functions
-=======
-        // Phase 1: Hyperbolic functions
->>>>>>> 44216b23d36fa487e45525341b2478b089f83d67
         try registry.register(math.sinh);
         try registry.register(math.cosh);
         try registry.register(math.tanh);
         try registry.register(math.asinh);
         try registry.register(math.acosh);
         try registry.register(math.atanh);
-<<<<<<< HEAD
         try registry.register(math.atan2);
         try registry.register(math.deg2rad);
         try registry.register(math.rad2deg);
@@ -220,29 +215,6 @@ pub const MathModule = struct {
         try registry.register(math.mean);
         try registry.register(math.variance);
         try registry.register(math.stddev);
-=======
-        // Phase 1: Angle and utility functions
-        try registry.register(math.atan2);
-        try registry.register(math.sign);
-        try registry.register(math.clamp);
-        // Phase 1: Complex number utilities
-        try registry.register(math.real);
-        try registry.register(math.imag);
-        try registry.register(math.conj);
-        // Phase 4: Enhanced randomness and special functions
-        try registry.register(math.set_seed);
-        try registry.register(math.get_seed);
-        try registry.register(math.randint);
-        try registry.register(math.randrange);
-        try registry.register(math.isnan);
-        try registry.register(math.isinf);
-        try registry.register(math.isfinite);
-        try registry.register(math.factorial);
-        try registry.register(math.gcd);
-        try registry.register(math.lcm);
-        try registry.register(math.isprime);
-        try registry.register(math.nextprime);
->>>>>>> 44216b23d36fa487e45525341b2478b089f83d67
     }
 };
 

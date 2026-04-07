@@ -654,6 +654,10 @@ pub fn getRule(type_: TokenType) ParseRule {
         .TOKEN_BNOT => ParseRule{ .prefix = &unary, .precedence = PREC_NONE },
         .TOKEN_SHL => ParseRule{ .infix = &binary, .precedence = PREC_SHIFT },
         .TOKEN_SHR => ParseRule{ .infix = &binary, .precedence = PREC_SHIFT },
+        // Element-wise operators for matrices
+        .TOKEN_STAR_DOT => ParseRule{ .infix = &binary, .precedence = PREC_FACTOR },
+        .TOKEN_SLASH_DOT => ParseRule{ .infix = &binary, .precedence = PREC_FACTOR },
+        .TOKEN_HAT_DOT => ParseRule{ .infix = &binary, .precedence = PREC_EXPONENT },
         else => ParseRule{ .precedence = PREC_NONE },
     };
 }
@@ -1067,6 +1071,10 @@ pub fn binary(canAssign: bool) void {
         .TOKEN_BXOR => emitByte(@intFromEnum(OpCode.OP_BXOR)),
         .TOKEN_SHL => emitByte(@intFromEnum(OpCode.OP_SHL)),
         .TOKEN_SHR => emitByte(@intFromEnum(OpCode.OP_SHR)),
+        // Element-wise operators
+        .TOKEN_STAR_DOT => emitByte(@intFromEnum(OpCode.OP_ELEMENT_WISE_MULTIPLY)),
+        .TOKEN_SLASH_DOT => emitByte(@intFromEnum(OpCode.OP_ELEMENT_WISE_DIVIDE)),
+        .TOKEN_HAT_DOT => emitByte(@intFromEnum(OpCode.OP_ELEMENT_WISE_POWER)),
         else => {},
     }
 

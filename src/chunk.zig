@@ -350,9 +350,14 @@ pub const OpCode = enum(u8) {
     OP_SUB_REG = 193,
     OP_MUL_REG = 194,
     OP_DIV_REG = 195,
+    
+    // Element-wise operators for matrices
+    OP_ELEMENT_WISE_MULTIPLY = 207,  // .*
+    OP_ELEMENT_WISE_DIVIDE = 208,    // ./
+    OP_ELEMENT_WISE_POWER = 209,     // .^
 
     // Reserved for future register architecture
-    // ... (196-255 reserved)
+    // ... (210-255 reserved)
 };
 
 /// Inline cache for property and method lookups
