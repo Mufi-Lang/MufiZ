@@ -280,6 +280,7 @@ pub const Tensor = struct {
 
     /// Matrix multiplication for 2D tensors (matrices)
     /// For self[m×n] @ other[n×p], returns result[m×p]
+    /// Uses blocked algorithm for better cache locality
     pub fn matmul(self: Self, other: Self) ?Self {
         if (self.rank != 2 or other.rank != 2) return null;
         if (self.shape[1] != other.shape[0]) return null;
@@ -291,15 +292,50 @@ pub const Tensor = struct {
         var result_shape = [_]usize{m, p};
         const result = Tensor.init(&result_shape);
 
-        for (0..m) |i| {
-            for (0..p) |j| {
-                var accum: f64 = 0;
-                for (0..n) |k| {
-                    const a_val = self.get2D(i, k);
-                    const b_val = other.get2D(k, j);
-                    accum += a_val * b_val;
+        const block_size = 64;
+        
+        if (m < block_size or n < block_size or p < block_size) {
+            // Simple algorithm for small tensors
+            for (0..m) |i| {
+                for (0..p) |j| {
+                    var accum: f64 = 0;
+                    for (0..n) |k| {
+                        const a_val = self.get2D(i, k);
+                        const b_val = other.get2D(k, j);
+                        accum += a_val * b_val;
+                    }
+                    result.set2D(i, j, accum);
                 }
-                result.set2D(i, j, accum);
+            }
+        } else {
+            // Blocked algorithm for large tensors
+            var bi: usize = 0;
+            while (bi < m) : (bi += block_size) {
+                const bi_end = @min(bi + block_size, m);
+                
+                var bj: usize = 0;
+                while (bj < p) : (bj += block_size) {
+                    const bj_end = @min(bj + block_size, p);
+                    
+                    var bk: usize = 0;
+                    while (bk < n) : (bk += block_size) {
+                        const bk_end = @min(bk + block_size, n);
+                        
+                        // Compute block
+                        var i = bi;
+                        while (i < bi_end) : (i += 1) {
+                            var j = bj;
+                            while (j < bj_end) : (j += 1) {
+                                var sum: f64 = 0;
+                                var k = bk;
+                                while (k < bk_end) : (k += 1) {
+                                    sum += self.get2D(i, k) * other.get2D(k, j);
+                                }
+                                result.set2D(i, j, result.get2D(i, j) + sum);
+                            }
+                        }
+                    }
+                }
             }
         }
         return result;

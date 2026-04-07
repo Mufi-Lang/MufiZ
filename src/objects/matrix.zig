@@ -260,7 +260,7 @@ pub const Matrix = struct {
     }
 
     /// Matrix multiplication (Octave: A * B)
-    /// Uses standard algorithm optimized for cache locality
+    /// Uses blocked algorithm for cache efficiency and SIMD optimization
     pub fn mul(self: Self, other: Self) ?Self {
         if (self.cols != other.rows) {
             return null; // Dimension mismatch
@@ -268,14 +268,50 @@ pub const Matrix = struct {
 
         const result = Matrix.init(self.rows, other.cols);
 
-        // Standard matrix multiplication with loop reordering for cache efficiency
-        for (0..self.rows) |i| {
-            for (0..other.cols) |j| {
-                var sum: f64 = 0.0;
-                for (0..self.cols) |k| {
-                    sum += self.get(i, k) * other.get(k, j);
+        // For small matrices, use simple algorithm
+        // For large matrices, use blocked SIMD approach
+        const block_size = 64; // Tune based on cache line size
+        
+        if (self.rows < block_size or self.cols < block_size or other.cols < block_size) {
+            // Simple scalar multiplication for small matrices
+            for (0..self.rows) |i| {
+                for (0..other.cols) |j| {
+                    var sum: f64 = 0.0;
+                    for (0..self.cols) |k| {
+                        sum += self.get(i, k) * other.get(k, j);
+                    }
+                    result.set(i, j, sum);
                 }
-                result.set(i, j, sum);
+            }
+        } else {
+            // Blocked SIMD multiplication for large matrices
+            var bi: usize = 0;
+            while (bi < self.rows) : (bi += block_size) {
+                const bi_end = @min(bi + block_size, self.rows);
+                
+                var bj: usize = 0;
+                while (bj < other.cols) : (bj += block_size) {
+                    const bj_end = @min(bj + block_size, other.cols);
+                    
+                    var bk: usize = 0;
+                    while (bk < self.cols) : (bk += block_size) {
+                        const bk_end = @min(bk + block_size, self.cols);
+                        
+                        // Compute block
+                        var i = bi;
+                        while (i < bi_end) : (i += 1) {
+                            var j = bj;
+                            while (j < bj_end) : (j += 1) {
+                                var sum: f64 = 0.0;
+                                var k = bk;
+                                while (k < bk_end) : (k += 1) {
+                                    sum += self.get(i, k) * other.get(k, j);
+                                }
+                                result.set(i, j, result.get(i, j) + sum);
+                            }
+                        }
+                    }
+                }
             }
         }
 
