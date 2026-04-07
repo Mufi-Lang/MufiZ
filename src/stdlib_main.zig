@@ -382,6 +382,10 @@ pub const TensorModule = struct {
         try registry.register(tensor.tensor_transpose);
         try registry.register(tensor.tensor_add_scalar);
         try registry.register(tensor.tensor_scalar_multiply);
+        try registry.register(tensor.tensor_add);
+        try registry.register(tensor.tensor_subtract);
+        try registry.register(tensor.tensor_elem_multiply);
+        try registry.register(tensor.tensor_elem_divide);
     }
 };
 

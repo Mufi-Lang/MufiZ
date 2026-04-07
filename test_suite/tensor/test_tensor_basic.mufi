@@ -1,0 +1,64 @@
+// Test basic tensor operations
+import "tensor"
+
+fn main() {
+    // Test tensor creation with tensor_eye
+    var eye3 = tensor_eye(3)
+    print("Created identity matrix:")
+    print(eye3)
+
+    // Test tensor dimension queries
+    var rank = tensor_rank(eye3)
+    print("Rank of 3x3 identity: " + str(rank))
+
+    var size = tensor_total_size(eye3)
+    print("Total size of 3x3 identity: " + str(size))
+
+    // Test element access (1D - for flattened view)
+    var elem = tensor_get_1d(eye3, 0)
+    print("First element of flattened tensor: " + str(elem))
+
+    // Test element setting
+    tensor_set_1d(eye3, 0, 5.0)
+    elem = tensor_get_1d(eye3, 0)
+    print("After setting first element to 5.0: " + str(elem))
+
+    // Create another matrix for operations
+    var eye2 = tensor_eye(3)
+
+    // Test tensor-scalar operations
+    var t_scaled = tensor_scalar_multiply(eye3, 2.0)
+    print("Scaled by 2.0:")
+    print(t_scaled)
+
+    var t_added = tensor_add_scalar(eye3, 1.0)
+    print("Added 1.0 to all elements:")
+    print(t_added)
+
+    // Test tensor-tensor operations
+    var t_sum = tensor_add(eye3, eye2)
+    print("Sum of two matrices:")
+    print(t_sum)
+
+    var t_diff = tensor_subtract(eye3, eye2)
+    print("Difference of two matrices:")
+    print(t_diff)
+
+    var t_hadamard = tensor_elem_multiply(eye3, eye2)
+    print("Element-wise product (Hadamard):")
+    print(t_hadamard)
+
+    // Test aggregation operations
+    var total = tensor_sum(eye3)
+    print("Sum of all elements: " + str(total))
+
+    var mean = tensor_mean(eye3)
+    print("Mean of all elements: " + str(mean))
+
+    // Test transpose
+    var t_t = tensor_transpose(eye3)
+    print("Transposed matrix:")
+    print(t_t)
+
+    print("All tensor tests passed!")
+}

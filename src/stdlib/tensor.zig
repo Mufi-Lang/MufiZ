@@ -16,6 +16,28 @@ fn tensor_eye_impl(_: i32, argv: [*]Value) Value {
     return Value.init_obj(@ptrCast(t));
 }
 
+fn tensor_zeros_1d_impl(_: i32, argv: [*]Value) Value {
+    if (argv[0].type != .VAL_INT) {
+        return stdlib_core.stdlib_error("tensor_zeros_1d() requires integer argument", .{});
+    }
+
+    const n: usize = @intCast(argv[0].as_int());
+    const shape = [_]usize{n};
+    const t = Tensor.zeros(&shape);
+    return Value.init_obj(@ptrCast(t));
+}
+
+fn tensor_ones_1d_impl(_: i32, argv: [*]Value) Value {
+    if (argv[0].type != .VAL_INT) {
+        return stdlib_core.stdlib_error("tensor_ones_1d() requires integer argument", .{});
+    }
+
+    const n: usize = @intCast(argv[0].as_int());
+    const shape = [_]usize{n};
+    const t = Tensor.ones(&shape);
+    return Value.init_obj(@ptrCast(t));
+}
+
 fn tensor_rank_impl(_: i32, argv: [*]Value) Value {
     if (argv[0].type != .VAL_OBJ or argv[0].as.obj.?.type != .OBJ_TENSOR) {
         return stdlib_core.stdlib_error("Argument must be a tensor", .{});
@@ -171,6 +193,74 @@ fn tensor_scalar_multiply_impl(_: i32, argv: [*]Value) Value {
     return Value.init_obj(@ptrCast(result));
 }
 
+fn tensor_add_impl(_: i32, argv: [*]Value) Value {
+    if (argv[0].type != .VAL_OBJ or argv[0].as.obj.?.type != .OBJ_TENSOR) {
+        return stdlib_core.stdlib_error("First argument must be a tensor", .{});
+    }
+    if (argv[1].type != .VAL_OBJ or argv[1].as.obj.?.type != .OBJ_TENSOR) {
+        return stdlib_core.stdlib_error("Second argument must be a tensor", .{});
+    }
+
+    const t1 = argv[0].as_tensor();
+    const t2 = argv[1].as_tensor();
+    if (t1.add(t2.*)) |result| {
+        return Value.init_obj(@ptrCast(result));
+    } else {
+        return stdlib_core.stdlib_error("Tensors must have the same shape", .{});
+    }
+}
+
+fn tensor_subtract_impl(_: i32, argv: [*]Value) Value {
+    if (argv[0].type != .VAL_OBJ or argv[0].as.obj.?.type != .OBJ_TENSOR) {
+        return stdlib_core.stdlib_error("First argument must be a tensor", .{});
+    }
+    if (argv[1].type != .VAL_OBJ or argv[1].as.obj.?.type != .OBJ_TENSOR) {
+        return stdlib_core.stdlib_error("Second argument must be a tensor", .{});
+    }
+
+    const t1 = argv[0].as_tensor();
+    const t2 = argv[1].as_tensor();
+    if (t1.subtract(t2.*)) |result| {
+        return Value.init_obj(@ptrCast(result));
+    } else {
+        return stdlib_core.stdlib_error("Tensors must have the same shape", .{});
+    }
+}
+
+fn tensor_elem_multiply_impl(_: i32, argv: [*]Value) Value {
+    if (argv[0].type != .VAL_OBJ or argv[0].as.obj.?.type != .OBJ_TENSOR) {
+        return stdlib_core.stdlib_error("First argument must be a tensor", .{});
+    }
+    if (argv[1].type != .VAL_OBJ or argv[1].as.obj.?.type != .OBJ_TENSOR) {
+        return stdlib_core.stdlib_error("Second argument must be a tensor", .{});
+    }
+
+    const t1 = argv[0].as_tensor();
+    const t2 = argv[1].as_tensor();
+    if (t1.multiply(t2.*)) |result| {
+        return Value.init_obj(@ptrCast(result));
+    } else {
+        return stdlib_core.stdlib_error("Tensors must have the same shape", .{});
+    }
+}
+
+fn tensor_elem_divide_impl(_: i32, argv: [*]Value) Value {
+    if (argv[0].type != .VAL_OBJ or argv[0].as.obj.?.type != .OBJ_TENSOR) {
+        return stdlib_core.stdlib_error("First argument must be a tensor", .{});
+    }
+    if (argv[1].type != .VAL_OBJ or argv[1].as.obj.?.type != .OBJ_TENSOR) {
+        return stdlib_core.stdlib_error("Second argument must be a tensor", .{});
+    }
+
+    const t1 = argv[0].as_tensor();
+    const t2 = argv[1].as_tensor();
+    if (t1.divide(t2.*)) |result| {
+        return Value.init_obj(@ptrCast(result));
+    } else {
+        return stdlib_core.stdlib_error("Tensors must have the same shape", .{});
+    }
+}
+
 // Function definitions
 pub const tensor_eye = stdlib_core.DefineFunction(
     "tensor_eye",
@@ -300,4 +390,44 @@ pub const tensor_scalar_multiply = stdlib_core.DefineFunction(
     .object,
     &[_][]const u8{"tensor_scalar_multiply(t, 2.0)"},
     tensor_scalar_multiply_impl,
+);
+
+pub const tensor_add = stdlib_core.DefineFunction(
+    "tensor_add",
+    "tensor",
+    "Add two tensors element-wise",
+    &[_]stdlib_core.ParamSpec{ .{ .name = "tensor1", .type = .object }, .{ .name = "tensor2", .type = .object } },
+    .object,
+    &[_][]const u8{"tensor_add(t1, t2)"},
+    tensor_add_impl,
+);
+
+pub const tensor_subtract = stdlib_core.DefineFunction(
+    "tensor_subtract",
+    "tensor",
+    "Subtract two tensors element-wise",
+    &[_]stdlib_core.ParamSpec{ .{ .name = "tensor1", .type = .object }, .{ .name = "tensor2", .type = .object } },
+    .object,
+    &[_][]const u8{"tensor_subtract(t1, t2)"},
+    tensor_subtract_impl,
+);
+
+pub const tensor_elem_multiply = stdlib_core.DefineFunction(
+    "tensor_elem_multiply",
+    "tensor",
+    "Multiply two tensors element-wise (Hadamard product)",
+    &[_]stdlib_core.ParamSpec{ .{ .name = "tensor1", .type = .object }, .{ .name = "tensor2", .type = .object } },
+    .object,
+    &[_][]const u8{"tensor_elem_multiply(t1, t2)"},
+    tensor_elem_multiply_impl,
+);
+
+pub const tensor_elem_divide = stdlib_core.DefineFunction(
+    "tensor_elem_divide",
+    "tensor",
+    "Divide two tensors element-wise",
+    &[_]stdlib_core.ParamSpec{ .{ .name = "tensor1", .type = .object }, .{ .name = "tensor2", .type = .object } },
+    .object,
+    &[_][]const u8{"tensor_elem_divide(t1, t2)"},
+    tensor_elem_divide_impl,
 );
