@@ -108,6 +108,8 @@ pub const Matrix = @import("objects/matrix.zig").Matrix;
 pub const ObjMatrix = Matrix;
 pub const MatrixRow = @import("objects/matrix_row.zig").MatrixRow;
 pub const ObjMatrixRow = MatrixRow;
+pub const Tensor = @import("objects/tensor.zig").Tensor;
+pub const ObjTensor = Tensor;
 pub const ObjPair = @import("objects/pair.zig").ObjPair;
 pub const ObjRange = @import("objects/range.zig").ObjRange;
 pub const String = @import("objects/string.zig").String;
@@ -379,6 +381,10 @@ pub fn printObject(value: Value) void {
             const module = @as(*ObjModule, @ptrCast(@alignCast(value.as.obj)));
             const nameStr = zstr(module.*.name);
             print("<module {s}>", .{nameStr});
+        },
+        .OBJ_TENSOR => {
+            const tensor = @as(*Tensor, @ptrCast(@alignCast(value.as.obj)));
+            tensor.print();
         },
     }
 }

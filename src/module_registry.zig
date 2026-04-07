@@ -25,6 +25,10 @@ pub const MODULE_REGISTRY = [_]ModuleInfo{
         .register_fn = stdlib_main.MatrixModule.register,
     },
     .{
+        .name = "tensor",
+        .register_fn = stdlib_main.TensorModule.register,
+    },
+    .{
         .name = "io",
         .register_fn = stdlib_main.IoModule.register,
     },

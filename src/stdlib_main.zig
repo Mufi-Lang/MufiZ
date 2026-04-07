@@ -14,6 +14,7 @@ const collections = @import("stdlib/collections.zig");
 // const fs = @import("stdlib/fs.zig");
 // const network = @import("stdlib/network.zig");
 const matrix = @import("stdlib/matrix.zig");
+const tensor = @import("stdlib/tensor.zig");
 const json = @import("stdlib/json.zig");
 const serde = @import("stdlib/serde.zig");
 
@@ -362,6 +363,25 @@ pub const MatrixModule = struct {
         try registry.register(matrix.rank);
         try registry.register(matrix.lu);
         try registry.register(matrix.solve);
+    }
+};
+
+pub const TensorModule = struct {
+    pub fn register() !void {
+        const registry = stdlib_core.getGlobalRegistry();
+        try registry.register(tensor.tensor_eye);
+        try registry.register(tensor.tensor_rank);
+        try registry.register(tensor.tensor_total_size);
+        try registry.register(tensor.tensor_get_1d);
+        try registry.register(tensor.tensor_set_1d);
+        try registry.register(tensor.tensor_get_2d);
+        try registry.register(tensor.tensor_set_2d);
+        try registry.register(tensor.tensor_sum);
+        try registry.register(tensor.tensor_mean);
+        try registry.register(tensor.tensor_flatten);
+        try registry.register(tensor.tensor_transpose);
+        try registry.register(tensor.tensor_add_scalar);
+        try registry.register(tensor.tensor_scalar_multiply);
     }
 };
 
