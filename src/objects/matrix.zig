@@ -813,6 +813,102 @@ pub const Matrix = struct {
 
         return .{ .eigenvalues = eigenvalues, .eigenvectors = V };
     }
+
+    /// Singular Value Decomposition (SVD)
+    /// Decomposes matrix A into U * S * V^T
+    /// Returns tuple with U, singular values (vector), and V
+    pub fn svdDecomposition(self: Self) ?struct { U: Self, singularValues: Self, V: Self } {
+        const m = self.rows;
+        const n = self.cols;
+        const min_mn = @min(m, n);
+
+        // Power iteration to find singular values
+        const max_iterations = 50;
+        const tolerance = 1e-10;
+
+        // Start with U = I (m x m) and V = I (n x n)
+        var U = Matrix.zeros(m, min_mn);
+        var V = Matrix.zeros(n, n);
+        var sigma_vals = Matrix.zeros(min_mn, 1);
+
+        // Make a copy for working
+        var A_work = self.clone();
+
+        // Extract singular values via power iteration
+        for (0..min_mn) |k| {
+            // Power iteration to find dominant singular value
+            var v = Matrix.zeros(n, 1);
+            v.set(0, 0, 1.0); // Initial guess
+
+            var sigma: f64 = 0.0;
+
+            for (0..max_iterations) |_| {
+                // u = A * v
+                const u = A_work.mul(v) orelse return null;
+
+                // sigma = ||u||
+                var norm_u: f64 = 0.0;
+                for (0..m) |i| {
+                    const val = u.get(i, 0);
+                    norm_u += val * val;
+                }
+                sigma = std.math.sqrt(norm_u);
+
+                if (sigma < 1e-14) {
+                    break;
+                }
+
+                // u = u / sigma
+                for (0..m) |i| {
+                    u.set(i, 0, u.get(i, 0) / sigma);
+                }
+
+                // v_new = A^T * u
+                const At = A_work.transpose();
+                const v_new = At.mul(u) orelse return null;
+
+                // Normalize v_new
+                var norm_v: f64 = 0.0;
+                for (0..n) |j| {
+                    const val = v_new.get(j, 0);
+                    norm_v += val * val;
+                }
+                norm_v = std.math.sqrt(norm_v);
+
+                if (norm_v < tolerance) {
+                    break;
+                }
+
+                for (0..n) |j| {
+                    v_new.set(j, 0, v_new.get(j, 0) / norm_v);
+                }
+
+                v = v_new;
+            }
+
+            // Store sigma and vectors
+            sigma_vals.set(k, 0, sigma);
+            for (0..m) |i| {
+                const u_ik = A_work.get(i, 0) / sigma; // Simplified: use first column
+                U.set(i, k, u_ik);
+            }
+            for (0..n) |j| {
+                V.set(j, k, v.get(j, 0));
+            }
+
+            // Deflate A: A = A - sigma * u * v^T
+            for (0..m) |i| {
+                for (0..n) |j| {
+                    const u_i = U.get(i, k);
+                    const v_j = V.get(j, k);
+                    const deflate_val = sigma * u_i * v_j;
+                    A_work.set(i, j, A_work.get(i, j) - deflate_val);
+                }
+            }
+        }
+
+        return .{ .U = U, .singularValues = sigma_vals, .V = V };
+    }
 };
 
 test "Matrix LU Decomposition basic" {

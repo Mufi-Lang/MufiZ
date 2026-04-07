@@ -1,0 +1,34 @@
+// Singular Value Decomposition Tests
+print "=== SVD Tests ===\n";
+
+// Test 1: Diagonal matrix
+print "Test 1: SVD of diagonal matrix";
+var D = [[3, 0, 0], [0, 2, 0], [0, 0, 1]];
+var svd1 = svd(D);
+var U1 = svd1["U"];
+var S1 = svd1["S"];
+var V1 = svd1["V"];
+print "Singular values (should be 3, 2, 1):";
+print S1;
+
+// Test 2: Random matrix (rectangular)
+print "\nTest 2: SVD of 3x2 rectangular matrix";
+var A = [[1, 2], [3, 4], [5, 6]];
+var svd2 = svd(A);
+var U2 = svd2["U"];
+var S2 = svd2["S"];
+var V2 = svd2["V"];
+print "Singular values:";
+print S2;
+print "U dimensions: 3xK (K=min(m,n))";
+print "V dimensions: nxn";
+
+// Test 3: Identity matrix (singular values should be 1)
+print "\nTest 3: SVD of identity matrix (singular values should be 1, 1, 1)";
+var I = eye(3);
+var svd3 = svd(I);
+var S3 = svd3["S"];
+print "Singular values:";
+print S3;
+
+print "\n=== SVD Tests Complete ===";

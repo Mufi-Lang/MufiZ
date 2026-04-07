@@ -342,6 +342,38 @@ fn eig_impl(_: i32, args: [*]Value) Value {
     return Value.init_obj(@ptrCast(pair));
 }
 
+fn svd_impl(_: i32, args: [*]Value) Value {
+    const a = args[0].as_matrix();
+
+    const svd_result = a.svdDecomposition();
+    if (svd_result == null) {
+        return stdlib_core.stdlib_error("SVD decomposition failed", .{});
+    }
+
+    const svd_decomp = svd_result.?;
+    
+    // Return as a hash table with "U", "S", and "V" keys
+    const allocator = @import("../vm_allocator.zig").allocator;
+    var table = try allocator.create(std.StringHashMap(Value));
+    table.* = std.StringHashMap(Value).init(allocator);
+    
+    const u_key = try allocator.dupe(u8, "U");
+    const s_key = try allocator.dupe(u8, "S");
+    const v_key = try allocator.dupe(u8, "V");
+    
+    try table.put(u_key, Value.init_obj(@ptrCast(svd_decomp.U)));
+    try table.put(s_key, Value.init_obj(@ptrCast(svd_decomp.singularValues)));
+    try table.put(v_key, Value.init_obj(@ptrCast(svd_decomp.V)));
+    
+    const result = try allocator.create(object_h.ObjHashTable);
+    result.* = .{
+        .obj = object_h.Obj{ .type = .OBJ_HASH_TABLE },
+        .table = table,
+    };
+    
+    return Value.init_obj(@ptrCast(result));
+}
+
 // === Parameter Specifications ===
 
 const SizeParam = &[_]ParamSpec{.{ .name = "size", .type = .int }};
@@ -622,4 +654,14 @@ pub const eig = DefineFunction(
     .object,
     &[_][]const u8{ "eig(A) -> #{\"eigenvalues\": vals_vector, \"eigenvectors\": vecs_matrix}", "result = eig(A); vals = result[\"eigenvalues\"];" },
     eig_impl,
+);
+
+pub const svd = DefineFunction(
+    "svd",
+    "matrix",
+    "Calculate Singular Value Decomposition (U, S, V^T) via power iteration",
+    MatrixParam,
+    .object,
+    &[_][]const u8{ "svd(A) -> #{\"U\": U_matrix, \"S\": singular_values, \"V\": V_matrix}", "result = svd(A); u = result[\"U\"]; s = result[\"S\"]; v = result[\"V\"];" },
+    svd_impl,
 );
