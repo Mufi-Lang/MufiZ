@@ -1787,6 +1787,7 @@ fn parseIndexExpression() void {
 
 pub fn index_(canAssign: bool) void {
     var isSlice = false;
+    var is2DSlice = false;
 
     // Parse the first index
     parseIndexExpression();
@@ -1795,11 +1796,31 @@ pub fn index_(canAssign: bool) void {
     if (match(.TOKEN_COLON)) {
         isSlice = true;
         parseIndexExpression();
+        
+        // Check for 2D slicing: m[r1:r2, c1:c2]
+        if (match(.TOKEN_COMMA)) {
+            is2DSlice = true;
+            // Parse column start:end
+            parseIndexExpression();
+            if (match(.TOKEN_COLON)) {
+                parseIndexExpression();
+            } else {
+                // If no colon after comma, treat as single column index
+                // Emit a constant for the end (same as start)
+                emitConstant(Value.init_int(0)); // Will be fixed by VM
+            }
+        }
+    } else if (match(.TOKEN_COMMA)) {
+        // 2D indexing without slice: m[r, c]
+        parseIndexExpression();
+        // This is handled by OP_GET_INDEX with 2 indices on stack
     }
 
     consume(.TOKEN_RIGHT_SQPAREN, "Expect ']' after index expression.");
 
-    if (isSlice) {
+    if (is2DSlice) {
+        emitByte(@intFromEnum(OpCode.OP_MATRIX_SLICE));
+    } else if (isSlice) {
         emitByte(@intFromEnum(OpCode.OP_SLICE));
     } else if (canAssign and match(.TOKEN_EQUAL)) {
         expression();

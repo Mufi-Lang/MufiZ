@@ -1736,6 +1736,70 @@ fn opElementWisePower() InterpretResult {
     return .INTERPRET_OK;
 }
 
+fn opMatrixSlice() InterpretResult {
+    const col_end = pop();
+    const col_start = pop();
+    const row_end = pop();
+    const row_start = pop();
+    const target = pop();
+
+    // Target must be a matrix
+    if (!target.is_obj() or !object_h.isObjType(target, .OBJ_MATRIX)) {
+        runtimeError("Matrix slicing requires a matrix operand.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    const matrix: *object_h.Matrix = @ptrCast(@alignCast(target.as.obj));
+
+    // Validate all indices are integers
+    if (!row_start.is_int() or !row_end.is_int() or !col_start.is_int() or !col_end.is_int()) {
+        runtimeError("Matrix slice indices must be integers.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    // Convert to i32 and handle negative indices
+    var r_start = row_start.as_int();
+    var r_end = row_end.as_int();
+    var c_start = col_start.as_int();
+    var c_end = col_end.as_int();
+
+    // Handle negative indices (from end)
+    if (r_start < 0) r_start += @intCast(matrix.rows);
+    if (r_end < 0) r_end += @intCast(matrix.rows);
+    if (c_start < 0) c_start += @intCast(matrix.cols);
+    if (c_end < 0) c_end += @intCast(matrix.cols);
+
+    // Validate bounds
+    if (r_start < 0 or r_end > @as(i32, @intCast(matrix.rows)) or r_start >= r_end) {
+        runtimeError("Invalid matrix row slice indices.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+    if (c_start < 0 or c_end > @as(i32, @intCast(matrix.cols)) or c_start >= c_end) {
+        runtimeError("Invalid matrix column slice indices.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    // Create result matrix with sliced dimensions
+    const num_rows = @as(usize, @intCast(r_end - r_start));
+    const num_cols = @as(usize, @intCast(c_end - c_start));
+    const result = object_h.Matrix.init(num_rows, num_cols);
+
+    // Copy data from source matrix to result matrix
+    // Matrix is in column-major order: data[col * rows + row]
+    for (0..num_cols) |col| {
+        for (0..num_rows) |row| {
+            const src_row = @as(usize, @intCast(r_start)) + row;
+            const src_col = @as(usize, @intCast(c_start)) + col;
+            const src_idx = src_col * matrix.rows + src_row;
+            const dst_idx = col * num_rows + row;
+            result.data[dst_idx] = matrix.data[src_idx];
+        }
+    }
+
+    push(Value.init_obj(@ptrCast(result)));
+    return .INTERPRET_OK;
+}
+
 fn opNot() InterpretResult {
     push(Value.init_bool(isFalsey(pop())));
     return .INTERPRET_OK;
@@ -3583,6 +3647,7 @@ const jumpTable = blk: {
     table[@intFromEnum(OpCode.OP_ELEMENT_WISE_MULTIPLY)] = opElementWiseMultiply;
     table[@intFromEnum(OpCode.OP_ELEMENT_WISE_DIVIDE)] = opElementWiseDivide;
     table[@intFromEnum(OpCode.OP_ELEMENT_WISE_POWER)] = opElementWisePower;
+    table[@intFromEnum(OpCode.OP_MATRIX_SLICE)] = opMatrixSlice;
 
     break :blk table;
 };

@@ -356,8 +356,11 @@ pub const OpCode = enum(u8) {
     OP_ELEMENT_WISE_DIVIDE = 208,    // ./
     OP_ELEMENT_WISE_POWER = 209,     // .^
 
+    // Matrix slicing for 2D range indexing
+    OP_MATRIX_SLICE = 210,           // m[r1:r2, c1:c2]
+
     // Reserved for future register architecture
-    // ... (210-255 reserved)
+    // ... (211-255 reserved)
 };
 
 /// Inline cache for property and method lookups

@@ -1,0 +1,34 @@
+// Verify negative indexing works comprehensively
+print "=== Negative Indexing Verification ===";
+
+// Test 1: Vector negative indexing
+var v = [10, 20, 30, 40, 50];
+print "\nTest 1: Vector v = [10, 20, 30, 40, 50]";
+print "v[-1] = " + v[-1];
+print "v[-2] = " + v[-2];
+print "v[-5] = " + v[-5];
+
+// Test 2: Matrix negative indexing (row access)
+var m = [[1, 2, 3], [4, 5, 6], [7, 8, 9]];
+print "\nTest 2: Matrix negative row indexing";
+print "m[-1] (last row):";
+print m[-1];
+print "m[-3] (first row):";
+print m[-3];
+
+// Test 3: Chained negative indexing (matrix[row][col])
+print "\nTest 3: Chained negative indexing";
+print "m[-1, -1] = " + m[-1, -1];
+print "m[-1, 0] = " + m[-1, 0];
+print "m[0, -1] = " + m[0, -1];
+
+// Test 4: Vector slicing with negative indices
+var v2 = [1, 2, 3, 4, 5];
+print "\nTest 4: Vector slicing with negative indices";
+print "v2 = [1, 2, 3, 4, 5]";
+print "v2[-4:-1]:";
+print v2[-4:-1];
+print "v2[-3:end]:";
+print v2[-3:end];
+
+print "\n=== Negative Indexing Tests Complete ===";

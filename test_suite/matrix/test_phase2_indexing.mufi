@@ -1,0 +1,46 @@
+// Phase 2 Indexing Tests - Test current capabilities and identify gaps
+print "=== Phase 2 Indexing Tests ===\n";
+
+// Test 1: Negative indexing on vectors
+print "Test 1: Negative indexing on vectors";
+var v = [10, 20, 30, 40, 50];
+print "v = [10, 20, 30, 40, 50]";
+print "v[-1] (last element) = " + v[-1];
+print "v[-2] (second to last) = " + v[-2];
+
+// Test 2: Negative indexing on matrices
+print "\nTest 2: Negative indexing on matrices";
+var m = [[1, 2, 3], [4, 5, 6], [7, 8, 9]];
+print "Matrix m:";
+print m;
+print "m[-1] (last row):";
+print m[-1];
+
+// Test 3: Matrix element with 2D indexing
+print "\nTest 3: Matrix 2D indexing";
+print "m[0, 0] = " + m[0, 0];
+print "m[-1, -1] = " + m[-1, -1];
+
+// Test 4: Vector slicing (should work)
+print "\nTest 4: Vector range slicing";
+print "v[1:3] = ";
+print v[1:3];
+
+// Test 5: Matrix row slicing (edge case - m[0:2] should give rows?)
+print "\nTest 5: Matrix row extraction";
+print "m[0]:";
+print m[0];
+print "m[1]:";
+print m[1];
+
+// Test 6: Try 2D slicing - expected to fail
+print "\nTest 6: 2D range slicing (m[0:2, 1:3]) - expected to fail:";
+try {
+    var subm = m[0:2, 1:3];
+    print "Unexpected success! Result:";
+    print subm;
+} catch {
+    print "Failed as expected - 2D slicing not yet implemented";
+}
+
+print "\n=== Phase 2 Tests Complete ===";
