@@ -319,6 +319,7 @@ pub const Matrix = struct {
     }
 
     /// Element-wise multiplication (Octave: A .* B)
+    /// Optimized with SIMD vectorization for large arrays
     pub fn elemMul(self: Self, other: Self) ?Self {
         if (self.rows != other.rows or self.cols != other.cols) {
             return null; // Dimension mismatch
@@ -326,13 +327,28 @@ pub const Matrix = struct {
 
         const result = Matrix.init(self.rows, self.cols);
         const total_size = self.rows * self.cols;
-        for (0..total_size) |i| {
+        
+        // Use SIMD for bulk operations (4 f64s per vector)
+        const simd_width = 4;
+        var i: usize = 0;
+        
+        while (i + simd_width <= total_size) : (i += simd_width) {
+            const vec_a: @Vector(simd_width, f64) = self.data[i..i+simd_width][0..simd_width].*;
+            const vec_b: @Vector(simd_width, f64) = other.data[i..i+simd_width][0..simd_width].*;
+            const vec_result = vec_a * vec_b;
+            result.data[i..i+simd_width][0..simd_width].* = vec_result;
+        }
+        
+        // Handle remaining elements
+        while (i < total_size) : (i += 1) {
             result.data[i] = self.data[i] * other.data[i];
         }
+        
         return result;
     }
 
     /// Element-wise division (Octave: A ./ B)
+    /// Optimized with SIMD vectorization for large arrays
     pub fn elemDiv(self: Self, other: Self) ?Self {
         if (self.rows != other.rows or self.cols != other.cols) {
             return null; // Dimension mismatch
@@ -340,13 +356,27 @@ pub const Matrix = struct {
 
         const result = Matrix.init(self.rows, self.cols);
         const total_size = self.rows * self.cols;
-        for (0..total_size) |i| {
+        
+        // Use SIMD for bulk operations (4 f64s per vector)
+        const simd_width = 4;
+        var i: usize = 0;
+        
+        while (i + simd_width <= total_size) : (i += simd_width) {
+            const vec_a: @Vector(simd_width, f64) = self.data[i..i+simd_width][0..simd_width].*;
+            const vec_b: @Vector(simd_width, f64) = other.data[i..i+simd_width][0..simd_width].*;
+            const vec_result = vec_a / vec_b;
+            result.data[i..i+simd_width][0..simd_width].* = vec_result;
+        }
+        
+        // Handle remaining elements
+        while (i < total_size) : (i += 1) {
             if (other.data[i] == 0.0) {
                 result.data[i] = std.math.inf(f64);
             } else {
                 result.data[i] = self.data[i] / other.data[i];
             }
         }
+        
         return result;
     }
 

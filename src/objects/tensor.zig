@@ -229,7 +229,20 @@ pub const Tensor = struct {
         }
 
         const result = Tensor.init(self.shape);
-        for (0..self.size()) |i| {
+        const total = self.size();
+        
+        // SIMD-accelerated addition for large tensors
+        const simd_width = 4;
+        var i: usize = 0;
+        while (i + simd_width <= total) : (i += simd_width) {
+            const vec_a: @Vector(simd_width, f64) = self.data[i..i+simd_width][0..simd_width].*;
+            const vec_b: @Vector(simd_width, f64) = other.data[i..i+simd_width][0..simd_width].*;
+            const vec_result = vec_a + vec_b;
+            result.data[i..i+simd_width][0..simd_width].* = vec_result;
+        }
+        
+        // Handle remaining elements
+        while (i < total) : (i += 1) {
             result.data[i] = self.data[i] + other.data[i];
         }
         return result;
@@ -243,7 +256,20 @@ pub const Tensor = struct {
         }
 
         const result = Tensor.init(self.shape);
-        for (0..self.size()) |i| {
+        const total = self.size();
+        
+        // SIMD-accelerated subtraction for large tensors
+        const simd_width = 4;
+        var i: usize = 0;
+        while (i + simd_width <= total) : (i += simd_width) {
+            const vec_a: @Vector(simd_width, f64) = self.data[i..i+simd_width][0..simd_width].*;
+            const vec_b: @Vector(simd_width, f64) = other.data[i..i+simd_width][0..simd_width].*;
+            const vec_result = vec_a - vec_b;
+            result.data[i..i+simd_width][0..simd_width].* = vec_result;
+        }
+        
+        // Handle remaining elements
+        while (i < total) : (i += 1) {
             result.data[i] = self.data[i] - other.data[i];
         }
         return result;
@@ -257,7 +283,20 @@ pub const Tensor = struct {
         }
 
         const result = Tensor.init(self.shape);
-        for (0..self.size()) |i| {
+        const total = self.size();
+        
+        // SIMD-accelerated multiplication for large tensors
+        const simd_width = 4;
+        var i: usize = 0;
+        while (i + simd_width <= total) : (i += simd_width) {
+            const vec_a: @Vector(simd_width, f64) = self.data[i..i+simd_width][0..simd_width].*;
+            const vec_b: @Vector(simd_width, f64) = other.data[i..i+simd_width][0..simd_width].*;
+            const vec_result = vec_a * vec_b;
+            result.data[i..i+simd_width][0..simd_width].* = vec_result;
+        }
+        
+        // Handle remaining elements
+        while (i < total) : (i += 1) {
             result.data[i] = self.data[i] * other.data[i];
         }
         return result;
@@ -271,7 +310,20 @@ pub const Tensor = struct {
         }
 
         const result = Tensor.init(self.shape);
-        for (0..self.size()) |i| {
+        const total = self.size();
+        
+        // SIMD-accelerated division for large tensors
+        const simd_width = 4;
+        var i: usize = 0;
+        while (i + simd_width <= total) : (i += simd_width) {
+            const vec_a: @Vector(simd_width, f64) = self.data[i..i+simd_width][0..simd_width].*;
+            const vec_b: @Vector(simd_width, f64) = other.data[i..i+simd_width][0..simd_width].*;
+            const vec_result = vec_a / vec_b;
+            result.data[i..i+simd_width][0..simd_width].* = vec_result;
+        }
+        
+        // Handle remaining elements
+        while (i < total) : (i += 1) {
             if (other.data[i] == 0) return null; // Division by zero
             result.data[i] = self.data[i] / other.data[i];
         }
@@ -326,12 +378,12 @@ pub const Tensor = struct {
                         while (i < bi_end) : (i += 1) {
                             var j = bj;
                             while (j < bj_end) : (j += 1) {
-                                var sum: f64 = 0;
+                                var accum: f64 = 0;
                                 var k = bk;
                                 while (k < bk_end) : (k += 1) {
-                                    sum += self.get2D(i, k) * other.get2D(k, j);
+                                    accum += self.get2D(i, k) * other.get2D(k, j);
                                 }
-                                result.set2D(i, j, result.get2D(i, j) + sum);
+                                result.set2D(i, j, result.get2D(i, j) + accum);
                             }
                         }
                     }
