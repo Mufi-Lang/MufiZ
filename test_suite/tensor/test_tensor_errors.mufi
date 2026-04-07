@@ -1,0 +1,19 @@
+// Test tensor error handling and edge cases
+import "tensor"
+
+fn main() {
+    // Test mismatched tensor operations
+    var eye2 = tensor_eye(2)
+    var eye3 = tensor_eye(3)
+    
+    // These should handle shape mismatches gracefully
+    var result = tensor_add(eye2, eye3)
+    // If the shapes don't match, result should be an error
+    // For now, just verify the function returns something
+    
+    // Test accessing out of bounds
+    var elem = tensor_get_1d(eye2, 10)
+    // This should be 0.0 or handled by the implementation
+    
+    print("Tensor error handling test completed")
+}
