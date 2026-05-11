@@ -8,6 +8,7 @@
 /// - REPL mode with echo control
 /// - Complex number support
 const std = @import("std");
+const system = @import("system.zig");
 const print = std.debug.print;
 const sqrt = std.math.sqrt;
 const atan2 = std.math.atan2;
@@ -95,7 +96,7 @@ pub const VM = struct {
     globals: Table,
     globalConstants: Table,
     publicGlobals: Table,
-    
+
     // Slot-based globals (Phase 1 Optimization)
     globalValues: []Value,
     globalNames: Table, // Mapping from name string to index (Value.num_int)
@@ -240,7 +241,7 @@ pub fn runtimeErrorEnhanced(var_name: []const u8, line: u32, source: []const u8,
     const allocator = arena.allocator();
 
     // Collect available global variables
-    var available_vars: std.ArrayList([]const u8) = .{};
+    var available_vars: std.ArrayList([]const u8) = .empty;
     defer available_vars.deinit(allocator);
 
     if (vm.globals.entries) |entries| {
@@ -289,14 +290,14 @@ pub fn defineNative(name: [*]const u8, function: NativeFn) void {
         .as = .{ .obj = @ptrCast(@alignCast(native)) },
     };
     push(nativeValue);
-    
+
     // Store in hash table for OP_GET_GLOBAL
     _ = tableSetProtected(&vm.globals, @ptrCast(@alignCast(vm.stack[0].as.obj)), vm.stack[1], true);
-    
+
     // ALSO store in globalValues array for OP_GET_GLOBAL_SLOT
     const slot = getGlobalSlot(nameString);
     vm.globalValues[slot] = nativeValue;
-    
+
     _ = pop();
     _ = pop();
 }
@@ -913,7 +914,7 @@ fn opDefineGlobal() InterpretResult {
     const name = constant.as_string();
     const value = peek(0);
     _ = tableSet(&vm.globals, name, value);
-    
+
     // Sync to slot
     const slot = getGlobalSlot(name);
     vm.globalValues[slot] = value;
@@ -934,7 +935,7 @@ fn opDefineConstGlobal() InterpretResult {
     const value = peek(0);
     _ = tableSet(&vm.globals, name, value);
     _ = tableSet(&vm.globalConstants, name, Value.init_bool(true));
-    
+
     // Sync to slot
     const slot = getGlobalSlot(name);
     vm.globalValues[slot] = value;
@@ -955,7 +956,7 @@ fn opDefinePublicGlobal() InterpretResult {
     const value = peek(0);
     _ = tableSet(&vm.globals, name, value);
     _ = tableSet(&vm.publicGlobals, name, Value.init_bool(true));
-    
+
     // Sync to slot
     const slot = getGlobalSlot(name);
     vm.globalValues[slot] = value;
@@ -977,7 +978,7 @@ fn opDefinePublicConstGlobal() InterpretResult {
     _ = tableSet(&vm.globals, name, value);
     _ = tableSet(&vm.globalConstants, name, Value.init_bool(true));
     _ = tableSet(&vm.publicGlobals, name, Value.init_bool(true));
-    
+
     // Sync to slot
     const slot = getGlobalSlot(name);
     vm.globalValues[slot] = value;
@@ -1131,7 +1132,7 @@ fn opGetProperty() InterpretResult {
 
     if (isObjType(receiver, .OBJ_INSTANCE)) {
         const instance: *ObjInstance = @ptrCast(@alignCast(receiver.as.obj));
-        
+
         // Phase 2: Inline Cache lookup
         const chunk = &frame.closure.function.chunk;
         if (chunk.inline_caches) |caches| {
@@ -1161,7 +1162,7 @@ fn opGetProperty() InterpretResult {
                 const allocator = mem_utils.getAllocator();
                 chunk.inline_caches = std.AutoHashMap(usize, chunk_h.InlineCache).init(allocator);
             }
-            
+
             // Find the index in the table entries for caching
             if (instance.fields.entries) |entries| {
                 var idx: usize = 0;
@@ -1201,6 +1202,20 @@ fn opSetProperty() InterpretResult {
     };
     const name = constant.as_string();
     const receiver = peek(1);
+
+    if (isObjType(receiver, .OBJ_MODULE)) {
+        const module = @as(*object_h.ObjModule, @ptrCast(@alignCast(receiver.as.obj)));
+        const member_name = name.chars[0..@intCast(name.length)];
+
+        module.setMember(member_name, peek(0)) catch {
+            runtimeError("Failed to set module member '{s}'", .{member_name});
+            return .INTERPRET_RUNTIME_ERROR;
+        };
+        const value = pop();
+        _ = pop(); // Module
+        push(value);
+        return .INTERPRET_OK;
+    }
 
     if (isObjType(receiver, .OBJ_INSTANCE)) {
         const instance: *ObjInstance = @ptrCast(@alignCast(receiver.as.obj));
@@ -1332,6 +1347,45 @@ fn performAddString(a: Value, b: Value) !Value {
 }
 
 fn performArithmetic(comptime op: ArithmeticOp, a: Value, b: Value) !Value {
+    if ((a.type == .VAL_OBJ and object_h.isObjType(a, .OBJ_SYMBOL)) or (b.type == .VAL_OBJ and object_h.isObjType(b, .OBJ_SYMBOL))) {
+        const allocator = mem_utils.getAllocator();
+        const SymbolExpr = object_h.SymbolExpr;
+        var expr_a: *SymbolExpr = undefined;
+        var expr_b: *SymbolExpr = undefined;
+
+        if (a.type == .VAL_OBJ and object_h.isObjType(a, .OBJ_SYMBOL)) {
+            expr_a = @as(*object_h.ObjSymbol, @ptrCast(@alignCast(a.as.obj))).expr.clone() catch unreachable;
+        } else if (a.is_int()) {
+            expr_a = SymbolExpr.constant(allocator, @floatFromInt(a.as_int())) catch unreachable;
+        } else if (a.is_double()) {
+            expr_a = SymbolExpr.constant(allocator, a.as_double()) catch unreachable;
+        } else {
+            return error.TypeMismatch;
+        }
+
+        if (b.type == .VAL_OBJ and object_h.isObjType(b, .OBJ_SYMBOL)) {
+            expr_b = @as(*object_h.ObjSymbol, @ptrCast(@alignCast(b.as.obj))).expr.clone() catch unreachable;
+        } else if (b.is_int()) {
+            expr_b = SymbolExpr.constant(allocator, @floatFromInt(b.as_int())) catch unreachable;
+        } else if (b.is_double()) {
+            expr_b = SymbolExpr.constant(allocator, b.as_double()) catch unreachable;
+        } else {
+            return error.TypeMismatch;
+        }
+
+        var args = [_]*SymbolExpr{ expr_a, expr_b };
+        const res_expr = switch (op) {
+            .Add => SymbolExpr.add(allocator, &args) catch unreachable,
+            .Sub => SymbolExpr.subtract(allocator, expr_a, expr_b) catch unreachable,
+            .Mul => SymbolExpr.multiply(allocator, &args) catch unreachable,
+            .Div => SymbolExpr.divide(allocator, expr_a, expr_b) catch unreachable,
+        };
+
+        const symbol_obj = @as(*object_h.ObjSymbol, @ptrCast(@alignCast(object_h.allocateObject(@sizeOf(object_h.ObjSymbol), .OBJ_SYMBOL))));
+        symbol_obj.expr = res_expr;
+        return Value{ .type = .VAL_OBJ, .as = .{ .obj = @ptrCast(@alignCast(symbol_obj)) } };
+    }
+
     if (a.is_complex() or b.is_complex()) {
         const ca = if (a.is_complex()) a.as_complex() else Complex{ .r = if (a.is_int()) @floatFromInt(a.as_int()) else a.as_num_double(), .i = 0 };
         const cb = if (b.is_complex()) b.as_complex() else Complex{ .r = if (b.is_int()) @floatFromInt(b.as_int()) else b.as_num_double(), .i = 0 };
@@ -1648,7 +1702,8 @@ fn opElementWiseMultiply() InterpretResult {
 
     // Both operands must be matrices
     if ((!a.is_obj() or !object_h.isObjType(a, .OBJ_MATRIX)) or
-        (!b.is_obj() or !object_h.isObjType(b, .OBJ_MATRIX))) {
+        (!b.is_obj() or !object_h.isObjType(b, .OBJ_MATRIX)))
+    {
         runtimeError("Element-wise multiplication (.* ) requires matrix operands.", .{});
         return .INTERPRET_RUNTIME_ERROR;
     }
@@ -1678,7 +1733,8 @@ fn opElementWiseDivide() InterpretResult {
 
     // Both operands must be matrices
     if ((!a.is_obj() or !object_h.isObjType(a, .OBJ_MATRIX)) or
-        (!b.is_obj() or !object_h.isObjType(b, .OBJ_MATRIX))) {
+        (!b.is_obj() or !object_h.isObjType(b, .OBJ_MATRIX)))
+    {
         runtimeError("Element-wise division (./ ) requires matrix operands.", .{});
         return .INTERPRET_RUNTIME_ERROR;
     }
@@ -1712,7 +1768,8 @@ fn opElementWisePower() InterpretResult {
 
     // Both operands must be matrices
     if ((!a.is_obj() or !object_h.isObjType(a, .OBJ_MATRIX)) or
-        (!b.is_obj() or !object_h.isObjType(b, .OBJ_MATRIX))) {
+        (!b.is_obj() or !object_h.isObjType(b, .OBJ_MATRIX)))
+    {
         runtimeError("Element-wise power (.^ ) requires matrix operands.", .{});
         return .INTERPRET_RUNTIME_ERROR;
     }
@@ -2303,7 +2360,7 @@ fn opLessJumpIfFalse() InterpretResult {
     const b = pop().as_num_double();
     const a = pop().as_num_double();
     const result = a < b;
-    
+
     const offset = readOffset(frame);
     if (!result) {
         frame.ip += offset;
@@ -2318,13 +2375,13 @@ fn opGetLocalConstant() InterpretResult {
     frame.ip += 2;
 
     push(frame.slots[slot]);
-    
+
     const constant = getConstant(frame, constant_index) orelse {
         runtimeError("Invalid constant index.", .{});
         return .INTERPRET_RUNTIME_ERROR;
     };
     push(constant);
-    
+
     return .INTERPRET_OK;
 }
 
@@ -2455,7 +2512,7 @@ fn opLoopCount() InterpretResult {
     if (val < limit) {
         frame.ip -= offset;
         // The increment is expected to happen before this op in the current compiler logic
-        // but a true register loop would do it here. 
+        // but a true register loop would do it here.
         // For now, this is just a fused JUMP_IF_LESS + LOOP
     }
     return .INTERPRET_OK;
@@ -3204,13 +3261,13 @@ fn opImportModule() InterpretResult {
     const module_name = name_str.chars[0..@intCast(name_str.length)];
 
     const registry = @import("module_registry.zig");
-    
+
     // Determine if it's a builtin or user module for snapshotting
     const is_builtin = registry.isBuiltInModule(module_name);
-    
+
     // Use GPA for temporary snapshot structures
     const allocator = mem_utils.getAllocator();
-    
+
     var snapshot: ?std.StringHashMap(void) = null;
     if (!is_builtin) {
         snapshot = snapshotGlobals(allocator) catch null;
@@ -3333,15 +3390,11 @@ fn opImportFileAs() InterpretResult {
         while (iter.next()) |entry| {
             const name = entry.key_ptr.*;
             const value = entry.value_ptr.*;
-            
-            // Convert name to ObjString for public check
-            const name_obj = object_h.copyString(name.ptr, name.len);
-            if (isPublicGlobal(name_obj)) {
-                module_obj.setMember(name, value) catch {
-                    runtimeError("Failed to populate module member '{s}'", .{name});
-                    return .INTERPRET_RUNTIME_ERROR;
-                };
-            }
+
+            module_obj.setMember(name, value) catch {
+                runtimeError("Failed to populate module member '{s}'", .{name});
+                return .INTERPRET_RUNTIME_ERROR;
+            };
         }
     }
 
@@ -3351,6 +3404,8 @@ fn opImportFileAs() InterpretResult {
         .as = .{ .obj = @ptrCast(@alignCast(module_obj)) },
     };
     _ = table_h.tableSetProtected(&vm.globals, alias_str, module_value, true);
+    const slot = getGlobalSlot(alias_str);
+    vm.globalValues[slot] = module_value;
 
     return .INTERPRET_OK;
 }
@@ -3510,7 +3565,28 @@ fn opImportModuleAs() InterpretResult {
         .as = .{ .obj = @ptrCast(@alignCast(module_obj)) },
     };
     _ = table_h.tableSetProtected(&vm.globals, alias_str, module_value, true);
+    const slot = getGlobalSlot(alias_str);
+    vm.globalValues[slot] = module_value;
 
+    return .INTERPRET_OK;
+}
+
+fn opSymbol() InterpretResult {
+    const frame = vm.currentFrame.?;
+    const constant_index = frame.ip[0];
+    frame.ip += 1;
+    const constant = getConstant(frame, constant_index) orelse {
+        runtimeError("Invalid constant index.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    };
+
+    if (constant.type != .VAL_OBJ or !isObjType(constant, .OBJ_STRING)) {
+        runtimeError("Symbol name must be a string.", .{});
+        return .INTERPRET_RUNTIME_ERROR;
+    }
+
+    const symbol_obj = object_h.newSymbol(constant.as_string());
+    push(Value{ .type = .VAL_OBJ, .as = .{ .obj = @ptrCast(@alignCast(symbol_obj)) } });
     return .INTERPRET_OK;
 }
 
@@ -3593,6 +3669,9 @@ const jumpTable = blk: {
     table[@intFromEnum(OpCode.OP_FVECTOR)] = opFVector;
     table[@intFromEnum(OpCode.OP_MATRIX)] = opMatrix;
     table[@intFromEnum(OpCode.OP_GET_MATRIX_FLAT)] = opGetMatrixFlat;
+
+    table[@intFromEnum(OpCode.OP_SYMBOL)] = opSymbol;
+
     // Import opcodes
     table[@intFromEnum(OpCode.OP_IMPORT_MODULE)] = opImportModule;
     table[@intFromEnum(OpCode.OP_IMPORT_FILE)] = opImportFile;

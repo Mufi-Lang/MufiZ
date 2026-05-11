@@ -124,6 +124,9 @@ fn size_impl(_: i32, args: [*]Value) Value {
 }
 
 fn norm_impl(_: i32, args: [*]Value) Value {
+    if (!args[0].is_matrix()) {
+        return stdlib_core.stdlib_error("norm() requires a matrix!", .{});
+    }
     const matrix = args[0].as_matrix();
     const norm_val = matrix.frobeniusNorm();
     return Value.init_double(norm_val);
@@ -291,24 +294,35 @@ fn qr_impl(_: i32, args: [*]Value) Value {
     }
 
     const qr_decomp = qr_result.?;
-    
-    // Return as a hash table with "Q" and "R" keys
+
     const allocator = @import("../vm_allocator.zig").allocator;
-    var table = try allocator.create(std.StringHashMap(Value));
+    const table = allocator.create(std.StringHashMap(Value)) catch {
+        return stdlib_core.stdlib_error("Failed to allocate QR result table", .{});
+    };
     table.* = std.StringHashMap(Value).init(allocator);
-    
-    const q_key = try allocator.dupe(u8, "Q");
-    const r_key = try allocator.dupe(u8, "R");
-    
-    try table.put(q_key, Value.init_obj(@ptrCast(qr_decomp.Q)));
-    try table.put(r_key, Value.init_obj(@ptrCast(qr_decomp.R)));
-    
-    const pair = try allocator.create(object_h.ObjHashTable);
+
+    const q_key = allocator.dupe(u8, "Q") catch {
+        return stdlib_core.stdlib_error("Failed to allocate QR key", .{});
+    };
+    const r_key = allocator.dupe(u8, "R") catch {
+        return stdlib_core.stdlib_error("Failed to allocate QR key", .{});
+    };
+
+    if (table.put(q_key, Value.init_obj(@ptrCast(qr_decomp.Q)))) {
+        return stdlib_core.stdlib_error("Failed to store QR matrix result", .{});
+    }
+    if (table.put(r_key, Value.init_obj(@ptrCast(qr_decomp.R)))) {
+        return stdlib_core.stdlib_error("Failed to store QR matrix result", .{});
+    }
+
+    const pair = allocator.create(object_h.ObjHashTable) catch {
+        return stdlib_core.stdlib_error("Failed to allocate QR result object", .{});
+    };
     pair.* = .{
         .obj = object_h.Obj{ .type = .OBJ_HASH_TABLE },
         .table = table,
     };
-    
+
     return Value.init_obj(@ptrCast(pair));
 }
 
@@ -321,24 +335,35 @@ fn eig_impl(_: i32, args: [*]Value) Value {
     }
 
     const eig_decomp = eig_result.?;
-    
-    // Return as a hash table with "eigenvalues" and "eigenvectors" keys
+
     const allocator = @import("../vm_allocator.zig").allocator;
-    var table = try allocator.create(std.StringHashMap(Value));
+    const table = allocator.create(std.StringHashMap(Value)) catch {
+        return stdlib_core.stdlib_error("Failed to allocate eig result table", .{});
+    };
     table.* = std.StringHashMap(Value).init(allocator);
-    
-    const vals_key = try allocator.dupe(u8, "eigenvalues");
-    const vecs_key = try allocator.dupe(u8, "eigenvectors");
-    
-    try table.put(vals_key, Value.init_obj(@ptrCast(eig_decomp.eigenvalues)));
-    try table.put(vecs_key, Value.init_obj(@ptrCast(eig_decomp.eigenvectors)));
-    
-    const pair = try allocator.create(object_h.ObjHashTable);
+
+    const vals_key = allocator.dupe(u8, "eigenvalues") catch {
+        return stdlib_core.stdlib_error("Failed to allocate eig key", .{});
+    };
+    const vecs_key = allocator.dupe(u8, "eigenvectors") catch {
+        return stdlib_core.stdlib_error("Failed to allocate eig key", .{});
+    };
+
+    if (table.put(vals_key, Value.init_obj(@ptrCast(eig_decomp.eigenvalues)))) {
+        return stdlib_core.stdlib_error("Failed to store eig result", .{});
+    }
+    if (table.put(vecs_key, Value.init_obj(@ptrCast(eig_decomp.eigenvectors)))) {
+        return stdlib_core.stdlib_error("Failed to store eig result", .{});
+    }
+
+    const pair = allocator.create(object_h.ObjHashTable) catch {
+        return stdlib_core.stdlib_error("Failed to allocate eig result object", .{});
+    };
     pair.* = .{
         .obj = object_h.Obj{ .type = .OBJ_HASH_TABLE },
         .table = table,
     };
-    
+
     return Value.init_obj(@ptrCast(pair));
 }
 
@@ -351,26 +376,41 @@ fn svd_impl(_: i32, args: [*]Value) Value {
     }
 
     const svd_decomp = svd_result.?;
-    
-    // Return as a hash table with "U", "S", and "V" keys
+
     const allocator = @import("../vm_allocator.zig").allocator;
-    var table = try allocator.create(std.StringHashMap(Value));
+    const table = allocator.create(std.StringHashMap(Value)) catch {
+        return stdlib_core.stdlib_error("Failed to allocate SVD result table", .{});
+    };
     table.* = std.StringHashMap(Value).init(allocator);
-    
-    const u_key = try allocator.dupe(u8, "U");
-    const s_key = try allocator.dupe(u8, "S");
-    const v_key = try allocator.dupe(u8, "V");
-    
-    try table.put(u_key, Value.init_obj(@ptrCast(svd_decomp.U)));
-    try table.put(s_key, Value.init_obj(@ptrCast(svd_decomp.singularValues)));
-    try table.put(v_key, Value.init_obj(@ptrCast(svd_decomp.V)));
-    
-    const result = try allocator.create(object_h.ObjHashTable);
+
+    const u_key = allocator.dupe(u8, "U") catch {
+        return stdlib_core.stdlib_error("Failed to allocate SVD key", .{});
+    };
+    const s_key = allocator.dupe(u8, "S") catch {
+        return stdlib_core.stdlib_error("Failed to allocate SVD key", .{});
+    };
+    const v_key = allocator.dupe(u8, "V") catch {
+        return stdlib_core.stdlib_error("Failed to allocate SVD key", .{});
+    };
+
+    if (table.put(u_key, Value.init_obj(@ptrCast(svd_decomp.U)))) {
+        return stdlib_core.stdlib_error("Failed to store SVD result", .{});
+    }
+    if (table.put(s_key, Value.init_obj(@ptrCast(svd_decomp.singularValues)))) {
+        return stdlib_core.stdlib_error("Failed to store SVD result", .{});
+    }
+    if (table.put(v_key, Value.init_obj(@ptrCast(svd_decomp.V)))) {
+        return stdlib_core.stdlib_error("Failed to store SVD result", .{});
+    }
+
+    const result = allocator.create(object_h.ObjHashTable) catch {
+        return stdlib_core.stdlib_error("Failed to allocate SVD result object", .{});
+    };
     result.* = .{
         .obj = object_h.Obj{ .type = .OBJ_HASH_TABLE },
         .table = table,
     };
-    
+
     return Value.init_obj(@ptrCast(result));
 }
 
@@ -389,21 +429,28 @@ fn cholesky_impl(_: i32, args: [*]Value) Value {
     }
 
     const chol_decomp = chol_result.?;
-    
-    // Return as a hash table with "L" key
+
     const allocator = @import("../vm_allocator.zig").allocator;
-    var table = try allocator.create(std.StringHashMap(Value));
+    const table = allocator.create(std.StringHashMap(Value)) catch {
+        return stdlib_core.stdlib_error("Failed to allocate Cholesky result table", .{});
+    };
     table.* = std.StringHashMap(Value).init(allocator);
-    
-    const l_key = try allocator.dupe(u8, "L");
-    try table.put(l_key, Value.init_obj(@ptrCast(chol_decomp.L)));
-    
-    const result = try allocator.create(object_h.ObjHashTable);
+
+    const l_key = allocator.dupe(u8, "L") catch {
+        return stdlib_core.stdlib_error("Failed to allocate Cholesky key", .{});
+    };
+    if (table.put(l_key, Value.init_obj(@ptrCast(chol_decomp.L)))) {
+        return stdlib_core.stdlib_error("Failed to store Cholesky result", .{});
+    }
+
+    const result = allocator.create(object_h.ObjHashTable) catch {
+        return stdlib_core.stdlib_error("Failed to allocate Cholesky result object", .{});
+    };
     result.* = .{
         .obj = object_h.Obj{ .type = .OBJ_HASH_TABLE },
         .table = table,
     };
-    
+
     return Value.init_obj(@ptrCast(result));
 }
 
@@ -655,7 +702,7 @@ pub const lu = DefineFunction(
     "Calculate the LU decomposition of a square matrix",
     MatrixParam,
     .object,
-    &[_][]const u8{ "lu(A) -> #{ \"L\": L, \"U\": U, \"P\": P }" },
+    &[_][]const u8{"lu(A) -> #{ \"L\": L, \"U\": U, \"P\": P }"},
     lu_impl,
 );
 
@@ -665,7 +712,7 @@ pub const solve = DefineFunction(
     "Solve a linear system Ax = b using LU decomposition",
     TwoMatrixParams,
     .object,
-    &[_][]const u8{ "solve(A, b) -> solution vector/matrix x" },
+    &[_][]const u8{"solve(A, b) -> solution vector/matrix x"},
     solve_impl,
 );
 

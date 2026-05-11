@@ -1,80 +1,81 @@
+import math;
 // Phase 3: Vector Operations Tests
 
-import utils
+import utils;
 
 // Test 1: Basic dot product with 2D vectors
-let v1 = [1.0, 2.0]
-let v2 = [3.0, 4.0]
-let dot_result = dot(v1, v2)
-assert(dot_result == 11.0, "dot([1,2], [3,4]) should be 11.0")
+var v1 = {1.0, 2.0};
+var v2 = {3.0, 4.0};
+var dot_result = dot(v1, v2);
+assert(dot_result == 11.0, "dot({1,2}, {3,4}) should be 11.0");
 
 // Test 2: Dot product with 3D vectors
-let v3 = [1.0, 2.0, 3.0]
-let v4 = [4.0, 5.0, 6.0]
-let dot_result_3d = dot(v3, v4)
-assert(dot_result_3d == 32.0, "dot([1,2,3], [4,5,6]) should be 32.0")
+var v3 = {1.0, 2.0, 3.0};
+var v4 = {4.0, 5.0, 6.0};
+var dot_result_3d = dot(v3, v4);
+assert(dot_result_3d == 32.0, "dot({1,2,3}, {4,5,6}) should be 32.0");
 
 // Test 3: Dot product with identical vectors (squared norm)
-let v5 = [2.0, 3.0]
-let dot_self = dot(v5, v5)
-assert(dot_self == 13.0, "dot([2,3], [2,3]) should be 13.0")
+var v5 = {2.0, 3.0};
+var dot_self = dot(v5, v5);
+assert(dot_self == 13.0, "dot({2,3}, {2,3}) should be 13.0");
 
 // Test 4: Dot product of orthogonal vectors
-let v6 = [1.0, 0.0]
-let v7 = [0.0, 1.0]
-let dot_orthogonal = dot(v6, v7)
-assert(dot_orthogonal == 0.0, "dot product of orthogonal vectors should be 0")
+var v6 = {1.0, 0.0};
+var v7 = {0.0, 1.0};
+var dot_orthogonal = dot(v6, v7);
+assert(dot_orthogonal == 0.0, "dot product of orthogonal vectors should be 0");
 
 // Test 5: Dot product with mismatched dimensions returns nil
-let v8 = [1.0, 2.0]
-let v9 = [1.0, 2.0, 3.0]
-let dot_mismatch = dot(v8, v9)
-assert(dot_mismatch == nil, "dot with mismatched dimensions should return nil")
+var v8 = {1.0, 2.0};
+var v9 = {1.0, 2.0, 3.0};
+var dot_mismatch = dot(v8, v9);
+assert(dot_mismatch == nil, "dot with mismatched dimensions should return nil");
 
 // Test 6: Basic norm (magnitude) of 2D vector
-let v10 = [3.0, 4.0]
-let norm_result = norm(v10)
-assert(norm_result == 5.0, "norm([3,4]) should be 5.0")
+var v10 = {3.0, 4.0};
+var norm_result = norm(v10);
+assert(norm_result == 5.0, "norm({3,4}) should be 5.0");
 
 // Test 7: Norm of 3D vector
-let v11 = [1.0, 2.0, 2.0]
-let norm_result_3d = norm(v11)
-assert(norm_result_3d == 3.0, "norm([1,2,2]) should be 3.0")
+var v11 = {1.0, 2.0, 2.0};
+var norm_result_3d = norm(v11);
+assert(norm_result_3d == 3.0, "norm({1,2,2}) should be 3.0");
 
 // Test 8: Norm of zero vector
-let v_zero = [0.0, 0.0]
-let norm_zero = norm(v_zero)
-assert(norm_zero == 0.0, "norm([0,0]) should be 0.0")
+var v_zero = {0.0, 0.0};
+var norm_zero = norm(v_zero);
+assert(norm_zero == 0.0, "norm({0,0}) should be 0.0");
 
 // Test 9: Norm of unit vector
-let v_unit = [1.0, 0.0, 0.0]
-let norm_unit = norm(v_unit)
-assert(norm_unit == 1.0, "norm of unit vector should be 1.0")
+var v_unit = {1.0, 0.0, 0.0};
+var norm_unit = norm(v_unit);
+assert(norm_unit == 1.0, "norm of unit vector should be 1.0");
 
 // Test 10: Length is alias for norm
-let v12 = [3.0, 4.0]
-let length_result = length(v12)
-assert(length_result == 5.0, "length([3,4]) should be 5.0")
+var v12 = {3.0, 4.0};
+var length_result = length(v12);
+assert(length_result == 5.0, "length({3,4}) should be 5.0");
 
 // Test 11: Norm of single element vector
-let v_single = [7.0]
-let norm_single = norm(v_single)
-assert(norm_single == 7.0, "norm([7.0]) should be 7.0")
+var v_single = {7.0};
+var norm_single = norm(v_single);
+assert(norm_single == 7.0, "norm({7.0}) should be 7.0");
 
 // Test 12: Norm with negative components
-let v_negative = [-3.0, -4.0]
-let norm_negative = norm(v_negative)
-assert(norm_negative == 5.0, "norm([-3,-4]) should be 5.0 (ignores sign)")
+var v_negative = {-3.0, -4.0};
+var norm_negative = norm(v_negative);
+assert(norm_negative == 5.0, "norm({-3,-4}) should be 5.0 (ignores sign)");
 
 // Test 13: Large dimension vector dot product
-let large_v1 = [1.0, 2.0, 3.0, 4.0, 5.0]
-let large_v2 = [2.0, 2.0, 2.0, 2.0, 2.0]
-let dot_large = dot(large_v1, large_v2)
-assert(dot_large == 30.0, "dot product with large vectors should work")
+var large_v1 = {1.0, 2.0, 3.0, 4.0, 5.0};
+var large_v2 = {2.0, 2.0, 2.0, 2.0, 2.0};
+var dot_large = dot(large_v1, large_v2);
+assert(dot_large == 30.0, "dot product with large vectors should work");
 
 // Test 14: Large dimension vector norm
-let large_v3 = [1.0, 1.0, 1.0, 1.0, 1.0]
-let norm_large = norm(large_v3)
-assert(norm_large * norm_large == 5.0, "norm of [1,1,1,1,1] squared should be 5.0")
+var large_v3 = {1.0, 1.0, 1.0, 1.0, 1.0};
+var norm_large = norm(large_v3);
+assert(norm_large * norm_large == 5.0, "norm of {1,1,1,1,1} squared should be 5.0");
 
-println("✓ All vector operation tests passed")
+print("✓ All vector operation tests passed");

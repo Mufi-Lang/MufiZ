@@ -451,7 +451,7 @@ pub const String = struct {
     // ============================================================================
     // SIMD-Optimized String Operations
     // ============================================================================
-    // The following methods use SIMD (Single Instruction Multiple Data) 
+    // The following methods use SIMD (Single Instruction Multiple Data)
     // instructions to process multiple bytes in parallel for improved performance.
 
     /// SIMD-optimized substring search
@@ -511,8 +511,9 @@ pub const String = struct {
             // Check if any byte matched
             if (@reduce(.Or, comparison)) {
                 // Find the exact position
+                const comparison_array: [16]bool = comparison;
                 for (0..16) |j| {
-                    if (comparison[j]) {
+                    if (comparison_array[j]) {
                         return offset + j;
                     }
                 }
@@ -593,8 +594,9 @@ pub const String = struct {
 
             // If any bytes are different, find the first difference
             if (!@reduce(.And, comparison)) {
+                const comparison_array: [16]bool = comparison;
                 for (0..16) |j| {
-                    if (!comparison[j]) {
+                    if (!comparison_array[j]) {
                         const idx = offset + j;
                         return if (a[idx] < b[idx]) -1 else 1;
                     }

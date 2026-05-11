@@ -9,17 +9,14 @@ pub fn build(b: *std.Build) !void {
     const features = createFeatureOptions(b);
     const debug = createDebugOptions(b);
 
-    // Dependencies
-    const clap = b.dependency("clap", .{});
-
     // Main library (Zig consumers)
     const lib = createStaticLibrary(b, "mufiz", "src/lib.zig", target, optimize);
-    configureModule(lib.root_module, features, debug, clap);
+    configureModule(lib.root_module, features, debug);
     b.installArtifact(lib);
 
     // Shared library (C ABI)
     const shlib = createSharedLibrary(b, "mufiz", "src/c_api.zig", target, optimize);
-    configureModule(shlib.root_module, features, debug, clap);
+    configureModule(shlib.root_module, features, debug);
     b.installArtifact(shlib);
 
     // Generate C header file
@@ -59,7 +56,7 @@ pub fn build(b: *std.Build) !void {
 
     // WASM build support
     const wasm_exe = createWasmExecutable(b, "mufiz", "src/c_api.zig");
-    configureModule(wasm_exe.root_module, features, debug, clap);
+    configureModule(wasm_exe.root_module, features, debug);
 
     const install_wasm = b.addInstallArtifact(wasm_exe, .{
         .dest_dir = .{ .override = .{ .custom = "wasm" } },
@@ -69,12 +66,12 @@ pub fn build(b: *std.Build) !void {
 
     // Executable (native)
     const exe = createExecutable(b, "mufiz", "src/main.zig", target, optimize);
-    configureModule(exe.root_module, features, debug, clap);
+    configureModule(exe.root_module, features, debug);
     b.installArtifact(exe);
 
     // Check-only exe for 'zig build check'
     const exe_check = createExecutable(b, "mufiz", "src/main.zig", target, optimize);
-    configureModule(exe_check.root_module, features, debug, clap);
+    configureModule(exe_check.root_module, features, debug);
 
     if (target.query.cpu_arch == .wasm32) {
         b.enable_wasmtime = true;
@@ -88,10 +85,10 @@ pub fn build(b: *std.Build) !void {
     setupRunStep(b, exe);
 
     // Tests
-    setupTests(b, target, optimize, features, debug, clap);
+    setupTests(b, target, optimize, features, debug);
 
     // Benchmarks
-    setupBenchmarks(b, target, features, debug, clap);
+    setupBenchmarks(b, target, features, debug);
 }
 
 fn createFeatureOptions(b: *std.Build) *std.Build.Step.Options {
@@ -115,11 +112,9 @@ fn configureModule(
     module: *std.Build.Module,
     features: *std.Build.Step.Options,
     debug: *std.Build.Step.Options,
-    clap: *std.Build.Dependency,
 ) void {
     module.addOptions("features", features);
     module.addOptions("debug", debug);
-    module.addImport("clap", clap.module("clap"));
 }
 
 fn createStaticLibrary(
@@ -212,7 +207,6 @@ fn setupTests(
     optimize: std.builtin.OptimizeMode,
     features: *std.Build.Step.Options,
     debug: *std.Build.Step.Options,
-    clap: *std.Build.Dependency,
 ) void {
     const lib_tests = b.addTest(.{
         .root_module = b.createModule(.{
@@ -221,7 +215,7 @@ fn setupTests(
             .optimize = optimize,
         }),
     });
-    configureModule(lib_tests.root_module, features, debug, clap);
+    configureModule(lib_tests.root_module, features, debug);
 
     const run_lib_tests = b.addRunArtifact(lib_tests);
     const test_step = b.step("test", "Run library tests");
@@ -233,7 +227,6 @@ fn setupBenchmarks(
     target: std.Build.ResolvedTarget,
     features: *std.Build.Step.Options,
     debug: *std.Build.Step.Options,
-    clap: *std.Build.Dependency,
 ) void {
     const scanner_bench = b.addExecutable(.{
         .name = "scanner_bench",
@@ -243,7 +236,7 @@ fn setupBenchmarks(
             .optimize = .ReleaseFast,
         }),
     });
-    configureModule(scanner_bench.root_module, features, debug, clap);
+    configureModule(scanner_bench.root_module, features, debug);
 
     // Add scanner module as import
     scanner_bench.root_module.addAnonymousImport("scanner", .{
@@ -263,7 +256,7 @@ fn setupBenchmarks(
             .optimize = .ReleaseFast,
         }),
     });
-    configureModule(parallel_scanner_bench.root_module, features, debug, clap);
+    configureModule(parallel_scanner_bench.root_module, features, debug);
 
     // Create scanner module
     const scanner_module = b.createModule(.{

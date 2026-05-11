@@ -1,26 +1,26 @@
 // Test tensor matrix multiplication
-import "tensor"
+import tensor;
 
-fn main() {
+fun main() {
     // Create two 2x2 matrices
-    var eye2 = tensor_eye(2)
-    var eye2b = tensor_eye(2)
+    var eye2 = tensor_eye(2);
+    var eye2b = tensor_eye(2);
     
     // Identity matrix multiplication should work
-    var result = tensor_matmul(eye2, eye2b)
-    print("Matmul result rank: " + str(tensor_rank(result)))
-    print("Matmul result total size: " + str(tensor_total_size(result)))
+    var result = tensor_matmul(eye2, eye2b);
+    print("Matmul result rank: " + str(tensor_rank(result)));
+    print("Matmul result total size: " + str(tensor_total_size(result)));
     
     // Verify result elements (I @ I = I)
-    var elem00 = tensor_get_2d(result, 0, 0)
-    var elem01 = tensor_get_2d(result, 0, 1)
-    var elem10 = tensor_get_2d(result, 1, 0)
-    var elem11 = tensor_get_2d(result, 1, 1)
+    var elem00 = tensor_get_2d(result, 0, 0);
+    var elem01 = tensor_get_2d(result, 0, 1);
+    var elem10 = tensor_get_2d(result, 1, 0);
+    var elem11 = tensor_get_2d(result, 1, 1);
     
-    print("Result[0,0]: " + str(elem00))
-    print("Result[0,1]: " + str(elem01))
-    print("Result[1,0]: " + str(elem10))
-    print("Result[1,1]: " + str(elem11))
+    print("Result[0,0]: " + str(elem00));
+    print("Result[0,1]: " + str(elem01));
+    print("Result[1,0]: " + str(elem10));
+    print("Result[1,1]: " + str(elem11));
     
-    print("Matrix multiplication test completed!")
+    print("Matrix multiplication test completed!");
 }

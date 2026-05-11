@@ -839,7 +839,7 @@ pub const YamlSerializer = struct {
                 try self.output.appendSlice(self.allocator, bool_str);
             },
             .VAL_INT => {
-                try std.fmt.format(self.output.writer(self.allocator), "{d}", .{value.as.num_int});
+                try self.output.print(self.allocator, "{d}", .{value.as.num_int});
             },
             .VAL_DOUBLE => {
                 if (std.math.isNan(value.as.num_double)) {
@@ -849,7 +849,7 @@ pub const YamlSerializer = struct {
                 } else if (std.math.isNegativeInf(value.as.num_double)) {
                     try self.output.appendSlice(self.allocator, "-.inf");
                 } else {
-                    try std.fmt.format(self.output.writer(self.allocator), "{d}", .{value.as.num_double});
+                    try self.output.print(self.allocator, "{d}", .{value.as.num_double});
                 }
             },
             .VAL_COMPLEX => {
@@ -876,17 +876,17 @@ pub const YamlSerializer = struct {
 
         if (self.flow_style) {
             try self.output.appendSlice(self.allocator, "{real: ");
-            try std.fmt.format(self.output.writer(self.allocator), "{d}", .{complex.r});
+            try self.output.print(self.allocator, "{d}", .{complex.r});
             try self.output.appendSlice(self.allocator, ", imag: ");
-            try std.fmt.format(self.output.writer(self.allocator), "{d}", .{complex.i});
+            try self.output.print(self.allocator, "{d}", .{complex.i});
             try self.output.append(self.allocator, '}');
         } else {
             try self.output.appendSlice(self.allocator, "real: ");
-            try std.fmt.format(self.output.writer(self.allocator), "{d}", .{complex.r});
+            try self.output.print(self.allocator, "{d}", .{complex.r});
             try self.output.append(self.allocator, '\n');
             try self.writeIndent();
             try self.output.appendSlice(self.allocator, "imag: ");
-            try std.fmt.format(self.output.writer(self.allocator), "{d}", .{complex.i});
+            try self.output.print(self.allocator, "{d}", .{complex.i});
         }
     }
 
@@ -1005,7 +1005,7 @@ pub const YamlSerializer = struct {
                 '\n' => try self.output.appendSlice(self.allocator, "\\n"),
                 '\r' => try self.output.appendSlice(self.allocator, "\\r"),
                 0x00...0x08, 0x0B, 0x0C, 0x0E...0x1F, 0x7F => {
-                    try std.fmt.format(self.output.writer(self.allocator), "\\u{d:0>4}", .{char});
+                    try self.output.print(self.allocator, "\\u{d:0>4}", .{char});
                 },
                 else => try self.output.append(self.allocator, char),
             }
@@ -1153,7 +1153,7 @@ pub const YamlSerializer = struct {
                 try self.writeIndent();
                 try self.output.appendSlice(self.allocator, "- ");
             }
-            try std.fmt.format(self.output.writer(self.allocator), "{d}", .{value});
+            try self.output.print(self.allocator, "{d}", .{value});
         }
 
         if (self.flow_style) {
@@ -1187,7 +1187,7 @@ pub const YamlSerializer = struct {
             for (0..matrix.cols) |col| {
                 if (col > 0) try self.output.appendSlice(self.allocator, ", ");
                 const idx = row * matrix.cols + col;
-                try std.fmt.format(self.output.writer(self.allocator), "{d}", .{matrix.data[idx]});
+                try self.output.print(self.allocator, "{d}", .{matrix.data[idx]});
             }
 
             try self.output.append(self.allocator, ']');
@@ -1209,20 +1209,20 @@ pub const YamlSerializer = struct {
 
         if (self.flow_style) {
             try self.output.appendSlice(self.allocator, "{start: ");
-            try std.fmt.format(self.output.writer(self.allocator), "{d}", .{range.start});
+            try self.output.print(self.allocator, "{d}", .{range.start});
             try self.output.appendSlice(self.allocator, ", end: ");
-            try std.fmt.format(self.output.writer(self.allocator), "{d}", .{range.end});
+            try self.output.print(self.allocator, "{d}", .{range.end});
             try self.output.appendSlice(self.allocator, ", inclusive: ");
             const inclusive_str = if (range.inclusive) "true" else "false";
             try self.output.appendSlice(self.allocator, inclusive_str);
             try self.output.append(self.allocator, '}');
         } else {
             try self.output.appendSlice(self.allocator, "start: ");
-            try std.fmt.format(self.output.writer(self.allocator), "{d}", .{range.start});
+            try self.output.print(self.allocator, "{d}", .{range.start});
             try self.output.append(self.allocator, '\n');
             try self.writeIndent();
             try self.output.appendSlice(self.allocator, "end: ");
-            try std.fmt.format(self.output.writer(self.allocator), "{d}", .{range.end});
+            try self.output.print(self.allocator, "{d}", .{range.end});
             try self.output.append(self.allocator, '\n');
             try self.writeIndent();
             try self.output.appendSlice(self.allocator, "inclusive: ");

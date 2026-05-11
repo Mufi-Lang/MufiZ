@@ -9,7 +9,7 @@ print("=== Condition Number Tests ===");
 {
     A = eye(3);
     kappa = condNumber(A);
-    assert(kappa >= 0.99 && kappa <= 1.01, "Identity matrix should have κ ≈ 1");
+    assert(kappa >= 0.99 and kappa <= 1.01);
     print("✓ Identity matrix: κ = " + to_s(kappa));
 }
 
@@ -21,7 +21,7 @@ print("=== Condition Number Tests ===");
     D[2, 2] = 100;
     kappa = condNumber(D);
     // κ = 100 / 1 = 100
-    assert(kappa >= 99 && kappa <= 101, "Diagonal matrix κ should be ~100");
+    assert(kappa >= 99 and kappa <= 101);
     print("✓ Diagonal matrix [1, 10, 100]: κ = " + to_s(kappa));
 }
 
@@ -30,7 +30,7 @@ print("=== Condition Number Tests ===");
     A = eye(3);
     A = A * 5;
     kappa = condNumber(A);
-    assert(kappa >= 0.99 && kappa <= 1.01, "Scaled identity should have κ ≈ 1");
+    assert(kappa >= 0.99 and kappa <= 1.01);
     print("✓ Scaled identity (5*I): κ = " + to_s(kappa));
 }
 
@@ -45,7 +45,7 @@ print("=== Condition Number Tests ===");
     }
     kappa = condNumber(H);
     // Hilbert matrix 4x4 has κ ≈ 15000+
-    assert(kappa > 1000, "Hilbert matrix should be ill-conditioned (κ >> 1)");
+    assert(kappa > 1000);
     print("✓ Hilbert matrix 4x4: κ = " + to_s(kappa));
 }
 
@@ -58,7 +58,7 @@ print("=== Condition Number Tests ===");
     A[1, 1] = 1 + 1e-6;
     kappa = condNumber(A);
     // κ should be very large due to near-singularity
-    assert(kappa > 1000, "Near-singular matrix should have very large κ");
+    assert(kappa > 1000);
     print("✓ Near-singular matrix: κ = " + to_s(kappa));
 }
 
@@ -69,7 +69,7 @@ print("=== Condition Number Tests ===");
     A[1, 0] = 0;    A[1, 1] = 1;    A[1, 2] = 0;
     A[2, 0] = 0;    A[2, 1] = 0;    A[2, 2] = 1;
     kappa = condNumber(A);
-    assert(kappa >= 0.99 && kappa <= 1.01, "Orthogonal matrix should have κ ≈ 1");
+    assert(kappa >= 0.99 and kappa <= 1.01);
     print("✓ Orthogonal matrix: κ = " + to_s(kappa));
 }
 
@@ -80,21 +80,26 @@ print("=== Condition Number Tests ===");
     A[1, 0] = 6;   A[1, 1] = 3;
     kappa1 = condNumber(A);
     kappa2 = condNumber(A);
-    assert(kappa1 == kappa2, "Condition number should be consistent");
+    assert(kappa1 == kappa2);
     print("✓ Consistency check: κ = " + to_s(kappa1));
 }
 
 // Test 8: Condition number of transpose equals original
 {
     A = matrix(3, 3, 0);
-    A[0, 0] = 1;   A[0, 1] = 2;   A[0, 2] = 3;
-    A[1, 0] = 4;   A[1, 1] = 5;   A[1, 2] = 6;
-    A[2, 0] = 7;   A[2, 1] = 8;   A[2, 2] = 10;
+    A[0, 0] = 1;
+    A[0, 1] = 2;
+    A[0, 2] = 3;
+    A[1, 0] = 4;
+    A[1, 1] = 5;
+    A[1, 2] = 6;
+    A[2, 0] = 7;
+    A[2, 1] = 8;
+    A[2, 2] = 10;
     kappa_A = condNumber(A);
     A_T = transpose(A);
     kappa_AT = condNumber(A_T);
-    assert(kappa_A >= kappa_AT * 0.99 && kappa_A <= kappa_AT * 1.01, 
-           "κ(A) should equal κ(A^T)");
+    assert(kappa_A >= kappa_AT * 0.99 and kappa_A <= kappa_AT * 1.01);
     print("✓ κ(A) = κ(A^T): " + to_s(kappa_A) + " ≈ " + to_s(kappa_AT));
 }
 

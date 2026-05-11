@@ -4,11 +4,12 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
-const clap = @import("clap");
+const cli_parser = @import("cli_parser.zig");
 const features = @import("features");
 
 const mufiz = @import("lib.zig");
 const pm = @import("pm.zig");
+const system = @import("system.zig");
 
 // Interpreter exit codes (re-exported from library)
 pub const OK: u8 = mufiz.OK;
@@ -21,36 +22,22 @@ pub fn getGlobalAllocator() std.mem.Allocator {
     return mufiz.getAllocator() catch unreachable; // Safe because init() is always called first
 }
 
-// Command-line parameter definitions
-const params = clap.parseParamsComptime(
-    \\-h, --help             Displays this help and exit.
-    \\-v, --version          Prints the version and codename.
-    \\-r, --run <str>        Runs a Mufi Script
-    \\-l, --link <str>       Link another Mufi Script when interpreting
-    \\--repl                 Runs Mufi Repl system
-    \\--docs                 Standard Library Documentation
-    \\--fmt <str>            Formats a Mufi Script
-    \\--test-gen             Generates synthetic Mufi tests
-    \\--analyze-bytecode <str>  Analyze bytecode and show optimization opportunities
-    \\--trace-sequences <str>    Trace instruction sequences for optimization analysis
-    \\--full-stdlib          Initialize and register all standard library modules (compat mode)
-);
-
 /// Main entry point for the MufiZ interpreter
 /// Initializes all subsystems and handles command-line arguments
-pub fn main() !void {
-    // Get arguments
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-    const gpa_allocator = gpa.allocator();
+pub fn main(init: std.process.Init) !void {
+    const gpa_allocator = init.gpa;
+    mufiz.system.global_io = init.io;
 
-    const args = try std.process.argsAlloc(gpa_allocator);
-    defer std.process.argsFree(gpa_allocator, args);
+    // Convert Args to slice of strings for compatibility with existing code
+    var args_list = try std.ArrayList([]const u8).initCapacity(gpa_allocator, 16);
+    defer {
+        for (args_list.items) |arg| gpa_allocator.free(arg);
+        args_list.deinit(gpa_allocator);
+    }
 
-    // Check for 'pm' command first (before mufiz init)
-    if (args.len >= 2 and std.mem.eql(u8, args[1], "pm")) {
-        try handlePmCommand(args);
-        return;
+    var args_iter = std.process.Args.Iterator.init(init.minimal.args);
+    while (args_iter.next()) |arg| {
+        try args_list.append(gpa_allocator, try gpa_allocator.dupe(u8, arg));
     }
 
     // Initialize the MufiZ library with leak detection and safety checks
@@ -66,73 +53,43 @@ pub fn main() !void {
         try mufiz.startRepl();
     } else {
         // Parse command-line arguments
-        var diag = clap.Diagnostic{};
-        var res = clap.parse(clap.Help, &params, clap.parsers.default, .{
-            .allocator = getGlobalAllocator(),
-            .diagnostic = &diag,
-        }) catch |err| {
-            std.debug.print("Error: {any}\n", .{err});
-            return err;
-        };
-        defer res.deinit();
+        var args = try cli_parser.parseArgs(gpa_allocator, args_list.items);
+        defer args.deinit();
 
-        // Handle command-line arguments
-        if (res.args.help != 0) {
-            std.debug.print(
-                \\MufiZ v{d}.{d}.{d}
-                \\-h, --help             Displays this help and exit.
-                \\-v, --version          Prints the version and codename.
-                \\-r, --run <str>        Runs a Mufi Script
-                \\-l, --link <str>       Link another Mufi Script when interpreting
-                \\--repl                 Runs Mufi Repl system
-                \\--docs                 Standard Library Documentation
-                \\--fmt <str>            Formats a Mufi Script
-                \\--test-gen             Generates synthetic Mufi tests
-                \\--analyze-bytecode <str>  Analyze bytecode and show optimization opportunities
-                \\--trace-sequences <str>    Trace instruction sequences for optimization analysis
-                \\
-                \\PACKAGE MANAGER:
-                \\pm <command>           Package manager commands
-                \\  new <name>           Create a new MufiZ project
-                \\  init <name>          Initialize a MufiZ project in current directory
-                \\  info                 Display project information
-                \\  run                  Run the current project
-                \\  install              Install project dependencies
-                \\  add <name> <url> <v> Add a dependency to project
-                \\  cache info           View package cache statistics
-                \\  cache clear          Clear package cache
-                \\  help                 Show package manager help
-                \\
-            , .{ mufiz.system.MAJOR, mufiz.system.MINOR, mufiz.system.PATCH });
-            return;
-        } else if (res.args.version != 0) {
-            mufiz.printVersion();
-        } else if (res.args.@"full-stdlib" != 0) {
+        if (args.full_stdlib) {
             // Compatibility helper: initialize and register all stdlib modules on demand.
             // By default the library init registers a core-only stdlib (for faster startup
             // and lazy-loading). This flag restores legacy behavior for test runs and
             // consumers that expect all stdlib modules to be present immediately.
             try mufiz.stdlib.initializeStdlib();
             mufiz.stdlib.registerWithVM();
-        } else if (res.args.run) |s| {
-            var runner = mufiz.Runner.init(getGlobalAllocator());
+        }
+
+        // Handle command-line arguments
+        if (args.help) {
+            cli_parser.printHelp();
+            return;
+        } else if (args.version) {
+            mufiz.printVersion();
+        } else if (args.run) |s| {
+            var runner = mufiz.system.Runner.init(gpa_allocator);
             defer runner.deinit();
             try runner.setMain(@constCast(s));
-            if (res.args.link) |l| {
+            if (args.link) |l| {
                 try runner.setLink(@constCast(l));
             }
             try runner.runFile();
-        } else if (res.args.fmt) |s| {
+        } else if (args.fmt) |s| {
             try mufiz.system.format(s);
-        } else if (res.args.@"test-gen" != 0) {
+        } else if (args.test_gen) {
             try mufiz.system.generateTests();
-        } else if (res.args.@"analyze-bytecode") |s| {
+        } else if (args.analyze_bytecode) |s| {
             try analyzeBytecode(s);
-        } else if (res.args.@"trace-sequences") |s| {
+        } else if (args.trace_sequences) |s| {
             try traceSequences(s);
-        } else if (res.args.repl != 0) {
+        } else if (args.repl) {
             try mufiz.startRepl();
-        } else if (res.args.docs != 0) {
+        } else if (args.docs) {
             mufiz.stdlib.printDocs();
         } else {
             mufiz.printVersion();
@@ -149,10 +106,12 @@ fn traceSequences(path: []const u8) !void {
     const allocator = getGlobalAllocator();
 
     // Read the file
-    const file = try std.fs.cwd().openFile(path, .{});
-    defer file.close();
+    const file = try std.Io.Dir.cwd().openFile(mufiz.system.global_io, path, .{});
+    defer file.close(mufiz.system.global_io);
 
-    const source = try file.readToEndAlloc(allocator, 10 * 1024 * 1024); // Max 10MB
+    var buf: [4096]u8 = undefined;
+    var reader = file.reader(mufiz.system.global_io, &buf);
+    const source = try reader.interface.readAlloc(allocator, 10 * 1024 * 1024); // Max 10MB
     defer allocator.free(source);
 
     // Initialize tracing
@@ -196,10 +155,12 @@ fn analyzeBytecode(path: []const u8) !void {
     const allocator = getGlobalAllocator();
 
     // Read the file
-    const file = try std.fs.cwd().openFile(path, .{});
-    defer file.close();
+    const file = try std.Io.Dir.cwd().openFile(mufiz.system.global_io, path, .{});
+    defer file.close(mufiz.system.global_io);
 
-    const source = try file.readToEndAlloc(allocator, 10 * 1024 * 1024); // Max 10MB
+    var buf: [4096]u8 = undefined;
+    var reader = file.reader(mufiz.system.global_io, &buf);
+    const source = try reader.interface.readAlloc(allocator, 10 * 1024 * 1024); // Max 10MB
     defer allocator.free(source);
 
     std.debug.print("\n📊 Analyzing bytecode for: {s}\n", .{path});

@@ -1,3 +1,5 @@
+const system = @import("system.zig");
+
 /// VM Tracing and Instrumentation Module
 ///
 /// This module provides runtime tracing capabilities to capture instruction
@@ -355,16 +357,16 @@ pub fn getStats() TraceStats {
 /// Export trace data to file for offline analysis
 pub fn exportToFile(filename: []const u8) !void {
     const allocator = std.heap.page_allocator;
-    const file = try std.fs.cwd().createFile(filename, .{});
-    defer file.close();
+    const file = try std.Io.Dir.cwd().createFile(system.global_io, filename, .{});
+    defer file.close(system.global_io);
 
     // Write header using simple string formatting
     const header = try std.fmt.allocPrint(allocator, "# MufiZ VM Instruction Trace\n# Total instructions: {d}\n# Unique pairs: {d}\n\n", .{ stats.total_instructions, pair_map.count() });
     defer allocator.free(header);
-    try file.writeAll(header);
+    try file.writeStreamingAll(system.global_io, header);
 
     // Write instruction pairs header
-    try file.writeAll("# Instruction Pairs (first, second, first_op, second_op, count)\n");
+    try file.writeStreamingAll(system.global_io, "# Instruction Pairs (first, second, first_op, second_op, count)\n");
 
     var pairs = std.ArrayList(InstructionPair).initCapacity(allocator, 0) catch unreachable;
     defer pairs.deinit(allocator);
@@ -390,7 +392,7 @@ pub fn exportToFile(filename: []const u8) !void {
             pair.count,
         });
         defer allocator.free(line);
-        try file.writeAll(line);
+        try file.writeStreamingAll(system.global_io, line);
     }
 }
 

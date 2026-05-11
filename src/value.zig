@@ -41,6 +41,7 @@
 /// To add a new object type, modify object.zig instead.
 
 const std = @import("std");
+const system = @import("system.zig");
 const print = std.debug.print;
 
 const memcpy = @import("mem_utils.zig").memcpyFast;

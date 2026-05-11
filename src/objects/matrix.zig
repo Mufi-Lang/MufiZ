@@ -88,7 +88,7 @@ pub const Matrix = struct {
     /// Create random matrix (Octave: rand(rows, cols))
     pub fn rand(rows: usize, cols: usize) Self {
         const matrix = Matrix.init(rows, cols);
-        var rng = std.Random.DefaultPrng.init(@intCast(std.time.timestamp()));
+        var rng = std.Random.DefaultPrng.init(0xdeadbeefcafebabe);
         const total_size = rows * cols;
         for (0..total_size) |i| {
             matrix.data[i] = rng.random().float(f64);
@@ -99,7 +99,7 @@ pub const Matrix = struct {
     /// Create random normal matrix (Octave: randn(rows, cols))
     pub fn randn(rows: usize, cols: usize) Self {
         const matrix = Matrix.init(rows, cols);
-        var rng = std.Random.DefaultPrng.init(@intCast(std.time.timestamp()));
+        var rng = std.Random.DefaultPrng.init(0xcafebabecafe);
         const total_size = rows * cols;
 
         // Box-Muller transformation for normal distribution
@@ -271,7 +271,7 @@ pub const Matrix = struct {
         // For small matrices, use simple algorithm
         // For large matrices, use blocked SIMD approach
         const block_size = 64; // Tune based on cache line size
-        
+
         if (self.rows < block_size or self.cols < block_size or other.cols < block_size) {
             // Simple scalar multiplication for small matrices
             for (0..self.rows) |i| {
@@ -288,15 +288,15 @@ pub const Matrix = struct {
             var bi: usize = 0;
             while (bi < self.rows) : (bi += block_size) {
                 const bi_end = @min(bi + block_size, self.rows);
-                
+
                 var bj: usize = 0;
                 while (bj < other.cols) : (bj += block_size) {
                     const bj_end = @min(bj + block_size, other.cols);
-                    
+
                     var bk: usize = 0;
                     while (bk < self.cols) : (bk += block_size) {
                         const bk_end = @min(bk + block_size, self.cols);
-                        
+
                         // Compute block
                         var i = bi;
                         while (i < bi_end) : (i += 1) {
@@ -327,23 +327,23 @@ pub const Matrix = struct {
 
         const result = Matrix.init(self.rows, self.cols);
         const total_size = self.rows * self.cols;
-        
+
         // Use SIMD for bulk operations (4 f64s per vector)
         const simd_width = 4;
         var i: usize = 0;
-        
+
         while (i + simd_width <= total_size) : (i += simd_width) {
-            const vec_a: @Vector(simd_width, f64) = self.data[i..i+simd_width][0..simd_width].*;
-            const vec_b: @Vector(simd_width, f64) = other.data[i..i+simd_width][0..simd_width].*;
+            const vec_a: @Vector(simd_width, f64) = self.data[i .. i + simd_width][0..simd_width].*;
+            const vec_b: @Vector(simd_width, f64) = other.data[i .. i + simd_width][0..simd_width].*;
             const vec_result = vec_a * vec_b;
-            result.data[i..i+simd_width][0..simd_width].* = vec_result;
+            result.data[i .. i + simd_width][0..simd_width].* = vec_result;
         }
-        
+
         // Handle remaining elements
         while (i < total_size) : (i += 1) {
             result.data[i] = self.data[i] * other.data[i];
         }
-        
+
         return result;
     }
 
@@ -356,18 +356,18 @@ pub const Matrix = struct {
 
         const result = Matrix.init(self.rows, self.cols);
         const total_size = self.rows * self.cols;
-        
+
         // Use SIMD for bulk operations (4 f64s per vector)
         const simd_width = 4;
         var i: usize = 0;
-        
+
         while (i + simd_width <= total_size) : (i += simd_width) {
-            const vec_a: @Vector(simd_width, f64) = self.data[i..i+simd_width][0..simd_width].*;
-            const vec_b: @Vector(simd_width, f64) = other.data[i..i+simd_width][0..simd_width].*;
+            const vec_a: @Vector(simd_width, f64) = self.data[i .. i + simd_width][0..simd_width].*;
+            const vec_b: @Vector(simd_width, f64) = other.data[i .. i + simd_width][0..simd_width].*;
             const vec_result = vec_a / vec_b;
-            result.data[i..i+simd_width][0..simd_width].* = vec_result;
+            result.data[i .. i + simd_width][0..simd_width].* = vec_result;
         }
-        
+
         // Handle remaining elements
         while (i < total_size) : (i += 1) {
             if (other.data[i] == 0.0) {
@@ -376,7 +376,7 @@ pub const Matrix = struct {
                 result.data[i] = self.data[i] / other.data[i];
             }
         }
-        
+
         return result;
     }
 
@@ -448,14 +448,14 @@ pub const Matrix = struct {
             if (pivot_row != k) {
                 u.swapRows(k, pivot_row);
                 p.swapRows(k, pivot_row);
-                
+
                 // Swap rows in L for the ALREADY computed multipliers (columns 0..k)
                 for (0..k) |j| {
                     const temp = l.get(k, j);
                     l.set(k, j, l.get(pivot_row, j));
                     l.set(pivot_row, j, temp);
                 }
-                
+
                 swaps += 1;
             }
 
@@ -779,12 +779,14 @@ pub const Matrix = struct {
         // R will be n x n upper triangular matrix
         const R = Matrix.zeros(n, n);
 
+        var A_work = self.clone();
+
         // Modified Gram-Schmidt process
         for (0..n) |j| {
             // R[j,j] = ||A[:,j]|| (norm of column j)
             var norm_sq: f64 = 0.0;
             for (0..m) |i| {
-                const val = self.get(i, j);
+                const val = A_work.get(i, j);
                 norm_sq += val * val;
             }
             const r_jj = std.math.sqrt(norm_sq);
@@ -798,7 +800,7 @@ pub const Matrix = struct {
 
             // Q[:,j] = A[:,j] / R[j,j]
             for (0..m) |i| {
-                Q.set(i, j, self.get(i, j) / r_jj);
+                Q.set(i, j, A_work.get(i, j) / r_jj);
             }
 
             // For each subsequent column
@@ -806,14 +808,14 @@ pub const Matrix = struct {
                 // R[j,k] = Q[:,j]^T * A[:,k]
                 var dot_prod: f64 = 0.0;
                 for (0..m) |i| {
-                    dot_prod += Q.get(i, j) * self.get(i, k);
+                    dot_prod += Q.get(i, j) * A_work.get(i, k);
                 }
                 R.set(j, k, dot_prod);
 
                 // A[:,k] = A[:,k] - R[j,k] * Q[:,j]
                 for (0..m) |i| {
-                    const new_val = self.get(i, k) - dot_prod * Q.get(i, j);
-                    self.set(i, k, new_val);
+                    const new_val = A_work.get(i, k) - dot_prod * Q.get(i, j);
+                    A_work.set(i, k, new_val);
                 }
             }
         }
@@ -983,7 +985,7 @@ pub const Matrix = struct {
             return std.math.inf(f64); // Only defined for square matrices
         }
 
-        const result = self.svdDecomposition();
+        const result = self.svdDecomposition() orelse return std.math.inf(f64);
         const sigma_vals = result.singularValues;
 
         var sigma_max: f64 = 0;
@@ -1092,16 +1094,22 @@ test "Matrix LU Decomposition basic" {
 
     const A = Matrix.init(3, 3);
     // [1 2 3; 4 5 6; 7 8 10]
-    A.set(0, 0, 1); A.set(0, 1, 2); A.set(0, 2, 3);
-    A.set(1, 0, 4); A.set(1, 1, 5); A.set(1, 2, 6);
-    A.set(2, 0, 7); A.set(2, 1, 8); A.set(2, 2, 10);
+    A.set(0, 0, 1);
+    A.set(0, 1, 2);
+    A.set(0, 2, 3);
+    A.set(1, 0, 4);
+    A.set(1, 1, 5);
+    A.set(1, 2, 6);
+    A.set(2, 0, 7);
+    A.set(2, 1, 8);
+    A.set(2, 2, 10);
 
     const lu = A.luDecomposition() orelse return error.TestUnexpectedResult;
-    
+
     // Verify PA = LU
     const PA = lu.p.mul(A) orelse return error.TestUnexpectedResult;
     const LU = lu.l.mul(lu.u) orelse return error.TestUnexpectedResult;
-    
+
     try std.testing.expect(PA.equal(LU, 1e-10));
 }
 
@@ -1111,14 +1119,20 @@ test "Matrix Inverse" {
     defer lib.deinit();
 
     const A = Matrix.init(3, 3);
-    A.set(0, 0, 1); A.set(0, 1, 2); A.set(0, 2, 3);
-    A.set(1, 0, 0); A.set(1, 1, 1); A.set(1, 2, 4);
-    A.set(2, 0, 5); A.set(2, 1, 6); A.set(2, 2, 0);
+    A.set(0, 0, 1);
+    A.set(0, 1, 2);
+    A.set(0, 2, 3);
+    A.set(1, 0, 0);
+    A.set(1, 1, 1);
+    A.set(1, 2, 4);
+    A.set(2, 0, 5);
+    A.set(2, 1, 6);
+    A.set(2, 2, 0);
 
     const inv = A.inv() orelse return error.TestUnexpectedResult;
     const I = A.mul(inv) orelse return error.TestUnexpectedResult;
     const expected_I = Matrix.eye(3);
-    
+
     try std.testing.expect(I.equal(expected_I, 1e-10));
 }
 
@@ -1128,9 +1142,15 @@ test "Matrix Determinant" {
     defer lib.deinit();
 
     const A = Matrix.init(3, 3);
-    A.set(0, 0, 1); A.set(0, 1, 2); A.set(0, 2, 3);
-    A.set(1, 0, 0); A.set(1, 1, 1); A.set(1, 2, 4);
-    A.set(2, 0, 5); A.set(2, 1, 6); A.set(2, 2, 0);
+    A.set(0, 0, 1);
+    A.set(0, 1, 2);
+    A.set(0, 2, 3);
+    A.set(1, 0, 0);
+    A.set(1, 1, 1);
+    A.set(1, 2, 4);
+    A.set(2, 0, 5);
+    A.set(2, 1, 6);
+    A.set(2, 2, 0);
 
     const det_val = A.det() orelse return error.TestUnexpectedResult;
     try std.testing.expectApproxEqAbs(@as(f64, 1.0), det_val, 1e-10);
@@ -1143,9 +1163,15 @@ test "Matrix Solve" {
 
     const A = Matrix.init(3, 3);
     // [1 2 3; 4 5 6; 7 8 10]
-    A.set(0, 0, 1); A.set(0, 1, 2); A.set(0, 2, 3);
-    A.set(1, 0, 4); A.set(1, 1, 5); A.set(1, 2, 6);
-    A.set(2, 0, 7); A.set(2, 1, 8); A.set(2, 2, 10);
+    A.set(0, 0, 1);
+    A.set(0, 1, 2);
+    A.set(0, 2, 3);
+    A.set(1, 0, 4);
+    A.set(1, 1, 5);
+    A.set(1, 2, 6);
+    A.set(2, 0, 7);
+    A.set(2, 1, 8);
+    A.set(2, 2, 10);
 
     const b = Matrix.init(3, 1);
     b.set(0, 0, 14); // 1*1 + 2*2 + 3*3 = 1 + 4 + 9 = 14
@@ -1153,7 +1179,7 @@ test "Matrix Solve" {
     b.set(2, 0, 53); // 7*1 + 8*2 + 10*3 = 7 + 16 + 30 = 53
 
     const x = A.solve(b) orelse return error.TestUnexpectedResult;
-    
+
     // Expected x = [1; 2; 3]
     try std.testing.expectApproxEqAbs(@as(f64, 1.0), x.get(0, 0), 1e-10);
     try std.testing.expectApproxEqAbs(@as(f64, 2.0), x.get(1, 0), 1e-10);
@@ -1166,17 +1192,18 @@ test "Matrix Singular Case" {
     defer lib.deinit();
 
     const A = Matrix.init(2, 2);
-    A.set(0, 0, 1); A.set(0, 1, 2);
-    A.set(1, 0, 2); A.set(1, 1, 4); // Row 2 = 2 * Row 1
+    A.set(0, 0, 1);
+    A.set(0, 1, 2);
+    A.set(1, 0, 2);
+    A.set(1, 1, 4); // Row 2 = 2 * Row 1
 
     const lu = A.luDecomposition();
     try std.testing.expect(lu == null);
-    
+
     const inv = A.inv();
     try std.testing.expect(inv == null);
-    
+
     const b = Matrix.init(2, 1);
     const x = A.solve(b);
     try std.testing.expect(x == null);
 }
-

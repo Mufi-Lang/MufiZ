@@ -76,7 +76,7 @@ fn clear_impl(argc: i32, args: [*]Value) Value {
         if (globals.entries) |entries| {
             // First pass: collect keys to delete
             const ObjString = object_h.ObjString;
-            var keys_to_delete = std.ArrayListUnmanaged(?*ObjString){};
+            var keys_to_delete: std.ArrayListUnmanaged(?*ObjString) = .empty;
             defer keys_to_delete.deinit(allocator);
 
             for (0..globals.capacity) |i| {
@@ -184,7 +184,7 @@ pub const MathModule = struct {
         try registry.register(math.round);
         try registry.register(math.max);
         try registry.register(math.min);
-        
+
         // Phase 1: New math functions
         try registry.register(math.sinh);
         try registry.register(math.cosh);
@@ -205,17 +205,25 @@ pub const MathModule = struct {
         try registry.register(math.trunc);
         try registry.register(math.sign);
         try registry.register(math.clamp);
-        
+        try registry.register(math.isfinite);
+        try registry.register(math.isnan);
+        try registry.register(math.isinf);
+        try registry.register(math.isprime);
+
         // Phase 3: Vector functions
         try registry.register(math.dot);
         try registry.register(math.norm);
         try registry.register(math.length);
-        
+
         // Phase 4: Statistical functions
         try registry.register(math.sum);
         try registry.register(math.mean);
         try registry.register(math.variance);
         try registry.register(math.stddev);
+        try registry.register(math.set_seed);
+        try registry.register(math.get_seed);
+        try registry.register(math.randint);
+        try registry.register(math.nextprime);
     }
 };
 

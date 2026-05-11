@@ -4,29 +4,25 @@ const allocator_mod = @import("allocator.zig");
 const simd_utils = @import("simd_utils.zig");
 
 // Use a simple GPA for dynamic allocations and arena for VM-lifetime objects
-var gpa: ?std.heap.GeneralPurposeAllocator(.{}) = null;
 var arena_allocator: ?std.heap.ArenaAllocator = null;
 var is_initialized = false;
 
 /// Ensure GPA is initialized (lazy initialization for dynamic library safety)
 fn ensureGPAInitialized() void {
-    if (gpa == null) {
-        gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    }
+    // smp_allocator is a global singleton, no initialization needed
 }
 
 /// Initialize the global allocator with configuration
 pub fn initAllocator(config: allocator_mod.AllocatorConfig) void {
     _ = config; // Ignore config for now
     ensureGPAInitialized();
-    arena_allocator = std.heap.ArenaAllocator.init(gpa.?.allocator());
+    arena_allocator = std.heap.ArenaAllocator.init(std.heap.smp_allocator);
     is_initialized = true;
 }
 
 /// Get the global allocator - use this throughout the codebase
 pub fn getAllocator() std.mem.Allocator {
-    ensureGPAInitialized();
-    return gpa.?.allocator();
+    return std.heap.smp_allocator;
 }
 
 /// Check for memory leaks and cleanup
@@ -36,12 +32,6 @@ pub fn checkForLeaks() bool {
     if (arena_allocator) |*arena| {
         arena.deinit();
         arena_allocator = null;
-    }
-    if (gpa) |*g| {
-        const leak = g.deinit() == .leak;
-        gpa = null;
-        is_initialized = false;
-        return leak;
     }
     is_initialized = false;
     return false;
@@ -62,9 +52,8 @@ pub fn getVMArenaAllocator() std.mem.Allocator {
     if (arena_allocator) |*arena| {
         return arena.allocator();
     }
-    // Fallback to GPA if arena not initialized
-    ensureGPAInitialized();
-    return gpa.?.allocator();
+    // Fallback if arena not initialized
+    return std.heap.smp_allocator;
 }
 
 /// Print memory statistics for debugging
@@ -79,7 +68,17 @@ pub fn alloc(allocator: std.mem.Allocator, comptime T: type, count: usize) ![]T 
 
 /// Free memory using the provided allocator
 pub fn free(allocator: std.mem.Allocator, memory: anytype) void {
-    allocator.free(memory);
+    const T = @TypeOf(memory);
+    
+    const type_info = @typeInfo(T);
+    const is_slice = switch (type_info) {
+        .pointer => |ptr_info| ptr_info.size == .slice,
+        else => false,
+    };
+    
+    if (is_slice) {
+        allocator.free(memory);
+    }
 }
 
 /// Reallocate memory using the provided allocator

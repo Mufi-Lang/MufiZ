@@ -1,0 +1,3 @@
+var @x;
+var expr = @x + 1;
+print expr;

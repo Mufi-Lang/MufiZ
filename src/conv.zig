@@ -39,6 +39,7 @@ pub fn what_is(val: Value) []const u8 {
                 .OBJ_PAIR => return "Pair",
                 .OBJ_MODULE => return "Module",
                 .OBJ_TENSOR => return "Tensor",
+                .OBJ_SYMBOL => return "Symbol",
             }
         },
         .VAL_COMPLEX => return "Complex",

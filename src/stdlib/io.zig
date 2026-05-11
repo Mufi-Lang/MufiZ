@@ -16,19 +16,17 @@ fn input_impl(argc: i32, args: [*]Value) Value {
         std.debug.print("{s}", .{message});
     }
 
-    // Use stdin for Zig 0.15 like simple_line.zig does
-    const stdin = std.fs.File.stdin();
     var input_buffer: [256]u8 = undefined;
     var pos: usize = 0;
 
     // Read characters until newline or buffer full
     while (pos < input_buffer.len - 1) {
         var byte_buffer: [1]u8 = undefined;
-        const amt = stdin.read(byte_buffer[0..]) catch return Value.init_nil();
+        const amt = std.posix.read(std.posix.STDIN_FILENO, &byte_buffer) catch return Value.init_nil();
 
         if (amt == 0) break; // EOF
-
         const byte = byte_buffer[0];
+
         if (byte == '\n' or byte == '\r') {
             break;
         } else {

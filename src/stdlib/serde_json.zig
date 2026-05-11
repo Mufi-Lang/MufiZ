@@ -100,7 +100,7 @@ pub const JsonSerializer = struct {
                 try self.output.appendSlice(self.allocator, bool_str);
             },
             .VAL_INT => {
-                try std.fmt.format(self.output.writer(self.allocator), "{d}", .{value.as.num_int});
+                try self.output.print(self.allocator, "{d}", .{value.as.num_int});
             },
             .VAL_DOUBLE => {
                 // Handle special float values
@@ -109,7 +109,7 @@ pub const JsonSerializer = struct {
                 } else if (std.math.isInf(value.as.num_double)) {
                     try self.output.appendSlice(self.allocator, "null");
                 } else {
-                    try std.fmt.format(self.output.writer(self.allocator), "{d}", .{value.as.num_double});
+                    try self.output.print(self.allocator, "{d}", .{value.as.num_double});
                 }
             },
             .VAL_COMPLEX => {
@@ -118,13 +118,13 @@ pub const JsonSerializer = struct {
 
                 try self.output.appendSlice(self.allocator, "\"r\":");
                 if (options.pretty) try self.output.append(self.allocator, ' ');
-                try std.fmt.format(self.output.writer(self.allocator), "{d}", .{value.as.complex.r});
+                try self.output.print(self.allocator, "{d}", .{value.as.complex.r});
                 try self.output.append(self.allocator, ',');
 
                 if (options.pretty) try self.appendNewlineAndIndent(options);
                 try self.output.appendSlice(self.allocator, "\"i\":");
                 if (options.pretty) try self.output.append(self.allocator, ' ');
-                try std.fmt.format(self.output.writer(self.allocator), "{d}", .{value.as.complex.i});
+                try self.output.print(self.allocator, "{d}", .{value.as.complex.i});
 
                 if (options.pretty) {
                     self.depth -= 1;
@@ -197,7 +197,7 @@ pub const JsonSerializer = struct {
                 '\u{08}' => try self.output.appendSlice(self.allocator, "\\b"),
                 '\u{0C}' => try self.output.appendSlice(self.allocator, "\\f"),
                 0x00...0x07, 0x0B, 0x0E...0x1F, 0x7F => {
-                    try std.fmt.format(self.output.writer(self.allocator), "\\u{:04}", .{char});
+                    try self.output.print(self.allocator, "\\u{:04}", .{char});
                 },
                 else => try self.output.append(self.allocator, char),
             }
@@ -309,7 +309,7 @@ pub const JsonSerializer = struct {
             if (i > 0) try self.output.append(self.allocator, ',');
             if (options.pretty) try self.output.append(self.allocator, ' ');
 
-            try std.fmt.format(self.output.writer(self.allocator), "{d}", .{value});
+            try self.output.print(self.allocator, "{d}", .{value});
         }
 
         if (options.pretty) try self.output.append(self.allocator, ' ');
@@ -336,7 +336,7 @@ pub const JsonSerializer = struct {
                 if (options.pretty) try self.output.append(self.allocator, ' ');
 
                 const value = matrix.get(@intCast(row), @intCast(col));
-                try std.fmt.format(self.output.writer(self.allocator), "{d}", .{value});
+                try self.output.print(self.allocator, "{d}", .{value});
             }
             if (options.pretty) try self.output.append(self.allocator, ' ');
             try self.output.append(self.allocator, ']');
@@ -358,13 +358,13 @@ pub const JsonSerializer = struct {
 
         try self.output.appendSlice(self.allocator, "\"start\":");
         if (options.pretty) try self.output.append(self.allocator, ' ');
-        try std.fmt.format(self.output.writer(self.allocator), "{d}", .{range.start});
+        try self.output.print(self.allocator, "{d}", .{range.start});
         try self.output.append(self.allocator, ',');
 
         if (options.pretty) try self.output.append(self.allocator, ' ');
         try self.output.appendSlice(self.allocator, "\"end\":");
         if (options.pretty) try self.output.append(self.allocator, ' ');
-        try std.fmt.format(self.output.writer(self.allocator), "{d}", .{range.end});
+        try self.output.print(self.allocator, "{d}", .{range.end});
         try self.output.append(self.allocator, ',');
 
         if (options.pretty) try self.output.append(self.allocator, ' ');

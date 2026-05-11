@@ -1,3 +1,5 @@
+const system = @import("system.zig");
+
 /// Module Registry System for MufiZ
 /// Manages lazy-loading of standard library modules and file imports
 const std = @import("std");
@@ -69,7 +71,7 @@ pub fn init(alloc: std.mem.Allocator) void {
 pub fn deinit() void {
     if (!initialized) return;
     loaded_modules.deinit();
-    
+
     var iter = dependency_map.iterator();
     while (iter.next()) |entry| {
         allocator.free(entry.key_ptr.*);
@@ -81,21 +83,21 @@ pub fn deinit() void {
         map.deinit();
         last_import_globals = null;
     }
-    
+
     initialized = false;
 }
 
 /// Register a dependency mapping
 pub fn registerDependency(name: []const u8, path: []const u8) !void {
     if (!initialized) return error.RegistryNotInitialized;
-    
+
     const key = try allocator.dupe(u8, name);
     const value = try allocator.dupe(u8, path);
-    
+
     if (dependency_map.get(name)) |old_path| {
         allocator.free(old_path);
     }
-    
+
     try dependency_map.put(key, value);
 }
 
@@ -158,7 +160,7 @@ fn resolvePath(path: []const u8, base_file: ?[]const u8) ![]const u8 {
     if (base_file) |bf| {
         if (std.fs.path.dirname(bf)) |dir| {
             const joined = try std.fs.path.join(allocator, &[_][]const u8{ dir, path });
-            std.fs.cwd().access(joined, .{}) catch {
+            std.Io.Dir.cwd().access(system.global_io, joined, .{}) catch {
                 allocator.free(joined);
                 return resolvePathNoBase(path);
             };
@@ -171,15 +173,15 @@ fn resolvePath(path: []const u8, base_file: ?[]const u8) ![]const u8 {
 
 fn resolvePathNoBase(path: []const u8) ![]const u8 {
     // Try current working directory
-    std.fs.cwd().access(path, .{}) catch {
+    std.Io.Dir.cwd().access(system.global_io, path, .{}) catch {
         // Check dependency map
         if (dependency_map.get(path)) |dep_path| {
             return try allocator.dupe(u8, dep_path);
         }
-        
+
         return try allocator.dupe(u8, path);
     };
-    
+
     return try allocator.dupe(u8, path);
 }
 
@@ -202,13 +204,7 @@ pub fn loadFileWithBase(path: []const u8, base_file: ?[]const u8) !void {
     defer allocator.free(resolved_path);
 
     // Read the file
-    const file = std.fs.cwd().openFile(resolved_path, .{}) catch |err| {
-        std.debug.print("Error: Failed to open file '{s}': {any}\n", .{ resolved_path, err });
-        return error.FileNotFound;
-    };
-    defer file.close();
-
-    const source = file.readToEndAlloc(allocator, 1_048_576) catch |err| {
+    const source = std.Io.Dir.cwd().readFileAlloc(system.global_io, resolved_path, allocator, std.Io.Limit.limited(1_048_576)) catch |err| {
         std.debug.print("Error: Failed to read file '{s}': {any}\n", .{ resolved_path, err });
         return error.FileReadError;
     };
@@ -267,7 +263,7 @@ pub fn loadFileWithBase(path: []const u8, base_file: ?[]const u8) !void {
     // Run until the frame count returns to the previous level
     const result = vm_module.runUntil(prev_depth);
     if (result != .INTERPRET_OK) {
-        std.debug.print("Error: Failed to execute file '{s}': {any}\n", .{resolved_path, result});
+        std.debug.print("Error: Failed to execute file '{s}': {any}\n", .{ resolved_path, result });
         return error.InterpretError;
     }
 
@@ -295,22 +291,14 @@ pub fn isModuleLoaded(name: []const u8) bool {
 }
 
 /// Populate a module object with its members (constants and functions)
-
 pub fn populateModuleMembers(
-
     module: *@import("object.zig").ObjModule,
-
     module_name: []const u8,
-
     new_globals: ?std.StringHashMap(@import("value.zig").Value),
-
 ) !void {
-
     const vm_module = @import("vm.zig");
 
     const Value = @import("value.zig").Value;
-
-
 
     // For built-in modules, we still use the legacy filtering approach if no new_globals provided
 
@@ -321,18 +309,12 @@ pub fn populateModuleMembers(
         var is_builtin = false;
 
         for (MODULE_REGISTRY) |m| {
-
             if (std.mem.eql(u8, m.name, module_name)) {
-
                 is_builtin = true;
 
                 break;
-
             }
-
         }
-
-
 
         // Get all globals from the VM
 
@@ -340,12 +322,9 @@ pub fn populateModuleMembers(
 
         var i: usize = 0;
 
-
-
         // For math module, also add constants
 
         if (std.mem.eql(u8, module_name, "math")) {
-
             try module.setMember("PI", Value{ .type = .VAL_DOUBLE, .as = .{ .num_double = 3.141592653589793 } });
 
             try module.setMember("E", Value{ .type = .VAL_DOUBLE, .as = .{ .num_double = 2.718281828459045 } });
@@ -359,66 +338,41 @@ pub fn populateModuleMembers(
             try module.setMember("LN2", Value{ .type = .VAL_DOUBLE, .as = .{ .num_double = 0.6931471805599453 } });
 
             try module.setMember("LN10", Value{ .type = .VAL_DOUBLE, .as = .{ .num_double = 2.302585092994046 } });
-
         }
 
-
-
         if (iterator) |entries| {
-
             while (i < vm_module.vm.globals.capacity) : (i += 1) {
-
                 if (entries[i].key) |objString| {
-
                     if (entries[i].deleted) continue;
 
                     const varName = objString.chars[0..@intCast(objString.length)];
 
                     const value = entries[i].value;
 
-
-
                     if (is_builtin) {
-
                         if (value.type == .VAL_OBJ and value.as.obj != null and value.as.obj.?.type == .OBJ_NATIVE) {
-
                             try module.setMember(varName, value);
-
                         }
-
                     } else {
-
                         if (vm_module.isPublicGlobal(objString)) {
-
                             try module.setMember(varName, value);
-
                         }
-
                     }
-
                 }
-
             }
-
         }
 
         return;
-
     }
-
-
 
     // Use the provided new_globals (snapshot result)
 
     var iter = new_globals.?.iterator();
 
     while (iter.next()) |entry| {
-
         const name = entry.key_ptr.*;
 
         const value = entry.value_ptr.*;
-
-
 
         // Extract Objekt String for public check
 
@@ -426,18 +380,10 @@ pub fn populateModuleMembers(
 
         const name_obj = object_h.copyString(name.ptr, name.len);
 
-        
-
         // We only add PUB members to module objects for user modules
 
         if (vm_module.isPublicGlobal(name_obj)) {
-
             try module.setMember(name, value);
-
         }
-
     }
-
 }
-
-

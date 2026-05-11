@@ -1,3 +1,5 @@
+const system = @import("system.zig");
+
 /// MufiZ Serialization/Deserialization (Serde) Interface
 ///
 /// This module provides a common interface for serializing and deserializing
@@ -342,9 +344,9 @@ pub fn serializeToFile(
     defer allocator.free(serialized_data);
 
     // Write to file
-    const file = try std.fs.cwd().createFile(file_path, .{});
-    defer file.close();
-    try file.writeAll(serialized_data);
+    const file = try std.Io.Dir.cwd().createFile(system.global_io, file_path, .{});
+    defer file.close(system.global_io);
+    try file.writeStreamingAll(system.global_io, serialized_data);
 }
 
 /// Deserialize from file
@@ -356,8 +358,8 @@ pub fn deserializeFromFile(
     const registry = getGlobalRegistry(allocator);
 
     // Read file content
-    const file = try std.fs.cwd().openFile(file_path, .{});
-    defer file.close();
+    const file = try std.Io.Dir.cwd().openFile(system.global_io, file_path, .{});
+    defer file.close(system.global_io);
     const file_size = try file.getEndPos();
     const content = try allocator.alloc(u8, file_size);
     defer allocator.free(content);

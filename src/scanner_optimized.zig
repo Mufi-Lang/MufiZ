@@ -40,10 +40,10 @@ const PERFECT_HASH_SIZE = 256;  // Increased from 64 to accommodate more keyword
 
 // Hash multipliers found by compile-time search to avoid collisions
 // These values provide perfect distribution with zero collisions
-const HASH_MULT_FIRST = 11;
-const HASH_MULT_LAST = 13;
-const HASH_MULT_MID = 73;
-const HASH_MULT_LEN = 17;
+const HASH_MULT_FIRST = 1;
+const HASH_MULT_LAST = 1;
+const HASH_MULT_MID = 4;
+const HASH_MULT_LEN = 26;
 
 // Compile-time perfect hash function
 // Uses a combination of length, first char, last char, and middle char
@@ -230,6 +230,7 @@ pub const TokenType = enum(c_int) {
     TOKEN_STAR_DOT = 82,  // .* element-wise multiply
     TOKEN_SLASH_DOT = 83,  // ./ element-wise divide
     TOKEN_HAT_DOT = 84,  // .^ element-wise power
+    TOKEN_AT = 85,  // @ symbol prefix (for symbolic variables)
 };
 
 pub const Token = struct {
@@ -430,6 +431,10 @@ fn handleHash() Token {
     return make_token(.TOKEN_HASH);
 }
 
+fn handleAt() Token {
+    return make_token(.TOKEN_AT);
+}
+
 fn handleBacktick() Token {
     return processMultilineString();
 }
@@ -457,6 +462,12 @@ fn handleQuote() Token {
 fn handleDot() Token {
     if (match_internal('.')) {
         return make_token(if (match_internal('=')) .TOKEN_RANGE_INCLUSIVE else .TOKEN_RANGE_EXCLUSIVE);
+    } else if (match_internal('*')) {
+        return make_token(.TOKEN_STAR_DOT);
+    } else if (match_internal('/')) {
+        return make_token(.TOKEN_SLASH_DOT);
+    } else if (match_internal('^')) {
+        return make_token(.TOKEN_HAT_DOT);
     } else {
         return make_token(.TOKEN_DOT);
     }
@@ -521,6 +532,20 @@ fn handleQuestion() Token {
     return make_token(.TOKEN_QUESTION);
 }
 
+fn handleAmpersand() Token {
+    // Check for && (logical AND) - but MufiZ uses 'and' keyword, so just &
+    return make_token(.TOKEN_BAND);
+}
+
+fn handlePipe() Token {
+    // Check for || (logical OR) - but MufiZ uses 'or' keyword, so just |
+    return make_token(.TOKEN_BOR);
+}
+
+fn handleTilde() Token {
+    return make_token(.TOKEN_BNOT);
+}
+
 fn handleUnknown() Token {
     // Get the character from scanner state (already advanced)
     const c = scanner.start[0];
@@ -573,6 +598,7 @@ const DISPATCH_TABLE = blk: {
     table['^'] = handleHat;
     table['%'] = handlePercent;
     table['#'] = handleHash;
+    table['@'] = handleAt;
     table['`'] = handleBacktick;
     table['"'] = handleQuote;
 
@@ -587,6 +613,11 @@ const DISPATCH_TABLE = blk: {
     table['<'] = handleLess;
     table['>'] = handleGreater;
     table['?'] = handleQuestion;
+
+    // Bitwise operators (symbolic versions)
+    table['&'] = handleAmpersand;  // & (bitwise AND)
+    table['|'] = handlePipe;       // | (bitwise OR)
+    table['~'] = handleTilde;       // ~ (bitwise NOT)
 
     break :blk table;
 };

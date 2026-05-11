@@ -125,7 +125,7 @@ pub const FunctionRegistry = struct {
 
     pub fn init(allocator: std.mem.Allocator) FunctionRegistry {
         return .{
-            .functions = std.ArrayList(RegisteredFunction){},
+            .functions = .empty,
             .allocator = allocator,
         };
     }
@@ -149,16 +149,27 @@ pub const FunctionRegistry = struct {
 
     pub fn registerAll(self: *FunctionRegistry) void {
         for (self.functions.items) |func| {
-            vm.defineNative(@ptrCast(@constCast(func.name)), @ptrCast(func.call_fn));
+            if (std.mem.eql(u8, func.module, "core") or
+                std.mem.eql(u8, func.module, "io") or
+                std.mem.eql(u8, func.module, "types") or
+                std.mem.eql(u8, func.module, "utils") or
+                std.mem.eql(u8, func.module, "collections") or
+                std.mem.eql(u8, func.module, "math") or
+                std.mem.eql(u8, func.module, "matrix") or
+                std.mem.eql(u8, func.module, "json") or
+                std.mem.eql(u8, func.module, "serde") or
+                std.mem.eql(u8, func.module, "tensor"))
+            {
+                vm.defineNative(@ptrCast(@constCast(func.name)), @ptrCast(func.call_fn));
+            }
         }
     }
 
     pub fn registerModule(self: *FunctionRegistry, module_name: []const u8) void {
-        for (self.functions.items) |func| {
-            if (std.mem.eql(u8, func.module, module_name)) {
-                vm.defineNative(@ptrCast(@constCast(func.name)), @ptrCast(func.call_fn));
-            }
-        }
+        // To enforce dot access, we no longer define module functions globally.
+        // They will be populated directly into the module object by the registry.
+        _ = self;
+        _ = module_name;
     }
 
     pub fn printDocs(self: *FunctionRegistry) void {

@@ -1,54 +1,55 @@
+import math;
 // Edge case tests for all new math functions
 
 // Test hyperbolic functions with extreme values
 print("Testing hyperbolic functions:");
-print("sinh(0):", sinh(0));
-print("cosh(0):", cosh(0));
-print("tanh(0):", tanh(0));
+print("sinh(0):" + str(sinh(0)));
+print("cosh(0):" + str(cosh(0)));
+print("tanh(0):" + str(tanh(0)));
 
 // Test angle functions with special values
 print("\nTesting angle functions:");
-print("atan2(0, 0):", atan2(0, 0));
-print("atan2(1, 0):", atan2(1, 0));
-print("sign(0):", sign(0));
-print("sign(-5):", sign(-5));
+print("atan2(0, 0):" + str(atan2(0, 0)));
+print("atan2(1, 0):" + str(atan2(1, 0)));
+print("sign(0):" + str(sign(0)));
+print("sign(-5):" + str(sign(-5)));
 
 // Test clamp edge cases
 print("\nTesting clamp:");
-print("clamp(5, 1, 10):", clamp(5, 1, 10));
-print("clamp(15, 1, 10):", clamp(15, 1, 10));
-print("clamp(-5, 1, 10):", clamp(-5, 1, 10));
+print("clamp(5, 1, 10):" + str(clamp(5, 1, 10)));
+print("clamp(15, 1, 10):" + str(clamp(15, 1, 10)));
+print("clamp(-5, 1, 10):" + str(clamp(-5, 1, 10)));
 
 // Test complex number extraction
 print("\nTesting complex utilities:");
-z = complex(5, -3);
-print("real(5-3i):", real(z));
-print("imag(5-3i):", imag(z));
-c = conj(z);
-print("conj(5-3i):", c);
+var z = complex(5, -3);
+print("real(5-3i):" + str(real(z)));
+print("imag(5-3i):" + str(imag(z)));
+var c = conj(z);
+print("conj(5-3i):" + str(c));
 
 // Test vector operations with same vector
 print("\nTesting vector operations:");
-v = [1.0, 2.0, 3.0];
-print("dot(v, v):", dot(v, v));
-print("magnitude(v):", magnitude(v));
-nv = normalize(v);
-print("normalize works:", len(nv) == 3);
+var v = {1.0, 2.0, 3.0};
+print("dot(v, v):" + str(dot(v, v)));
+print("magnitude(v):" + str(magnitude(v)));
+var nv = normalize(v);
+print("normalize works:" + str(len(nv)) == 3);
 
 // Test statistics with single element
 print("\nTesting statistics:");
-single = [42.0];
-print("median([42]):", median(single));
-print("mode([42]):", mode(single));
+var single = {42.0};
+print("median({42}):" + str(median(single)));
+print("mode({42}):" + str(mode(single)));
 
 // Test numeric utility functions
 print("\nTesting numeric utilities:");
-print("isfinite(42):", isfinite(42));
-print("isnan(42):", isnan(42));
-print("isinf(42):", isinf(42));
+print("isfinite(42):" + str(isfinite(42)));
+print("isnan(42):" + str(isnan(42)));
+print("isinf(42):" + str(isinf(42)));
 
 // Test special functions
 print("\nTesting special functions:");
-print("factorial(1):", factorial(1));
-print("gcd(0, 5):", gcd(0, 5));
-print("isprime(2):", isprime(2));
+print("factorial(1):" + str(factorial(1)));
+print("gcd(0, 5):" + str(gcd(0, 5)));
+print("isprime(2):" + str(isprime(2)));
