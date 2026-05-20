@@ -371,6 +371,11 @@ pub const MatrixModule = struct {
         try registry.register(matrix.rank);
         try registry.register(matrix.lu);
         try registry.register(matrix.solve);
+        try registry.register(matrix.qr);
+        try registry.register(matrix.eig);
+        try registry.register(matrix.svd);
+        try registry.register(matrix.cholesky);
+        try registry.register(matrix.condNumber);
     }
 };
 

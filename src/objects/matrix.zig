@@ -980,7 +980,7 @@ pub const Matrix = struct {
 
     /// Compute condition number using SVD: κ(A) = σ_max / σ_min
     /// Returns infinity if matrix is singular
-    pub fn conditionNumber(self: *const Self) f64 {
+    pub fn conditionNumber(self: Self) f64 {
         if (self.rows != self.cols) {
             return std.math.inf(f64); // Only defined for square matrices
         }
@@ -1007,7 +1007,7 @@ pub const Matrix = struct {
     /// Cholesky decomposition: A = L*L^T for symmetric positive definite matrices
     /// Returns {L: lower triangular matrix}
     /// Returns null if matrix is not symmetric positive definite
-    pub fn choleskyDecomposition(self: *const Self) ?struct { L: Matrix } {
+    pub fn choleskyDecomposition(self: Self) ?struct { L: Self } {
         if (self.rows != self.cols) {
             return null; // Must be square
         }

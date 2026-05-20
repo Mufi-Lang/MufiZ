@@ -295,35 +295,15 @@ fn qr_impl(_: i32, args: [*]Value) Value {
 
     const qr_decomp = qr_result.?;
 
-    const allocator = @import("../vm_allocator.zig").allocator;
-    const table = allocator.create(std.StringHashMap(Value)) catch {
-        return stdlib_core.stdlib_error("Failed to allocate QR result table", .{});
-    };
-    table.* = std.StringHashMap(Value).init(allocator);
+    const htable = object_h.HashTable.init();
 
-    const q_key = allocator.dupe(u8, "Q") catch {
-        return stdlib_core.stdlib_error("Failed to allocate QR key", .{});
-    };
-    const r_key = allocator.dupe(u8, "R") catch {
-        return stdlib_core.stdlib_error("Failed to allocate QR key", .{});
-    };
+    const q_str = object_h.copyString("Q", 1);
+    const r_str = object_h.copyString("R", 1);
 
-    if (table.put(q_key, Value.init_obj(@ptrCast(qr_decomp.Q)))) {
-        return stdlib_core.stdlib_error("Failed to store QR matrix result", .{});
-    }
-    if (table.put(r_key, Value.init_obj(@ptrCast(qr_decomp.R)))) {
-        return stdlib_core.stdlib_error("Failed to store QR matrix result", .{});
-    }
+    _ = htable.put(q_str, Value.init_obj(@ptrCast(qr_decomp.Q)));
+    _ = htable.put(r_str, Value.init_obj(@ptrCast(qr_decomp.R)));
 
-    const pair = allocator.create(object_h.ObjHashTable) catch {
-        return stdlib_core.stdlib_error("Failed to allocate QR result object", .{});
-    };
-    pair.* = .{
-        .obj = object_h.Obj{ .type = .OBJ_HASH_TABLE },
-        .table = table,
-    };
-
-    return Value.init_obj(@ptrCast(pair));
+    return Value.init_obj(@ptrCast(htable));
 }
 
 fn eig_impl(_: i32, args: [*]Value) Value {
@@ -336,35 +316,15 @@ fn eig_impl(_: i32, args: [*]Value) Value {
 
     const eig_decomp = eig_result.?;
 
-    const allocator = @import("../vm_allocator.zig").allocator;
-    const table = allocator.create(std.StringHashMap(Value)) catch {
-        return stdlib_core.stdlib_error("Failed to allocate eig result table", .{});
-    };
-    table.* = std.StringHashMap(Value).init(allocator);
+    const htable = object_h.HashTable.init();
 
-    const vals_key = allocator.dupe(u8, "eigenvalues") catch {
-        return stdlib_core.stdlib_error("Failed to allocate eig key", .{});
-    };
-    const vecs_key = allocator.dupe(u8, "eigenvectors") catch {
-        return stdlib_core.stdlib_error("Failed to allocate eig key", .{});
-    };
+    const vals_str = object_h.copyString("eigenvalues", 11);
+    const vecs_str = object_h.copyString("eigenvectors", 12);
 
-    if (table.put(vals_key, Value.init_obj(@ptrCast(eig_decomp.eigenvalues)))) {
-        return stdlib_core.stdlib_error("Failed to store eig result", .{});
-    }
-    if (table.put(vecs_key, Value.init_obj(@ptrCast(eig_decomp.eigenvectors)))) {
-        return stdlib_core.stdlib_error("Failed to store eig result", .{});
-    }
+    _ = htable.put(vals_str, Value.init_obj(@ptrCast(eig_decomp.eigenvalues)));
+    _ = htable.put(vecs_str, Value.init_obj(@ptrCast(eig_decomp.eigenvectors)));
 
-    const pair = allocator.create(object_h.ObjHashTable) catch {
-        return stdlib_core.stdlib_error("Failed to allocate eig result object", .{});
-    };
-    pair.* = .{
-        .obj = object_h.Obj{ .type = .OBJ_HASH_TABLE },
-        .table = table,
-    };
-
-    return Value.init_obj(@ptrCast(pair));
+    return Value.init_obj(@ptrCast(htable));
 }
 
 fn svd_impl(_: i32, args: [*]Value) Value {
@@ -377,47 +337,23 @@ fn svd_impl(_: i32, args: [*]Value) Value {
 
     const svd_decomp = svd_result.?;
 
-    const allocator = @import("../vm_allocator.zig").allocator;
-    const table = allocator.create(std.StringHashMap(Value)) catch {
-        return stdlib_core.stdlib_error("Failed to allocate SVD result table", .{});
-    };
-    table.* = std.StringHashMap(Value).init(allocator);
+    const htable = object_h.HashTable.init();
 
-    const u_key = allocator.dupe(u8, "U") catch {
-        return stdlib_core.stdlib_error("Failed to allocate SVD key", .{});
-    };
-    const s_key = allocator.dupe(u8, "S") catch {
-        return stdlib_core.stdlib_error("Failed to allocate SVD key", .{});
-    };
-    const v_key = allocator.dupe(u8, "V") catch {
-        return stdlib_core.stdlib_error("Failed to allocate SVD key", .{});
-    };
+    const u_str = object_h.copyString("U", 1);
+    const s_str = object_h.copyString("S", 1);
+    const v_str = object_h.copyString("V", 1);
 
-    if (table.put(u_key, Value.init_obj(@ptrCast(svd_decomp.U)))) {
-        return stdlib_core.stdlib_error("Failed to store SVD result", .{});
-    }
-    if (table.put(s_key, Value.init_obj(@ptrCast(svd_decomp.singularValues)))) {
-        return stdlib_core.stdlib_error("Failed to store SVD result", .{});
-    }
-    if (table.put(v_key, Value.init_obj(@ptrCast(svd_decomp.V)))) {
-        return stdlib_core.stdlib_error("Failed to store SVD result", .{});
-    }
+    _ = htable.put(u_str, Value.init_obj(@ptrCast(svd_decomp.U)));
+    _ = htable.put(s_str, Value.init_obj(@ptrCast(svd_decomp.singularValues)));
+    _ = htable.put(v_str, Value.init_obj(@ptrCast(svd_decomp.V)));
 
-    const result = allocator.create(object_h.ObjHashTable) catch {
-        return stdlib_core.stdlib_error("Failed to allocate SVD result object", .{});
-    };
-    result.* = .{
-        .obj = object_h.Obj{ .type = .OBJ_HASH_TABLE },
-        .table = table,
-    };
-
-    return Value.init_obj(@ptrCast(result));
+    return Value.init_obj(@ptrCast(htable));
 }
 
 fn condNumber_impl(_: i32, args: [*]Value) Value {
     const a = args[0].as_matrix();
     const kappa = a.conditionNumber();
-    return Value.init_float(kappa);
+    return Value.init_double(kappa);
 }
 
 fn cholesky_impl(_: i32, args: [*]Value) Value {
@@ -425,33 +361,17 @@ fn cholesky_impl(_: i32, args: [*]Value) Value {
 
     const chol_result = a.choleskyDecomposition();
     if (chol_result == null) {
-        return Value.init_null();
+        return Value.init_nil();
     }
 
     const chol_decomp = chol_result.?;
 
-    const allocator = @import("../vm_allocator.zig").allocator;
-    const table = allocator.create(std.StringHashMap(Value)) catch {
-        return stdlib_core.stdlib_error("Failed to allocate Cholesky result table", .{});
-    };
-    table.* = std.StringHashMap(Value).init(allocator);
+    const htable = object_h.HashTable.init();
 
-    const l_key = allocator.dupe(u8, "L") catch {
-        return stdlib_core.stdlib_error("Failed to allocate Cholesky key", .{});
-    };
-    if (table.put(l_key, Value.init_obj(@ptrCast(chol_decomp.L)))) {
-        return stdlib_core.stdlib_error("Failed to store Cholesky result", .{});
-    }
+    const l_str = object_h.copyString("L", 1);
+    _ = htable.put(l_str, Value.init_obj(@ptrCast(chol_decomp.L)));
 
-    const result = allocator.create(object_h.ObjHashTable) catch {
-        return stdlib_core.stdlib_error("Failed to allocate Cholesky result object", .{});
-    };
-    result.* = .{
-        .obj = object_h.Obj{ .type = .OBJ_HASH_TABLE },
-        .table = table,
-    };
-
-    return Value.init_obj(@ptrCast(result));
+    return Value.init_obj(@ptrCast(htable));
 }
 
 // === Parameter Specifications ===
@@ -751,8 +671,8 @@ pub const condNumber = DefineFunction(
     "matrix",
     "Calculate the condition number κ(A) = σ_max / σ_min for numerical stability assessment",
     MatrixParam,
-    .float,
-    &[_][]const u8{ "condNumber(A) -> condition number (float)", "if (condNumber(A) > 1e10) print(\"ill-conditioned matrix\")" },
+    .double,
+    &[_][]const u8{ "condNumber(A) -> condition number (double)", "if (condNumber(A) > 1e10) print(\"ill-conditioned matrix\")" },
     condNumber_impl,
 );
 
