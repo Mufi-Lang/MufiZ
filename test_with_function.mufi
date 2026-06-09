@@ -1,0 +1,3 @@
+print("Line 1");
+var x = str(42);
+print(x);

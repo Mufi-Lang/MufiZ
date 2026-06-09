@@ -118,6 +118,7 @@ const PERFECT_HASH_TABLE = blk: {
         .{ .str = "switch", .tok = .TOKEN_SWITCH },
         .{ .str = "true", .tok = .TOKEN_TRUE },
         .{ .str = "var", .tok = .TOKEN_VAR },
+        .{ .str = "sym", .tok = .TOKEN_SYM },
         .{ .str = "while", .tok = .TOKEN_WHILE },
     };
 
@@ -192,45 +193,46 @@ pub const TokenType = enum(c_int) {
     TOKEN_CASE = 48,
     TOKEN_BREAK = 49,
     TOKEN_CONTINUE = 50,
+    TOKEN_SYM = 51,
     // Import tokens
-    TOKEN_IMPORT = 51,
-    TOKEN_FROM = 52,
-    TOKEN_AS = 53,
+    TOKEN_IMPORT = 52,
+    TOKEN_FROM = 53,
+    TOKEN_AS = 54,
     // Special tokens
-    TOKEN_ERROR = 54,
-    TOKEN_EOF = 55,
-    TOKEN_PLUS_EQUAL = 56,
-    TOKEN_MINUS_EQUAL = 57,
-    TOKEN_STAR_EQUAL = 58,
-    TOKEN_SLASH_EQUAL = 59,
-    TOKEN_PLUS_PLUS = 60,
-    TOKEN_MINUS_MINUS = 61,
-    TOKEN_HAT = 62,
-    TOKEN_LEFT_SQPAREN = 63,
-    TOKEN_RIGHT_SQPAREN = 64,
-    TOKEN_COLON = 65,
-    TOKEN_IMAGINARY = 66,
-    TOKEN_MULTILINE_STRING = 67,
-    TOKEN_BACKTICK_STRING = 68,
-    TOKEN_F_STRING = 69,
-    TOKEN_ARROW = 70,
-    TOKEN_HASH = 71,
-    TOKEN_RANGE_EXCLUSIVE = 72,
-    TOKEN_RANGE_INCLUSIVE = 73,
-    TOKEN_QUESTION = 74,
+    TOKEN_ERROR = 55,
+    TOKEN_EOF = 56,
+    TOKEN_PLUS_EQUAL = 57,
+    TOKEN_MINUS_EQUAL = 58,
+    TOKEN_STAR_EQUAL = 59,
+    TOKEN_SLASH_EQUAL = 60,
+    TOKEN_PLUS_PLUS = 61,
+    TOKEN_MINUS_MINUS = 62,
+    TOKEN_HAT = 63,
+    TOKEN_LEFT_SQPAREN = 64,
+    TOKEN_RIGHT_SQPAREN = 65,
+    TOKEN_COLON = 66,
+    TOKEN_IMAGINARY = 67,
+    TOKEN_MULTILINE_STRING = 68,
+    TOKEN_BACKTICK_STRING = 69,
+    TOKEN_F_STRING = 70,
+    TOKEN_ARROW = 71,
+    TOKEN_HASH = 72,
+    TOKEN_RANGE_EXCLUSIVE = 73,
+    TOKEN_RANGE_INCLUSIVE = 74,
+    TOKEN_QUESTION = 75,
     // Visibility tokens
-    TOKEN_PUB = 75,
+    TOKEN_PUB = 76,
     // Bitwise operator keywords
-    TOKEN_BAND = 76,  // bitwise AND
-    TOKEN_BOR = 77,   // bitwise OR
-    TOKEN_BXOR = 78,  // bitwise XOR
-    TOKEN_BNOT = 79,  // bitwise NOT
-    TOKEN_SHL = 80,   // shift left
-    TOKEN_SHR = 81,   // shift right
-    TOKEN_STAR_DOT = 82,  // .* element-wise multiply
-    TOKEN_SLASH_DOT = 83,  // ./ element-wise divide
-    TOKEN_HAT_DOT = 84,  // .^ element-wise power
-    TOKEN_AT = 85,  // @ symbol prefix (for symbolic variables)
+    TOKEN_BAND = 77,  // bitwise AND
+    TOKEN_BOR = 78,   // bitwise OR
+    TOKEN_BXOR = 79,  // bitwise XOR
+    TOKEN_BNOT = 80,  // bitwise NOT
+    TOKEN_SHL = 81,   // shift left
+    TOKEN_SHR = 82,   // shift right
+    TOKEN_STAR_DOT = 83,  // .* element-wise multiply
+    TOKEN_SLASH_DOT = 84,  // ./ element-wise divide
+    TOKEN_HAT_DOT = 85,  // .^ element-wise power
+    TOKEN_AT = 86,  // @ symbol prefix (for symbolic variables)
 };
 
 pub const Token = struct {

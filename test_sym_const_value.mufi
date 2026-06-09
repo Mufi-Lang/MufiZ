@@ -1,0 +1,3 @@
+var val = sym_const;
+print(val);
+print(type(val));

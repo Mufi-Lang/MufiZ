@@ -17,6 +17,7 @@ const matrix = @import("stdlib/matrix.zig");
 const tensor = @import("stdlib/tensor.zig");
 const json = @import("stdlib/json.zig");
 const serde = @import("stdlib/serde.zig");
+const symbolic = @import("stdlib/symbolic.zig");
 
 // Feature flags (can be set at compile time)
 const enable_fs = @import("features.zig").enable_fs;
@@ -431,6 +432,35 @@ pub const SerdeModule = struct {
     }
 };
 
+pub const SymbolicModule = struct {
+    pub fn register() !void {
+        const registry = stdlib_core.getGlobalRegistry();
+        try registry.register(symbolic.sym_const);
+        try registry.register(symbolic.sym_var);
+        try registry.register(symbolic.sym_to_string);
+        try registry.register(symbolic.sym_is_constant);
+        try registry.register(symbolic.sym_add);
+        try registry.register(symbolic.sym_sub);
+        try registry.register(symbolic.sym_mul);
+        try registry.register(symbolic.sym_div);
+        try registry.register(symbolic.sym_pow);
+        try registry.register(symbolic.sym_negate);
+        try registry.register(symbolic.sym_sin);
+        try registry.register(symbolic.sym_cos);
+        try registry.register(symbolic.sym_tan);
+        try registry.register(symbolic.sym_exp);
+        try registry.register(symbolic.sym_log);
+        try registry.register(symbolic.sym_sqrt);
+        try registry.register(symbolic.sym_abs);
+        try registry.register(symbolic.sym_derivative);
+        try registry.register(symbolic.sym_simplify);
+        try registry.register(symbolic.sym_expand);
+        try registry.register(symbolic.sym_substitute);
+        try registry.register(symbolic.sym_evaluate);
+        try registry.register(symbolic.sym_get_variables);
+    }
+};
+
 // Main initialization function
 pub fn initializeStdlib() !void {
     // Set feature flags
@@ -467,10 +497,12 @@ pub fn initializeStdlib() !void {
         try NetworkModule.register();
     }
 
-    // Always register matrix, json, and serde modules
+    // Always register matrix, json, tensor, serde, and symbolic modules
     try MatrixModule.register();
     try JsonModule.register();
+    try TensorModule.register();
     try SerdeModule.register();
+    try SymbolicModule.register();
 
     // std.log.info("Standard library initialized with all modules", .{});
 }

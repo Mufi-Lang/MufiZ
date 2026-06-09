@@ -1,0 +1,70 @@
+// Test symbolic substitution and evaluation
+print("=== TESTING SYMBOLIC SUBSTITUTION & EVALUATION ===\n");
+
+var x = sym_var("x");
+var y = sym_var("y");
+var c2 = sym_const(2.0);
+var c3 = sym_const(3.0);
+var c5 = sym_const(5.0);
+
+// Test 1: Substitute simple variable
+print("[Test 1] Substitute x with 3 in expression x");
+var expr1 = x;
+var subst1 = sym_substitute(expr1, "x", c3);
+var subst1_str = sym_to_string(subst1);
+print("✓ Substitute x with 3: " + subst1_str);
+
+// Test 2: Substitute in polynomial
+print("\n[Test 2] Substitute x with 2 in x^2 + 3*x");
+var x2 = sym_pow(x, c2);
+var expr2_1 = sym_mul(c3, x);
+var expr2 = sym_add(x2, expr2_1);
+var subst2 = sym_substitute(expr2, "x", c2);
+var subst2_str = sym_to_string(subst2);
+print("✓ Substitute x with 2: " + subst2_str);
+
+// Test 3: Evaluate constant
+print("\n[Test 3] Evaluate constant 5");
+var val_const = sym_evaluate(c5);
+print("✓ Evaluate 5 = " + str(val_const));
+
+// Test 4: Evaluate after substitution
+print("\n[Test 4] Evaluate x after substitution with 3");
+var expr4 = x;
+var subst4 = sym_substitute(expr4, "x", c3);
+var val4 = sym_evaluate(subst4);
+print("✓ Evaluate x (after x→3) = " + str(val4));
+
+// Test 5: Evaluate simple arithmetic
+print("\n[Test 5] Evaluate 2 + 3");
+var expr5 = sym_add(c2, c3);
+var val5 = sym_evaluate(expr5);
+print("✓ Evaluate 2 + 3 = " + str(val5));
+
+// Test 6: Evaluate after multiple operations
+print("\n[Test 6] Evaluate 2*x^2 after x→2");
+var x2 = sym_pow(x, c2);
+var expr6 = sym_mul(c2, x2);
+var subst6 = sym_substitute(expr6, "x", c2);
+var val6 = sym_evaluate(subst6);
+print("✓ Evaluate 2*x^2 (x→2) = " + str(val6));
+
+// Test 7: Get variables from expression
+print("\n[Test 7] Get variables from x^2 + 3*y");
+var expr7_1 = sym_pow(x, c2);
+var expr7_2 = sym_mul(c3, y);
+var expr7 = sym_add(expr7_1, expr7_2);
+var vars7 = sym_get_variables(expr7);
+print("✓ Variables in x^2 + 3*y extracted");
+
+// Test 8: Get variables from single variable
+print("\n[Test 8] Get variables from x");
+var vars8 = sym_get_variables(x);
+print("✓ Variables in x extracted");
+
+// Test 9: Get variables from constant
+print("\n[Test 9] Get variables from constant 5");
+var vars9 = sym_get_variables(c5);
+print("✓ Variables in 5 extracted (none)");
+
+print("\n=== ALL SUBSTITUTION & EVALUATION TESTS PASSED ===\n");

@@ -365,6 +365,18 @@ pub fn emitBytes(byte1: u8, byte2: u8) void {
     emitByte(byte1);
     emitByte(byte2);
 }
+
+/// Emit a global slot instruction with support for slots > 255
+pub fn emitGlobalSlot(op: u8, slot: u32) void {
+    if (slot > 127) {
+        // Use 2-byte encoding: high bit set + upper 8 bits, then lower 8 bits
+        emitBytes(op, @as(u8, @intCast((slot >> 8) | 0x80)));
+        emitByte(@as(u8, @intCast(slot & 0xFF)));
+    } else {
+        emitBytes(op, @as(u8, @intCast(slot)));
+    }
+}
+
 pub fn emitLoop(loopStart: i32) void {
     emitByte(@intFromEnum(OpCode.OP_LOOP));
     const offset: i32 = (currentChunk().*.count - loopStart) + 2;
@@ -558,6 +570,8 @@ pub fn declaration() void {
         funDeclaration();
     } else if (match(.TOKEN_VAR)) {
         varDeclaration();
+    } else if (match(.TOKEN_SYM)) {
+        symDeclaration();
     } else if (match(.TOKEN_CONST)) {
         constDeclaration();
     } else if (match(.TOKEN_IMPORT)) {
@@ -662,7 +676,7 @@ pub fn getRule(type_: TokenType) ParseRule {
         .TOKEN_STAR_DOT => ParseRule{ .infix = &binary, .precedence = PREC_FACTOR },
         .TOKEN_SLASH_DOT => ParseRule{ .infix = &binary, .precedence = PREC_FACTOR },
         .TOKEN_HAT_DOT => ParseRule{ .infix = &binary, .precedence = PREC_EXPONENT },
-        // Symbolic variables
+        // Symbolic variables - @x accesses existing symbolic variables
         .TOKEN_AT => ParseRule{ .prefix = &symbolVariable, .precedence = PREC_NONE },
         else => ParseRule{ .precedence = PREC_NONE },
     };
@@ -1635,6 +1649,22 @@ fn emitIncDec(getOp: u8, setOp: u8, arg: i32, opcode: OpCode) void {
     emitBytes(setOp, argByte);
 }
 
+fn emitIncDecGlobal(getOp: u8, setOp: u8, arg: i32, opcode: OpCode, isSingleByte: bool) void {
+    if (isSingleByte) {
+        const argByte = @as(u8, @bitCast(@as(i8, @truncate(arg))));
+        emitBytes(getOp, argByte);
+        emitConstant(Value.init_int(1));
+        emitByte(@intFromEnum(opcode));
+        emitBytes(setOp, argByte);
+    } else {
+        const slot = @as(u32, @intCast(arg));
+        emitGlobalSlot(getOp, slot);
+        emitConstant(Value.init_int(1));
+        emitByte(@intFromEnum(opcode));
+        emitGlobalSlot(setOp, slot);
+    }
+}
+
 pub fn namedVariable(name: Token, canAssign: bool) void {
     var getOp: u8 = undefined;
     var setOp: u8 = undefined;
@@ -1674,15 +1704,23 @@ pub fn namedVariable(name: Token, canAssign: bool) void {
         }
     }
 
-    const argByte = @as(u8, @bitCast(@as(i8, @truncate(arg))));
-
     if (canAssign and match(.TOKEN_EQUAL)) {
         if (checkConstAssignment(name, arg, isLocal)) return;
         expression();
-        emitBytes(setOp, argByte);
+        if (isLocal or getOp == @intFromEnum(OpCode.OP_GET_GLOBAL)) {
+            const argByte = @as(u8, @bitCast(@as(i8, @truncate(arg))));
+            emitBytes(setOp, argByte);
+        } else {
+            emitGlobalSlot(setOp, @as(u32, @intCast(arg)));
+        }
     } else if (canAssign and (match(.TOKEN_PLUS_EQUAL) or match(.TOKEN_MINUS_EQUAL) or match(.TOKEN_STAR_EQUAL) or match(.TOKEN_SLASH_EQUAL))) {
         if (checkConstAssignment(name, arg, isLocal)) return;
-        emitBytes(getOp, argByte);
+        if (isLocal or getOp == @intFromEnum(OpCode.OP_GET_GLOBAL)) {
+            const argByte = @as(u8, @bitCast(@as(i8, @truncate(arg))));
+            emitBytes(getOp, argByte);
+        } else {
+            emitGlobalSlot(getOp, @as(u32, @intCast(arg)));
+        }
         expression();
         switch (parser.previous.type) {
             .TOKEN_PLUS_EQUAL => emitByte(@intFromEnum(OpCode.OP_ADD)),
@@ -1691,15 +1729,25 @@ pub fn namedVariable(name: Token, canAssign: bool) void {
             .TOKEN_SLASH_EQUAL => emitByte(@intFromEnum(OpCode.OP_DIVIDE)),
             else => {},
         }
-        emitBytes(setOp, argByte);
+        if (isLocal or getOp == @intFromEnum(OpCode.OP_GET_GLOBAL)) {
+            const argByte = @as(u8, @bitCast(@as(i8, @truncate(arg))));
+            emitBytes(setOp, argByte);
+        } else {
+            emitGlobalSlot(setOp, @as(u32, @intCast(arg)));
+        }
     } else if (canAssign and match(.TOKEN_PLUS_PLUS)) {
         if (checkConstAssignment(name, arg, isLocal)) return;
-        emitIncDec(getOp, setOp, arg, .OP_ADD);
+        emitIncDecGlobal(getOp, setOp, arg, .OP_ADD, isLocal or getOp == @intFromEnum(OpCode.OP_GET_GLOBAL));
     } else if (canAssign and match(.TOKEN_MINUS_MINUS)) {
         if (checkConstAssignment(name, arg, isLocal)) return;
-        emitIncDec(getOp, setOp, arg, .OP_SUBTRACT);
+        emitIncDecGlobal(getOp, setOp, arg, .OP_SUBTRACT, isLocal or getOp == @intFromEnum(OpCode.OP_GET_GLOBAL));
     } else {
-        emitBytes(getOp, argByte);
+        if (isLocal or getOp == @intFromEnum(OpCode.OP_GET_GLOBAL)) {
+            const argByte = @as(u8, @bitCast(@as(i8, @truncate(arg))));
+            emitBytes(getOp, argByte);
+        } else {
+            emitGlobalSlot(getOp, @as(u32, @intCast(arg)));
+        }
     }
 }
 
@@ -2132,6 +2180,8 @@ pub fn pubDeclaration() void {
         pubFunDeclaration();
     } else if (match(.TOKEN_VAR)) {
         pubVarDeclaration();
+    } else if (match(.TOKEN_SYM)) {
+        pubSymDeclaration();
     } else if (match(.TOKEN_CONST)) {
         pubConstDeclaration();
     } else if (match(.TOKEN_CLASS)) {
@@ -2161,6 +2211,26 @@ pub fn pubVarDeclaration() void {
     }
     consume(.TOKEN_SEMICOLON, "Expect ';' after variable declaration.");
     definePublicVariable(global);
+}
+
+pub fn pubSymDeclaration() void {
+    // Parse public symbolic variable declarations: pub sym x; or pub sym x, y, z;
+    const name = parseVariable("Expect variable name after 'sym'.");
+    
+    // Emit the symbolic variable declaration
+    emitSymbolVariable(name);
+    
+    // Define the variable in the current scope as public
+    definePublicVariable(name);
+    
+    // Handle multiple declarations: pub sym x, y, z;
+    while (match(.TOKEN_COMMA)) {
+        const next_name = parseVariable("Expect variable name after ','.");
+        emitSymbolVariable(next_name);
+        definePublicVariable(next_name);
+    }
+    
+    consume(.TOKEN_SEMICOLON, "Expect ';' after symbolic variable declaration.");
 }
 
 pub fn pubConstDeclaration() void {
@@ -2242,13 +2312,6 @@ pub fn funDeclaration() void {
     defineVariable(global);
 }
 pub fn varDeclaration() void {
-    var is_symbol = false;
-
-    // Check for symbolic variable (@x)
-    if (match(.TOKEN_AT)) {
-        is_symbol = true;
-    }
-
     const global = parseVariable("Expect variable name.");
 
     // Check for optional type annotation: ": typename"
@@ -2268,14 +2331,31 @@ pub fn varDeclaration() void {
 
     if (match(.TOKEN_EQUAL)) {
         expression();
-    } else if (is_symbol) {
-        // Create a symbolic variable
-        emitSymbolVariable(global);
     } else {
         emitByte(@intFromEnum(OpCode.OP_NIL));
     }
     consume(.TOKEN_SEMICOLON, "Expect ';' after variable declaration.");
     defineVariable(global);
+}
+
+pub fn symDeclaration() void {
+    // Parse symbolic variable declarations: sym x; or sym x, y, z;
+    const name = parseVariable("Expect variable name after 'sym'.");
+    
+    // Emit the symbolic variable declaration
+    emitSymbolVariable(name);
+    
+    // Define the variable in the current scope
+    defineVariable(name);
+    
+    // Handle multiple declarations: sym x, y, z;
+    while (match(.TOKEN_COMMA)) {
+        const next_name = parseVariable("Expect variable name after ','.");
+        emitSymbolVariable(next_name);
+        defineVariable(next_name);
+    }
+    
+    consume(.TOKEN_SEMICOLON, "Expect ';' after symbolic variable declaration.");
 }
 
 pub fn constDeclaration() void {

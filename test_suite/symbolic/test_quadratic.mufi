@@ -1,0 +1,74 @@
+// Comprehensive symbolic math test: quadratic formula
+// Demonstrates combining multiple symbolic operations
+print("=== SYMBOLIC QUADRATIC FORMULA TEST ===\n");
+
+// Create quadratic: ax^2 + bx + c
+var x = sym_var("x");
+var a = sym_var("a");
+var b = sym_var("b");
+var c = sym_var("c");
+
+var one = sym_const(1.0);
+var two = sym_const(2.0);
+var four = sym_const(4.0);
+
+print("[Setup] Creating quadratic expression: ax^2 + bx + c");
+var x2 = sym_pow(x, two);
+var ax2 = sym_mul(a, x2);
+var bx = sym_mul(b, x);
+var temp = sym_add(ax2, bx);
+var quadratic = sym_add(temp, c);
+
+print("Quadratic: " + sym_to_string(quadratic));
+
+// Compute derivative: 2ax + b
+print("\n[Step 1] Compute derivative: d/dx(ax^2 + bx + c)");
+var deriv = sym_derivative(quadratic, "x");
+print("Derivative: " + sym_to_string(deriv));
+
+// Evaluate discriminant: b^2 - 4ac
+print("\n[Step 2] Compute discriminant: b^2 - 4ac");
+var b2 = sym_pow(b, two);
+var four_ac_1 = sym_mul(four, a);
+var four_ac = sym_mul(four_ac_1, c);
+var discriminant = sym_sub(b2, four_ac);
+print("Discriminant: " + sym_to_string(discriminant));
+
+// Substitute specific values: a=1, b=5, c=6
+print("\n[Step 3] Substitute a=1, b=5, c=6");
+var one_const = sym_const(1.0);
+var five = sym_const(5.0);
+var six = sym_const(6.0);
+
+var quad_subst = sym_substitute(quadratic, "a", one_const);
+quad_subst = sym_substitute(quad_subst, "b", five);
+quad_subst = sym_substitute(quad_subst, "c", six);
+print("Quadratic with values: " + sym_to_string(quad_subst));
+
+// Compute discriminant with values
+print("\n[Step 4] Compute discriminant with values");
+var disc_subst = sym_substitute(discriminant, "a", one_const);
+disc_subst = sym_substitute(disc_subst, "b", five);
+disc_subst = sym_substitute(disc_subst, "c", six);
+print("Discriminant expression: " + sym_to_string(disc_subst));
+
+// Evaluate discriminant
+print("\n[Step 5] Evaluate discriminant");
+var disc_value = sym_evaluate(disc_subst);
+print("Discriminant value: " + str(disc_value));
+
+// Substitute x=0 to verify (should give c=6)
+print("\n[Step 6] Evaluate quadratic at x=0 (should give c=6)");
+var zero = sym_const(0.0);
+var quad_at_zero = sym_substitute(quad_subst, "x", zero);
+var val_at_zero = sym_evaluate(quad_at_zero);
+print("f(0) = " + str(val_at_zero));
+
+// Substitute x=1 to verify
+print("\n[Step 7] Evaluate quadratic at x=1 (should give 1+5+6=12)");
+var one_val = sym_const(1.0);
+var quad_at_one = sym_substitute(quad_subst, "x", one_val);
+var val_at_one = sym_evaluate(quad_at_one);
+print("f(1) = " + str(val_at_one));
+
+print("\n=== QUADRATIC FORMULA TEST COMPLETED ===\n");

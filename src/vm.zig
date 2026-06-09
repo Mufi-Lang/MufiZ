@@ -994,13 +994,13 @@ pub fn isPublicGlobal(name: *ObjString) bool {
 }
 
 /// Get or allocate a slot for a global variable by name
-pub fn getGlobalSlot(name: *ObjString) u8 {
+pub fn getGlobalSlot(name: *ObjString) u32 {
     var slot_val: Value = undefined;
     if (tableGet(&vm.globalNames, name, &slot_val)) {
         return @intCast(slot_val.as.num_int);
     }
 
-    const slot = @as(u8, @intCast(vm.globalCount));
+    const slot = vm.globalCount;
     vm.globalCount += 1;
     _ = tableSet(&vm.globalNames, name, Value.init_int(@intCast(slot)));
     return slot;
@@ -1311,7 +1311,7 @@ fn stringify(value: Value) ?*ObjString {
     return object_h.copyString(str.ptr, str.len);
 }
 
-const ArithmeticOp = enum { Add, Sub, Mul, Div };
+const ArithmeticOp = enum { Add, Sub, Mul, Div, Pow };
 
 fn performAddString(a: Value, b: Value) !Value {
     const a_str_ptr = stringify(a);
@@ -1379,6 +1379,7 @@ fn performArithmetic(comptime op: ArithmeticOp, a: Value, b: Value) !Value {
             .Sub => SymbolExpr.subtract(allocator, expr_a, expr_b) catch unreachable,
             .Mul => SymbolExpr.multiply(allocator, &args) catch unreachable,
             .Div => SymbolExpr.divide(allocator, expr_a, expr_b) catch unreachable,
+            .Pow => SymbolExpr.power(allocator, expr_a, expr_b) catch unreachable,
         };
 
         const symbol_obj = @as(*object_h.ObjSymbol, @ptrCast(@alignCast(object_h.allocateObject(@sizeOf(object_h.ObjSymbol), .OBJ_SYMBOL))));
@@ -1402,6 +1403,7 @@ fn performArithmetic(comptime op: ArithmeticOp, a: Value, b: Value) !Value {
                     .i = (ca.i * cb.r - ca.r * cb.i) / denom,
                 };
             },
+            .Pow => Complex{ .r = pow(ca.r, cb.r), .i = 0 }, // Simplified for now
         };
         return Value.init_complex(res);
     }
@@ -1414,6 +1416,7 @@ fn performArithmetic(comptime op: ArithmeticOp, a: Value, b: Value) !Value {
                 .Add => mat_a.add(mat_b),
                 .Sub => mat_a.sub(mat_b),
                 .Mul => mat_a.mul(mat_b),
+                .Pow => unreachable, // Matrix exponentiation not supported
                 else => unreachable,
             };
             if (res == null) return error.DimensionMismatch;
@@ -1428,6 +1431,7 @@ fn performArithmetic(comptime op: ArithmeticOp, a: Value, b: Value) !Value {
                     .Add => mat_a.data[i] + val_b,
                     .Sub => mat_a.data[i] - val_b,
                     .Mul => mat_a.data[i] * val_b,
+                    .Pow => pow(mat_a.data[i], val_b),
                     else => unreachable,
                 };
             }
@@ -1442,6 +1446,7 @@ fn performArithmetic(comptime op: ArithmeticOp, a: Value, b: Value) !Value {
                     .Add => mat_b.data[i] + val_a,
                     .Sub => val_a - mat_b.data[i],
                     .Mul => mat_b.data[i] * val_a, // Commutative
+                    .Pow => pow(val_a, mat_b.data[i]),
                     else => unreachable,
                 };
             }
@@ -1459,6 +1464,7 @@ fn performArithmetic(comptime op: ArithmeticOp, a: Value, b: Value) !Value {
                 .Sub => vec_a.sub(vec_b),
                 .Mul => vec_a.mul(vec_b),
                 .Div => vec_a.div(vec_b),
+                .Pow => unreachable, // Vector exponentiation not supported
             };
             return Value.init_obj(@ptrCast(res));
         } else if (a.is_fvec() and b.is_prim_num()) {
@@ -1469,6 +1475,7 @@ fn performArithmetic(comptime op: ArithmeticOp, a: Value, b: Value) !Value {
                 .Sub => vec_a.single_sub(val_b),
                 .Mul => vec_a.scale(val_b),
                 .Div => vec_a.single_div(val_b),
+                .Pow => unreachable, // Vector exponentiation not supported
             };
             return Value.init_obj(@ptrCast(res));
         } else if (a.is_prim_num() and b.is_fvec()) {
@@ -1490,6 +1497,7 @@ fn performArithmetic(comptime op: ArithmeticOp, a: Value, b: Value) !Value {
                     }
                     break :blk res;
                 },
+                .Pow => unreachable, // Vector exponentiation not supported
             };
             return Value.init_obj(@ptrCast(res));
         }
@@ -1505,16 +1513,19 @@ fn performArithmetic(comptime op: ArithmeticOp, a: Value, b: Value) !Value {
                 .Sub => va - vb,
                 .Mul => va * vb,
                 .Div => va / vb,
+                .Pow => pow(va, vb),
             });
         } else {
             const ia = a.as_int();
             const ib = b.as_int();
-            return Value.init_int(switch (op) {
+            const res = switch (op) {
                 .Add => ia + ib,
                 .Sub => ia - ib,
                 .Mul => ia * ib,
+                .Pow => @as(i32, @intFromFloat(pow(@as(f64, @floatFromInt(ia)), @as(f64, @floatFromInt(ib))))),
                 else => unreachable,
-            });
+            };
+            return Value.init_int(res);
         }
     }
 
@@ -1613,13 +1624,30 @@ fn opModulo() InterpretResult {
 }
 
 fn opExponent() InterpretResult {
-    if (!peek(0).is_prim_num() or !peek(1).is_prim_num()) {
-        runtimeError("Operands must be numbers.", .{});
+    const b = peek(0);
+    const a = peek(1);
+    
+    // Try symbolic arithmetic first
+    const result = performArithmetic(.Pow, a, b) catch |err| {
+        if (err == error.TypeMismatch) {
+            // Fall back to numeric exponentiation
+            if (!a.is_prim_num() or !b.is_prim_num()) {
+                runtimeError("Operands must be numbers.", .{});
+                return .INTERPRET_RUNTIME_ERROR;
+            }
+            const b_val = pop().as_num_double();
+            const a_val = pop().as_num_double();
+            push(Value.init_double(pow(a_val, b_val)));
+            return .INTERPRET_OK;
+        }
+        runtimeError("Runtime error in exponentiation.", .{});
         return .INTERPRET_RUNTIME_ERROR;
-    }
-    const b = pop().as_num_double();
-    const a = pop().as_num_double();
-    push(Value.init_double(pow(a, b)));
+    };
+    
+    // Pop the operands and push the result
+    _ = pop(); // b
+    _ = pop(); // a
+    push(result);
     return .INTERPRET_OK;
 }
 
@@ -2478,24 +2506,39 @@ fn opDivReg() InterpretResult {
 
 fn opGetGlobalSlot() InterpretResult {
     const frame = vm.currentFrame.?;
-    const slot = frame.ip[0];
+    var slot: u32 = frame.ip[0];
     frame.ip += 1;
+    if (slot > 127) {
+        // 2-byte encoding for slots > 127
+        slot = ((slot & 0x7F) << 8) | frame.ip[0];
+        frame.ip += 1;
+    }
     push(vm.globalValues[slot]);
     return .INTERPRET_OK;
 }
 
 fn opSetGlobalSlot() InterpretResult {
     const frame = vm.currentFrame.?;
-    const slot = frame.ip[0];
+    var slot: u32 = frame.ip[0];
     frame.ip += 1;
+    if (slot > 127) {
+        // 2-byte encoding for slots > 127
+        slot = ((slot & 0x7F) << 8) | frame.ip[0];
+        frame.ip += 1;
+    }
     vm.globalValues[slot] = pop();
     return .INTERPRET_OK;
 }
 
 fn opSetGlobalSlotKeep() InterpretResult {
     const frame = vm.currentFrame.?;
-    const slot = frame.ip[0];
+    var slot: u32 = frame.ip[0];
     frame.ip += 1;
+    if (slot > 127) {
+        // 2-byte encoding for slots > 127
+        slot = ((slot & 0x7F) << 8) | frame.ip[0];
+        frame.ip += 1;
+    }
     vm.globalValues[slot] = peek(0);
     return .INTERPRET_OK;
 }

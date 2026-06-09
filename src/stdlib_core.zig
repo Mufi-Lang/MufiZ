@@ -158,7 +158,8 @@ pub const FunctionRegistry = struct {
                 std.mem.eql(u8, func.module, "matrix") or
                 std.mem.eql(u8, func.module, "json") or
                 std.mem.eql(u8, func.module, "serde") or
-                std.mem.eql(u8, func.module, "tensor"))
+                std.mem.eql(u8, func.module, "tensor") or
+                std.mem.eql(u8, func.module, "symbolic"))
             {
                 vm.defineNative(@ptrCast(@constCast(func.name)), @ptrCast(func.call_fn));
             }

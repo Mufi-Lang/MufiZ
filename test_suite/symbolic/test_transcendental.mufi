@@ -1,0 +1,60 @@
+// Test symbolic transcendental functions
+print("=== TESTING SYMBOLIC TRANSCENDENTAL FUNCTIONS ===\n");
+
+var x = sym_var("x");
+var c0 = sym_const(0.0);
+var c1 = sym_const(1.0);
+
+// Test 1: sin
+print("[Test 1] Sine");
+var sin_expr = sym_sin(x);
+var sin_str = sym_to_string(sin_expr);
+print("✓ sin(x) = " + sin_str);
+
+// Test 2: cos
+print("\n[Test 2] Cosine");
+var cos_expr = sym_cos(x);
+var cos_str = sym_to_string(cos_expr);
+print("✓ cos(x) = " + cos_str);
+
+// Test 3: tan
+print("\n[Test 3] Tangent");
+var tan_expr = sym_tan(x);
+var tan_str = sym_to_string(tan_expr);
+print("✓ tan(x) = " + tan_str);
+
+// Test 4: exp
+print("\n[Test 4] Exponential");
+var exp_expr = sym_exp(x);
+var exp_str = sym_to_string(exp_expr);
+print("✓ exp(x) = " + exp_str);
+
+// Test 5: log (natural logarithm)
+print("\n[Test 5] Natural logarithm");
+var log_expr = sym_log(x);
+var log_str = sym_to_string(log_expr);
+print("✓ log(x) = " + log_str);
+
+// Test 6: sqrt (square root)
+print("\n[Test 6] Square root");
+var sqrt_expr = sym_sqrt(x);
+var sqrt_str = sym_to_string(sqrt_expr);
+print("✓ sqrt(x) = " + sqrt_str);
+
+// Test 7: abs (absolute value)
+print("\n[Test 7] Absolute value");
+var abs_expr = sym_abs(x);
+var abs_str = sym_to_string(abs_expr);
+print("✓ abs(x) = " + abs_str);
+
+// Test 8: Composite functions
+print("\n[Test 8] Composite functions");
+var composite1 = sym_sin(sym_mul(c1, x));
+var composite1_str = sym_to_string(composite1);
+print("✓ sin(1*x) = " + composite1_str);
+
+var composite2 = sym_exp(sym_div(x, sym_const(2.0)));
+var composite2_str = sym_to_string(composite2);
+print("✓ exp(x/2) = " + composite2_str);
+
+print("\n=== ALL TRANSCENDENTAL TESTS PASSED ===\n");

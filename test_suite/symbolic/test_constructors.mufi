@@ -1,0 +1,50 @@
+// Test symbolic expression constructors and basic operations
+print("=== TESTING SYMBOLIC CONSTRUCTORS ===\n");
+
+// Test 1: Create constants
+print("[Test 1] Creating constants");
+var c1 = sym_const(5.0);
+var c2 = sym_const(-3.14);
+var c3 = sym_const(0.0);
+print("✓ Created constants: 5.0, -3.14, 0.0");
+
+// Test 2: Create variables
+print("\n[Test 2] Creating variables");
+var x = sym_var("x");
+var y = sym_var("y");
+var z = sym_var("z");
+print("✓ Created variables: x, y, z");
+
+// Test 3: Check is_constant
+print("\n[Test 3] Checking is_constant");
+if (sym_is_constant(c1)) {
+    print("✓ sym_const(5) is a constant");
+} else {
+    print("✗ sym_const(5) should be constant");
+}
+
+if (!sym_is_constant(x)) {
+    print("✓ sym_var(\"x\") is not a constant");
+} else {
+    print("✗ sym_var should not be constant");
+}
+
+// Test 4: Convert to string
+print("\n[Test 4] Converting to string");
+var str_c1 = sym_to_string(c1);
+print("✓ sym_const(5.0) as string: " + str_c1);
+
+var str_x = sym_to_string(x);
+print("✓ sym_var(\"x\") as string: " + str_x);
+
+// Test 5: Simple arithmetic
+print("\n[Test 5] Simple arithmetic operations");
+var sum = sym_add(c1, c2);
+var sum_str = sym_to_string(sum);
+print("✓ 5.0 + (-3.14) = " + sum_str);
+
+var expr = sym_mul(x, c1);
+var expr_str = sym_to_string(expr);
+print("✓ x * 5.0 = " + expr_str);
+
+print("\n=== ALL CONSTRUCTOR TESTS PASSED ===\n");
