@@ -1,3 +1,0 @@
-print("Starting");
-var x = 5;
-print(x);

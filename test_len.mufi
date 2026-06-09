@@ -1,3 +1,0 @@
-print("Starting");
-var x = len("hello");
-print(x);

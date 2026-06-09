@@ -1,3 +1,0 @@
-print("Starting test");
-var x = sym_const(2.0);
-print("Created x");
