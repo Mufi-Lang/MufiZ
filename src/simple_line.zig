@@ -43,92 +43,21 @@ pub const SimpleLineEditor = struct {
 
     // Read a line with basic terminal handling
     pub fn readLine(self: *Self, prompt: []const u8) !?[]const u8 {
-        // Print the prompt
-        std.debug.print("{s}", .{prompt});
-
-        // Use the same pattern as stdlib/io.zig
-        const stdin = std.fs.File.stdin();
-        var pos: usize = 0;
-
-        // Read characters until newline or buffer full
-        while (pos < self.buffer.len - 1) {
-            var byte_buffer: [1]u8 = undefined;
-            const amt = stdin.read(byte_buffer[0..]) catch |err| {
-                if (err == error.EndOfStream) {
-                    if (pos == 0) return null;
-                    break;
-                }
-                return err;
-            };
-
-            if (amt == 0) {
-                if (pos == 0) return null;
-                break;
-            }
-
-            const byte = byte_buffer[0];
-
-            switch (byte) {
-                '\n', '\r' => {
-                    break;
-                },
-                3 => { // Ctrl+C
-                    std.debug.print("^C\n", .{});
-                    return null;
-                },
-                4 => { // Ctrl+D (EOF)
-                    if (pos == 0) return null;
-                    break;
-                },
-                8, 127 => { // Backspace or DEL
-                    if (pos > 0) {
-                        pos -= 1;
-                        // Basic backspace handling
-                        std.debug.print("\x08 \x08", .{});
-                    }
-                },
-                9 => { // Tab - ignore for now
-                    continue;
-                },
-                else => {
-                    if (byte >= 32 and byte < 127) { // Printable ASCII
-                        self.buffer[pos] = byte;
-                        pos += 1;
-                        // No manual echo - let terminal handle it
-                    }
-                },
-            }
-        }
-
-        // No manual newline - terminal handles this
-
-        return self.buffer[0..pos];
+        _ = self;
+        _ = prompt;
+        // STUB: Not ported to Zig 0.16 Io API yet
+        return null;
     }
+
 
     // Simple fallback readline
     pub fn readLineSimple(self: *Self, prompt: []const u8) !?[]const u8 {
-        std.debug.print("{s}", .{prompt});
-
-        const stdin = std.fs.File.stdin();
-        var pos: usize = 0;
-
-        while (pos < self.buffer.len - 1) {
-            var byte_buffer: [1]u8 = undefined;
-            const amt = stdin.read(byte_buffer[0..]) catch return null;
-
-            if (amt == 0) break;
-
-            const byte = byte_buffer[0];
-            if (byte == '\n' or byte == '\r') {
-                break;
-            } else if (byte >= 32 and byte < 127) {
-                self.buffer[pos] = byte;
-                pos += 1;
-            }
-        }
-
-        return self.buffer[0..pos];
+        _ = self;
+        _ = prompt;
+        // STUB: Not ported to Zig 0.16 Io API yet
+        return null;
     }
+
 
     // Get a line from history
     pub fn getHistoryLine(self: Self, index: usize) ?[]const u8 {

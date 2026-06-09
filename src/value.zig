@@ -41,6 +41,7 @@
 /// To add a new object type, modify object.zig instead.
 
 const std = @import("std");
+const system = @import("system.zig");
 const print = std.debug.print;
 
 const memcpy = @import("mem_utils.zig").memcpyFast;
@@ -540,6 +541,10 @@ pub const Value = struct {
         return self.is_obj_type(.OBJ_PAIR);
     }
 
+    pub fn is_symbol(self: Self) bool {
+        return self.is_obj_type(.OBJ_SYMBOL);
+    }
+
     /// Extract object pointer from value
     /// Inlined for performance in hot paths
     pub inline fn as_obj(self: Self) ?*Obj {
@@ -591,6 +596,10 @@ pub const Value = struct {
     }
 
     pub fn as_pair(self: Self) *object_h.ObjPair {
+        return @ptrCast(@alignCast(self.as.obj));
+    }
+
+    pub fn as_symbol(self: Self) *object_h.ObjSymbol {
         return @ptrCast(@alignCast(self.as.obj));
     }
 
@@ -899,6 +908,13 @@ fn objToString(value: Value) []const u8 {
             const keyStr = valueToString(pair.key);
             const valueStr = valueToString(pair.value);
             return std.fmt.allocPrint(std.heap.page_allocator, "({s}, {s})", .{ keyStr, valueStr }) catch unreachable;
+        },
+        .OBJ_SYMBOL => {
+            const symbol = @as(*object_h.ObjSymbol, @ptrCast(@alignCast(value.as.obj)));
+            const expr_str = symbol.expr.toString(std.heap.page_allocator) catch unreachable;
+            defer std.heap.page_allocator.free(expr_str);
+            const result = std.fmt.allocPrint(std.heap.page_allocator, "{s}", .{expr_str}) catch unreachable;
+            return result;
         },
         else => return "<object>",
     }

@@ -2,6 +2,7 @@
 // Provides basic ANSI colored output for code elements
 
 const std = @import("std");
+const system = @import("system.zig");
 const mem = std.mem;
 
 // ANSI color escape codes
@@ -115,7 +116,7 @@ pub fn highlight(source: []const u8, writer: anytype) !void {
                 }
 
                 // Default - just output the character
-                try writer.writeAll(&[_]u8{c});
+                try writer.writeStreamingAll(system.global_io, &[_]u8{c});
                 i += 1;
             },
             else => unreachable, // We handle all states above without switching

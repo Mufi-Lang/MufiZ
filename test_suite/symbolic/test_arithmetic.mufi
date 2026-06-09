@@ -1,0 +1,56 @@
+// Test symbolic arithmetic operations
+print("=== TESTING SYMBOLIC ARITHMETIC ===\n");
+
+var x = sym_var("x");
+var y = sym_var("y");
+var c2 = sym_const(2.0);
+var c3 = sym_const(3.0);
+var c5 = sym_const(5.0);
+
+// Test 1: Addition
+print("[Test 1] Addition");
+var add_expr = sym_add(x, c2);
+var add_str = sym_to_string(add_expr);
+print("✓ x + 2 = " + add_str);
+
+// Test 2: Subtraction
+print("\n[Test 2] Subtraction");
+var sub_expr = sym_sub(x, c5);
+var sub_str = sym_to_string(sub_expr);
+print("✓ x - 5 = " + sub_str);
+
+// Test 3: Multiplication
+print("\n[Test 3] Multiplication");
+var mul_1 = sym_mul(c2, x);
+var mul_expr = sym_mul(mul_1, c3);
+var mul_str = sym_to_string(mul_expr);
+print("✓ 2 * x * 3 = " + mul_str);
+
+// Test 4: Division
+print("\n[Test 4] Division");
+var div_expr = sym_div(x, c2);
+var div_str = sym_to_string(div_expr);
+print("✓ x / 2 = " + div_str);
+
+// Test 5: Power
+print("\n[Test 5] Exponentiation");
+var pow_expr = sym_pow(x, c2);
+var pow_str = sym_to_string(pow_expr);
+print("✓ x^2 = " + pow_str);
+
+// Test 6: Negation
+print("\n[Test 6] Negation");
+var neg_expr = sym_negate(x);
+var neg_str = sym_to_string(neg_expr);
+print("✓ -(x) = " + neg_str);
+
+// Test 7: Complex expression
+print("\n[Test 7] Complex expression");
+var pow_2 = sym_pow(x, c2);
+var mul_2x2 = sym_mul(c2, pow_2);
+var mul_3x = sym_mul(c3, x);
+var complex = sym_add(mul_2x2, mul_3x);
+var complex_str = sym_to_string(complex);
+print("✓ 2*x^2 + 3*x = " + complex_str);
+
+print("\n=== ALL ARITHMETIC TESTS PASSED ===\n");

@@ -116,6 +116,8 @@ pub const String = @import("objects/string.zig").String;
 pub const ObjString = String;
 pub const Module = @import("objects/module.zig").Module;
 pub const ObjModule = Module;
+pub const SymbolExpr = @import("objects/symbol.zig").SymbolExpr;
+pub const ObjSymbol = @import("objects/symbol.zig").ObjSymbol;
 
 // Function-related objects
 pub const ObjFunction = @import("objects/function.zig").ObjFunction;
@@ -235,6 +237,13 @@ pub fn newModule(name: *ObjString) *ObjModule {
     module.*.members = std.StringHashMap(Value).init(allocator);
     module.*.allocator = allocator;
     return module;
+}
+
+pub fn newSymbol(name: *ObjString) *ObjSymbol {
+    const symbol: *ObjSymbol = @as(*ObjSymbol, @ptrCast(@alignCast(allocateObject(@sizeOf(ObjSymbol), .OBJ_SYMBOL))));
+    const allocator = mem_utils.getAllocator();
+    symbol.expr = SymbolExpr.variable(allocator, name.chars[0..@intCast(name.length)]) catch unreachable;
+    return symbol;
 }
 
 // String allocation is now handled internally by String bounded methods
@@ -385,6 +394,16 @@ pub fn printObject(value: Value) void {
         .OBJ_TENSOR => {
             const tensor = @as(*Tensor, @ptrCast(@alignCast(value.as.obj)));
             tensor.print();
+        },
+        .OBJ_SYMBOL => {
+            const symbol = @as(*ObjSymbol, @ptrCast(@alignCast(value.as.obj)));
+            const allocator = mem_utils.getAllocator();
+            const str = symbol.expr.toString(allocator) catch |err| blk: {
+                print("<symbol error: {any}>", .{err});
+                break :blk "";
+            };
+            defer allocator.free(str);
+            print("{s}", .{str});
         },
     }
 }

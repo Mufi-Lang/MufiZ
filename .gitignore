@@ -1,5 +1,6 @@
 .zig-cache
 zig-out
+zig-pkg
 m.zig
 fpm.txt
 core/t.zig

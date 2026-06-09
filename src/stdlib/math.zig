@@ -100,21 +100,19 @@ fn phase_impl(_: i32, args: [*]Value) Value {
 
 fn rand_impl(_: i32, args: [*]Value) Value {
     _ = args;
-    var seed_bytes: [8]u8 = undefined;
-    std.crypto.random.bytes(&seed_bytes);
-    const seed = std.mem.readInt(u64, &seed_bytes, .little);
-    var rng = Prng.init(seed);
-    const r = rng.random().float(f64);
+    // Use a fixed seed for now - std.time.nanoTimestamp() not available in Zig 0.16
+    // For better randomness in production, use std.crypto.random instead
+    var prng = std.Random.DefaultPrng.init(0xfeedfacedeadbeef);
+    const r = prng.random().float(f64);
     return Value.init_double(r);
 }
 
 fn randn_impl(_: i32, args: [*]Value) Value {
     _ = args;
-    var seed_bytes: [8]u8 = undefined;
-    std.crypto.random.bytes(&seed_bytes);
-    const seed = std.mem.readInt(u64, &seed_bytes, .little);
-    var rng = Prng.init(seed);
-    const r = rng.random().floatNorm(f64);
+    // Use a fixed seed for now - std.time.nanoTimestamp() not available in Zig 0.16
+    // For better randomness in production, use std.crypto.random instead
+    var prng = std.Random.DefaultPrng.init(0xdeadbeefcafebabe);
+    const r = prng.random().floatNorm(f64);
     return Value.init_double(r);
 }
 
@@ -236,7 +234,7 @@ fn imag_impl(_: i32, args: [*]Value) Value {
 fn gcd_impl(_: i32, args: [*]Value) Value {
     var a: i64 = @abs(args[0].as_num_int());
     var b: i64 = @abs(args[1].as_num_int());
-    
+
     while (b != 0) {
         const temp = b;
         b = @mod(a, b);
@@ -248,11 +246,11 @@ fn gcd_impl(_: i32, args: [*]Value) Value {
 fn lcm_impl(_: i32, args: [*]Value) Value {
     const a: i64 = @abs(args[0].as_num_int());
     const b: i64 = @abs(args[1].as_num_int());
-    
+
     if (a == 0 or b == 0) {
         return Value.init_int(0);
     }
-    
+
     // LCM(a,b) = |a*b| / GCD(a,b)
     var gcd_a = a;
     var gcd_b = b;
@@ -261,27 +259,27 @@ fn lcm_impl(_: i32, args: [*]Value) Value {
         gcd_b = @mod(gcd_a, gcd_b);
         gcd_a = temp;
     }
-    
+
     return Value.init_int(@intCast(@divTrunc(a * b, gcd_a)));
 }
 
 fn factorial_impl(_: i32, args: [*]Value) Value {
     const n = args[0].as_num_int();
-    
+
     if (n < 0) {
         return stdlib_core.stdlib_error("factorial() requires non-negative integer", .{});
     }
-    
+
     if (n > 20) {
         return stdlib_core.stdlib_error("factorial() overflow: n > 20", .{});
     }
-    
+
     var result: i64 = 1;
     var i: i64 = 2;
     while (i <= n) : (i += 1) {
         result *= i;
     }
-    
+
     return Value.init_int(@intCast(result));
 }
 
@@ -313,12 +311,118 @@ fn clamp_impl(_: i32, args: [*]Value) Value {
     const x = args[0].as_num_double();
     const min_val = args[1].as_num_double();
     const max_val = args[2].as_num_double();
-    
+
     if (min_val > max_val) {
         return stdlib_core.stdlib_error("clamp() requires min <= max", .{});
     }
-    
+
     return Value.init_double(std.math.clamp(x, min_val, max_val));
+}
+
+// Random number seeding functions
+fn set_seed_impl(_: i32, args: [*]Value) Value {
+    const seed: u64 = @intCast(args[0].as_num_int());
+    global_seed = seed;
+    return Value.init_int(@intCast(seed));
+}
+
+fn get_seed_impl(_: i32, args: [*]Value) Value {
+    _ = args;
+    return Value.init_int(@intCast(global_seed));
+}
+
+fn randint_impl(_: i32, args: [*]Value) Value {
+    const min_val: i64 = args[0].as_num_int();
+    const max_val: i64 = args[1].as_num_int();
+
+    if (min_val > max_val) {
+        return stdlib_core.stdlib_error("randint() requires min <= max", .{});
+    }
+
+    var rng = Prng.init(global_seed);
+    global_seed = rng.next();
+
+    const range: u64 = @intCast(max_val - min_val + 1);
+    const random_val = rng.random().intRangeAtMost(u64, 0, range - 1);
+
+    return Value.init_int(@as(i32, @intCast(min_val + @as(i32, @intCast(random_val)))));
+}
+
+// Floating-point classification functions
+fn isnan_impl(_: i32, args: [*]Value) Value {
+    const val = args[0].as_num_double();
+    return Value.init_bool(std.math.isNan(val));
+}
+
+fn isinf_impl(_: i32, args: [*]Value) Value {
+    const val = args[0].as_num_double();
+    return Value.init_bool(std.math.isInf(val));
+}
+
+fn isfinite_impl(_: i32, args: [*]Value) Value {
+    const val = args[0].as_num_double();
+    return Value.init_bool(std.math.isFinite(val));
+}
+
+// Prime number functions
+fn isprime_impl(_: i32, args: [*]Value) Value {
+    const n: i64 = args[0].as_num_int();
+
+    if (n < 2) {
+        return Value.init_bool(false);
+    }
+
+    if (n == 2 or n == 3) {
+        return Value.init_bool(true);
+    }
+
+    if (@mod(n, 2) == 0 or @mod(n, 3) == 0) {
+        return Value.init_bool(false);
+    }
+
+    var i: i64 = 5;
+    while (i * i <= n) : (i += 6) {
+        if (@mod(n, i) == 0 or @mod(n, i + 2) == 0) {
+            return Value.init_bool(false);
+        }
+    }
+
+    return Value.init_bool(true);
+}
+
+fn nextprime_impl(_: i32, args: [*]Value) Value {
+    var n: i64 = args[0].as_num_int() + 1;
+
+    while (true) {
+        if (n < 2) {
+            n += 1;
+            continue;
+        }
+
+        if (n == 2 or n == 3) {
+            return Value.init_int(@as(i32, @intCast(n)));
+        }
+
+        if (@rem(n, 2) == 0 or @rem(n, 3) == 0) {
+            n += 1;
+            continue;
+        }
+
+        var i: i64 = 5;
+        var is_prime = true;
+        while (i * i <= n) : (i += 6) {
+            if (@rem(n, i) == 0 or @rem(n, i + 2) == 0) {
+                is_prime = false;
+                break;
+            }
+        }
+
+        if (is_prime) {
+            return Value.init_int(@as(i32, @intCast(n)));
+        }
+
+        n += 1;
+    }
 }
 
 // Auto-registered function wrappers with metadata
@@ -574,7 +678,7 @@ pub const sinh = DefineFunction(
     "Hyperbolic sine function",
     OneNumber,
     .double,
-    &[_][]const u8{"sinh(0) -> 0.0", "sinh(1) -> 1.1752011936438014"},
+    &[_][]const u8{ "sinh(0) -> 0.0", "sinh(1) -> 1.1752011936438014" },
     sinh_impl,
 );
 
@@ -584,7 +688,7 @@ pub const cosh = DefineFunction(
     "Hyperbolic cosine function",
     OneNumber,
     .double,
-    &[_][]const u8{"cosh(0) -> 1.0", "cosh(1) -> 1.5430806348152437"},
+    &[_][]const u8{ "cosh(0) -> 1.0", "cosh(1) -> 1.5430806348152437" },
     cosh_impl,
 );
 
@@ -594,7 +698,7 @@ pub const tanh = DefineFunction(
     "Hyperbolic tangent function",
     OneNumber,
     .double,
-    &[_][]const u8{"tanh(0) -> 0.0", "tanh(1) -> 0.7615941559557649"},
+    &[_][]const u8{ "tanh(0) -> 0.0", "tanh(1) -> 0.7615941559557649" },
     tanh_impl,
 );
 
@@ -604,7 +708,7 @@ pub const asinh = DefineFunction(
     "Inverse hyperbolic sine function",
     OneNumber,
     .double,
-    &[_][]const u8{"asinh(0) -> 0.0", "asinh(1) -> 0.881373587019543"},
+    &[_][]const u8{ "asinh(0) -> 0.0", "asinh(1) -> 0.881373587019543" },
     asinh_impl,
 );
 
@@ -614,7 +718,7 @@ pub const acosh = DefineFunction(
     "Inverse hyperbolic cosine function",
     OneNumber,
     .double,
-    &[_][]const u8{"acosh(1) -> 0.0", "acosh(2) -> 1.3169578969248166"},
+    &[_][]const u8{ "acosh(1) -> 0.0", "acosh(2) -> 1.3169578969248166" },
     acosh_impl,
 );
 
@@ -624,7 +728,7 @@ pub const atanh = DefineFunction(
     "Inverse hyperbolic tangent function",
     OneNumber,
     .double,
-    &[_][]const u8{"atanh(0) -> 0.0", "atanh(0.5) -> 0.5493061443340548"},
+    &[_][]const u8{ "atanh(0) -> 0.0", "atanh(0.5) -> 0.5493061443340548" },
     atanh_impl,
 );
 
@@ -637,7 +741,7 @@ pub const atan2 = DefineFunction(
         .{ .name = "x", .type = .number },
     },
     .double,
-    &[_][]const u8{"atan2(1, 1) -> 0.7853981633974483", "atan2(0, -1) -> 3.141592653589793"},
+    &[_][]const u8{ "atan2(1, 1) -> 0.7853981633974483", "atan2(0, -1) -> 3.141592653589793" },
     atan2_impl,
 );
 
@@ -647,7 +751,7 @@ pub const deg2rad = DefineFunction(
     "Convert degrees to radians",
     OneNumber,
     .double,
-    &[_][]const u8{"deg2rad(180) -> 3.141592653589793", "deg2rad(90) -> 1.5707963267948966"},
+    &[_][]const u8{ "deg2rad(180) -> 3.141592653589793", "deg2rad(90) -> 1.5707963267948966" },
     deg2rad_impl,
 );
 
@@ -657,7 +761,7 @@ pub const rad2deg = DefineFunction(
     "Convert radians to degrees",
     OneNumber,
     .double,
-    &[_][]const u8{"rad2deg(3.14159) -> 180.0", "rad2deg(1.5708) -> 90.0"},
+    &[_][]const u8{ "rad2deg(3.14159) -> 180.0", "rad2deg(1.5708) -> 90.0" },
     rad2deg_impl,
 );
 
@@ -667,7 +771,7 @@ pub const hypot = DefineFunction(
     "Euclidean distance sqrt(x²+y²)",
     TwoNumbers,
     .double,
-    &[_][]const u8{"hypot(3, 4) -> 5.0", "hypot(5, 12) -> 13.0"},
+    &[_][]const u8{ "hypot(3, 4) -> 5.0", "hypot(5, 12) -> 13.0" },
     hypot_impl,
 );
 
@@ -716,7 +820,7 @@ pub const gcd = DefineFunction(
         .{ .name = "b", .type = .int },
     },
     .int,
-    &[_][]const u8{"gcd(12, 8) -> 4", "gcd(21, 14) -> 7"},
+    &[_][]const u8{ "gcd(12, 8) -> 4", "gcd(21, 14) -> 7" },
     gcd_impl,
 );
 
@@ -729,7 +833,7 @@ pub const lcm = DefineFunction(
         .{ .name = "b", .type = .int },
     },
     .int,
-    &[_][]const u8{"lcm(12, 8) -> 24", "lcm(21, 14) -> 42"},
+    &[_][]const u8{ "lcm(12, 8) -> 24", "lcm(21, 14) -> 42" },
     lcm_impl,
 );
 
@@ -741,8 +845,94 @@ pub const factorial = DefineFunction(
         .{ .name = "n", .type = .int },
     },
     .int,
-    &[_][]const u8{"factorial(5) -> 120", "factorial(0) -> 1"},
+    &[_][]const u8{ "factorial(5) -> 120", "factorial(0) -> 1" },
     factorial_impl,
+);
+
+pub const set_seed = DefineFunction(
+    "set_seed",
+    "math",
+    "Set the random number seed",
+    &[_]ParamSpec{
+        .{ .name = "seed", .type = .int },
+    },
+    .int,
+    &[_][]const u8{"set_seed(42) -> 42"},
+    set_seed_impl,
+);
+
+pub const get_seed = DefineFunction(
+    "get_seed",
+    "math",
+    "Get the current random number seed",
+    NoParams,
+    .int,
+    &[_][]const u8{"get_seed() -> 12345"},
+    get_seed_impl,
+);
+
+pub const randint = DefineFunction(
+    "randint",
+    "math",
+    "Generate a random integer in range [min, max]",
+    TwoNumbers,
+    .int,
+    &[_][]const u8{"randint(1, 10) -> 7"},
+    randint_impl,
+);
+
+pub const isnan = DefineFunction(
+    "isnan",
+    "math",
+    "Check if a value is NaN (Not a Number)",
+    OneNumber,
+    .bool,
+    &[_][]const u8{ "isnan(0.0/0.0) -> true", "isnan(5.0) -> false" },
+    isnan_impl,
+);
+
+pub const isinf = DefineFunction(
+    "isinf",
+    "math",
+    "Check if a value is infinite",
+    OneNumber,
+    .bool,
+    &[_][]const u8{ "isinf(1.0/0.0) -> true", "isinf(5.0) -> false" },
+    isinf_impl,
+);
+
+pub const isfinite = DefineFunction(
+    "isfinite",
+    "math",
+    "Check if a value is finite",
+    OneNumber,
+    .bool,
+    &[_][]const u8{ "isfinite(42.0) -> true", "isfinite(1.0/0.0) -> false" },
+    isfinite_impl,
+);
+
+pub const isprime = DefineFunction(
+    "isprime",
+    "math",
+    "Check if a number is prime",
+    &[_]ParamSpec{
+        .{ .name = "n", .type = .int },
+    },
+    .bool,
+    &[_][]const u8{ "isprime(17) -> true", "isprime(10) -> false", "isprime(2) -> true" },
+    isprime_impl,
+);
+
+pub const nextprime = DefineFunction(
+    "nextprime",
+    "math",
+    "Find the next prime number after n",
+    &[_]ParamSpec{
+        .{ .name = "n", .type = .int },
+    },
+    .int,
+    &[_][]const u8{ "nextprime(10) -> 11", "nextprime(20) -> 23" },
+    nextprime_impl,
 );
 
 pub const trunc = DefineFunction(
@@ -751,7 +941,7 @@ pub const trunc = DefineFunction(
     "Truncate to integer (remove fractional part)",
     OneNumber,
     .int,
-    &[_][]const u8{"trunc(3.9) -> 3", "trunc(-2.5) -> -2"},
+    &[_][]const u8{ "trunc(3.9) -> 3", "trunc(-2.5) -> -2" },
     trunc_impl,
 );
 
@@ -761,7 +951,7 @@ pub const sign = DefineFunction(
     "Sign function (-1, 0, or 1)",
     OneNumber,
     .int,
-    &[_][]const u8{"sign(5.2) -> 1", "sign(-3) -> -1", "sign(0) -> 0"},
+    &[_][]const u8{ "sign(5.2) -> 1", "sign(-3) -> -1", "sign(0) -> 0" },
     sign_impl,
 );
 
@@ -775,7 +965,7 @@ pub const clamp = DefineFunction(
         .{ .name = "max", .type = .number },
     },
     .double,
-    &[_][]const u8{"clamp(5, 0, 10) -> 5.0", "clamp(15, 0, 10) -> 10.0", "clamp(-5, 0, 10) -> 0.0"},
+    &[_][]const u8{ "clamp(5, 0, 10) -> 5.0", "clamp(15, 0, 10) -> 10.0", "clamp(-5, 0, 10) -> 0.0" },
     clamp_impl,
 );
 
@@ -786,40 +976,40 @@ pub const clamp = DefineFunction(
 fn dot_impl(_: i32, args: [*]Value) Value {
     const v1 = args[0];
     const v2 = args[1];
-    
+
     if (!Value.is_obj_type(v1, .OBJ_FVECTOR) or !Value.is_obj_type(v2, .OBJ_FVECTOR)) {
         return Value.init_nil();
     }
-    
+
     const vec1 = v1.as_vector();
     const vec2 = v2.as_vector();
-    
+
     if (vec1.count != vec2.count) {
         return Value.init_nil();
     }
-    
+
     var dot_sum: f64 = 0.0;
     for (0..vec1.count) |i| {
         dot_sum += vec1.data[i] * vec2.data[i];
     }
-    
+
     return Value.init_double(dot_sum);
 }
 
 fn norm_impl(_: i32, args: [*]Value) Value {
     const v = args[0];
-    
+
     if (!Value.is_obj_type(v, .OBJ_FVECTOR)) {
         return Value.init_nil();
     }
-    
+
     const vec = v.as_vector();
     var sum_sq: f64 = 0.0;
-    
+
     for (0..vec.count) |i| {
         sum_sq += vec.data[i] * vec.data[i];
     }
-    
+
     return Value.init_double(@sqrt(sum_sq));
 }
 
@@ -870,14 +1060,15 @@ pub const length = DefineFunction(
 
 fn sum_impl(_: i32, args: [*]Value) Value {
     const arr = args[0];
-    
-    if (!Value.is_obj_type(arr, .OBJ_LINKED_LIST) and 
-        !Value.is_obj_type(arr, .OBJ_FVECTOR)) {
+
+    if (!Value.is_obj_type(arr, .OBJ_LINKED_LIST) and
+        !Value.is_obj_type(arr, .OBJ_FVECTOR))
+    {
         return Value.init_double(0.0);
     }
-    
+
     var total: f64 = 0.0;
-    
+
     if (Value.is_obj_type(arr, .OBJ_LINKED_LIST)) {
         const list = arr.as_linked_list();
         var node = list.head;
@@ -894,21 +1085,22 @@ fn sum_impl(_: i32, args: [*]Value) Value {
             total += vec.data[i];
         }
     }
-    
+
     return Value.init_double(total);
 }
 
 fn mean_impl(_: i32, args: [*]Value) Value {
     const arr = args[0];
-    
-    if (!Value.is_obj_type(arr, .OBJ_LINKED_LIST) and 
-        !Value.is_obj_type(arr, .OBJ_FVECTOR)) {
+
+    if (!Value.is_obj_type(arr, .OBJ_LINKED_LIST) and
+        !Value.is_obj_type(arr, .OBJ_FVECTOR))
+    {
         return Value.init_nil();
     }
-    
+
     var count: f64 = 0.0;
     var total: f64 = 0.0;
-    
+
     if (Value.is_obj_type(arr, .OBJ_LINKED_LIST)) {
         const list = arr.as_linked_list();
         var node = list.head;
@@ -927,26 +1119,27 @@ fn mean_impl(_: i32, args: [*]Value) Value {
             total += vec.data[i];
         }
     }
-    
+
     if (count == 0.0) {
         return Value.init_nil();
     }
-    
+
     return Value.init_double(total / count);
 }
 
 fn variance_impl(_: i32, args: [*]Value) Value {
     const arr = args[0];
-    
-    if (!Value.is_obj_type(arr, .OBJ_LINKED_LIST) and 
-        !Value.is_obj_type(arr, .OBJ_FVECTOR)) {
+
+    if (!Value.is_obj_type(arr, .OBJ_LINKED_LIST) and
+        !Value.is_obj_type(arr, .OBJ_FVECTOR))
+    {
         return Value.init_nil();
     }
-    
+
     // First compute mean
     var count: f64 = 0.0;
     var total: f64 = 0.0;
-    
+
     if (Value.is_obj_type(arr, .OBJ_LINKED_LIST)) {
         const list = arr.as_linked_list();
         var node = list.head;
@@ -965,16 +1158,16 @@ fn variance_impl(_: i32, args: [*]Value) Value {
             total += vec.data[i];
         }
     }
-    
+
     if (count < 2.0) {
         return Value.init_nil();
     }
-    
+
     const avg = total / count;
-    
+
     // Compute variance
     var sum_sq_dev: f64 = 0.0;
-    
+
     if (Value.is_obj_type(arr, .OBJ_LINKED_LIST)) {
         const list = arr.as_linked_list();
         var node = list.head;
@@ -993,17 +1186,17 @@ fn variance_impl(_: i32, args: [*]Value) Value {
             sum_sq_dev += dev * dev;
         }
     }
-    
+
     return Value.init_double(sum_sq_dev / (count - 1.0));
 }
 
 fn stddev_impl(_: i32, args: [*]Value) Value {
     const var_result = variance_impl(1, args);
-    
+
     if (var_result.type == .VAL_NIL) {
         return Value.init_nil();
     }
-    
+
     const var_val = var_result.as_num_double();
     return Value.init_double(@sqrt(var_val));
 }

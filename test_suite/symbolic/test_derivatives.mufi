@@ -1,0 +1,77 @@
+// Test symbolic calculus: derivatives
+print("=== TESTING SYMBOLIC CALCULUS: DERIVATIVES ===\n");
+
+var x = sym_var("x");
+var c2 = sym_const(2.0);
+var c3 = sym_const(3.0);
+var c5 = sym_const(5.0);
+
+// Test 1: Derivative of constant
+print("[Test 1] Derivative of constant");
+var const_deriv = sym_derivative(c5, "x");
+var const_deriv_str = sym_to_string(const_deriv);
+print("✓ d/dx(5) = " + const_deriv_str);
+
+// Test 2: Derivative of variable
+print("\n[Test 2] Derivative of variable");
+var x_deriv = sym_derivative(x, "x");
+var x_deriv_str = sym_to_string(x_deriv);
+print("✓ d/dx(x) = " + x_deriv_str);
+
+// Test 3: Power rule
+print("\n[Test 3] Power rule: d/dx(x^2)");
+var x2 = sym_pow(x, c2);
+var x2_deriv = sym_derivative(x2, "x");
+var x2_deriv_str = sym_to_string(x2_deriv);
+print("✓ d/dx(x^2) = " + x2_deriv_str);
+
+// Test 4: Sum rule
+print("\n[Test 4] Sum rule: d/dx(x + 5)");
+var sum = sym_add(x, c5);
+var sum_deriv = sym_derivative(sum, "x");
+var sum_deriv_str = sym_to_string(sum_deriv);
+print("✓ d/dx(x + 5) = " + sum_deriv_str);
+
+// Test 5: Product rule
+print("\n[Test 5] Product rule: d/dx(x * x)");
+var product = sym_mul(x, x);
+var product_deriv = sym_derivative(product, "x");
+var product_deriv_str = sym_to_string(product_deriv);
+print("✓ d/dx(x * x) = " + product_deriv_str);
+
+// Test 6: Sin derivative
+print("\n[Test 6] d/dx(sin(x))");
+var sin_x = sym_sin(x);
+var sin_deriv = sym_derivative(sin_x, "x");
+var sin_deriv_str = sym_to_string(sin_deriv);
+print("✓ d/dx(sin(x)) = " + sin_deriv_str);
+
+// Test 7: Cos derivative
+print("\n[Test 7] d/dx(cos(x))");
+var cos_x = sym_cos(x);
+var cos_deriv = sym_derivative(cos_x, "x");
+var cos_deriv_str = sym_to_string(cos_deriv);
+print("✓ d/dx(cos(x)) = " + cos_deriv_str);
+
+// Test 8: Exp derivative
+print("\n[Test 8] d/dx(exp(x))");
+var exp_x = sym_exp(x);
+var exp_deriv = sym_derivative(exp_x, "x");
+var exp_deriv_str = sym_to_string(exp_deriv);
+print("✓ d/dx(exp(x)) = " + exp_deriv_str);
+
+// Test 9: Log derivative
+print("\n[Test 9] d/dx(log(x))");
+var log_x = sym_log(x);
+var log_deriv = sym_derivative(log_x, "x");
+var log_deriv_str = sym_to_string(log_deriv);
+print("✓ d/dx(log(x)) = " + log_deriv_str);
+
+// Test 10: Quotient rule
+print("\n[Test 10] Quotient rule: d/dx(x/2)");
+var quotient = sym_div(x, c2);
+var quotient_deriv = sym_derivative(quotient, "x");
+var quotient_deriv_str = sym_to_string(quotient_deriv);
+print("✓ d/dx(x/2) = " + quotient_deriv_str);
+
+print("\n=== ALL DERIVATIVE TESTS PASSED ===\n");

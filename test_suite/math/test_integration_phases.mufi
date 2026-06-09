@@ -1,33 +1,34 @@
+import math;
 // Integration tests combining functions from multiple phases
 
 // Phase 1 + Phase 2: Complex numbers with vector operations
-z1 = complex(3, 4);
-z2 = complex(1, 2);
-mag1 = abs(z1);
-print("Complex magnitude:", mag1);
+var z1 = complex(3, 4);
+var z2 = complex(1, 2);
+var mag1 = abs(z1);
+print("Complex magnitude:" + str(mag1));
 
 // Phase 2 + Phase 3: Vector operations with statistics
-v1 = [1.0, 2.0, 3.0, 4.0, 5.0];
-v2 = [2.0, 4.0, 6.0, 8.0, 10.0];
+var v1 = {1.0, 2.0, 3.0, 4.0, 5.0};
+var v2 = {2.0, 4.0, 6.0, 8.0, 10.0};
 
-d = dot(v1, v2);
-print("Dot product:", d);
+var d = dot(v1, v2);
+print("Dot product:" + str(d));
 
-avg_v1 = sum(v1) / len(v1);
-print("Average v1:", avg_v1);
+var avg_v1 = sum(v1) / len(v1);
+print("Average v1:" + str(avg_v1));
 
 // Phase 1 + Phase 3: Math constants with statistics
-const_v = [PI, PI * 2, PI / 2];
+const_v = {PI, PI * 2, PI / 2};
 const_sum = sum(const_v);
-print("Constants sum:", const_sum);
+print("Constants sum:" + str(const_sum));
 
 // Phase 4: Numeric checks on various values
-vals = [1.0, PI, E];
-for val in vals {
-    print("isfinite(" + str(val) + "):", isfinite(val));
+var vals = {1.0, PI, E};
+foreach (val in vals) {
+    print("isfinite(" + str(val) + "):" + str(isfinite(val)));
 }
 
 // Phase 2 + Phase 4: GCD/LCM with vector length calculations
-print("gcd(12, 8):", gcd(12, 8));
-print("lcm(12, 8):", lcm(12, 8));
-print("isprime(17):", isprime(17));
+print("gcd(12, 8):" + str(gcd(12, 8)));
+print("lcm(12, 8):" + str(lcm(12, 8)));
+print("isprime(17):" + str(isprime(17)));

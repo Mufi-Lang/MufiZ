@@ -8,6 +8,8 @@ const SimpleLineEditor = @import("simple_line.zig").SimpleLineEditor;
 const syntax = @import("syntax_min.zig");
 const vm_h = @import("vm.zig");
 
+pub var global_io: std.Io = undefined;
+
 pub const MAJOR: u8 = 0;
 pub const MINOR: u8 = 11;
 pub const PATCH: u8 = 0;
@@ -123,7 +125,7 @@ pub fn repl() !void {
 
     var statement_buffer = std.ArrayList(u8).initCapacity(allocator, 0) catch unreachable;
     defer statement_buffer.deinit(allocator);
-    
+
     // Accumulate all source code for proper variable persistence
     var accumulated_source = std.ArrayList(u8).initCapacity(allocator, 0) catch unreachable;
     defer accumulated_source.deinit(allocator);
@@ -210,7 +212,7 @@ pub const Runner = struct {
     }
 
     fn read_file(self: *Self, path: []u8) ![]u8 {
-        return try std.fs.cwd().readFileAlloc(self.allocator, path, max_bytes);
+        return try std.Io.Dir.cwd().readFileAlloc(global_io, path, self.allocator, std.Io.Limit.limited(max_bytes));
     }
 
     fn run(str: []u8) InterpreterError!void {
@@ -260,10 +262,10 @@ fn executeStatement(statement_buffer: *std.ArrayList(u8), line_editor: *SimpleLi
     if (accumulated_source.items.len > 0) {
         try accumulated_source.append(allocator, '\n');
     }
-    
+
     // Append the current statement to accumulated source
     try accumulated_source.appendSlice(allocator, statement_buffer.items);
-    
+
     // Create a null-terminated buffer for the interpreter with all accumulated code
     var exec_buffer = try allocator.alloc(u8, accumulated_source.items.len + 1);
     defer allocator.free(exec_buffer);
@@ -308,70 +310,19 @@ fn replSimple() !void {
     // Ensure VM is in REPL mode
     vm_h.setReplMode(true);
 
-    std.debug.print("\n🔧 Simple REPL Mode\n", .{});
-    std.debug.print("═══════════════════\n", .{});
+    std.debug.print("\n🔧 REPL Mode (not yet ported to Zig 0.16)\n", .{});
+    std.debug.print("═══════════════════════════════════════════\n", .{});
     version();
-    std.debug.print("Enter commands (type 'exit' to quit)\n\n", .{});
-
-    const stdin = std.fs.File.stdin();
-    var buffer: [2048]u8 = undefined;
-
-    while (true) {
-        std.debug.print("mufi> ", .{});
-
-        // Read input character by character like stdlib/io.zig does
-        var pos: usize = 0;
-        while (pos < buffer.len - 1) {
-            var byte_buffer: [1]u8 = undefined;
-            const amt = stdin.read(byte_buffer[0..]) catch break;
-
-            if (amt == 0) break; // EOF
-
-            const byte = byte_buffer[0];
-            if (byte == '\n' or byte == '\r') {
-                break;
-            } else if (byte >= 32 and byte < 127) {
-                buffer[pos] = byte;
-                pos += 1;
-            }
-        }
-
-        if (pos == 0) {
-            std.debug.print("\nGoodbye!\n", .{});
-            break;
-        }
-
-        const input = buffer[0..pos];
-        const trimmed = std.mem.trim(u8, input, " \t\r\n");
-
-        if (trimmed.len == 0) continue;
-
-        if (processSpecialCommand(trimmed)) continue;
-
-        // Create null-terminated string for interpreter
-        var exec_buffer: [2048]u8 = undefined;
-        const len = @min(trimmed.len, exec_buffer.len - 1);
-        @memcpy(exec_buffer[0..len], trimmed[0..len]);
-        exec_buffer[len] = 0;
-
-        const result = vm_h.interpret(conv.cstr(exec_buffer[0..len]));
-
-        switch (result) {
-            .INTERPRET_OK, .INTERPRET_FINISHED => {},
-            .INTERPRET_COMPILE_ERROR => std.debug.print("💥 Compilation error\n", .{}),
-            .INTERPRET_RUNTIME_ERROR => std.debug.print("🚨 Runtime error\n", .{}),
-        }
-    }
+    std.debug.print("REPL functionality requires updating the Io API\n", .{});
+    std.debug.print("Please use the compile command instead\n\n", .{});
 }
 
 pub fn format(file_path: []const u8) !void {
     const allocator = mem_utils.getAllocator();
 
     // Read the file
-    const file = try std.fs.cwd().openFile(file_path, .{});
-    defer file.close();
+    const source = try std.Io.Dir.cwd().readFileAlloc(global_io, file_path, allocator, std.Io.Limit.limited(std.math.maxInt(u16)));
 
-    const source = try file.readToEndAlloc(allocator, std.math.maxInt(u16));
     defer allocator.free(source);
 
     // Initialize formatter
@@ -383,9 +334,12 @@ pub fn format(file_path: []const u8) !void {
     defer allocator.free(formatted);
 
     // Write back to the file
-    const output_file = try std.fs.cwd().createFile(file_path, .{});
-    defer output_file.close();
-    try output_file.writeAll(formatted);
+    const output_file = try std.Io.Dir.cwd().createFile(global_io, file_path, .{});
+    defer output_file.close(global_io);
+    var buf: [4096]u8 = undefined;
+    var writer = output_file.writer(global_io, &buf);
+    try writer.interface.print("{s}", .{formatted});
+    try writer.flush();
 
     std.debug.print("Formatted {s}\n", .{file_path});
 }
@@ -393,7 +347,7 @@ pub fn format(file_path: []const u8) !void {
 pub fn generateTests() !void {
     const allocator = mem_utils.getAllocator();
 
-    var prng = std.Random.DefaultPrng.init(@intCast(std.time.timestamp()));
+    var prng = std.Random.DefaultPrng.init(12345);
     const test_gen = @import("test_gen.zig");
     var gen = test_gen.TestGenerator.init(allocator, prng.random());
 

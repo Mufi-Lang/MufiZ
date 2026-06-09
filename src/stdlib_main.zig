@@ -17,6 +17,7 @@ const matrix = @import("stdlib/matrix.zig");
 const tensor = @import("stdlib/tensor.zig");
 const json = @import("stdlib/json.zig");
 const serde = @import("stdlib/serde.zig");
+const symbolic = @import("stdlib/symbolic.zig");
 
 // Feature flags (can be set at compile time)
 const enable_fs = @import("features.zig").enable_fs;
@@ -76,7 +77,7 @@ fn clear_impl(argc: i32, args: [*]Value) Value {
         if (globals.entries) |entries| {
             // First pass: collect keys to delete
             const ObjString = object_h.ObjString;
-            var keys_to_delete = std.ArrayListUnmanaged(?*ObjString){};
+            var keys_to_delete: std.ArrayListUnmanaged(?*ObjString) = .empty;
             defer keys_to_delete.deinit(allocator);
 
             for (0..globals.capacity) |i| {
@@ -184,7 +185,7 @@ pub const MathModule = struct {
         try registry.register(math.round);
         try registry.register(math.max);
         try registry.register(math.min);
-        
+
         // Phase 1: New math functions
         try registry.register(math.sinh);
         try registry.register(math.cosh);
@@ -205,17 +206,25 @@ pub const MathModule = struct {
         try registry.register(math.trunc);
         try registry.register(math.sign);
         try registry.register(math.clamp);
-        
+        try registry.register(math.isfinite);
+        try registry.register(math.isnan);
+        try registry.register(math.isinf);
+        try registry.register(math.isprime);
+
         // Phase 3: Vector functions
         try registry.register(math.dot);
         try registry.register(math.norm);
         try registry.register(math.length);
-        
+
         // Phase 4: Statistical functions
         try registry.register(math.sum);
         try registry.register(math.mean);
         try registry.register(math.variance);
         try registry.register(math.stddev);
+        try registry.register(math.set_seed);
+        try registry.register(math.get_seed);
+        try registry.register(math.randint);
+        try registry.register(math.nextprime);
     }
 };
 
@@ -363,6 +372,11 @@ pub const MatrixModule = struct {
         try registry.register(matrix.rank);
         try registry.register(matrix.lu);
         try registry.register(matrix.solve);
+        try registry.register(matrix.qr);
+        try registry.register(matrix.eig);
+        try registry.register(matrix.svd);
+        try registry.register(matrix.cholesky);
+        try registry.register(matrix.condNumber);
     }
 };
 
@@ -418,6 +432,35 @@ pub const SerdeModule = struct {
     }
 };
 
+pub const SymbolicModule = struct {
+    pub fn register() !void {
+        const registry = stdlib_core.getGlobalRegistry();
+        try registry.register(symbolic.sym_const);
+        try registry.register(symbolic.sym_var);
+        try registry.register(symbolic.sym_to_string);
+        try registry.register(symbolic.sym_is_constant);
+        try registry.register(symbolic.sym_add);
+        try registry.register(symbolic.sym_sub);
+        try registry.register(symbolic.sym_mul);
+        try registry.register(symbolic.sym_div);
+        try registry.register(symbolic.sym_pow);
+        try registry.register(symbolic.sym_negate);
+        try registry.register(symbolic.sym_sin);
+        try registry.register(symbolic.sym_cos);
+        try registry.register(symbolic.sym_tan);
+        try registry.register(symbolic.sym_exp);
+        try registry.register(symbolic.sym_log);
+        try registry.register(symbolic.sym_sqrt);
+        try registry.register(symbolic.sym_abs);
+        try registry.register(symbolic.sym_derivative);
+        try registry.register(symbolic.sym_simplify);
+        try registry.register(symbolic.sym_expand);
+        try registry.register(symbolic.sym_substitute);
+        try registry.register(symbolic.sym_evaluate);
+        try registry.register(symbolic.sym_get_variables);
+    }
+};
+
 // Main initialization function
 pub fn initializeStdlib() !void {
     // Set feature flags
@@ -454,10 +497,12 @@ pub fn initializeStdlib() !void {
         try NetworkModule.register();
     }
 
-    // Always register matrix, json, and serde modules
+    // Always register matrix, json, tensor, serde, and symbolic modules
     try MatrixModule.register();
     try JsonModule.register();
+    try TensorModule.register();
     try SerdeModule.register();
+    try SymbolicModule.register();
 
     // std.log.info("Standard library initialized with all modules", .{});
 }

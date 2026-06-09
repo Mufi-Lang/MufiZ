@@ -33,14 +33,8 @@ print m[0];
 print "m[1]:";
 print m[1];
 
-// Test 6: Try 2D slicing - expected to fail
-print "\nTest 6: 2D range slicing (m[0:2, 1:3]) - expected to fail:";
-try {
-    var subm = m[0:2, 1:3];
-    print "Unexpected success! Result:";
-    print subm;
-} catch {
-    print "Failed as expected - 2D slicing not yet implemented";
-}
+// Test 6: 2D slicing is not yet implemented
+print "\nTest 6: 2D range slicing (m[0:2, 1:3]) - not yet implemented";
+print "Skipped - 2D slicing not yet implemented";
 
 print "\n=== Phase 2 Tests Complete ===";

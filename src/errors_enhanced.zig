@@ -153,7 +153,7 @@ pub const EnhancedErrorPrinter = struct {
         // Print gutter
         self.printGutter();
 
-        while (lines.next()) |line| : (line_num += 1) {
+        while (lines.next(global_io)) |line| : (line_num += 1) {
             if (line_num < context_start) continue;
             if (line_num > context_end) break;
 

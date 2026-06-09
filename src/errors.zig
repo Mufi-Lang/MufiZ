@@ -1,4 +1,5 @@
 const std = @import("std");
+const system = @import("system.zig");
 const print = std.debug.print;
 const Allocator = std.mem.Allocator;
 const mem_utils = @import("mem_utils.zig");
@@ -1591,20 +1592,20 @@ pub const JsonDiagnosticSerializer = struct {
 
     /// Serialize an EnhancedErrorInfo to JSON format for LSP
     pub fn serializeError(self: *JsonDiagnosticSerializer, error_info: EnhancedErrorInfo) ![]const u8 {
-        var buffer: std.ArrayList(u8) = .{};
+        var buffer: std.ArrayList(u8) = .empty;
         try buffer.ensureTotalCapacity(self.allocator, 0);
         errdefer buffer.deinit(self.allocator);
         const writer = buffer.writer(self.allocator);
 
-        try writer.writeAll("{");
+        try writer.writeStreamingAll(system.global_io, "{");
 
         // Code
         try writer.print("\"code\":\"{s}\",", .{error_info.code});
 
         // Message
-        try writer.writeAll("\"message\":\"");
+        try writer.writeStreamingAll(system.global_io, "\"message\":\"");
         try self.writeEscapedString(writer, error_info.message);
-        try writer.writeAll("\",");
+        try writer.writeStreamingAll(system.global_io, "\",");
 
         // Severity
         try writer.print("\"severity\":\"{s}\",", .{error_info.severity});
@@ -1614,13 +1615,13 @@ pub const JsonDiagnosticSerializer = struct {
 
         // Source file
         if (error_info.file_path) |path| {
-            try writer.writeAll("\"source\":\"");
+            try writer.writeStreamingAll(system.global_io, "\"source\":\"");
             try self.writeEscapedString(writer, path);
-            try writer.writeAll("\",");
+            try writer.writeStreamingAll(system.global_io, "\",");
         }
 
         // Primary span
-        try writer.writeAll("\"range\":{");
+        try writer.writeStreamingAll(system.global_io, "\"range\":{");
         try writer.print("\"start\":{{\"line\":{d},\"character\":{d}}},", .{
             error_info.primary_span.line_start - 1, // LSP is 0-indexed
             error_info.primary_span.column_start - 1,
@@ -1629,21 +1630,21 @@ pub const JsonDiagnosticSerializer = struct {
             error_info.primary_span.line_end - 1,
             error_info.primary_span.column_end - 1,
         });
-        try writer.writeAll("},");
+        try writer.writeStreamingAll(system.global_io, "},");
 
         // Related information (secondary spans)
         if (error_info.secondary_spans.len > 0) {
-            try writer.writeAll("\"relatedInformation\":[");
+            try writer.writeStreamingAll(system.global_io, "\"relatedInformation\":[");
             for (error_info.secondary_spans, 0..) |span, i| {
-                if (i > 0) try writer.writeAll(",");
-                try writer.writeAll("{");
-                try writer.writeAll("\"location\":{");
+                if (i > 0) try writer.writeStreamingAll(system.global_io, ",");
+                try writer.writeStreamingAll(system.global_io, "{");
+                try writer.writeStreamingAll(system.global_io, "\"location\":{");
                 if (error_info.file_path) |path| {
-                    try writer.writeAll("\"uri\":\"file://");
+                    try writer.writeStreamingAll(system.global_io, "\"uri\":\"file://");
                     try self.writeEscapedString(writer, path);
-                    try writer.writeAll("\",");
+                    try writer.writeStreamingAll(system.global_io, "\",");
                 }
-                try writer.writeAll("\"range\":{");
+                try writer.writeStreamingAll(system.global_io, "\"range\":{");
                 try writer.print("\"start\":{{\"line\":{d},\"character\":{d}}},", .{
                     span.line_start - 1,
                     span.column_start - 1,
@@ -1652,28 +1653,28 @@ pub const JsonDiagnosticSerializer = struct {
                     span.line_end - 1,
                     span.column_end - 1,
                 });
-                try writer.writeAll("}},");
-                try writer.writeAll("\"message\":\"");
+                try writer.writeStreamingAll(system.global_io, "}},");
+                try writer.writeStreamingAll(system.global_io, "\"message\":\"");
                 if (span.label) |label| {
                     try self.writeEscapedString(writer, label);
                 }
-                try writer.writeAll("\"}");
+                try writer.writeStreamingAll(system.global_io, "\"}");
             }
-            try writer.writeAll("],");
+            try writer.writeStreamingAll(system.global_io, "],");
         }
 
         // Code actions (help with suggestions)
         if (error_info.help.len > 0) {
-            try writer.writeAll("\"codeActions\":[");
+            try writer.writeStreamingAll(system.global_io, "\"codeActions\":[");
             for (error_info.help, 0..) |help_item, i| {
-                if (i > 0) try writer.writeAll(",");
-                try writer.writeAll("{\"title\":\"");
+                if (i > 0) try writer.writeStreamingAll(system.global_io, ",");
+                try writer.writeStreamingAll(system.global_io, "{\"title\":\"");
                 try self.writeEscapedString(writer, help_item.message);
-                try writer.writeAll("\"");
+                try writer.writeStreamingAll(system.global_io, "\"");
 
                 if (help_item.code_suggestion) |suggestion| {
-                    try writer.writeAll(",\"edit\":{\"changes\":[{");
-                    try writer.writeAll("\"range\":{");
+                    try writer.writeStreamingAll(system.global_io, ",\"edit\":{\"changes\":[{");
+                    try writer.writeStreamingAll(system.global_io, "\"range\":{");
                     try writer.print("\"start\":{{\"line\":{d},\"character\":{d}}},", .{
                         suggestion.span.line_start - 1,
                         suggestion.span.column_start - 1,
@@ -1682,25 +1683,25 @@ pub const JsonDiagnosticSerializer = struct {
                         suggestion.span.line_end - 1,
                         suggestion.span.column_end - 1,
                     });
-                    try writer.writeAll("},\"newText\":\"");
+                    try writer.writeStreamingAll(system.global_io, "},\"newText\":\"");
                     try self.writeEscapedString(writer, suggestion.replacement);
-                    try writer.writeAll("\"}]}");
+                    try writer.writeStreamingAll(system.global_io, "\"}]}");
                 }
-                try writer.writeAll("}");
+                try writer.writeStreamingAll(system.global_io, "}");
             }
-            try writer.writeAll("],");
+            try writer.writeStreamingAll(system.global_io, "],");
         }
 
         // Notes
         if (error_info.notes.len > 0) {
-            try writer.writeAll("\"notes\":[");
+            try writer.writeStreamingAll(system.global_io, "\"notes\":[");
             for (error_info.notes, 0..) |note, i| {
-                if (i > 0) try writer.writeAll(",");
-                try writer.writeAll("\"");
+                if (i > 0) try writer.writeStreamingAll(system.global_io, ",");
+                try writer.writeStreamingAll(system.global_io, "\"");
                 try self.writeEscapedString(writer, note.message);
-                try writer.writeAll("\"");
+                try writer.writeStreamingAll(system.global_io, "\"");
             }
-            try writer.writeAll("]");
+            try writer.writeStreamingAll(system.global_io, "]");
         } else {
             // Remove trailing comma if no notes
             const len = buffer.items.len;
@@ -1709,25 +1710,25 @@ pub const JsonDiagnosticSerializer = struct {
             }
         }
 
-        try writer.writeAll("}");
+        try writer.writeStreamingAll(system.global_io, "}");
         return try buffer.toOwnedSlice(self.allocator);
     }
 
     /// Serialize multiple errors as a JSON array
     pub fn serializeErrors(self: *JsonDiagnosticSerializer, errors: []const EnhancedErrorInfo) ![]const u8 {
-        var buffer: std.ArrayList(u8) = .{};
+        var buffer: std.ArrayList(u8) = .empty;
         try buffer.ensureTotalCapacity(self.allocator, 0);
         errdefer buffer.deinit(self.allocator);
         const writer = buffer.writer(self.allocator);
 
-        try writer.writeAll("{\"diagnostics\":[");
+        try writer.writeStreamingAll(system.global_io, "{\"diagnostics\":[");
         for (errors, 0..) |error_info, i| {
-            if (i > 0) try writer.writeAll(",");
+            if (i > 0) try writer.writeStreamingAll(system.global_io, ",");
             const json = try self.serializeError(error_info);
             defer self.allocator.free(json);
-            try writer.writeAll(json);
+            try writer.writeStreamingAll(system.global_io, json);
         }
-        try writer.writeAll("]}");
+        try writer.writeStreamingAll(system.global_io, "]}");
 
         return try buffer.toOwnedSlice(self.allocator);
     }
@@ -1736,11 +1737,11 @@ pub const JsonDiagnosticSerializer = struct {
         _ = self;
         for (str) |c| {
             switch (c) {
-                '"' => try writer.writeAll("\\\""),
-                '\\' => try writer.writeAll("\\\\"),
-                '\n' => try writer.writeAll("\\n"),
-                '\r' => try writer.writeAll("\\r"),
-                '\t' => try writer.writeAll("\\t"),
+                '"' => try writer.writeStreamingAll(system.global_io, "\\\""),
+                '\\' => try writer.writeStreamingAll(system.global_io, "\\\\"),
+                '\n' => try writer.writeStreamingAll(system.global_io, "\\n"),
+                '\r' => try writer.writeStreamingAll(system.global_io, "\\r"),
+                '\t' => try writer.writeStreamingAll(system.global_io, "\\t"),
                 else => try writer.writeByte(c),
             }
         }

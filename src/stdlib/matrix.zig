@@ -124,6 +124,9 @@ fn size_impl(_: i32, args: [*]Value) Value {
 }
 
 fn norm_impl(_: i32, args: [*]Value) Value {
+    if (!args[0].is_matrix()) {
+        return stdlib_core.stdlib_error("norm() requires a matrix!", .{});
+    }
     const matrix = args[0].as_matrix();
     const norm_val = matrix.frobeniusNorm();
     return Value.init_double(norm_val);
@@ -291,25 +294,16 @@ fn qr_impl(_: i32, args: [*]Value) Value {
     }
 
     const qr_decomp = qr_result.?;
-    
-    // Return as a hash table with "Q" and "R" keys
-    const allocator = @import("../vm_allocator.zig").allocator;
-    var table = try allocator.create(std.StringHashMap(Value));
-    table.* = std.StringHashMap(Value).init(allocator);
-    
-    const q_key = try allocator.dupe(u8, "Q");
-    const r_key = try allocator.dupe(u8, "R");
-    
-    try table.put(q_key, Value.init_obj(@ptrCast(qr_decomp.Q)));
-    try table.put(r_key, Value.init_obj(@ptrCast(qr_decomp.R)));
-    
-    const pair = try allocator.create(object_h.ObjHashTable);
-    pair.* = .{
-        .obj = object_h.Obj{ .type = .OBJ_HASH_TABLE },
-        .table = table,
-    };
-    
-    return Value.init_obj(@ptrCast(pair));
+
+    const htable = object_h.HashTable.init();
+
+    const q_str = object_h.copyString("Q", 1);
+    const r_str = object_h.copyString("R", 1);
+
+    _ = htable.put(q_str, Value.init_obj(@ptrCast(qr_decomp.Q)));
+    _ = htable.put(r_str, Value.init_obj(@ptrCast(qr_decomp.R)));
+
+    return Value.init_obj(@ptrCast(htable));
 }
 
 fn eig_impl(_: i32, args: [*]Value) Value {
@@ -321,25 +315,16 @@ fn eig_impl(_: i32, args: [*]Value) Value {
     }
 
     const eig_decomp = eig_result.?;
-    
-    // Return as a hash table with "eigenvalues" and "eigenvectors" keys
-    const allocator = @import("../vm_allocator.zig").allocator;
-    var table = try allocator.create(std.StringHashMap(Value));
-    table.* = std.StringHashMap(Value).init(allocator);
-    
-    const vals_key = try allocator.dupe(u8, "eigenvalues");
-    const vecs_key = try allocator.dupe(u8, "eigenvectors");
-    
-    try table.put(vals_key, Value.init_obj(@ptrCast(eig_decomp.eigenvalues)));
-    try table.put(vecs_key, Value.init_obj(@ptrCast(eig_decomp.eigenvectors)));
-    
-    const pair = try allocator.create(object_h.ObjHashTable);
-    pair.* = .{
-        .obj = object_h.Obj{ .type = .OBJ_HASH_TABLE },
-        .table = table,
-    };
-    
-    return Value.init_obj(@ptrCast(pair));
+
+    const htable = object_h.HashTable.init();
+
+    const vals_str = object_h.copyString("eigenvalues", 11);
+    const vecs_str = object_h.copyString("eigenvectors", 12);
+
+    _ = htable.put(vals_str, Value.init_obj(@ptrCast(eig_decomp.eigenvalues)));
+    _ = htable.put(vecs_str, Value.init_obj(@ptrCast(eig_decomp.eigenvectors)));
+
+    return Value.init_obj(@ptrCast(htable));
 }
 
 fn svd_impl(_: i32, args: [*]Value) Value {
@@ -351,33 +336,24 @@ fn svd_impl(_: i32, args: [*]Value) Value {
     }
 
     const svd_decomp = svd_result.?;
-    
-    // Return as a hash table with "U", "S", and "V" keys
-    const allocator = @import("../vm_allocator.zig").allocator;
-    var table = try allocator.create(std.StringHashMap(Value));
-    table.* = std.StringHashMap(Value).init(allocator);
-    
-    const u_key = try allocator.dupe(u8, "U");
-    const s_key = try allocator.dupe(u8, "S");
-    const v_key = try allocator.dupe(u8, "V");
-    
-    try table.put(u_key, Value.init_obj(@ptrCast(svd_decomp.U)));
-    try table.put(s_key, Value.init_obj(@ptrCast(svd_decomp.singularValues)));
-    try table.put(v_key, Value.init_obj(@ptrCast(svd_decomp.V)));
-    
-    const result = try allocator.create(object_h.ObjHashTable);
-    result.* = .{
-        .obj = object_h.Obj{ .type = .OBJ_HASH_TABLE },
-        .table = table,
-    };
-    
-    return Value.init_obj(@ptrCast(result));
+
+    const htable = object_h.HashTable.init();
+
+    const u_str = object_h.copyString("U", 1);
+    const s_str = object_h.copyString("S", 1);
+    const v_str = object_h.copyString("V", 1);
+
+    _ = htable.put(u_str, Value.init_obj(@ptrCast(svd_decomp.U)));
+    _ = htable.put(s_str, Value.init_obj(@ptrCast(svd_decomp.singularValues)));
+    _ = htable.put(v_str, Value.init_obj(@ptrCast(svd_decomp.V)));
+
+    return Value.init_obj(@ptrCast(htable));
 }
 
 fn condNumber_impl(_: i32, args: [*]Value) Value {
     const a = args[0].as_matrix();
     const kappa = a.conditionNumber();
-    return Value.init_float(kappa);
+    return Value.init_double(kappa);
 }
 
 fn cholesky_impl(_: i32, args: [*]Value) Value {
@@ -385,26 +361,17 @@ fn cholesky_impl(_: i32, args: [*]Value) Value {
 
     const chol_result = a.choleskyDecomposition();
     if (chol_result == null) {
-        return Value.init_null();
+        return Value.init_nil();
     }
 
     const chol_decomp = chol_result.?;
-    
-    // Return as a hash table with "L" key
-    const allocator = @import("../vm_allocator.zig").allocator;
-    var table = try allocator.create(std.StringHashMap(Value));
-    table.* = std.StringHashMap(Value).init(allocator);
-    
-    const l_key = try allocator.dupe(u8, "L");
-    try table.put(l_key, Value.init_obj(@ptrCast(chol_decomp.L)));
-    
-    const result = try allocator.create(object_h.ObjHashTable);
-    result.* = .{
-        .obj = object_h.Obj{ .type = .OBJ_HASH_TABLE },
-        .table = table,
-    };
-    
-    return Value.init_obj(@ptrCast(result));
+
+    const htable = object_h.HashTable.init();
+
+    const l_str = object_h.copyString("L", 1);
+    _ = htable.put(l_str, Value.init_obj(@ptrCast(chol_decomp.L)));
+
+    return Value.init_obj(@ptrCast(htable));
 }
 
 // === Parameter Specifications ===
@@ -655,7 +622,7 @@ pub const lu = DefineFunction(
     "Calculate the LU decomposition of a square matrix",
     MatrixParam,
     .object,
-    &[_][]const u8{ "lu(A) -> #{ \"L\": L, \"U\": U, \"P\": P }" },
+    &[_][]const u8{"lu(A) -> #{ \"L\": L, \"U\": U, \"P\": P }"},
     lu_impl,
 );
 
@@ -665,7 +632,7 @@ pub const solve = DefineFunction(
     "Solve a linear system Ax = b using LU decomposition",
     TwoMatrixParams,
     .object,
-    &[_][]const u8{ "solve(A, b) -> solution vector/matrix x" },
+    &[_][]const u8{"solve(A, b) -> solution vector/matrix x"},
     solve_impl,
 );
 
@@ -704,8 +671,8 @@ pub const condNumber = DefineFunction(
     "matrix",
     "Calculate the condition number κ(A) = σ_max / σ_min for numerical stability assessment",
     MatrixParam,
-    .float,
-    &[_][]const u8{ "condNumber(A) -> condition number (float)", "if (condNumber(A) > 1e10) print(\"ill-conditioned matrix\")" },
+    .double,
+    &[_][]const u8{ "condNumber(A) -> condition number (double)", "if (condNumber(A) > 1e10) print(\"ill-conditioned matrix\")" },
     condNumber_impl,
 );
 

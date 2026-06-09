@@ -59,11 +59,11 @@ pub const AnalysisContext = struct {
     pub fn init(allocator: std.mem.Allocator) AnalysisContext {
         return AnalysisContext{
             .allocator = allocator,
-            .diagnostics = .{},
-            .symbols = .{},
-            .source_lines = .{},
+            .diagnostics = .empty,
+            .symbols = .empty,
+            .source_lines = .empty,
             .source_code = "",
-            .completion_results = .{},
+            .completion_results = .empty,
             .last_hover = null,
         };
     }

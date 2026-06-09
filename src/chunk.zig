@@ -359,8 +359,11 @@ pub const OpCode = enum(u8) {
     // Matrix slicing for 2D range indexing
     OP_MATRIX_SLICE = 210,           // m[r1:r2, c1:c2]
 
+    // Symbolic expressions
+    OP_SYMBOL = 211,                 // Create a symbolic variable
+
     // Reserved for future register architecture
-    // ... (211-255 reserved)
+    // ... (212-255 reserved)
 };
 
 /// Inline cache for property and method lookups

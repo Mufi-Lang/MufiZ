@@ -1,6 +1,7 @@
 /// MufiZ Ad-hoc Dependency Resolver
 /// Simple topological sort-based dependency resolution
 const std = @import("std");
+const system = @import("system.zig");
 const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
 const StringHashMap = std.StringHashMap;

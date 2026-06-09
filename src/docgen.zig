@@ -1,3 +1,5 @@
+const system = @import("system.zig");
+
 /// MufiZ Documentation Generator
 /// Generates HTML documentation for MufiZ projects similar to cargo doc and zig doc
 const std = @import("std");
@@ -116,13 +118,13 @@ pub const DocGenerator = struct {
 
     /// Scan a directory for .mufi files and parse them
     pub fn scanDirectory(self: *DocGenerator, dir_path: []const u8) !void {
-        var dir = try fs.cwd().openDir(dir_path, .{ .iterate = true });
-        defer dir.close();
+        var dir = try std.Io.Dir.cwd().openDir(system.global_io, dir_path, .{ .iterate = true });
+        defer dir.close(system.global_io);
 
         var walker = try dir.walk(self.allocator);
         defer walker.deinit();
 
-        while (try walker.next()) |entry| {
+        while (try walker.next(system.global_io)) |entry| {
             if (entry.kind == .file) {
                 if (std.mem.endsWith(u8, entry.path, ".mufi")) {
                     const full_path = try std.fmt.allocPrint(self.allocator, "{s}/{s}", .{ dir_path, entry.path });
@@ -136,10 +138,12 @@ pub const DocGenerator = struct {
 
     /// Parse a single .mufi file and extract documentation
     fn parseFile(self: *DocGenerator, file_path: []const u8, relative_path: []const u8) !void {
-        const file = try fs.cwd().openFile(file_path, .{});
-        defer file.close();
+        const file = try std.Io.Dir.cwd().openFile(system.global_io, file_path, .{});
+        defer file.close(system.global_io);
 
-        const content = try file.readToEndAlloc(self.allocator, 10 * 1024 * 1024);
+        var buf: [4096]u8 = undefined;
+        var reader = file.reader(system.global_io, &buf);
+        const content = try reader.interface.readAlloc(self.allocator, 10 * 1024 * 1024);
         defer self.allocator.free(content);
 
         var module = ModuleDoc{
@@ -180,7 +184,7 @@ pub const DocGenerator = struct {
             var decl_start = trimmed;
             if (std.mem.startsWith(u8, trimmed, "pub ")) {
                 is_pub = true;
-                decl_start = std.mem.trimLeft(u8, trimmed[3..], " \t");
+                decl_start = std.mem.trimStart(u8, trimmed[4..], " \t");
             }
 
             // Check for function definitions
@@ -292,7 +296,7 @@ pub const DocGenerator = struct {
     /// Generate documentation
     pub fn generate(self: *DocGenerator) !void {
         // Create output directory
-        fs.cwd().makeDir(self.output_dir) catch |err| {
+        std.Io.Dir.cwd().createDirPath(system.global_io, self.output_dir) catch |err| {
             if (err != error.PathAlreadyExists) return err;
         };
 
@@ -317,10 +321,10 @@ pub const DocGenerator = struct {
         const index_path = try std.fmt.allocPrint(self.allocator, "{s}/index.html", .{self.output_dir});
         defer self.allocator.free(index_path);
 
-        const file = try fs.cwd().createFile(index_path, .{});
-        defer file.close();
+        const file = try std.Io.Dir.cwd().createFile(system.global_io, index_path, .{});
+        defer file.close(system.global_io);
 
-        try file.writeAll(
+        try file.writeStreamingAll(system.global_io, 
             \\<!DOCTYPE html>
             \\<html lang="en">
             \\<head>
@@ -330,8 +334,8 @@ pub const DocGenerator = struct {
         );
         const title = try std.fmt.allocPrint(self.allocator, "{s} - Documentation</title>\n", .{self.project_name});
         defer self.allocator.free(title);
-        try file.writeAll(title);
-        try file.writeAll(
+        try file.writeStreamingAll(system.global_io, title);
+        try file.writeStreamingAll(system.global_io, 
             \\    <link rel="stylesheet" href="style.css">
             \\</head>
             \\<body>
@@ -342,8 +346,8 @@ pub const DocGenerator = struct {
         );
         const h1 = try std.fmt.allocPrint(self.allocator, "{s}</h1>\n", .{self.project_name});
         defer self.allocator.free(h1);
-        try file.writeAll(h1);
-        try file.writeAll(
+        try file.writeStreamingAll(system.global_io, h1);
+        try file.writeStreamingAll(system.global_io, 
             \\                <span class="header-divider">|</span>
             \\                <span class="header-version">Documentation</span>
             \\            </div>
@@ -365,10 +369,10 @@ pub const DocGenerator = struct {
             defer self.allocator.free(module_file);
             const li = try std.fmt.allocPrint(self.allocator, "                <li><a href=\"{s}\">{s}</a></li>\n", .{ module_file, module.name });
             defer self.allocator.free(li);
-            try file.writeAll(li);
+            try file.writeStreamingAll(system.global_io, li);
         }
 
-        try file.writeAll(
+        try file.writeStreamingAll(system.global_io, 
             \\            </ul>
             \\        </div>
             \\    </nav>
@@ -379,8 +383,8 @@ pub const DocGenerator = struct {
         );
         const main_h1 = try std.fmt.allocPrint(self.allocator, "{s}</h1>\n", .{self.project_name});
         defer self.allocator.free(main_h1);
-        try file.writeAll(main_h1);
-        try file.writeAll(
+        try file.writeStreamingAll(system.global_io, main_h1);
+        try file.writeStreamingAll(system.global_io, 
             \\                <p class="page-description">MufiZ project documentation</p>
             \\            </div>
             \\
@@ -394,26 +398,26 @@ pub const DocGenerator = struct {
             const module_file = try self.getModuleFileName(module.name);
             defer self.allocator.free(module_file);
 
-            try file.writeAll("                    <div class=\"item-row\">\n");
-            try file.writeAll("                        <div class=\"item-name\">\n");
+            try file.writeStreamingAll(system.global_io, "                    <div class=\"item-row\">\n");
+            try file.writeStreamingAll(system.global_io, "                        <div class=\"item-name\">\n");
             const a_tag = try std.fmt.allocPrint(self.allocator, "                            <a href=\"{s}\">{s}</a>\n", .{ module_file, module.name });
             defer self.allocator.free(a_tag);
-            try file.writeAll(a_tag);
-            try file.writeAll("                        </div>\n");
-            try file.writeAll("                        <div class=\"item-desc\">\n");
+            try file.writeStreamingAll(system.global_io, a_tag);
+            try file.writeStreamingAll(system.global_io, "                        </div>\n");
+            try file.writeStreamingAll(system.global_io, "                        <div class=\"item-desc\">\n");
             if (module.doc_comment) |dc| {
                 const first_line_end = std.mem.indexOfScalar(u8, dc, '\n') orelse dc.len;
                 const max_len = if (first_line_end > 120) 120 else first_line_end;
                 const preview = dc[0..max_len];
                 const p_tag = try std.fmt.allocPrint(self.allocator, "                            {s}\n", .{preview});
                 defer self.allocator.free(p_tag);
-                try file.writeAll(p_tag);
+                try file.writeStreamingAll(system.global_io, p_tag);
             }
-            try file.writeAll("                        </div>\n");
-            try file.writeAll("                    </div>\n");
+            try file.writeStreamingAll(system.global_io, "                        </div>\n");
+            try file.writeStreamingAll(system.global_io, "                    </div>\n");
         }
 
-        try file.writeAll(
+        try file.writeStreamingAll(system.global_io, 
             \\                </div>
             \\            </section>
             \\        </div>
@@ -432,11 +436,11 @@ pub const DocGenerator = struct {
         const file_path = try std.fmt.allocPrint(self.allocator, "{s}/{s}", .{ self.output_dir, module_file });
         defer self.allocator.free(file_path);
 
-        const file = try fs.cwd().createFile(file_path, .{});
-        defer file.close();
+        const file = try std.Io.Dir.cwd().createFile(system.global_io, file_path, .{});
+        defer file.close(system.global_io);
 
         // HTML header
-        try file.writeAll(
+        try file.writeStreamingAll(system.global_io, 
             \\<!DOCTYPE html>
             \\<html lang="en">
             \\<head>
@@ -446,8 +450,8 @@ pub const DocGenerator = struct {
         );
         const mod_title = try std.fmt.allocPrint(self.allocator, "{s} - {s}</title>\n", .{ module.name, self.project_name });
         defer self.allocator.free(mod_title);
-        try file.writeAll(mod_title);
-        try file.writeAll(
+        try file.writeStreamingAll(system.global_io, mod_title);
+        try file.writeStreamingAll(system.global_io, 
             \\    <link rel="stylesheet" href="style.css">
             \\</head>
             \\<body>
@@ -458,8 +462,8 @@ pub const DocGenerator = struct {
         );
         const sidebar_h1 = try std.fmt.allocPrint(self.allocator, "{s}</h1>\n", .{self.project_name});
         defer self.allocator.free(sidebar_h1);
-        try file.writeAll(sidebar_h1);
-        try file.writeAll(
+        try file.writeStreamingAll(system.global_io, sidebar_h1);
+        try file.writeStreamingAll(system.global_io, 
             \\                <span class="header-divider">|</span>
             \\                <a href="index.html" class="breadcrumb">Documentation</a>
             \\                <span class="breadcrumb-sep">›</span>
@@ -467,8 +471,8 @@ pub const DocGenerator = struct {
         );
         const breadcrumb = try std.fmt.allocPrint(self.allocator, "{s}</span>\n", .{module.name});
         defer self.allocator.free(breadcrumb);
-        try file.writeAll(breadcrumb);
-        try file.writeAll(
+        try file.writeStreamingAll(system.global_io, breadcrumb);
+        try file.writeStreamingAll(system.global_io, 
             \\            </div>
             \\            <div class="header-right">
             \\                <input type="text" id="search" class="search-input" placeholder="Search..." />
@@ -477,7 +481,7 @@ pub const DocGenerator = struct {
             \\    </header>
             \\
         );
-        try file.writeAll(
+        try file.writeStreamingAll(system.global_io, 
             \\    <nav class="sidebar">
             \\        <div class="sidebar-section">
             \\            <h3>Modules</h3>
@@ -494,10 +498,10 @@ pub const DocGenerator = struct {
             const li_class = if (is_current) " class=\"active\"" else "";
             const li_start = try std.fmt.allocPrint(self.allocator, "                <li{s}><a href=\"{s}\">{s}</a></li>\n", .{ li_class, mod_file, mod.name });
             defer self.allocator.free(li_start);
-            try file.writeAll(li_start);
+            try file.writeStreamingAll(system.global_io, li_start);
         }
 
-        try file.writeAll(
+        try file.writeStreamingAll(system.global_io, 
             \\            </ul>
             \\        </div>
             \\
@@ -505,7 +509,7 @@ pub const DocGenerator = struct {
 
         // Add quick navigation for current module
         if (module.functions.len > 0 or module.classes.len > 0) {
-            try file.writeAll(
+            try file.writeStreamingAll(system.global_io, 
                 \\        <div class="sidebar-section">
                 \\            <h3>On This Page</h3>
                 \\            <ul class="module-list">
@@ -513,31 +517,31 @@ pub const DocGenerator = struct {
             );
 
             if (module.functions.len > 0) {
-                try file.writeAll("                <li class=\"sidebar-category\">Functions</li>\n");
+                try file.writeStreamingAll(system.global_io, "                <li class=\"sidebar-category\">Functions</li>\n");
                 for (module.functions) |func| {
                     const func_link = try std.fmt.allocPrint(self.allocator, "                <li class=\"sidebar-item\"><a href=\"#fn-{s}\">{s}</a></li>\n", .{ func.name, func.name });
                     defer self.allocator.free(func_link);
-                    try file.writeAll(func_link);
+                    try file.writeStreamingAll(system.global_io, func_link);
                 }
             }
 
             if (module.classes.len > 0) {
-                try file.writeAll("                <li class=\"sidebar-category\">Classes</li>\n");
+                try file.writeStreamingAll(system.global_io, "                <li class=\"sidebar-category\">Classes</li>\n");
                 for (module.classes) |class| {
                     const class_link = try std.fmt.allocPrint(self.allocator, "                <li class=\"sidebar-item\"><a href=\"#class-{s}\">{s}</a></li>\n", .{ class.name, class.name });
                     defer self.allocator.free(class_link);
-                    try file.writeAll(class_link);
+                    try file.writeStreamingAll(system.global_io, class_link);
                 }
             }
 
-            try file.writeAll(
+            try file.writeStreamingAll(system.global_io, 
                 \\            </ul>
                 \\        </div>
                 \\
             );
         }
 
-        try file.writeAll(
+        try file.writeStreamingAll(system.global_io, 
             \\    </nav>
             \\    <main class="content">
             \\        <div class="main-content">
@@ -546,21 +550,21 @@ pub const DocGenerator = struct {
         );
         const mod_h1 = try std.fmt.allocPrint(self.allocator, "{s}</h1>\n", .{module.name});
         defer self.allocator.free(mod_h1);
-        try file.writeAll(mod_h1);
+        try file.writeStreamingAll(system.global_io, mod_h1);
 
         if (module.doc_comment) |dc| {
-            try file.writeAll("                <div class=\"module-doc\">\n");
+            try file.writeStreamingAll(system.global_io, "                <div class=\"module-doc\">\n");
             const mod_desc = try std.fmt.allocPrint(self.allocator, "                    <p>{s}</p>\n", .{dc});
             defer self.allocator.free(mod_desc);
-            try file.writeAll(mod_desc);
-            try file.writeAll("                </div>\n");
+            try file.writeStreamingAll(system.global_io, mod_desc);
+            try file.writeStreamingAll(system.global_io, "                </div>\n");
         }
 
-        try file.writeAll("            </div>\n");
+        try file.writeStreamingAll(system.global_io, "            </div>\n");
 
         // Functions section
         if (module.functions.len > 0) {
-            try file.writeAll(
+            try file.writeStreamingAll(system.global_io, 
                 \\
                 \\            <section class="section">
                 \\                <h2 class="section-title">Functions</h2>
@@ -571,14 +575,14 @@ pub const DocGenerator = struct {
             for (module.functions) |func| {
                 const func_id = try std.fmt.allocPrint(self.allocator, "                    <div class=\"item-row\" id=\"fn-{s}\">\n", .{func.name});
                 defer self.allocator.free(func_id);
-                try file.writeAll(func_id);
-                try file.writeAll("                        <div class=\"item-header\">\n");
+                try file.writeStreamingAll(system.global_io, func_id);
+                try file.writeStreamingAll(system.global_io, "                        <div class=\"item-header\">\n");
 
                 // Add visibility tag
                 if (func.is_pub) {
-                    try file.writeAll("                            <span class=\"visibility public\">pub</span>\n");
+                    try file.writeStreamingAll(system.global_io, "                            <span class=\"visibility public\">pub</span>\n");
                 } else {
-                    try file.writeAll("                            <span class=\"visibility private\">priv</span>\n");
+                    try file.writeStreamingAll(system.global_io, "                            <span class=\"visibility private\">priv</span>\n");
                 }
 
                 // Build function signature
@@ -595,27 +599,27 @@ pub const DocGenerator = struct {
 
                 const func_sig = try std.fmt.allocPrint(self.allocator, "                            <code class=\"signature\">{s}</code>\n", .{signature.items});
                 defer self.allocator.free(func_sig);
-                try file.writeAll(func_sig);
-                try file.writeAll("                        </div>\n");
+                try file.writeStreamingAll(system.global_io, func_sig);
+                try file.writeStreamingAll(system.global_io, "                        </div>\n");
 
                 if (func.doc_comment) |dc| {
-                    try file.writeAll("                        <div class=\"item-desc\">\n");
+                    try file.writeStreamingAll(system.global_io, "                        <div class=\"item-desc\">\n");
                     const func_p = try std.fmt.allocPrint(self.allocator, "                            {s}\n", .{dc});
                     defer self.allocator.free(func_p);
-                    try file.writeAll(func_p);
-                    try file.writeAll("                        </div>\n");
+                    try file.writeStreamingAll(system.global_io, func_p);
+                    try file.writeStreamingAll(system.global_io, "                        </div>\n");
                 }
 
-                try file.writeAll("                    </div>\n");
+                try file.writeStreamingAll(system.global_io, "                    </div>\n");
             }
 
-            try file.writeAll("                </div>\n");
-            try file.writeAll("            </section>\n");
+            try file.writeStreamingAll(system.global_io, "                </div>\n");
+            try file.writeStreamingAll(system.global_io, "            </section>\n");
         }
 
         // Classes section
         if (module.classes.len > 0) {
-            try file.writeAll(
+            try file.writeStreamingAll(system.global_io, 
                 \\
                 \\            <section class="section">
                 \\                <h2 class="section-title">Classes</h2>
@@ -626,37 +630,37 @@ pub const DocGenerator = struct {
             for (module.classes) |class| {
                 const class_id = try std.fmt.allocPrint(self.allocator, "                    <div class=\"item-row\" id=\"class-{s}\">\n", .{class.name});
                 defer self.allocator.free(class_id);
-                try file.writeAll(class_id);
-                try file.writeAll("                        <div class=\"item-header\">\n");
+                try file.writeStreamingAll(system.global_io, class_id);
+                try file.writeStreamingAll(system.global_io, "                        <div class=\"item-header\">\n");
 
                 // Add visibility tag
                 if (class.is_pub) {
-                    try file.writeAll("                            <span class=\"visibility public\">pub</span>\n");
+                    try file.writeStreamingAll(system.global_io, "                            <span class=\"visibility public\">pub</span>\n");
                 } else {
-                    try file.writeAll("                            <span class=\"visibility private\">priv</span>\n");
+                    try file.writeStreamingAll(system.global_io, "                            <span class=\"visibility private\">priv</span>\n");
                 }
 
                 const class_sig = try std.fmt.allocPrint(self.allocator, "                            <code class=\"signature\">class {s}</code>\n", .{class.name});
                 defer self.allocator.free(class_sig);
-                try file.writeAll(class_sig);
-                try file.writeAll("                        </div>\n");
+                try file.writeStreamingAll(system.global_io, class_sig);
+                try file.writeStreamingAll(system.global_io, "                        </div>\n");
 
                 if (class.doc_comment) |dc| {
-                    try file.writeAll("                        <div class=\"item-desc\">\n");
+                    try file.writeStreamingAll(system.global_io, "                        <div class=\"item-desc\">\n");
                     const class_p = try std.fmt.allocPrint(self.allocator, "                            {s}\n", .{dc});
                     defer self.allocator.free(class_p);
-                    try file.writeAll(class_p);
-                    try file.writeAll("                        </div>\n");
+                    try file.writeStreamingAll(system.global_io, class_p);
+                    try file.writeStreamingAll(system.global_io, "                        </div>\n");
                 }
 
-                try file.writeAll("                    </div>\n");
+                try file.writeStreamingAll(system.global_io, "                    </div>\n");
             }
 
-            try file.writeAll("                </div>\n");
-            try file.writeAll("            </section>\n");
+            try file.writeStreamingAll(system.global_io, "                </div>\n");
+            try file.writeStreamingAll(system.global_io, "            </section>\n");
         }
 
-        try file.writeAll(
+        try file.writeStreamingAll(system.global_io, 
             \\        </div>
             \\    </main>
             \\    <script src="search.js"></script>
@@ -670,10 +674,10 @@ pub const DocGenerator = struct {
         const css_path = try std.fmt.allocPrint(self.allocator, "{s}/style.css", .{self.output_dir});
         defer self.allocator.free(css_path);
 
-        const file = try fs.cwd().createFile(css_path, .{});
-        defer file.close();
+        const file = try std.Io.Dir.cwd().createFile(system.global_io, css_path, .{});
+        defer file.close(system.global_io);
 
-        try file.writeAll(
+        try file.writeStreamingAll(system.global_io, 
             \\* {
             \\    margin: 0;
             \\    padding: 0;
@@ -1034,10 +1038,10 @@ pub const DocGenerator = struct {
         const js_path = try std.fmt.allocPrint(self.allocator, "{s}/search.js", .{self.output_dir});
         defer self.allocator.free(js_path);
 
-        const file = try fs.cwd().createFile(js_path, .{});
-        defer file.close();
+        const file = try std.Io.Dir.cwd().createFile(system.global_io, js_path, .{});
+        defer file.close(system.global_io);
 
-        try file.writeAll(
+        try file.writeStreamingAll(system.global_io, 
             \\// Enhanced search functionality
             \\document.addEventListener('DOMContentLoaded', function() {
             \\    const searchInput = document.getElementById('search');

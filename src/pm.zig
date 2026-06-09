@@ -1,3 +1,5 @@
+const system = @import("system.zig");
+
 /// MufiZ Package Manager
 /// Handles project creation, initialization, and management
 const std = @import("std");
@@ -44,8 +46,8 @@ pub fn initProject(allocator: std.mem.Allocator, project_name: []const u8) !void
     }
 
     // Check if mufi.zon already exists
-    const cwd = fs.cwd();
-    if (cwd.access("mufi.zon", .{})) |_| {
+    const cwd = std.Io.Dir.cwd();
+    if (cwd.access(system.global_io, "mufi.zon", .{})) |_| {
         std.debug.print("Error: Project already initialized (mufi.zon exists)\n", .{});
         return PMError.ProjectAlreadyExists;
     } else |_| {
@@ -74,8 +76,8 @@ pub fn newProject(allocator: std.mem.Allocator, project_name: []const u8) !void 
     }
 
     // Check if directory already exists
-    const cwd = fs.cwd();
-    if (cwd.access(project_name, .{})) |_| {
+    const cwd = std.Io.Dir.cwd();
+    if (cwd.access(system.global_io, project_name, .{})) |_| {
         std.debug.print("Error: Directory '{s}' already exists\n", .{project_name});
         return PMError.ProjectAlreadyExists;
     } else |_| {
@@ -85,9 +87,9 @@ pub fn newProject(allocator: std.mem.Allocator, project_name: []const u8) !void 
     std.debug.print("📦 Creating new MufiZ project: {s}\n", .{project_name});
 
     // Create project directory
-    try cwd.makeDir(project_name);
-    var project_dir = try cwd.openDir(project_name, .{});
-    defer project_dir.close();
+    try cwd.createDir(system.global_io, project_name, @enumFromInt(0o755));
+    var project_dir = try cwd.openDir(system.global_io, project_name, .{});
+    defer project_dir.close(system.global_io);
 
     // Create project structure
     try createProjectStructure(allocator, project_dir, project_name);
@@ -105,7 +107,7 @@ pub fn newProject(allocator: std.mem.Allocator, project_name: []const u8) !void 
 }
 
 /// Create the project structure (mufi.zon and src/main.mufi)
-fn createProjectStructure(allocator: std.mem.Allocator, dir: fs.Dir, project_name: []const u8) !void {
+fn createProjectStructure(allocator: std.mem.Allocator, dir: std.Io.Dir, project_name: []const u8) !void {
     // Create mufi.zon with formatted content
     const zon_content = try generateZonContent(allocator, project_name);
     defer allocator.free(zon_content);
@@ -113,7 +115,7 @@ fn createProjectStructure(allocator: std.mem.Allocator, dir: fs.Dir, project_nam
     try writeFile(dir, "mufi.zon", zon_content);
 
     // Create src directory
-    dir.makeDir("src") catch |err| {
+    dir.createDir(system.global_io, "src", @enumFromInt(0o755)) catch |err| {
         if (err != error.PathAlreadyExists) {
             std.debug.print("Error creating src directory: {any}\n", .{err});
             return PMError.DirectoryCreationError;
@@ -122,8 +124,8 @@ fn createProjectStructure(allocator: std.mem.Allocator, dir: fs.Dir, project_nam
 
     // Create src/main.mufi
     const main_content = generateMainMufiContent(project_name);
-    var src_dir = try dir.openDir("src", .{});
-    defer src_dir.close();
+    var src_dir = try dir.openDir(system.global_io, "src", .{});
+    defer src_dir.close(system.global_io);
     try writeFile(src_dir, "main.mufi", main_content);
 }
 
@@ -149,7 +151,7 @@ fn generateZonContent(allocator: std.mem.Allocator, project_name: []const u8) ![
 /// Generate the content for src/main.mufi
 fn generateMainMufiContent(project_name: []const u8) []const u8 {
     _ = project_name;
-    return 
+    return
     \\// Welcome to your new MufiZ project!
     \\// This is the entry point of your application.
     \\
@@ -179,18 +181,21 @@ fn generateMainMufiContent(project_name: []const u8) []const u8 {
 }
 
 /// Write content to a file
-fn writeFile(dir: fs.Dir, filename: []const u8, content: []const u8) !void {
-    const file = try dir.createFile(filename, .{});
-    defer file.close();
-    try file.writeAll(content);
+fn writeFile(dir: std.Io.Dir, filename: []const u8, content: []const u8) !void {
+    const file = try dir.createFile(system.global_io, filename, .{});
+    defer file.close(system.global_io);
+    var buf: [4096]u8 = undefined;
+    var writer = file.writer(system.global_io, &buf);
+    try writer.interface.writeAll(content);
+    try writer.flush();
 }
 
 /// Display information about the current project
 pub fn info(allocator: std.mem.Allocator) !void {
-    const cwd = fs.cwd();
+    const cwd = std.Io.Dir.cwd();
 
     // Check if mufi.zon exists
-    if (cwd.access("mufi.zon", .{})) |_| {
+    if (cwd.access(system.global_io, "mufi.zon", .{})) |_| {
         // mufi.zon exists, proceed
     } else |_| {
         std.debug.print("Error: Not a MufiZ project (mufi.zon not found)\n", .{});
@@ -199,14 +204,14 @@ pub fn info(allocator: std.mem.Allocator) !void {
     }
 
     // Read mufi.zon
-    const file = try cwd.openFile("mufi.zon", .{});
-    defer file.close();
+    
+    
 
     var arena = std.heap.ArenaAllocator.init(allocator);
     defer arena.deinit();
     const arena_allocator = arena.allocator();
 
-    const content = try file.readToEndAlloc(arena_allocator, 1024 * 1024);
+    const content = try cwd.readFileAlloc(system.global_io, "mufi.zon", arena_allocator, std.Io.Limit.limited(1024 * 1024));
 
     std.debug.print("📦 Project Information\n", .{});
     std.debug.print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n", .{});
@@ -216,10 +221,10 @@ pub fn info(allocator: std.mem.Allocator) !void {
 
 /// Run the project (execute src/main.mufi)
 pub fn run(allocator: std.mem.Allocator) !void {
-    const cwd = fs.cwd();
+    const cwd = std.Io.Dir.cwd();
 
     // Check if mufi.zon exists
-    if (cwd.access("mufi.zon", .{})) |_| {
+    if (cwd.access(system.global_io, "mufi.zon", .{})) |_| {
         // mufi.zon exists, proceed
     } else |_| {
         std.debug.print("Error: Not a MufiZ project (mufi.zon not found)\n", .{});
@@ -232,7 +237,7 @@ pub fn run(allocator: std.mem.Allocator) !void {
     defer allocator.free(entry_point);
 
     // Check if entry point exists
-    if (cwd.access(entry_point, .{})) |_| {
+    if (cwd.access(system.global_io, entry_point, .{})) |_| {
         // Entry point exists, proceed
     } else |_| {
         std.debug.print("Error: Entry point not found ({s})\n", .{entry_point});
@@ -258,7 +263,7 @@ pub fn run(allocator: std.mem.Allocator) !void {
     defer pkg_cache.deinit();
 
     var resolved: std.ArrayList(resolver.DependencySpec) = undefined;
-    if (cwd.access("mufi.lock", .{})) |_| {
+    if (cwd.access(system.global_io, "mufi.lock", .{})) |_| {
         resolved = try readLockfile(allocator, cwd);
     } else |_| {
         resolved = try resolveAllDependencies(allocator, cwd);
@@ -271,15 +276,16 @@ pub fn run(allocator: std.mem.Allocator) !void {
     for (resolved.items) |dep| {
         if (try pkg_cache.getCachedPath(dep.url, dep.version)) |cached_path| {
             defer allocator.free(cached_path);
-            var dep_dir = try fs.cwd().openDir(cached_path, .{});
-            defer dep_dir.close();
-            
+            const cwd_dir = std.Io.Dir.cwd();
+            var dep_dir = try cwd_dir.openDir(system.global_io, cached_path, .{});
+            defer dep_dir.close(system.global_io);
+
             const dep_entry_point = try readEntryPoint(allocator, dep_dir);
             defer allocator.free(dep_entry_point);
-            
+
             const full_dep_entry_path = try std.fs.path.join(allocator, &[_][]const u8{ cached_path, dep_entry_point });
             defer allocator.free(full_dep_entry_path);
-            
+
             try module_registry.registerDependency(dep.name, full_dep_entry_path);
         } else {
             std.debug.print("Warning: Dependency '{s}' not found in cache. Run 'mufiz pm install' first.\n", .{dep.name});
@@ -294,8 +300,8 @@ pub fn run(allocator: std.mem.Allocator) !void {
 }
 
 /// Read the entry point from mufi.zon
-fn readEntryPoint(allocator: std.mem.Allocator, dir: fs.Dir) ![]const u8 {
-    const zon_bytes = dir.readFileAlloc(allocator, "mufi.zon", 1024 * 1024) catch |err| {
+fn readEntryPoint(allocator: std.mem.Allocator, dir: std.Io.Dir) ![]const u8 {
+    const zon_bytes = dir.readFileAlloc(system.global_io, "mufi.zon", allocator, std.Io.Limit.limited(1024 * 1024)) catch |err| {
         if (err == error.FileNotFound) {
             return try allocator.dupe(u8, "src/main.mufi"); // Default
         }
@@ -311,7 +317,7 @@ fn readEntryPoint(allocator: std.mem.Allocator, dir: fs.Dir) ![]const u8 {
 }
 
 /// Resolve all dependencies (including transitive) using topological sort
-fn resolveAllDependencies(allocator: std.mem.Allocator, root_dir: fs.Dir) !std.ArrayList(resolver.DependencySpec) {
+fn resolveAllDependencies(allocator: std.mem.Allocator, root_dir: std.Io.Dir) !std.ArrayList(resolver.DependencySpec) {
     // Initialize cache
     var pkg_cache = try cache.Cache.init(allocator);
     defer pkg_cache.deinit();
@@ -370,11 +376,11 @@ fn resolveAllDependencies(allocator: std.mem.Allocator, root_dir: fs.Dir) !std.A
 
         // We MUST download/cache it now to see its dependencies
         const cached_pkg = try pkg_cache.cachePackage(current_dep.name, current_dep.url, current_dep.dep_type, current_dep.version);
-        
+
         // Update hash in the spec and resolver
         if (queue.items[i].hash) |h| allocator.free(h);
         queue.items[i].hash = try allocator.dupe(u8, cached_pkg.hash);
-        
+
         if (try dep_resolver.getNodeByName(current_dep.name)) |node| {
             if (node.spec.hash) |h| allocator.free(h);
             node.spec.hash = try allocator.dupe(u8, cached_pkg.hash);
@@ -382,16 +388,16 @@ fn resolveAllDependencies(allocator: std.mem.Allocator, root_dir: fs.Dir) !std.A
 
         const pkg_dir_path = try allocator.dupe(u8, cached_pkg.path);
         defer allocator.free(pkg_dir_path);
-        
+
         defer {
             var mut_pkg = cached_pkg;
             mut_pkg.deinit();
         }
 
-        var pkg_dir = fs.cwd().openDir(pkg_dir_path, .{}) catch continue;
-        defer pkg_dir.close();
+        var pkg_dir = std.Io.Dir.cwd().openDir(system.global_io, pkg_dir_path, .{}) catch continue;
+        defer pkg_dir.close(system.global_io);
 
-        if (pkg_dir.access("mufi.zon", .{})) |_| {
+        if (pkg_dir.access(system.global_io, "mufi.zon", .{})) |_| {
             var sub_deps = try readDependencies(allocator, pkg_dir);
             defer {
                 for (sub_deps.items) |*d| d.deinit();
@@ -413,9 +419,9 @@ fn resolveAllDependencies(allocator: std.mem.Allocator, root_dir: fs.Dir) !std.A
 
 /// Install project dependencies recursively
 pub fn install(allocator: std.mem.Allocator) !void {
-    const cwd = fs.cwd();
+    const cwd = std.Io.Dir.cwd();
 
-    if (cwd.access("mufi.zon", .{})) |_| {
+    if (cwd.access(system.global_io, "mufi.zon", .{})) |_| {
         // proceed
     } else |_| {
         std.debug.print("Error: Not a MufiZ project (mufi.zon not found)\n", .{});
@@ -429,7 +435,7 @@ pub fn install(allocator: std.mem.Allocator) !void {
 
     var resolved: std.ArrayList(resolver.DependencySpec) = undefined;
 
-    if (cwd.access("mufi.lock", .{})) |_| {
+    if (cwd.access(system.global_io, "mufi.lock", .{})) |_| {
         std.debug.print("♻️  Using mufi.lock\n", .{});
         resolved = try readLockfile(allocator, cwd);
     } else |_| {
@@ -446,7 +452,7 @@ pub fn install(allocator: std.mem.Allocator) !void {
         // Ensure hash is up to date
         if (dep.hash) |h| allocator.free(h);
         dep.hash = try allocator.dupe(u8, cached.hash);
-        
+
         var mut_cached = cached;
         mut_cached.deinit();
     }
@@ -463,7 +469,7 @@ pub fn install(allocator: std.mem.Allocator) !void {
 }
 
 /// Write the resolved dependencies to mufi.lock
-fn writeLockfile(allocator: std.mem.Allocator, root_dir: fs.Dir, resolved: std.ArrayList(resolver.DependencySpec)) !void {
+fn writeLockfile(allocator: std.mem.Allocator, root_dir: std.Io.Dir, resolved: std.ArrayList(resolver.DependencySpec)) !void {
     var content = try std.ArrayList(u8).initCapacity(allocator, 0);
     defer content.deinit(allocator);
 
@@ -502,14 +508,14 @@ fn writeLockfile(allocator: std.mem.Allocator, root_dir: fs.Dir, resolved: std.A
 }
 
 /// Read dependencies from mufi.lock in a specific directory
-fn readLockfile(allocator: std.mem.Allocator, dir: fs.Dir) !std.ArrayList(resolver.DependencySpec) {
+fn readLockfile(allocator: std.mem.Allocator, dir: std.Io.Dir) !std.ArrayList(resolver.DependencySpec) {
     var deps = try std.ArrayList(resolver.DependencySpec).initCapacity(allocator, 0);
     errdefer {
         for (deps.items) |*dep| dep.deinit();
         deps.deinit(allocator);
     }
 
-    const lock_bytes = dir.readFileAlloc(allocator, "mufi.lock", 1024 * 1024) catch |err| {
+    const lock_bytes = dir.readFileAlloc(system.global_io, "mufi.lock", allocator, std.Io.Limit.limited(1024 * 1024)) catch |err| {
         if (err == error.FileNotFound) return deps;
         return err;
     };
@@ -600,15 +606,15 @@ pub fn addDependency(
     defer allocator.free(sanitized_name);
 
     // Read current mufi.zon
-    const cwd = fs.cwd();
-    const file = try cwd.openFile("mufi.zon", .{});
-    defer file.close();
+    const cwd = std.Io.Dir.cwd();
+    
+    
 
     var arena = std.heap.ArenaAllocator.init(allocator);
     defer arena.deinit();
     const arena_allocator = arena.allocator();
 
-    const content = try file.readToEndAlloc(arena_allocator, 1024 * 1024);
+    const content = try cwd.readFileAlloc(system.global_io, "mufi.zon", arena_allocator, std.Io.Limit.limited(1024 * 1024));
 
     // Check if dependencies section exists
     const has_deps = std.mem.indexOf(u8, content, ".dependencies") != null;
@@ -623,9 +629,13 @@ pub fn addDependency(
     defer allocator.free(new_content);
 
     // Write back
-    const out_file = try cwd.createFile("mufi.zon", .{});
-    defer out_file.close();
-    try out_file.writeAll(new_content);
+    const out_file = try cwd.createFile(system.global_io, "mufi.zon", .{});
+    defer out_file.close(system.global_io);
+    var buf: [4096]u8 = undefined;
+    var writer = out_file.writer(system.global_io, &buf);
+    try writer.interface.print("{s}", .{new_content});
+    try writer.flush();
+
 
     std.debug.print("✅ Dependency added to mufi.zon\n", .{});
     std.debug.print("   Run 'mufiz pm install' to download it\n", .{});
@@ -770,7 +780,7 @@ fn extractEnumField(block: []const u8, field: []const u8) ?[]const u8 {
 }
 
 /// Read dependencies from mufi.zon in a specific directory
-fn readDependencies(allocator: std.mem.Allocator, dir: fs.Dir) !std.ArrayList(resolver.DependencySpec) {
+fn readDependencies(allocator: std.mem.Allocator, dir: std.Io.Dir) !std.ArrayList(resolver.DependencySpec) {
     // Lightweight ad-hoc parser for the .dependencies block in mufi.zon.
     // We intentionally avoid relying on std.zon.parse here to keep parsing simple
     // and to avoid version-specific stdlib API constraints.
@@ -782,7 +792,7 @@ fn readDependencies(allocator: std.mem.Allocator, dir: fs.Dir) !std.ArrayList(re
         deps.deinit(allocator);
     }
 
-    const zon_bytes = dir.readFileAlloc(allocator, "mufi.zon", 1024 * 1024) catch |err| {
+    const zon_bytes = dir.readFileAlloc(system.global_io, "mufi.zon", allocator, std.Io.Limit.limited(1024 * 1024)) catch |err| {
         if (err == error.FileNotFound) {
             return deps; // Return empty list if no manifest
         }
@@ -918,8 +928,8 @@ pub fn cacheClear(allocator: std.mem.Allocator) !void {
 /// Generate documentation for the current project
 pub fn docs(allocator: std.mem.Allocator) !void {
     // Read project name from mufi.zon
-    const cwd = fs.cwd();
-    const zon_content = cwd.readFileAlloc(allocator, "mufi.zon", 1024 * 1024) catch |err| {
+    const cwd = std.Io.Dir.cwd();
+    const zon_content = cwd.readFileAlloc(system.global_io, "mufi.zon", allocator, std.Io.Limit.limited(1024 * 1024)) catch |err| {
         if (err == error.FileNotFound) {
             std.debug.print("❌ Error: mufi.zon not found\n", .{});
             std.debug.print("   Make sure you're in a MufiZ project directory.\n", .{});
@@ -944,9 +954,9 @@ pub fn docs(allocator: std.mem.Allocator) !void {
 
 /// Update project dependencies (ignore lockfile)
 pub fn update(allocator: std.mem.Allocator) !void {
-    const cwd = fs.cwd();
+    const cwd = std.Io.Dir.cwd();
 
-    if (cwd.access("mufi.zon", .{})) |_| {
+    if (cwd.access(system.global_io, "mufi.zon", .{})) |_| {
         // proceed
     } else |_| {
         std.debug.print("Error: Not a MufiZ project (mufi.zon not found)\n", .{});
@@ -954,7 +964,7 @@ pub fn update(allocator: std.mem.Allocator) !void {
     }
 
     // Delete lockfile if it exists to force re-resolution
-    cwd.deleteFile("mufi.lock") catch |err| {
+    cwd.deleteFile(system.global_io, "mufi.lock") catch |err| {
         if (err != error.FileNotFound) return err;
     };
 

@@ -132,12 +132,12 @@ pub const PREC_ASSIGNMENT: i32 = 1;
 pub const PREC_TERNARY: i32 = 2;
 pub const PREC_OR: i32 = 3;
 pub const PREC_AND: i32 = 4;
-pub const PREC_BIT_OR: i32 = 5;    // bitwise OR
-pub const PREC_BIT_XOR: i32 = 6;   // bitwise XOR
-pub const PREC_BIT_AND: i32 = 7;   // bitwise AND
+pub const PREC_BIT_OR: i32 = 5; // bitwise OR
+pub const PREC_BIT_XOR: i32 = 6; // bitwise XOR
+pub const PREC_BIT_AND: i32 = 7; // bitwise AND
 pub const PREC_EQUALITY: i32 = 8;
 pub const PREC_COMPARISON: i32 = 9;
-pub const PREC_SHIFT: i32 = 10;    // bit shifts
+pub const PREC_SHIFT: i32 = 10; // bit shifts
 pub const PREC_TERM: i32 = 11;
 pub const PREC_RANGE: i32 = 12; // Between PREC_TERM and PREC_FACTOR
 pub const PREC_FACTOR: i32 = 13;
@@ -365,6 +365,18 @@ pub fn emitBytes(byte1: u8, byte2: u8) void {
     emitByte(byte1);
     emitByte(byte2);
 }
+
+/// Emit a global slot instruction with support for slots > 255
+pub fn emitGlobalSlot(op: u8, slot: u32) void {
+    if (slot > 127) {
+        // Use 2-byte encoding: high bit set + upper 8 bits, then lower 8 bits
+        emitBytes(op, @as(u8, @intCast((slot >> 8) | 0x80)));
+        emitByte(@as(u8, @intCast(slot & 0xFF)));
+    } else {
+        emitBytes(op, @as(u8, @intCast(slot)));
+    }
+}
+
 pub fn emitLoop(loopStart: i32) void {
     emitByte(@intFromEnum(OpCode.OP_LOOP));
     const offset: i32 = (currentChunk().*.count - loopStart) + 2;
@@ -410,6 +422,10 @@ pub fn makeConstant(value: Value) u8 {
 }
 pub fn emitConstant(value: Value) void {
     emitBytes(@intFromEnum(OpCode.OP_CONSTANT), makeConstant(value));
+}
+
+pub fn emitSymbolVariable(global: u8) void {
+    emitBytes(@intFromEnum(OpCode.OP_SYMBOL), global);
 }
 
 pub fn patchJump(offset: i32) void {
@@ -554,6 +570,8 @@ pub fn declaration() void {
         funDeclaration();
     } else if (match(.TOKEN_VAR)) {
         varDeclaration();
+    } else if (match(.TOKEN_SYM)) {
+        symDeclaration();
     } else if (match(.TOKEN_CONST)) {
         constDeclaration();
     } else if (match(.TOKEN_IMPORT)) {
@@ -658,6 +676,8 @@ pub fn getRule(type_: TokenType) ParseRule {
         .TOKEN_STAR_DOT => ParseRule{ .infix = &binary, .precedence = PREC_FACTOR },
         .TOKEN_SLASH_DOT => ParseRule{ .infix = &binary, .precedence = PREC_FACTOR },
         .TOKEN_HAT_DOT => ParseRule{ .infix = &binary, .precedence = PREC_EXPONENT },
+        // Symbolic variables - @x accesses existing symbolic variables
+        .TOKEN_AT => ParseRule{ .prefix = &symbolVariable, .precedence = PREC_NONE },
         else => ParseRule{ .precedence = PREC_NONE },
     };
 }
@@ -682,7 +702,9 @@ pub fn parsePrecedence(precedence: Precedence) void {
         const infixRule: ParseFn = getRule(parser.previous.type).infix;
         infixRule.?(canAssign);
     }
-    if (canAssign and match(.TOKEN_EQUAL)) {
+    const isAssignment = check(.TOKEN_EQUAL) or check(.TOKEN_PLUS_EQUAL) or check(.TOKEN_MINUS_EQUAL) or check(.TOKEN_STAR_EQUAL) or check(.TOKEN_SLASH_EQUAL);
+    if (canAssign and isAssignment) {
+        advance();
         const suggestions = [_]errors.ErrorSuggestion{
             .{ .message = "You can only assign to variables and object properties" },
             .{ .message = "Check that the left side is a valid assignment target" },
@@ -864,19 +886,6 @@ fn defineVariableImpl(global: u8, opcode: OpCode) void {
         addKnownVariable(name_slice);
     }
 
-    // OPTIMIZATION: Use slot-based globals for user code
-    const module_registry = @import("module_registry.zig");
-    if (!module_registry.isBuiltInModule(name_slice)) {
-        const slot = vm_h.getGlobalSlot(name_obj);
-        emitBytes(@intFromEnum(OpCode.OP_SET_GLOBAL_SLOT), slot);
-        
-        // We still need to record metadata for PUBLIC or CONST for snapshots
-        // but we use a non-popping/meta-only way if possible.
-        // For now, let's keep it simple: slot-based globals are implicitly public
-        // and constants are handled by the GlobalAnalyzer.
-        return;
-    }
-
     emitBytes(@intFromEnum(opcode), global);
 }
 
@@ -960,7 +969,7 @@ fn foldUnary(operatorType: TokenType) bool {
 
 fn foldBinary(operatorType: TokenType) bool {
     const chunk = currentChunk();
-    
+
     // Determine how many bytes the operator emitted
     const op_size: u8 = switch (operatorType) {
         .TOKEN_BANG_EQUAL, .TOKEN_GREATER_EQUAL, .TOKEN_LESS_EQUAL => 2,
@@ -1001,8 +1010,7 @@ fn foldBinary(operatorType: TokenType) bool {
                 if (db != 0) result = Value.init_double(da / db);
             },
             .TOKEN_PERCENT => {
-                if (is_int and b.as_int() != 0) result = Value.init_int(@mod(a.as_int(), b.as_int())) 
-                else if (db != 0) result = Value.init_double(@mod(da, db));
+                if (is_int and b.as_int() != 0) result = Value.init_int(@mod(a.as_int(), b.as_int())) else if (db != 0) result = Value.init_double(@mod(da, db));
             },
             .TOKEN_HAT => result = Value.init_double(std.math.pow(f64, da, db)),
             .TOKEN_EQUAL_EQUAL => result = Value.init_bool(value_h.valuesEqual(a, b)),
@@ -1090,6 +1098,20 @@ pub fn dot(canAssign: bool) void {
     const name = identifierConstant(&parser.previous);
     if (canAssign and match(.TOKEN_EQUAL)) {
         expression();
+        emitBytes(@intFromEnum(OpCode.OP_SET_PROPERTY), name);
+    } else if (canAssign and (match(.TOKEN_PLUS_EQUAL) or match(.TOKEN_MINUS_EQUAL) or match(.TOKEN_STAR_EQUAL) or match(.TOKEN_SLASH_EQUAL))) {
+        const operatorType = parser.previous.type;
+        // Duplicate the receiver to use it for both GET and SET
+        emitByte(@intFromEnum(OpCode.OP_DUP));
+        emitBytes(@intFromEnum(OpCode.OP_GET_PROPERTY), name);
+        expression();
+        switch (operatorType) {
+            .TOKEN_PLUS_EQUAL => emitByte(@intFromEnum(OpCode.OP_ADD)),
+            .TOKEN_MINUS_EQUAL => emitByte(@intFromEnum(OpCode.OP_SUBTRACT)),
+            .TOKEN_STAR_EQUAL => emitByte(@intFromEnum(OpCode.OP_MULTIPLY)),
+            .TOKEN_SLASH_EQUAL => emitByte(@intFromEnum(OpCode.OP_DIVIDE)),
+            else => {},
+        }
         emitBytes(@intFromEnum(OpCode.OP_SET_PROPERTY), name);
     } else if (match(.TOKEN_LEFT_PAREN)) {
         const argCount = argumentList();
@@ -1598,14 +1620,21 @@ fn regularVector() void {
 }
 /// Check if a local variable is const and emit an error if so. Returns true if const (caller should return).
 fn checkConstAssignment(name: Token, arg: i32, isLocal: bool) bool {
-    if (isLocal and current.?.locals[@intCast(arg)].isConst) {
-        const varName = name.start[0..@intCast(name.length)];
+    const varName = name.start[0..@intCast(name.length)];
+    var is_const = false;
+
+    if (isLocal) {
+        if (current.?.locals[@intCast(arg)].isConst) is_const = true;
+    }
+
+    if (is_const) {
         const suggestions = [_]errors.ErrorSuggestion{
             .{ .message = "Use 'var' instead of 'const' if you need to modify this variable" },
             .{ .message = "Constants cannot be modified after declaration" },
             .{ .message = "Declare as mutable", .example = "var myVariable = value;" },
         };
-        errorWithSuggestions(&parser.previous, .INVALID_ASSIGNMENT, std.fmt.allocPrint(compiler_arena.getCompilerAllocator(), "Cannot assign to constant variable '{s}'", .{varName}) catch "Cannot assign to constant variable", &suggestions);
+        var mutable_name = name;
+        errorWithSuggestions(&mutable_name, .INVALID_ASSIGNMENT, std.fmt.allocPrint(compiler_arena.getCompilerAllocator(), "Cannot assign to constant variable '{s}'", .{varName}) catch "Cannot assign to constant variable", &suggestions);
         return true;
     }
     return false;
@@ -1618,6 +1647,22 @@ fn emitIncDec(getOp: u8, setOp: u8, arg: i32, opcode: OpCode) void {
     emitConstant(Value.init_int(1));
     emitByte(@intFromEnum(opcode));
     emitBytes(setOp, argByte);
+}
+
+fn emitIncDecGlobal(getOp: u8, setOp: u8, arg: i32, opcode: OpCode, isSingleByte: bool) void {
+    if (isSingleByte) {
+        const argByte = @as(u8, @bitCast(@as(i8, @truncate(arg))));
+        emitBytes(getOp, argByte);
+        emitConstant(Value.init_int(1));
+        emitByte(@intFromEnum(opcode));
+        emitBytes(setOp, argByte);
+    } else {
+        const slot = @as(u32, @intCast(arg));
+        emitGlobalSlot(getOp, slot);
+        emitConstant(Value.init_int(1));
+        emitByte(@intFromEnum(opcode));
+        emitGlobalSlot(setOp, slot);
+    }
 }
 
 pub fn namedVariable(name: Token, canAssign: bool) void {
@@ -1657,31 +1702,25 @@ pub fn namedVariable(name: Token, canAssign: bool) void {
             setOp = @intFromEnum(OpCode.OP_SET_GLOBAL_SLOT_KEEP);
             arg = @intCast(vm_h.getGlobalSlot(name_obj));
         }
-
-        // OPTIMIZATION: Check if this global is an "effective constant"
-        if (!is_builtin and global_analyzer != null) {
-            if (global_analyzer.?.isConstant(name_slice)) {
-                var value: Value = undefined;
-                const table_h = @import("table.zig");
-                if (table_h.tableGet(&vm_h.vm.globals, name_obj, &value)) {
-                    if (value.type != .VAL_OBJ or object_h.isObjType(value, .OBJ_STRING)) {
-                        emitConstant(value);
-                        return;
-                    }
-                }
-            }
-        }
     }
-
-    const argByte = @as(u8, @bitCast(@as(i8, @truncate(arg))));
 
     if (canAssign and match(.TOKEN_EQUAL)) {
         if (checkConstAssignment(name, arg, isLocal)) return;
         expression();
-        emitBytes(setOp, argByte);
-    } else if (match(.TOKEN_PLUS_EQUAL) or match(.TOKEN_MINUS_EQUAL) or match(.TOKEN_STAR_EQUAL) or match(.TOKEN_SLASH_EQUAL)) {
+        if (isLocal or getOp == @intFromEnum(OpCode.OP_GET_GLOBAL)) {
+            const argByte = @as(u8, @bitCast(@as(i8, @truncate(arg))));
+            emitBytes(setOp, argByte);
+        } else {
+            emitGlobalSlot(setOp, @as(u32, @intCast(arg)));
+        }
+    } else if (canAssign and (match(.TOKEN_PLUS_EQUAL) or match(.TOKEN_MINUS_EQUAL) or match(.TOKEN_STAR_EQUAL) or match(.TOKEN_SLASH_EQUAL))) {
         if (checkConstAssignment(name, arg, isLocal)) return;
-        emitBytes(getOp, argByte);
+        if (isLocal or getOp == @intFromEnum(OpCode.OP_GET_GLOBAL)) {
+            const argByte = @as(u8, @bitCast(@as(i8, @truncate(arg))));
+            emitBytes(getOp, argByte);
+        } else {
+            emitGlobalSlot(getOp, @as(u32, @intCast(arg)));
+        }
         expression();
         switch (parser.previous.type) {
             .TOKEN_PLUS_EQUAL => emitByte(@intFromEnum(OpCode.OP_ADD)),
@@ -1690,20 +1729,42 @@ pub fn namedVariable(name: Token, canAssign: bool) void {
             .TOKEN_SLASH_EQUAL => emitByte(@intFromEnum(OpCode.OP_DIVIDE)),
             else => {},
         }
-        emitBytes(setOp, argByte);
-    } else if (match(.TOKEN_PLUS_PLUS)) {
+        if (isLocal or getOp == @intFromEnum(OpCode.OP_GET_GLOBAL)) {
+            const argByte = @as(u8, @bitCast(@as(i8, @truncate(arg))));
+            emitBytes(setOp, argByte);
+        } else {
+            emitGlobalSlot(setOp, @as(u32, @intCast(arg)));
+        }
+    } else if (canAssign and match(.TOKEN_PLUS_PLUS)) {
         if (checkConstAssignment(name, arg, isLocal)) return;
-        emitIncDec(getOp, setOp, arg, .OP_ADD);
-    } else if (match(.TOKEN_MINUS_MINUS)) {
+        emitIncDecGlobal(getOp, setOp, arg, .OP_ADD, isLocal or getOp == @intFromEnum(OpCode.OP_GET_GLOBAL));
+    } else if (canAssign and match(.TOKEN_MINUS_MINUS)) {
         if (checkConstAssignment(name, arg, isLocal)) return;
-        emitIncDec(getOp, setOp, arg, .OP_SUBTRACT);
+        emitIncDecGlobal(getOp, setOp, arg, .OP_SUBTRACT, isLocal or getOp == @intFromEnum(OpCode.OP_GET_GLOBAL));
     } else {
-        emitBytes(getOp, argByte);
+        if (isLocal or getOp == @intFromEnum(OpCode.OP_GET_GLOBAL)) {
+            const argByte = @as(u8, @bitCast(@as(i8, @truncate(arg))));
+            emitBytes(getOp, argByte);
+        } else {
+            emitGlobalSlot(getOp, @as(u32, @intCast(arg)));
+        }
     }
 }
 
 pub fn variable(canAssign: bool) void {
     namedVariable(parser.previous, canAssign);
+}
+
+pub fn symbolVariable(canAssign: bool) void {
+    _ = canAssign;
+    // When @x is used in an expression, look up variable x as a symbol
+    if (!check(.TOKEN_IDENTIFIER)) {
+        errorAtCurrent("Expect variable name after '@'");
+        return;
+    }
+    const nameConstant = identifierConstant(&parser.current);
+    advance(); // consume the identifier
+    emitBytes(@intFromEnum(OpCode.OP_SYMBOL), nameConstant);
 }
 
 pub fn syntheticToken(text: [*]const u8) Token {
@@ -1796,7 +1857,7 @@ pub fn index_(canAssign: bool) void {
     if (match(.TOKEN_COLON)) {
         isSlice = true;
         parseIndexExpression();
-        
+
         // Check for 2D slicing: m[r1:r2, c1:c2]
         if (match(.TOKEN_COMMA)) {
             is2DSlice = true;
@@ -1812,8 +1873,10 @@ pub fn index_(canAssign: bool) void {
         }
     } else if (match(.TOKEN_COMMA)) {
         // 2D indexing without slice: m[r, c]
+        // We emit OP_GET_INDEX now to get the row, then the final OP_GET_INDEX
+        // will get the column from that row.
+        emitByte(@intFromEnum(OpCode.OP_GET_INDEX));
         parseIndexExpression();
-        // This is handled by OP_GET_INDEX with 2 indices on stack
     }
 
     consume(.TOKEN_RIGHT_SQPAREN, "Expect ']' after index expression.");
@@ -1976,10 +2039,16 @@ pub fn moduleImportStatement() void {
 
     // If there's an alias, emit it too
     if (alias) |aliasToken| {
-        const aliasConstant = makeConstant(makeStringValue(aliasToken.start, @intCast(aliasToken.length)));
+        var mutableAliasToken = aliasToken;
+        const aliasConstant = identifierConstant(&mutableAliasToken);
+        declareVariable();
         emitByte(@intFromEnum(OpCode.OP_IMPORT_MODULE_AS));
         emitByte(nameConstant);
         emitByte(aliasConstant);
+
+        if (current.?.scopeDepth > 0) {
+            markInitialized();
+        }
     } else {
         emitBytes(@intFromEnum(OpCode.OP_IMPORT_MODULE), nameConstant);
     }
@@ -2111,6 +2180,8 @@ pub fn pubDeclaration() void {
         pubFunDeclaration();
     } else if (match(.TOKEN_VAR)) {
         pubVarDeclaration();
+    } else if (match(.TOKEN_SYM)) {
+        pubSymDeclaration();
     } else if (match(.TOKEN_CONST)) {
         pubConstDeclaration();
     } else if (match(.TOKEN_CLASS)) {
@@ -2140,6 +2211,26 @@ pub fn pubVarDeclaration() void {
     }
     consume(.TOKEN_SEMICOLON, "Expect ';' after variable declaration.");
     definePublicVariable(global);
+}
+
+pub fn pubSymDeclaration() void {
+    // Parse public symbolic variable declarations: pub sym x; or pub sym x, y, z;
+    const name = parseVariable("Expect variable name after 'sym'.");
+    
+    // Emit the symbolic variable declaration
+    emitSymbolVariable(name);
+    
+    // Define the variable in the current scope as public
+    definePublicVariable(name);
+    
+    // Handle multiple declarations: pub sym x, y, z;
+    while (match(.TOKEN_COMMA)) {
+        const next_name = parseVariable("Expect variable name after ','.");
+        emitSymbolVariable(next_name);
+        definePublicVariable(next_name);
+    }
+    
+    consume(.TOKEN_SEMICOLON, "Expect ';' after symbolic variable declaration.");
 }
 
 pub fn pubConstDeclaration() void {
@@ -2222,13 +2313,13 @@ pub fn funDeclaration() void {
 }
 pub fn varDeclaration() void {
     const global = parseVariable("Expect variable name.");
-    
+
     // Check for optional type annotation: ": typename"
     if (match(.TOKEN_COLON)) {
         if (parser.current.type == .TOKEN_IDENTIFIER) {
             const type_name = parser.current.start[0..@intCast(parser.current.length)];
             const annotated_type = type_annotations.parseTypeNameString(type_name);
-            
+
             if (annotated_type == null) {
                 errorAtCurrent("Unknown type name");
             }
@@ -2237,7 +2328,7 @@ pub fn varDeclaration() void {
             errorAtCurrent("Expect type name after ':'");
         }
     }
-    
+
     if (match(.TOKEN_EQUAL)) {
         expression();
     } else {
@@ -2245,6 +2336,26 @@ pub fn varDeclaration() void {
     }
     consume(.TOKEN_SEMICOLON, "Expect ';' after variable declaration.");
     defineVariable(global);
+}
+
+pub fn symDeclaration() void {
+    // Parse symbolic variable declarations: sym x; or sym x, y, z;
+    const name = parseVariable("Expect variable name after 'sym'.");
+    
+    // Emit the symbolic variable declaration
+    emitSymbolVariable(name);
+    
+    // Define the variable in the current scope
+    defineVariable(name);
+    
+    // Handle multiple declarations: sym x, y, z;
+    while (match(.TOKEN_COMMA)) {
+        const next_name = parseVariable("Expect variable name after ','.");
+        emitSymbolVariable(next_name);
+        defineVariable(next_name);
+    }
+    
+    consume(.TOKEN_SEMICOLON, "Expect ';' after symbolic variable declaration.");
 }
 
 pub fn constDeclaration() void {
@@ -2753,25 +2864,50 @@ pub fn compile(source: [*]const u8, file_path: ?[]const u8) ?*ObjFunction {
     const analyzer_allocator = compiler_arena.getCompilerAllocator();
     var analyzer = GlobalAnalyzer.init(analyzer_allocator);
     defer analyzer.deinit();
-    
+
     // Pre-pass: Scan for assignments to globals
     scanner_h.init_scanner(@constCast(source));
     var nesting: i32 = 0;
+    var prev_token: scanner_h.Token = undefined;
+    prev_token.type = .TOKEN_EOF;
+
     while (true) {
         const token = scanner_h.scanToken();
         if (token.type == .TOKEN_EOF) break;
         if (token.type == .TOKEN_LEFT_BRACE) nesting += 1;
         if (token.type == .TOKEN_RIGHT_BRACE) nesting -= 1;
-        
-        // We only care about global assignments (nesting == 0)
+
+        // We only care about global declarations (nesting == 0)
         if (nesting == 0 and (token.type == .TOKEN_VAR or token.type == .TOKEN_CONST or token.type == .TOKEN_PUB)) {
             // Found a declaration, record it
-            const next = scanner_h.scanToken();
+            var is_var = token.type == .TOKEN_VAR;
+            var next = scanner_h.scanToken();
+            if (token.type == .TOKEN_PUB and next.type == .TOKEN_VAR) {
+                is_var = true;
+                next = scanner_h.scanToken();
+            } else if (token.type == .TOKEN_PUB and (next.type == .TOKEN_CONST or next.type == .TOKEN_FUN or next.type == .TOKEN_CLASS)) {
+                next = scanner_h.scanToken();
+            }
             if (next.type == .TOKEN_IDENTIFIER) {
                 const name = next.start[0..@intCast(next.length)];
+                if (is_var) {
+                    analyzer.recordAssignment(name);
+                    analyzer.recordAssignment(name); // Force var to be mutable
+                } else {
+                    analyzer.recordAssignment(name);
+                }
+            }
+            prev_token = next;
+            continue;
+        } else if (token.type == .TOKEN_EQUAL or token.type == .TOKEN_PLUS_EQUAL or token.type == .TOKEN_MINUS_EQUAL or token.type == .TOKEN_STAR_EQUAL or token.type == .TOKEN_SLASH_EQUAL or token.type == .TOKEN_PLUS_PLUS or token.type == .TOKEN_MINUS_MINUS) {
+            // Any assignment re-evaluates the constness
+            if (prev_token.type == .TOKEN_IDENTIFIER) {
+                const name = prev_token.start[0..@intCast(prev_token.length)];
                 analyzer.recordAssignment(name);
             }
         }
+
+        prev_token = token;
     }
     global_analyzer = analyzer;
     defer global_analyzer = null;
@@ -2793,7 +2929,7 @@ pub fn compile(source: [*]const u8, file_path: ?[]const u8) ?*ObjFunction {
     scanner_h.init_scanner(@constCast(source));
     var compiler: Compiler = undefined;
     initCompiler(&compiler, .TYPE_SCRIPT);
-    
+
     // Set source file on the top-level script function
     if (file_path) |path| {
         compiler.function.*.source_file = object_h.copyStringLiteral(path.ptr, path.len);

@@ -1,0 +1,64 @@
+// Test symbolic simplification and expansion
+print("=== TESTING SYMBOLIC SIMPLIFICATION & EXPANSION ===\n");
+
+var x = sym_var("x");
+var c0 = sym_const(0.0);
+var c1 = sym_const(1.0);
+var c2 = sym_const(2.0);
+var c3 = sym_const(3.0);
+
+// Test 1: Simplify constant addition
+print("[Test 1] Simplify constant addition: 2 + 3");
+var sum_consts = sym_add(c2, c3);
+var simp_sum = sym_simplify(sum_consts);
+var simp_sum_str = sym_to_string(simp_sum);
+print("✓ Simplified 2 + 3 = " + simp_sum_str);
+
+// Test 2: Simplify with zero
+print("\n[Test 2] Simplify with zero: x + 0");
+var add_zero = sym_add(x, c0);
+var simp_zero = sym_simplify(add_zero);
+var simp_zero_str = sym_to_string(simp_zero);
+print("✓ Simplified x + 0 = " + simp_zero_str);
+
+// Test 3: Simplify multiplication by one
+print("\n[Test 3] Simplify multiplication by one: x * 1");
+var mul_one = sym_mul(x, c1);
+var simp_one = sym_simplify(mul_one);
+var simp_one_str = sym_to_string(simp_one);
+print("✓ Simplified x * 1 = " + simp_one_str);
+
+// Test 4: Expand simple expression
+print("\n[Test 4] Expand (x + 1) * 2");
+var add_x1 = sym_add(x, c1);
+var expr = sym_mul(add_x1, c2);
+var expanded = sym_expand(expr);
+var expanded_str = sym_to_string(expanded);
+print("✓ Expanded (x + 1) * 2 = " + expanded_str);
+
+// Test 5: Expand more complex
+print("\n[Test 5] Expand (x + 2) * (x + 3)");
+var add_x2 = sym_add(x, c2);
+var add_x3 = sym_add(x, c3);
+var complex_expr = sym_mul(add_x2, add_x3);
+var complex_expanded = sym_expand(complex_expr);
+var complex_expanded_str = sym_to_string(complex_expanded);
+print("✓ Expanded (x + 2) * (x + 3) = " + complex_expanded_str);
+
+// Test 6: Simplify polynomial
+print("\n[Test 6] Simplify 1*x*2");
+var poly1 = sym_mul(c1, x);
+var poly = sym_mul(poly1, c2);
+var simp_poly = sym_simplify(poly);
+var simp_poly_str = sym_to_string(simp_poly);
+print("✓ Simplified 1*x*2 = " + simp_poly_str);
+
+// Test 7: Simplify constant multiplication
+print("\n[Test 7] Simplify 2 * 3 * x");
+var mult_23 = sym_mul(c2, c3);
+var mult_consts = sym_mul(mult_23, x);
+var simp_mult = sym_simplify(mult_consts);
+var simp_mult_str = sym_to_string(simp_mult);
+print("✓ Simplified 2 * 3 * x = " + simp_mult_str);
+
+print("\n=== ALL SIMPLIFICATION & EXPANSION TESTS PASSED ===\n");

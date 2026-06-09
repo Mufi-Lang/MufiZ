@@ -374,19 +374,19 @@ const TomlParser = struct {
     }
 
     /// Parse TOML array of tables: [[key.path]]
-    /// 
+    ///
     /// Array of tables allow multiple table instances under the same key.
     /// Example TOML:
     /// ```toml
     /// [[products]]
     /// name = "Hammer"
     /// sku = 738594937
-    /// 
+    ///
     /// [[products]]
     /// name = "Nail"
     /// sku = 284758393
     /// ```
-    /// 
+    ///
     /// This creates an array at root["products"] containing two table objects.
     /// Each [[products]] declaration creates a new table and appends it to the array.
     fn parseArrayTable(self: *Self, root: *Value) !void {
@@ -402,24 +402,24 @@ const TomlParser = struct {
         // Array of tables: [[key.path]]
         // Navigate to the parent table and create/append to array
         var current = root;
-        
+
         // Navigate to parent (all keys except the last)
         for (key_path[0 .. key_path.len - 1]) |key| {
             current = try self.getOrCreateTable(current, key);
         }
-        
+
         // Get or create array for the last key
         const array_key = key_path[key_path.len - 1];
         const array = try self.getOrCreateArray(current, array_key);
-        
+
         // Create a new table and add it to the array
         const new_table = object_h.HashTable.init();
         const table_value = Value.init_obj(@as(*Obj, @ptrCast(new_table)));
-        
+
         // Add the table to the array (LinkedList) using push method
         const list = @as(*object_h.LinkedList, @ptrCast(@alignCast(array.as.obj)));
         list.push(table_value);
-        
+
         // Parse key-value pairs for this table instance
         const table_ptr = @constCast(&table_value);
         while (self.current_token.type == .Identifier) {
@@ -881,20 +881,20 @@ pub const TomlSerializer = struct {
                 try self.output.appendSlice(self.allocator, bool_str);
             },
             .VAL_INT => {
-                try std.fmt.format(self.output.writer(self.allocator), "{d}", .{value.as.num_int});
+                try self.output.print(self.allocator, "{d}", .{value.as.num_int});
             },
             .VAL_DOUBLE => {
                 if (std.math.isNan(value.as.num_double) or std.math.isInf(value.as.num_double)) {
                     return SerdeError.UnsupportedType;
                 }
-                try std.fmt.format(self.output.writer(self.allocator), "{d}", .{value.as.num_double});
+                try self.output.print(self.allocator, "{d}", .{value.as.num_double});
             },
             .VAL_COMPLEX => {
                 // Serialize as inline table
                 try self.output.appendSlice(self.allocator, "{ real = ");
-                try std.fmt.format(self.output.writer(self.allocator), "{d}", .{value.as.complex.r});
+                try self.output.print(self.allocator, "{d}", .{value.as.complex.r});
                 try self.output.appendSlice(self.allocator, ", imag = ");
-                try std.fmt.format(self.output.writer(self.allocator), "{d}", .{value.as.complex.i});
+                try self.output.print(self.allocator, "{d}", .{value.as.complex.i});
                 try self.output.appendSlice(self.allocator, " }");
             },
             .VAL_OBJ => {
@@ -957,7 +957,7 @@ pub const TomlSerializer = struct {
                 '\r' => try self.output.appendSlice(self.allocator, "\\r"),
                 '\t' => try self.output.appendSlice(self.allocator, "\\t"),
                 0x00...0x08, 0x0B, 0x0C, 0x0E...0x1F, 0x7F => {
-                    try std.fmt.format(self.output.writer(self.allocator), "\\u{d:0>4}", .{char});
+                    try self.output.print(self.allocator, "\\u{d:0>4}", .{char});
                 },
                 else => try self.output.append(self.allocator, char),
             }
@@ -982,10 +982,10 @@ pub const TomlSerializer = struct {
             // For now, just serialize as string representation
             switch (node.data.type) {
                 .VAL_INT => {
-                    try std.fmt.format(self.output.writer(self.allocator), "{d}", .{node.data.as.num_int});
+                    try self.output.print(self.allocator, "{d}", .{node.data.as.num_int});
                 },
                 .VAL_DOUBLE => {
-                    try std.fmt.format(self.output.writer(self.allocator), "{d}", .{node.data.as.num_double});
+                    try self.output.print(self.allocator, "{d}", .{node.data.as.num_double});
                 },
                 .VAL_BOOL => {
                     const bool_str = if (node.data.as.boolean) "true" else "false";
@@ -1017,7 +1017,7 @@ pub const TomlSerializer = struct {
 
         for (fvec.data[0..fvec.size], 0..) |value, i| {
             if (i > 0) try self.output.appendSlice(self.allocator, ", ");
-            try std.fmt.format(self.output.writer(self.allocator), "{d}", .{value});
+            try self.output.print(self.allocator, "{d}", .{value});
         }
 
         try self.output.append(self.allocator, ']');
@@ -1049,10 +1049,10 @@ pub const TomlSerializer = struct {
                 // Simple value serialization for inline tables
                 switch (pair.value.type) {
                     .VAL_INT => {
-                        try std.fmt.format(self.output.writer(self.allocator), "{d}", .{pair.value.as.num_int});
+                        try self.output.print(self.allocator, "{d}", .{pair.value.as.num_int});
                     },
                     .VAL_DOUBLE => {
-                        try std.fmt.format(self.output.writer(self.allocator), "{d}", .{pair.value.as.num_double});
+                        try self.output.print(self.allocator, "{d}", .{pair.value.as.num_double});
                     },
                     .VAL_BOOL => {
                         const bool_str = if (pair.value.as.boolean) "true" else "false";

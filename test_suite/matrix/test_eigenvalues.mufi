@@ -14,7 +14,7 @@ print vecs1;
 
 // Test 2: Symmetric matrix
 print "\nTest 2: Eigenvalues of symmetric matrix";
-var S = [[4, -2], [-2, 1]];
+var S = [[2, 1], [1, 2]];
 var eig2 = eig(S);
 var vals2 = eig2["eigenvalues"];
 var vecs2 = eig2["eigenvectors"];

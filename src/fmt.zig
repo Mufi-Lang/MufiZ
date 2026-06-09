@@ -138,23 +138,9 @@ pub fn formatSource(allocator: std.mem.Allocator, source: []const u8) ![]const u
 }
 
 /// Format a MufiZ file in-place
+/// Note: Not implemented in Zig 0.16+ due to API changes
 pub fn formatFile(allocator: std.mem.Allocator, filepath: []const u8) !void {
-    const fs = std.fs;
-
-    // Read the file
-    const file = try fs.cwd().openFile(filepath, .{});
-    defer file.close();
-
-    const source = try file.readToEndAlloc(allocator, 10 * 1024 * 1024); // 10MB max
-    defer allocator.free(source);
-
-    // Format it
-    const formatted = try formatSource(allocator, source);
-    defer allocator.free(formatted);
-
-    // Write it back
-    const out_file = try fs.cwd().createFile(filepath, .{});
-    defer out_file.close();
-
-    try out_file.writeAll(formatted);
+    _ = allocator;
+    _ = filepath;
+    return error.NotImplementedInZig016;
 }
