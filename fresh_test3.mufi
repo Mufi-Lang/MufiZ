@@ -1,3 +1,0 @@
-print("Line 1");
-var x = sym_const(2.0);
-print(x);

@@ -19,50 +19,50 @@ pub fn build(b: *std.Build) !void {
     configureModule(shlib.root_module, features, debug);
     b.installArtifact(shlib);
 
-    // Generate C header file
-    const gen_header = b.addExecutable(.{
-        .name = "gen_header",
-        .root_module = b.createModule(.{
-            .root_source_file = b.path("scripts/gen_header.zig"),
-            .target = target,
-            .optimize = optimize,
-        }),
-    });
+    // // Generate C header file
+    // const gen_header = b.addExecutable(.{
+    //     .name = "gen_header",
+    //     .root_module = b.createModule(.{
+    //         .root_source_file = b.path("scripts/gen_header.zig"),
+    //         .target = target,
+    //         .optimize = optimize,
+    //     }),
+    // });
 
-    const run_gen_header = b.addRunArtifact(gen_header);
-    run_gen_header.addArg("zig-out/include/mufiz.h");
+    // const run_gen_header = b.addRunArtifact(gen_header);
+    // run_gen_header.addArg("zig-out/include/mufiz.h");
 
-    const header_step = b.step("header", "Generate C header file");
-    header_step.dependOn(&run_gen_header.step);
+    // const header_step = b.step("header", "Generate C header file");
+    // header_step.dependOn(&run_gen_header.step);
 
     // Validate header matches c_api.zig
-    const validate_header = b.addExecutable(.{
-        .name = "validate_header",
-        .root_module = b.createModule(.{
-            .root_source_file = b.path("scripts/validate_header.zig"),
-            .target = target,
-            .optimize = optimize,
-        }),
-    });
+    // const validate_header = b.addExecutable(.{
+    //     .name = "validate_header",
+    //     .root_module = b.createModule(.{
+    //         .root_source_file = b.path("scripts/validate_header.zig"),
+    //         .target = target,
+    //         .optimize = optimize,
+    //     }),
+    // });
 
-    const run_validate = b.addRunArtifact(validate_header);
-    run_validate.step.dependOn(&run_gen_header.step);
+    // const run_validate = b.addRunArtifact(validate_header);
+    // run_validate.step.dependOn(&run_gen_header.step);
 
-    const validate_step = b.step("validate-header", "Validate C header matches c_api.zig");
-    validate_step.dependOn(&run_validate.step);
+    // const validate_step = b.step("validate-header", "Validate C header matches c_api.zig");
+    // validate_step.dependOn(&run_validate.step);
 
-    // Ensure header is generated when building shared library
-    b.getInstallStep().dependOn(&run_gen_header.step);
+    // // Ensure header is generated when building shared library
+    // b.getInstallStep().dependOn(&run_gen_header.step);
 
-    // WASM build support
-    const wasm_exe = createWasmExecutable(b, "mufiz", "src/c_api.zig");
-    configureModule(wasm_exe.root_module, features, debug);
+    // // WASM build support
+    // const wasm_exe = createWasmExecutable(b, "mufiz", "src/c_api.zig");
+    // configureModule(wasm_exe.root_module, features, debug);
 
-    const install_wasm = b.addInstallArtifact(wasm_exe, .{
-        .dest_dir = .{ .override = .{ .custom = "wasm" } },
-    });
-    const wasm_step = b.step("wasm", "Build WebAssembly library");
-    wasm_step.dependOn(&install_wasm.step);
+    // const install_wasm = b.addInstallArtifact(wasm_exe, .{
+    //     .dest_dir = .{ .override = .{ .custom = "wasm" } },
+    // });
+    // const wasm_step = b.step("wasm", "Build WebAssembly library");
+    // wasm_step.dependOn(&install_wasm.step);
 
     // Executable (native)
     const exe = createExecutable(b, "mufiz", "src/main.zig", target, optimize);
@@ -86,9 +86,6 @@ pub fn build(b: *std.Build) !void {
 
     // Tests
     setupTests(b, target, optimize, features, debug);
-
-    // Benchmarks
-    setupBenchmarks(b, target, features, debug);
 }
 
 fn createFeatureOptions(b: *std.Build) *std.Build.Step.Options {
@@ -222,60 +219,60 @@ fn setupTests(
     test_step.dependOn(&run_lib_tests.step);
 }
 
-fn setupBenchmarks(
-    b: *std.Build,
-    target: std.Build.ResolvedTarget,
-    features: *std.Build.Step.Options,
-    debug: *std.Build.Step.Options,
-) void {
-    const scanner_bench = b.addExecutable(.{
-        .name = "scanner_bench",
-        .root_module = b.createModule(.{
-            .root_source_file = b.path("benchmark/scanner_bench.zig"),
-            .target = target,
-            .optimize = .ReleaseFast,
-        }),
-    });
-    configureModule(scanner_bench.root_module, features, debug);
+// fn setupBenchmarks(
+//     b: *std.Build,
+//     target: std.Build.ResolvedTarget,
+//     features: *std.Build.Step.Options,
+//     debug: *std.Build.Step.Options,
+// ) void {
+//     const scanner_bench = b.addExecutable(.{
+//         .name = "scanner_bench",
+//         .root_module = b.createModule(.{
+//             .root_source_file = b.path("benchmark/scanner_bench.zig"),
+//             .target = target,
+//             .optimize = .ReleaseFast,
+//         }),
+//     });
+//     configureModule(scanner_bench.root_module, features, debug);
 
-    // Add scanner module as import
-    scanner_bench.root_module.addAnonymousImport("scanner", .{
-        .root_source_file = b.path("src/scanner_optimized.zig"),
-    });
+//     // Add scanner module as import
+//     scanner_bench.root_module.addAnonymousImport("scanner", .{
+//         .root_source_file = b.path("src/scanner_optimized.zig"),
+//     });
 
-    const run_scanner_bench = b.addRunArtifact(scanner_bench);
-    const bench_step = b.step("bench-scanner", "Run scanner benchmarks");
-    bench_step.dependOn(&run_scanner_bench.step);
+//     const run_scanner_bench = b.addRunArtifact(scanner_bench);
+//     const bench_step = b.step("bench-scanner", "Run scanner benchmarks");
+//     bench_step.dependOn(&run_scanner_bench.step);
 
-    // Parallel scanner benchmark
-    const parallel_scanner_bench = b.addExecutable(.{
-        .name = "parallel_scanner_bench",
-        .root_module = b.createModule(.{
-            .root_source_file = b.path("benchmark/parallel_scanner_bench.zig"),
-            .target = target,
-            .optimize = .ReleaseFast,
-        }),
-    });
-    configureModule(parallel_scanner_bench.root_module, features, debug);
+//     // Parallel scanner benchmark
+//     const parallel_scanner_bench = b.addExecutable(.{
+//         .name = "parallel_scanner_bench",
+//         .root_module = b.createModule(.{
+//             .root_source_file = b.path("benchmark/parallel_scanner_bench.zig"),
+//             .target = target,
+//             .optimize = .ReleaseFast,
+//         }),
+//     });
+//     configureModule(parallel_scanner_bench.root_module, features, debug);
 
-    // Create scanner module
-    const scanner_module = b.createModule(.{
-        .root_source_file = b.path("src/scanner_optimized.zig"),
-    });
+//     // Create scanner module
+//     const scanner_module = b.createModule(.{
+//         .root_source_file = b.path("src/scanner_optimized.zig"),
+//     });
 
-    // Add scanner module as import
-    parallel_scanner_bench.root_module.addImport("scanner", scanner_module);
+//     // Add scanner module as import
+//     parallel_scanner_bench.root_module.addImport("scanner", scanner_module);
 
-    // Create parallel scanner module with scanner dependency
-    const parallel_scanner_module = b.createModule(.{
-        .root_source_file = b.path("src/parallel/scanner_parallel.zig"),
-    });
-    parallel_scanner_module.addImport("../scanner_optimized.zig", scanner_module);
+//     // Create parallel scanner module with scanner dependency
+//     const parallel_scanner_module = b.createModule(.{
+//         .root_source_file = b.path("src/parallel/scanner_parallel.zig"),
+//     });
+//     parallel_scanner_module.addImport("../scanner_optimized.zig", scanner_module);
 
-    // Add parallel scanner module as import
-    parallel_scanner_bench.root_module.addImport("parallel_scanner", parallel_scanner_module);
+//     // Add parallel scanner module as import
+//     parallel_scanner_bench.root_module.addImport("parallel_scanner", parallel_scanner_module);
 
-    const run_parallel_scanner_bench = b.addRunArtifact(parallel_scanner_bench);
-    const parallel_bench_step = b.step("bench-parallel", "Run parallel scanner benchmarks");
-    parallel_bench_step.dependOn(&run_parallel_scanner_bench.step);
-}
+//     const run_parallel_scanner_bench = b.addRunArtifact(parallel_scanner_bench);
+//     const parallel_bench_step = b.step("bench-parallel", "Run parallel scanner benchmarks");
+//     parallel_bench_step.dependOn(&run_parallel_scanner_bench.step);
+// }
